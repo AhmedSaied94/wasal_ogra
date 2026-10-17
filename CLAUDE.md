@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **وصّل الأجرة** (code name `wassal`) is a casual puzzle game for mobile. You play a Cairo microbus driver who collects fares, hands back exact change before each stop, and saves up to furnish an apartment and get married. It launches on Android in Egypt first, then iOS and the Gulf.
 
-**There is no code yet, and the directory is not a git repo.** Right now it has:
+**There is no application code yet.** The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
+- `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
 
 No build, lint or test commands exist yet. They arrive with features **B01** (backend skeleton) and **M03** (app shell). Once those land, add the real commands here.
 
@@ -32,6 +33,11 @@ The two architecture docs are paired, so read both:
 
 - Spec-kit's integration is **Claude Code** (`.specify/integration.json`). Run each step as a slash command: `/speckit-constitution` → `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` (plus `/speckit-checklist`, `/speckit-converge` and `/speckit-taskstoissues`). The skill files live in `.claude/skills/speckit-<step>/SKILL.md`.
 - The Specify CLI generates and hash-tracks these skill files, templates and scripts (`.specify/integrations/*.manifest.json`). Don't hand-edit them.
+- **Feature branches are handled by hooks** (`.specify/extensions.yml`):
+  - The core `git` extension creates the feature branch during `/speckit-specify`.
+  - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
+  - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
+- To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
 - **The constitution** (`.specify/memory/constitution.md`, v1.0.0, ratified 2026-10-18) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
@@ -40,9 +46,9 @@ The two architecture docs are paired, so read both:
 - **Tests are mandatory for every feature**, even though `tasks-template.md` says they are optional (constitution XIII).
   - Write tests first for engine rules, ledger/sync validators, entitlements, and purchase/webhook verification.
   - Coverage: ≥ 90% lines in `trip_engine`, ≥ 80% everywhere else.
-- The Sync Impact Report comment at the top of the constitution is scratch for review. Delete it before the first commit.
 - Every feature ID becomes one `specs/NNN-<short-name>/` folder (sequential numbering). Backend features are `B01`–`B15` (backend §20) and mobile features are `M01`–`M20` (mobile §23). Plan each B/M pair together so they share `contracts/` content.
 - MVP joint order (backend §21): M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
+- `docs/delivery-plan.md` turns that order into spec numbers and branch names (`001-m03-app-shell` …). It also lists the open questions each feature must resolve and each step's "done when". Tick its Progress list when a feature merges.
 - Helper scripts (run from the repo root):
   - `.specify/scripts/bash/create-new-feature.sh --json --short-name <name> [--number N] "<description>"` creates `specs/NNN-name/` and records it in `.specify/feature.json`. That file is machine-local and gitignored.
   - `.specify/scripts/bash/check-prerequisites.sh --json [--require-spec|--require-tasks|--paths-only]`

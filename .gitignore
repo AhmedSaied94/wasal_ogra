@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+# Secrets: never commit (constitution, "Security & privacy")
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.jks
+*.keystore
+key.properties
+*service-account*.json
+*firebase-adminsdk*.json
+
+# ---------------------------------------------------------------------------
+# OS and editors
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.iml
+
+# ---------------------------------------------------------------------------
+# Python / Django (backend/, tools/solver/)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+celerybeat-schedule*
+backend/staticfiles/
+backend/media/
+
+# ---------------------------------------------------------------------------
+# Dart / Flutter (apps/mobile/, packages/)
+# ---------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+.fvm/
+build/
+coverage/
+**/failures/
+local.properties
+.gradle/
+**/ios/Pods/
+**/ios/.symlinks/
+*.apk
+*.aab
+*.ipa
+
+# ---------------------------------------------------------------------------
+# Logs and local tooling state
+# ---------------------------------------------------------------------------
+*.log
+.claude/settings.local.json
+.specify/extensions/.cache/

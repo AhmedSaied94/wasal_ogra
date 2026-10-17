@@ -1,0 +1,1 @@
+../../../.specify/extensions/feature-branch/.specify-dev/agent-commands/claude/speckit-feature-branch-ensure/SKILL.md
