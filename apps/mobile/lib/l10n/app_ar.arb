@@ -1,0 +1,181 @@
+{
+  "@@locale": "ar",
+  "appName": "وصّل الأجرة",
+  "@appName": {
+    "description": "The game's name, shown on the boot screen."
+  },
+  "bootErrorMessage": "حصلت مشكلة وإحنا بنفتح اللعبة.",
+  "@bootErrorMessage": {
+    "description": "Boot screen: startup failed (for example, local storage could not be read)."
+  },
+  "bootRetry": "حاول تاني",
+  "@bootRetry": {
+    "description": "Boot screen: button that runs startup again after a failure."
+  },
+  "tabHome": "الموقف",
+  "@tabHome": {
+    "description": "Bottom bar tab: the microbus stand, the home screen."
+  },
+  "tabLines": "الخطوط",
+  "@tabLines": {
+    "description": "Bottom bar tab: the lines (routes) map."
+  },
+  "tabApartment": "الشقة",
+  "@tabApartment": {
+    "description": "Bottom bar tab: the apartment being furnished."
+  },
+  "tabShop": "المحل",
+  "@tabShop": {
+    "description": "Bottom bar tab: the shop."
+  },
+  "destHome": "الموقف",
+  "@destHome": {
+    "description": "Placeholder title for the home screen (الموقف) until its real content lands."
+  },
+  "destLines": "الخطوط",
+  "@destLines": {
+    "description": "Placeholder title for the lines map."
+  },
+  "destApartment": "الشقة",
+  "@destApartment": {
+    "description": "Placeholder title for the apartment screen."
+  },
+  "destShop": "المحل",
+  "@destShop": {
+    "description": "Placeholder title for the shop."
+  },
+  "placeholderNote": "الشاشة دي لسه بتتجهز.",
+  "@placeholderNote": {
+    "description": "Shown under every placeholder title: this screen is still being built."
+  },
+  "destOnboardingIntro": "أهلاً يا أسطى",
+  "@destOnboardingIntro": {
+    "description": "Placeholder title: the opening comic scene (onboarding intro)."
+  },
+  "destOnboardingName": "اسمك إيه يا أسطى؟",
+  "@destOnboardingName": {
+    "description": "Placeholder title: the driver-name card (onboarding)."
+  },
+  "destPreTrip": "كارت ما قبل المشوار",
+  "@destPreTrip": {
+    "description": "Placeholder title: the pre-trip sheet over الموقف."
+  },
+  "destTrip": "المشوار",
+  "@destTrip": {
+    "description": "Placeholder title: the trip screen."
+  },
+  "destResult": "النتيجة",
+  "@destResult": {
+    "description": "Placeholder title: the trip result screen."
+  },
+  "destLineDetail": "تفاصيل الخط",
+  "@destLineDetail": {
+    "description": "Placeholder title: the line detail sheet."
+  },
+  "destVehiclePurchase": "شراء العربية",
+  "@destVehiclePurchase": {
+    "description": "Placeholder title: the vehicle purchase sheet."
+  },
+  "destApartmentItem": "لوح القطعة",
+  "@destApartmentItem": {
+    "description": "Placeholder title: the furniture item sheet."
+  },
+  "destApartmentRequests": "طلبات أهل العروسة",
+  "@destApartmentRequests": {
+    "description": "Placeholder title: the bride's family requests sheet."
+  },
+  "destApartmentChapters": "خط الفصول",
+  "@destApartmentChapters": {
+    "description": "Placeholder title: the story chapters timeline."
+  },
+  "destStory": "مشهد القصة",
+  "@destStory": {
+    "description": "Placeholder title: a story scene."
+  },
+  "destFuel": "البنزين",
+  "@destFuel": {
+    "description": "Placeholder title: the fuel sheet."
+  },
+  "destDailyReward": "المكافأة اليومية",
+  "@destDailyReward": {
+    "description": "Placeholder title: the daily reward."
+  },
+  "destDailyTasks": "مهام اليوم",
+  "@destDailyTasks": {
+    "description": "Placeholder title: today's tasks."
+  },
+  "destDailyChallenge": "تحدي اليوم",
+  "@destDailyChallenge": {
+    "description": "Placeholder title: today's challenge."
+  },
+  "destSettings": "الإعدادات",
+  "@destSettings": {
+    "description": "Placeholder title: settings."
+  },
+  "destAccount": "الحساب",
+  "@destAccount": {
+    "description": "Placeholder title: the account screen under settings."
+  },
+  "backLabel": "رجوع",
+  "@backLabel": {
+    "description": "Accessible label of the top-right back control on pages."
+  },
+  "closeLabel": "قفل",
+  "@closeLabel": {
+    "description": "Accessible label of the close button on sheets."
+  },
+  "pressBackAgainToExit": "دوس رجوع تاني عشان تخرج",
+  "@pressBackAgainToExit": {
+    "description": "Snackbar on الموقف after the first back press; a second press within 2 seconds leaves the app."
+  },
+  "pauseTitle": "واقفين على جنب",
+  "@pauseTitle": {
+    "description": "Title of the trip pause overlay (ux-spec «نافذة الإيقاف»)."
+  },
+  "pauseResume": "كمّل المشوار",
+  "@pauseResume": {
+    "description": "Trip pause overlay: resume the trip."
+  },
+  "pauseHome": "ارجع الموقف",
+  "@pauseHome": {
+    "description": "Trip pause overlay: leave the trip and go to الموقف."
+  },
+  "newBadgeLabel": "جديد",
+  "@newBadgeLabel": {
+    "description": "Screen-reader label of the «new» dot on a bottom-bar tab."
+  },
+  "settingsDigitStyle": "شكل الأرقام",
+  "@settingsDigitStyle": {
+    "description": "Settings: label of the digit-style choice."
+  },
+  "digitStyleArabic": "عربية ١٢٣",
+  "@digitStyleArabic": {
+    "description": "Settings: digit-style option for Arabic-Indic digits (the default)."
+  },
+  "digitStyleWestern": "غربية 123",
+  "@digitStyleWestern": {
+    "description": "Settings: digit-style option for Western digits."
+  },
+  "sampleNumbers": "أرقام للتجربة: {integer}، {money} جنيه، {ratio}، {countdown}",
+  "@sampleNumbers": {
+    "description": "Placeholder screens: sample numbers that show the current digit style. Every value is preformatted by NumberFormatter.",
+    "placeholders": {
+      "integer": {
+        "type": "String",
+        "example": "1,250"
+      },
+      "money": {
+        "type": "String",
+        "example": "8.5"
+      },
+      "ratio": {
+        "type": "String",
+        "example": "4/5"
+      },
+      "countdown": {
+        "type": "String",
+        "example": "12:30"
+      }
+    }
+  }
+}

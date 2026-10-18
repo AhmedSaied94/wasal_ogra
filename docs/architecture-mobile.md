@@ -40,9 +40,9 @@ The backend (see [`architecture-backend.md`](./architecture-backend.md)) is auth
 | Primary dependencies | `flame` (trip scene), `rive` (character animation), `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio` |
 | Storage | Local SQLite via `drift` (game state, ledger, sync queue, content cache). Secure storage for auth tokens. Bundled assets for the initial content pack. |
 | Testing | `test` for the pure-Dart engine, `flutter_test` + golden tests for widgets, `integration_test` for end-to-end trip flows, shared JSON fixtures for engine ↔ solver parity |
-| Target platform | Android first (minSdk **NEEDS CLARIFICATION**: proposed API 24, verify against ads/IAP plugin minimums), iOS second (proposed iOS 15+). Portrait only. |
+| Target platform | Android first (minSdk 24, targetSdk 36), iOS second (iOS 15.0). Portrait only. Decided in M03: `specs/001-m03-app-shell/research.md` R1. |
 | Project type | Mobile app + reusable pure-Dart package inside a monorepo that also holds the backend |
-| Performance goals | 60 fps in the trip scene on a low-end Android device (2–3 GB RAM class); cold start to Home < 3 s; first trip playable < 20 s after install-first-open (product requirement) |
+| Performance goals | 60 fps in the trip scene on the reference low-end device, a Samsung Galaxy A06 (4 GB RAM, Helio G85); cold start to Home < 3 s on that device; first trip playable < 20 s after install-first-open (product requirement) |
 | Constraints | Arabic RTL everywhere; Arabic-Indic digits by default with a Western-digits setting; offline play for regular trips; no ads during a trip; no LLM calls at runtime; minimum on-screen sizes from UX doc §"الأحجام الدنيا" |
 | Scale/Scope | MVP: 2 lines (≈50 trips), 2 vehicles, story chapters 1–4, ~11 screens + overlays. Full scope: 5 lines (≈140 trips), 4 vehicles, 7 chapters, ≈20 screens. |
 
@@ -559,7 +559,7 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 
 | Area | Budget |
 | --- | --- |
-| Trip scene | 60 fps target, never below 45 fps on reference low-end device (**NEEDS CLARIFICATION**: pick device) |
+| Trip scene | 60 fps target, never below 45 fps on the reference device, a Samsung Galaxy A06 (`specs/001-m03-app-shell/research.md` R14) |
 | Cold start | < 3 s to Home on reference device |
 | Install size | Android download < 80 MB (initial content + Rive + audio) |
 | Memory | < 300 MB during a trip |
@@ -634,8 +634,8 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 
 ## 24. Open Questions (NEEDS CLARIFICATION)
 
-1. Android `minSdk` and iOS minimum, after checking ads/IAP plugin requirements.
-2. Reference low-end Android device for performance budgets.
+1. **Resolved in M03:** Android `minSdk` 24 and `targetSdk` 36; iOS 15.0. See [research R1](../specs/001-m03-app-shell/research.md#r1-minimum-platform-versions-resolves-mobile-241).
+2. **Resolved in M03:** the reference low-end Android device is a Samsung Galaxy A06 (4 GB RAM, Helio G85). See [research R14](../specs/001-m03-app-shell/research.md#r14-reference-device-and-cold-start-method-resolves-mobile-242-owner-decision-2026-10-18).
 3. AdMob mediation networks for Egypt and the Gulf.
 4. Trip resume policy after the app is killed mid-trip: resume from last station checkpoint or restart (fuel refunded?).
 5. Does replaying a completed trip for stars cost fuel? (Product doc implies yes; confirm.)

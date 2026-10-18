@@ -63,6 +63,10 @@ local.properties
 *.aab
 *.ipa
 
+# Generated code is not committed (specs/001-m03-app-shell/plan.md)
+apps/mobile/lib/l10n/generated/
+**/*.g.dart
+
 # ---------------------------------------------------------------------------
 # Logs and local tooling state
 # ---------------------------------------------------------------------------

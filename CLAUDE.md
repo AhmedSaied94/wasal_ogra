@@ -6,13 +6,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **وصّل الأجرة** (code name `wassal`) is a casual puzzle game for mobile. You play a Cairo microbus driver who collects fares, hands back exact change before each stop, and saves up to furnish an apartment and get married. It launches on Android in Egypt first, then iOS and the Gulf.
 
-**There is no application code yet.** The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
+The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
+- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
+- `.github/workflows/mobile.yml`: mobile CI.
 
-No build, lint or test commands exist yet. They arrive with features **B01** (backend skeleton) and **M03** (app shell). Once those land, add the real commands here.
+There is no backend yet. Its commands arrive with **B01** (backend skeleton); add them here when it lands.
+
+## Mobile commands
+
+Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `fvm`, from `apps/mobile/`. CI (`.github/workflows/mobile.yml`) runs the same commands, in this order:
+
+| Purpose | Command (in `apps/mobile`) |
+| --- | --- |
+| Install deps and generate l10n | `fvm flutter pub get` |
+| Code generation (Riverpod) | `fvm dart run build_runner build -d` |
+| Format check | `fvm dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')` |
+| Analyze | `fvm flutter analyze --fatal-infos` |
+| All tests and goldens | `fvm flutter test --coverage` |
+| Coverage gate (≥ 80%) | `fvm dart run tool/check_coverage.dart --min 80` |
+| Update goldens (Linux only) | `fvm flutter test --update-goldens test/goldens` |
+| Run the dev variant | `fvm flutter run --flavor dev` |
+| Build the dev APK | `fvm flutter build apk --flavor dev --debug` |
+| Cold start on a device | `tool/perf/cold_start.sh <package> <runs>` (see `specs/001-m03-app-shell/quickstart.md`) |
+
+- Every build needs `--flavor dev|staging|prod`; the app refuses to start without one.
+- Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
+- Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
+- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks and the tunables registry.
 
 ## Design documents (read before planning or coding)
 
