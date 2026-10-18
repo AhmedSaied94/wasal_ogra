@@ -98,8 +98,8 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | `001-m03-app-shell` | M03 | App shell: routing, theme tokens, l10n/RTL, digit setting | — | ux-spec «النظام البصري», «خريطة الشاشات والتنقل»; mobile §5, §6, §9, §21 |
 | `002-b01-backend-skeleton` | B01 | Project skeleton: Django settings, Docker Compose, Caddy, CI/CD, Sentry, health checks | — | backend §2, §4, §5, §15 |
 
-- **Resolve:** mobile §24.1 (Android `minSdk` and iOS minimum) in M03; backend §22.1 (OCI free-tier
-  capacity, or the paid fallback) in B01.
+- **Resolve:** mobile §24.1 (Android `minSdk` and iOS minimum) and §24.2 (reference device: Galaxy
+  A06) in M03; backend §22.1 (OCI free-tier capacity, or the paid fallback) in B01.
 - **Also in M03:**
   - Pin Flutter with FVM, and set up mobile CI on GitHub Actions.
   - Add a `ConfigSource` with bundled defaults, so tunables (constitution VIII) work before Firebase
@@ -161,13 +161,12 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | `008-m02-trip-screen` | M02 | Trip screen: Flame scene, Rive characters, HUD, dashboard, overlays | M01, M04 | ux-spec «شاشة المشوار», «أثناء المشوار: الأحداث والنوافذ»; mobile §8 |
 
 - **Resolve:**
-  - mobile §24.2: choose the reference low-end device;
   - mobile §24.6: choose the Rive runtime and confirm its licensing;
   - mobile §24.4: design the UI side of the resume policy.
 - **Done when:**
   - A trip from the bundled pack plays from start to finish with no network.
   - The minimum sizes pass in RTL goldens.
-  - The scene holds ≥ 45 fps on the reference device.
+  - The scene holds ≥ 45 fps on the reference device (the Galaxy A06, chosen in M03 for mobile §24.2).
 - **Milestone:** the first internal test of "is the puzzle fun?".
 
 ### Step 6: Accounts and sync

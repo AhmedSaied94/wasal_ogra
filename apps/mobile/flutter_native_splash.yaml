@@ -1,0 +1,13 @@
+# Native launch screen (FR-012). Regenerate with:
+#   fvm dart run flutter_native_splash:create
+# The art in assets/branding/ is a placeholder until the real launch art lands.
+flutter_native_splash:
+  color: "#FFD23F"
+  image: assets/branding/splash_icon.png
+  android_12:
+    color: "#FFD23F"
+    icon_background_color: "#FFD23F"
+    image: assets/branding/splash_icon.png
+  android: true
+  ios: true
+  web: false
