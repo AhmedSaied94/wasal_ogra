@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/item.schema.json",
+  "title": "Item",
+  "description": "An apartment item with 1 to 3 style variants at the same price.",
+  "type": "object",
+  "required": [
+    "item_id",
+    "room_id",
+    "name",
+    "order",
+    "variants"
+  ],
+  "properties": {
+    "item_id": {
+      "$ref": "common.schema.json#/$defs/ItemId"
+    },
+    "room_id": {
+      "$ref": "common.schema.json#/$defs/RoomId"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ItemVariant"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ItemVariant": {
+      "description": "A style variant of an item.",
+      "type": "object",
+      "required": [
+        "variant_id",
+        "name",
+        "art"
+      ],
+      "properties": {
+        "variant_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "art": {
+          "$ref": "common.schema.json#/$defs/Slug"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

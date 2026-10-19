@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "على {station} لو سمحت"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "نزّلني عند {station} يا أسطى"
+      }
+    }
+  ],
+  "speech_key": "passenger.stop_near"
+}

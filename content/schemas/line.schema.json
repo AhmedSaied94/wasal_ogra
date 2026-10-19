@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/line.schema.json",
+  "title": "Line",
+  "description": "A line: its stations in order, how it unlocks, and its difficulty band.",
+  "type": "object",
+  "required": [
+    "line_id",
+    "name",
+    "order",
+    "stations",
+    "unlock",
+    "difficulty_band"
+  ],
+  "properties": {
+    "line_id": {
+      "$ref": "common.schema.json#/$defs/LineId"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LineStation"
+      },
+      "minItems": 2,
+      "maxItems": 30
+    },
+    "unlock": {
+      "$ref": "#/$defs/LineUnlock"
+    },
+    "difficulty_band": {
+      "$ref": "#/$defs/DifficultyBand"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LineStation": {
+      "description": "A station of a line.",
+      "type": "object",
+      "required": [
+        "station_id",
+        "name"
+      ],
+      "properties": {
+        "station_id": {
+          "$ref": "common.schema.json#/$defs/StationId"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UnlockKind": {
+      "description": "How a line unlocks.",
+      "type": "string",
+      "enum": [
+        "start",
+        "vehicle",
+        "line_complete"
+      ]
+    },
+    "LineUnlock": {
+      "description": "A line's unlock rule: start has no field, vehicle needs vehicle_id, line_complete needs line_id.",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/UnlockKind"
+        },
+        "vehicle_id": {
+          "$ref": "common.schema.json#/$defs/VehicleId"
+        },
+        "line_id": {
+          "$ref": "common.schema.json#/$defs/LineId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "DifficultyBand": {
+      "description": "The difficulty scores (0-100) a line's trips must fall in.",
+      "type": "object",
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

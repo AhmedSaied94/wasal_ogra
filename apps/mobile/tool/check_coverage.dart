@@ -42,6 +42,7 @@ final class CoverageReport {
 
 bool _excluded(String path) =>
     path.endsWith('.g.dart') ||
+    path.endsWith('.freezed.dart') ||
     path.startsWith('lib/l10n/generated/') ||
     path == 'lib/main.dart';
 

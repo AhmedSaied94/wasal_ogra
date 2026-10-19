@@ -1,0 +1,13 @@
+{
+  "lines": [
+    {
+      "text": 5
+    },
+    {
+      "text": {
+        "ar-EG": "فين الـ{amount} بتوعي؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.wants_change"
+}

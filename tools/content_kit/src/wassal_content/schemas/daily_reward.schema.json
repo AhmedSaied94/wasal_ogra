@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/daily_reward.schema.json",
+  "title": "DailyRewardDay",
+  "description": "One day of the daily reward streak.",
+  "type": "object",
+  "required": [
+    "day_index",
+    "jenehat",
+    "bonat"
+  ],
+  "properties": {
+    "day_index": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7
+    },
+    "jenehat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    },
+    "bonat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    }
+  },
+  "additionalProperties": false
+}

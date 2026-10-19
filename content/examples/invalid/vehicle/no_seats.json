@@ -1,0 +1,9 @@
+{
+  "name": {
+    "ar-EG": "الميكروباص القديم"
+  },
+  "order": 2,
+  "seats": [],
+  "starter": false,
+  "vehicle_id": "micro_old"
+}

@@ -10,10 +10,11 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 
 - `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin.
+- `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
-- `.github/workflows/mobile.yml`: mobile CI.
+- `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models`).
 
 ## Backend commands
 
@@ -59,6 +60,29 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 - Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
 - `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks and the tunables registry.
+
+## Content commands
+
+The schemas in `content/schemas/` are the only definition of content. `tools/content_kit` (the uv project `wassal-content`, Python pinned by its `.python-version`) generates both model sets from them and validates content. CI runs the same commands in the backend workflow's `content-kit` job and in the mobile `check` job.
+
+| Purpose | Command |
+| --- | --- |
+| First setup (in `tools/content_kit`) | `uv sync` |
+| Regenerate after a schema change | `uv run wassal-content codegen` |
+| Generated files match the schemas (CI) | `uv run wassal-content codegen --check` |
+| Validate one document | `uv run wassal-content validate <file> [--part trip]` |
+| Validate a content layout | `uv run wassal-content validate-source ../../content/examples/sample` |
+| Breaking schema changes | `uv run wassal-content schema-diff --base origin/master` |
+| Sample pack checksums | `uv run wassal-content golden` (check) / `golden --update` (rewrite, then review) |
+| Lint, types, tests | `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest --cov --cov-fail-under=80` |
+| App models: build (in `packages/content_models`) | `fvm dart pub get && fvm dart run build_runner build -d` |
+| App models: analyze and test | `fvm dart analyze --fatal-infos && fvm dart test --coverage=coverage` |
+| App models: coverage gate | `fvm dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info && fvm dart run ../../apps/mobile/tool/check_coverage.dart --min 80 --lcov coverage/lcov.info` |
+
+- After editing a schema: run `codegen`, then `build_runner` in `packages/content_models`, and commit the schema with `_generated.py`, `src/wassal_content/schemas/*.json` and `lib/src/generated/*.dart`. The `*.freezed.dart` and `*.g.dart` parts are gitignored.
+- Never edit a generated file by hand: `codegen --check` fails on any difference.
+- The schemas follow a restricted profile (research R3 of B04): closed objects, integers only, no `null`, no `default`, no combinators, and every object and enum named in `$defs`. `codegen` refuses anything else.
+- `content/source/` holds only exports of packs promoted to production. Until its `pack.json` exists, schemas may change freely; after that, a breaking change needs a major bump in `content/schemas/schema-set.json`.
 
 ## Design documents (read before planning or coding)
 
@@ -109,10 +133,12 @@ A monorepo laid out as described in backend §5 and mobile §5:
 apps/mobile/            Flutter app: screens + Flame trip scene + Rive characters
 packages/trip_engine/   Pure-Dart gameplay engine (no Flutter imports)
 packages/content_models/ Dart models GENERATED from content/schemas
+tools/content_kit/      Python `wassal-content`: codegen, validation, canonical pack files
 backend/                Django 5.2 + DRF; apps/<name>/{models,services/,api/,tasks,admin}
 tools/solver/           Python `wassal_solver`: mirror of trip_engine + solver/generator
 contracts/openapi.yaml  Generated by drf-spectacular, committed, consumed by mobile
 content/schemas/        JSON Schema 2020-12 for packs (trip, line, item, catalog, …)
+content/examples/       valid/invalid documents, the sample pack and its golden checksums
 fixtures/parity/        {definition, seed, params, command_log, expected_result}
 ```
 

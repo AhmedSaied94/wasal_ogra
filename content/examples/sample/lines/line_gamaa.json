@@ -1,0 +1,47 @@
+{
+  "difficulty_band": {
+    "max": 55,
+    "min": 20
+  },
+  "line_id": "line_gamaa",
+  "name": {
+    "ar-EG": "خط الجامعة"
+  },
+  "order": 2,
+  "stations": [
+    {
+      "name": {
+        "ar-EG": "الكوبري"
+      },
+      "station_id": "kobri"
+    },
+    {
+      "name": {
+        "ar-EG": "المستشفى"
+      },
+      "station_id": "mostashfa"
+    },
+    {
+      "name": {
+        "ar-EG": "الجامعة"
+      },
+      "station_id": "gamaa"
+    },
+    {
+      "name": {
+        "ar-EG": "المكتبة"
+      },
+      "station_id": "maktaba"
+    },
+    {
+      "name": {
+        "ar-EG": "السور"
+      },
+      "station_id": "sour"
+    }
+  ],
+  "unlock": {
+    "kind": "vehicle",
+    "vehicle_id": "micro_old"
+  }
+}

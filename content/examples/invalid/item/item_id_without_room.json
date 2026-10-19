@@ -1,0 +1,31 @@
+{
+  "item_id": "nish",
+  "name": {
+    "ar-EG": "النيش"
+  },
+  "order": 1,
+  "room_id": "salon",
+  "variants": [
+    {
+      "art": "nish_classic",
+      "name": {
+        "ar-EG": "كلاسيك"
+      },
+      "variant_id": "classic"
+    },
+    {
+      "art": "nish_crystal",
+      "name": {
+        "ar-EG": "كريستال"
+      },
+      "variant_id": "crystal"
+    },
+    {
+      "art": "nish_modern",
+      "name": {
+        "ar-EG": "مودرن"
+      },
+      "variant_id": "modern"
+    }
+  ]
+}

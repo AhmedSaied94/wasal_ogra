@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/vehicle.schema.json",
+  "title": "Vehicle",
+  "description": "A vehicle and its seat layout. Its price lives in the catalog.",
+  "type": "object",
+  "required": [
+    "vehicle_id",
+    "name",
+    "order",
+    "starter",
+    "seats"
+  ],
+  "properties": {
+    "vehicle_id": {
+      "$ref": "common.schema.json#/$defs/VehicleId"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "starter": {
+      "type": "boolean"
+    },
+    "seats": {
+      "type": "array",
+      "items": {
+        "$ref": "trip.schema.json#/$defs/Seat"
+      },
+      "minItems": 1,
+      "maxItems": 20
+    }
+  },
+  "additionalProperties": false
+}

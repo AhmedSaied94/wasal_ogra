@@ -1,0 +1,28 @@
+{
+  "name": {
+    "ar-EG": "توكتوك المعلم"
+  },
+  "order": 1,
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    }
+  ],
+  "starter": true,
+  "vehicle_id": "tuktuk"
+}

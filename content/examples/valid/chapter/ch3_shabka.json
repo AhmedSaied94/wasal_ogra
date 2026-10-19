@@ -1,0 +1,12 @@
+{
+  "chapter_id": "ch3_shabka",
+  "completion_bonat": 10,
+  "goal": {
+    "kind": "purchase"
+  },
+  "order": 3,
+  "scenes": [],
+  "title": {
+    "ar-EG": "الشبكة"
+  }
+}

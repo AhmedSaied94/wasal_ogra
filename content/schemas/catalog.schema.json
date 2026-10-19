@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/catalog.schema.json",
+  "title": "Catalog",
+  "description": "Every price of the pack, in JENEHAT or BONAT. No real-money price appears here.",
+  "type": "object",
+  "required": [
+    "prices"
+  ],
+  "properties": {
+    "prices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CatalogPrice"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "SkuKind": {
+      "description": "The kind of a priced product.",
+      "type": "string",
+      "enum": [
+        "item",
+        "vehicle",
+        "chapter",
+        "booster",
+        "fuel",
+        "revive",
+        "fuel_unlimited"
+      ]
+    },
+    "CatalogPrice": {
+      "description": "The price of one product.",
+      "type": "object",
+      "required": [
+        "sku_kind",
+        "sku_id",
+        "currency",
+        "amount"
+      ],
+      "properties": {
+        "sku_kind": {
+          "$ref": "#/$defs/SkuKind"
+        },
+        "sku_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.]{1,63}$"
+        },
+        "currency": {
+          "$ref": "common.schema.json#/$defs/Currency"
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "canonical": "{\"A\":4,\"a\":2,\"aa\":3,\"b\":1}",
+    "input": {
+      "A": 4,
+      "a": 2,
+      "aa": 3,
+      "b": 1
+    },
+    "name": "keys sorted"
+  },
+  {
+    "canonical": "{\"z\":3,\"\ud83d\ude00\":2,\"\ue000\":1}",
+    "input": {
+      "z": 3,
+      "\ue000": 1,
+      "\ud83d\ude00": 2
+    },
+    "name": "keys sorted by UTF-16 code unit, not code point"
+  },
+  {
+    "canonical": "{\"s\":\"q\\\"b\\\\s\\b\\f\\n\\r\\t\\u0001\\u001f/\u007f\u2028\u2029\"}",
+    "input": {
+      "s": "q\"b\\s\b\f\n\r\t\u0001\u001f/\u007f\u2028\u2029"
+    },
+    "name": "minimal escaping"
+  },
+  {
+    "canonical": "{\"ar-EG\":\"\u0627\u062f\u0641\u0639 {amount}\"}",
+    "input": {
+      "ar-EG": "\u0627\u062f\u0641\u0639 {amount}"
+    },
+    "name": "Arabic is not escaped"
+  },
+  {
+    "canonical": "{\"a\":{},\"b\":[],\"c\":\"\"}",
+    "input": {
+      "a": {},
+      "b": [],
+      "c": ""
+    },
+    "name": "empty containers"
+  },
+  {
+    "canonical": "[0,-1,50,4294967295,9007199254740991]",
+    "input": [
+      0,
+      -1,
+      50,
+      4294967295,
+      9007199254740991
+    ],
+    "name": "integers in shortest form"
+  },
+  {
+    "canonical": "{\"f\":false,\"t\":true}",
+    "input": {
+      "f": false,
+      "t": true
+    },
+    "name": "booleans"
+  },
+  {
+    "canonical": "[{\"a\":1,\"b\":1},{\"a\":2},[3,1,2]]",
+    "input": [
+      {
+        "a": 1,
+        "b": 1
+      },
+      {
+        "a": 2
+      },
+      [
+        3,
+        1,
+        2
+      ]
+    ],
+    "name": "array order is kept, nested keys sorted"
+  },
+  {
+    "canonical": "\"x\"",
+    "input": "x",
+    "name": "a bare string"
+  }
+]

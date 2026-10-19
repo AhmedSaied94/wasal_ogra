@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/room.schema.json",
+  "title": "Room",
+  "description": "An apartment room.",
+  "type": "object",
+  "required": [
+    "room_id",
+    "name",
+    "order",
+    "chapter_id",
+    "completion_bonat"
+  ],
+  "properties": {
+    "room_id": {
+      "$ref": "common.schema.json#/$defs/RoomId"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "chapter_id": {
+      "$ref": "common.schema.json#/$defs/ChapterId"
+    },
+    "completion_bonat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    }
+  },
+  "additionalProperties": false
+}

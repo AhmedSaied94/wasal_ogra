@@ -1,0 +1,23 @@
+{
+  "difficulty_band": {
+    "max": 55,
+    "min": 20
+  },
+  "line_id": "line_gamaa",
+  "name": {
+    "ar-EG": "خط الجامعة"
+  },
+  "order": 2,
+  "stations": [
+    {
+      "name": {
+        "ar-EG": "الكوبري"
+      },
+      "station_id": "kobri"
+    }
+  ],
+  "unlock": {
+    "kind": "vehicle",
+    "vehicle_id": "micro_old"
+  }
+}

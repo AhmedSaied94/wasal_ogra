@@ -1,0 +1,13 @@
+{
+  "chapter_id": "ch4_salon",
+  "completion_bonat": 15,
+  "goal": {
+    "kind": "complete_room",
+    "room_id": "salon"
+  },
+  "order": 4,
+  "scenes": [],
+  "title": {
+    "ar-EG": "الصالون"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "chapter_id": "ch9_honeymoon",
+  "completion_bonat": 5,
+  "goal": {
+    "kind": "complete_line",
+    "line_id": "line_hay"
+  },
+  "order": 1,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "stand_morning",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "يا صباح الفل يا موقف"
+              }
+            }
+          ]
+        },
+        {
+          "art": "salma_waiting",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "هو الميكروباص ده رايح الجامعة؟"
+              }
+            }
+          ]
+        },
+        {
+          "art": "usta_decides",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "خلاص، من النهارده هحوّش قرش قرش"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "the_stand"
+    }
+  ],
+  "story_trip_id": "line_hay.03",
+  "title": {
+    "ar-EG": "أول شغلانة"
+  }
+}

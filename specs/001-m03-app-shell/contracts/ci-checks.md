@@ -61,7 +61,7 @@ passing.
 
 ## Coverage rules
 
-- **Excluded:** `**/*.g.dart`, `lib/l10n/generated/**`, `lib/main.dart`. The Android and iOS host code
+- **Excluded:** `**/*.g.dart`, `**/*.freezed.dart`, `lib/l10n/generated/**`, `lib/main.dart`. The Android and iOS host code
   is Kotlin/Swift and isn't measured.
 - **Untested files count:** the gate script adds every file under `lib/` that is missing from
   `lcov.info` as 0% covered, so a file no test imports can't hide.

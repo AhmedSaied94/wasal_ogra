@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/9/thing.schema.json",
+  "title": "Thing",
+  "description": "Every construct of the profile.",
+  "type": "object",
+  "required": [
+    "id",
+    "count",
+    "flag",
+    "color",
+    "coins",
+    "parts",
+    "tray",
+    "kind"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "common.schema.json#/$defs/Name"
+    },
+    "count": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    },
+    "flag": {
+      "type": "boolean"
+    },
+    "color": {
+      "$ref": "common.schema.json#/$defs/Color"
+    },
+    "coins": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/Coin"
+      },
+      "minItems": 1
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Part"
+      }
+    },
+    "tray": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/Name"
+      },
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "kind": {
+      "type": "string",
+      "const": "thing"
+    },
+    "label": {
+      "$ref": "common.schema.json#/$defs/Text"
+    },
+    "other": {
+      "$ref": "other.schema.json"
+    },
+    "nested": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Part": {
+      "description": "A part of a thing.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/Name"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

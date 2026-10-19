@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/9/common.schema.json",
+  "description": "Shared fixture definitions.",
+  "$defs": {
+    "Amount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "Name": {
+      "type": "string",
+      "pattern": "^[a-z]+$"
+    },
+    "Color": {
+      "description": "A color, with names that need converting.",
+      "type": "string",
+      "enum": [
+        "red",
+        "dark_blue",
+        "A",
+        "JENEHAT"
+      ]
+    },
+    "Coin": {
+      "description": "An integer enum.",
+      "type": "integer",
+      "enum": [
+        50,
+        100
+      ]
+    },
+    "Text": {
+      "description": "Text per locale, with a property that isn't an identifier.",
+      "type": "object",
+      "required": [
+        "ar-EG"
+      ],
+      "properties": {
+        "ar-EG": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ar": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
