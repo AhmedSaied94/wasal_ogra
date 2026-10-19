@@ -84,7 +84,7 @@ The two architecture docs are paired, so read both:
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
 - To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
-- **The constitution** (`.specify/memory/constitution.md`, v1.0.0, ratified 2026-10-18) overrides conflicting guidance, including this file.
+- **The constitution** (`.specify/memory/constitution.md`, v1.1.0, ratified 2026-10-18, amended 2026-10-19) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
   - Any other deviation goes in the plan's Complexity Tracking and needs the owner's approval.
@@ -149,7 +149,7 @@ These invariants cut across both sides, and you need several docs to see them:
 
 - **Mobile:** use Riverpod with `riverpod_generator`, not BLoC. Use **drift (SQLite)** for structured local data; Hive and Isar were explicitly rejected (mobile §25). Use `flutter_secure_storage` for tokens. Use `freezed` + `json_serializable`, `dio`, `go_router`. Pin Flutter with FVM (`.fvmrc`). The flavors are `dev`, `staging` and `prod`.
 - **Backend:** Python 3.13 managed with **`uv`** (not pip). Plain Django + DRF, with Django admin as the content-authoring and live-ops tool (no Wagtail, no React). PostgreSQL 17, Redis/Valkey, Celery with `django-celery-beat`, `simplejwt`, `drf-spectacular`. CI runs `ruff`, `mypy` (django-stubs), `pytest` with real Postgres/Redis, `hypothesis`, `schemathesis` and the parity tests.
-- **Deployment target:** one Oracle Cloud Always Free A1 VM (ARM64, 2 OCPU / 12 GB) in `me-jeddah-1`, running Docker Compose (staging and prod) behind a host-network Caddy. The admin is reachable only over WireGuard, and so is SSH. Backups go to Backblaze B2. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
+- **Deployment target:** two Oracle Cloud Always Free A1 VMs (ARM64) in `me-jeddah-1`, one per environment: production and staging, each 1 OCPU / 6 GB with its own reserved IP, running Docker Compose behind its own host-network Caddy. `provision.sh --env` fixes each VM's environment. Each VM has its own WireGuard network (`10.66.0.1` prod, `10.67.0.1` staging); its admin is reachable only over it, and so is SSH. Backups run on production; the monthly restore drill runs on staging. Backups go to Backblaze B2. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
 
 ## UI rules (from `docs/ux-spec.md`)
 
