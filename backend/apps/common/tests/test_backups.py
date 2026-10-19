@@ -274,6 +274,35 @@ def test_counts_quote_identifiers(
     assert meta["tables"][f"public.{odd}"] == 2
 
 
+def passes_password(argv: list[str], password: str) -> bool:
+    """Whether an argument carries the password, alone, as `--opt=<it>` or in a connection string.
+
+    Only the arguments are checked, not the program: CI's password is `postgres`, which is also in
+    the path `/usr/lib/postgresql/...`.
+    """
+    return any(
+        arg == password
+        or arg.endswith(f"={password}")
+        or f":{password}@" in arg
+        or f"password={password}" in arg
+        for arg in argv[1:]
+    )
+
+
+@pytest.mark.parametrize(
+    ("argv", "leaks"),
+    [
+        (["/usr/lib/postgresql/17/bin/pg_dump", "--format=custom", "--no-password"], False),
+        (["pg_dump", "postgres"], True),
+        (["pg_dump", "--password=postgres"], True),
+        (["pg_dump", "--dbname=postgresql://wassal:postgres@db/wassal"], True),
+        (["pg_dump", "--dbname=host=db password=postgres"], True),
+    ],
+)
+def test_passes_password_ignores_the_program_path(argv: list[str], leaks: bool) -> None:
+    assert passes_password(argv, "postgres") is leaks
+
+
 def test_pg_dump_gets_the_password_from_its_environment(
     s3: Any, config: BackupConfig, database: Database, pings: mock.MagicMock
 ) -> None:
@@ -290,14 +319,14 @@ def test_pg_dump_gets_the_password_from_its_environment(
     dumps = [(argv, env) for argv, env in seen if Path(argv[0]).name == "pg_dump"]
     assert dumps
     for argv, env in dumps:
-        assert database.password not in " ".join(argv)
+        assert not passes_password(argv, database.password)
         assert env["PGPASSWORD"] == database.password
         assert "--format=custom" in argv
         assert any(arg.startswith("--snapshot=") for arg in argv)
     lists = [(argv, env) for argv, env in seen if Path(argv[0]).name == "pg_restore"]
     assert lists
     for argv, env in lists:
-        assert database.password not in " ".join(argv)
+        assert not passes_password(argv, database.password)
         assert "PGPASSWORD" not in env
 
 
