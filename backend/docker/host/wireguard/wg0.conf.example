@@ -1,0 +1,7 @@
+# WireGuard server (research R8, contracts/operations.md). provision.sh copies this to
+# /etc/wireguard/wg0.conf (0600) on its first run and fills in the key. Peers are added only with
+# `wg-peer add`, which saves them here through `wg-quick save`.
+[Interface]
+Address = 10.66.0.1/24
+ListenPort = 51820
+PrivateKey = @SERVER_PRIVATE_KEY@

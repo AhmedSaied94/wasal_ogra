@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Private-network peers (FR-023a, contracts/operations.md "Private-network administration").
+#
+#   sudo wg-peer add <name> <role>   role: operator | staff | deploy-staging | deploy-prod
+#   sudo wg-peer remove <name>
+#   sudo wg-peer list
+#
+# The registry is $WASSAL_ETC/wg-peers.tsv (default /etc/wassal). The client's private key is
+# generated here, printed once in its config, and never written to disk.
+set -euo pipefail
+
+WASSAL_ETC="${WASSAL_ETC:-/etc/wassal}"
+REGISTRY="$WASSAL_ETC/wg-peers.tsv"
+SERVER_ENV="$WASSAL_ETC/wg-server.env"
+IFACE=wg0
+SERVER_ADDRESS=10.66.0.1
+DNS_SERVER=1.1.1.1
+HEADER=$'name\trole\taddress\tpublic_key\tadded_at\tremoved_at'
+
+die() { echo "wg-peer: $*" >&2; exit 1; }
+usage() { echo "usage: wg-peer add <name> <role> | remove <name> | list" >&2; exit 2; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# Address range (last octet) per role. Both deploy roles share one range.
+role_range() {
+  case "$1" in
+    operator) echo "2 9" ;;
+    staff) echo "10 99" ;;
+    deploy-staging | deploy-prod) echo "200 209" ;;
+    *) return 1 ;;
+  esac
+}
+
+ensure_registry() {
+  if [ ! -d "$WASSAL_ETC" ] || [ ! -w "$WASSAL_ETC" ]; then
+    die "can't write $WASSAL_ETC (run with sudo)"
+  fi
+  [ -f "$REGISTRY" ] || { printf '%s\n' "$HEADER" > "$REGISTRY"; chmod 0600 "$REGISTRY"; }
+  # One change at a time.
+  exec 9>"$WASSAL_ETC/.wg-peers.lock"
+  flock 9
+}
+
+# Active rows (no removed_at), without the header.
+active_rows() { awk -F'\t' 'NR > 1 && $6 == ""' "$REGISTRY"; }
+
+cmd_add() {
+  [ $# -eq 2 ] || usage
+  local name="$1" role="$2" range low high octet address used private_key public_key
+  [[ "$name" =~ ^[a-z0-9-]{2,32}$ ]] || die "invalid name '$name' (use 2-32 of a-z, 0-9 and -)"
+  range="$(role_range "$role")" || die "invalid role '$role' (operator, staff, deploy-staging or deploy-prod)"
+  [ -f "$SERVER_ENV" ] || die "missing $SERVER_ENV (provision.sh writes it)"
+  # shellcheck source=/dev/null
+  . "$SERVER_ENV"
+  : "${WG_SERVER_PUBLIC_KEY:?missing in $SERVER_ENV}" "${WG_ENDPOINT:?missing in $SERVER_ENV}"
+
+  ensure_registry
+  if active_rows | awk -F'\t' -v n="$name" '$1 == n { found = 1 } END { exit !found }'; then
+    die "a peer named '$name' already exists"
+  fi
+
+  read -r low high <<< "$range"
+  used="$(active_rows | cut -f3)"
+  address=""
+  for ((octet = low; octet <= high; octet++)); do
+    if ! grep -qxF "10.66.0.$octet" <<< "$used"; then
+      address="10.66.0.$octet"
+      break
+    fi
+  done
+  [ -n "$address" ] || die "the $role range is full"
+
+  private_key="$(wg genkey)"
+  public_key="$(wg pubkey <<< "$private_key")"
+  wg set "$IFACE" peer "$public_key" allowed-ips "$address/32"
+  wg-quick save "$IFACE"
+  printf '%s\t%s\t%s\t%s\t%s\t\n' "$name" "$role" "$address" "$public_key" "$(now)" >> "$REGISTRY"
+
+  echo "# WireGuard config for $name ($role). It holds a private key and is shown once."
+  echo "[Interface]"
+  echo "PrivateKey = $private_key"
+  echo "Address = $address/32"
+  # CI runners have no resolvconf for wg-quick to call, and deploys need no DNS over the tunnel.
+  case "$role" in operator | staff) echo "DNS = $DNS_SERVER" ;; esac
+  echo
+  echo "[Peer]"
+  echo "PublicKey = $WG_SERVER_PUBLIC_KEY"
+  echo "Endpoint = $WG_ENDPOINT"
+  echo "AllowedIPs = $SERVER_ADDRESS/32"
+  echo "PersistentKeepalive = 25"
+}
+
+cmd_remove() {
+  [ $# -eq 1 ] || usage
+  local name="$1" public_key tmp
+  ensure_registry
+  public_key="$(active_rows | awk -F'\t' -v n="$name" '$1 == n { print $4 }')"
+  [ -n "$public_key" ] || die "there is no active peer named '$name'"
+
+  wg set "$IFACE" peer "$public_key" remove
+  wg-quick save "$IFACE"
+  tmp="$(mktemp "$WASSAL_ETC/.wg-peers.XXXXXX")"
+  awk -F'\t' -v OFS='\t' -v n="$name" -v t="$(now)" \
+    'NR > 1 && $1 == n && $6 == "" { $6 = t } { print }' "$REGISTRY" > "$tmp"
+  chmod 0600 "$tmp"
+  mv "$tmp" "$REGISTRY"
+  echo "Removed $name. Its access ended now."
+}
+
+cmd_list() {
+  [ $# -eq 0 ] || usage
+  [ -f "$REGISTRY" ] || { printf '%-24s %-16s %-14s %s\n' NAME ROLE ADDRESS LATEST-HANDSHAKE; return; }
+  local handshakes
+  handshakes="$(wg show "$IFACE" latest-handshakes)"
+  printf '%-24s %-16s %-14s %s\n' NAME ROLE ADDRESS LATEST-HANDSHAKE
+  while IFS=$'\t' read -r name role address public_key _; do
+    local epoch seen
+    epoch="$(awk -v k="$public_key" '$1 == k { print $2 }' <<< "$handshakes")"
+    if [ -z "$epoch" ] || [ "$epoch" = 0 ]; then
+      seen=never
+    else
+      seen="$(date -u -d "@$epoch" +%Y-%m-%dT%H:%M:%SZ)"
+    fi
+    printf '%-24s %-16s %-14s %s\n' "$name" "$role" "$address" "$seen"
+  done < <(active_rows)
+}
+
+[ $# -ge 1 ] || usage
+command="$1"
+shift
+case "$command" in
+  add) cmd_add "$@" ;;
+  remove) cmd_remove "$@" ;;
+  list) cmd_list "$@" ;;
+  *) usage ;;
+esac

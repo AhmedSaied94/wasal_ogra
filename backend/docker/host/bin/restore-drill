@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# The monthly restore drill (FR-040, FR-040a, contracts/operations.md "Restore drill"), run by
+# wassal-restore-drill@prod.timer with /etc/wassal/prod-drill.env as its environment:
+#
+#   /opt/wassal/bin/restore-drill prod
+#
+# 1. check the free disk on the Docker data root;
+# 2. fetch the newest complete backup, in the serving image, on the default bridge, with the drill key;
+# 3. start a throwaway PostgreSQL (prod's tag) on an internal network with no outside route;
+# 4. restore and check it, in the serving image, on that network only, with throwaway settings;
+# 5. append the result line to drill-results.jsonl and ping Healthchecks.io with it.
+#
+# The container that downloads the backup never touches a database, and the one that restores it
+# can reach neither the internet nor production. Everything the drill creates goes on exit.
+#
+# Exit codes: 0 the drill passed; 1 it failed (pinged /fail); 2 bad input or missing ping URL.
+set -uo pipefail
+
+readonly IMAGE_REPO=ghcr.io/ahmedsaied94/wassal-backend
+readonly NETWORK=wassal-drill VOLUME=wassal-drill-pgdata DATABASE=wassal-drill-db
+# The image's `app` user (docker/Dockerfile), which writes the fetched backup.
+APP_UID="${WASSAL_APP_UID:-10001}"
+APP_GID="${WASSAL_APP_GID:-$APP_UID}"
+STATE_DIR="${WASSAL_STATE_DIR:-/var/lib/wassal}"
+ETC_DIR="${WASSAL_ETC:-/etc/wassal}"
+READY_ATTEMPTS="${WASSAL_DRILL_READY_ATTEMPTS:-60}"
+DRILL_MIN_FREE_GB="${DRILL_MIN_FREE_GB:-5}"
+TOLERANCE="${DRILL_ROWCOUNT_TOLERANCE:-0}"
+DRILL_DIR="$STATE_DIR/drill"
+RESULTS="$STATE_DIR/drill-results.jsonl"
+RUN_DIR=""
+
+log() { echo "restore-drill: $*" >&2; }
+usage_error() { log "$*"; exit 2; }
+
+if [ $# -ne 1 ] || ! [[ "$1" =~ ^(staging|prod)$ ]]; then usage_error "usage: restore-drill <env>"; fi
+ENV="$1"
+DRILL_ENV_FILE="$ETC_DIR/$ENV-drill.env"
+[ -n "${HC_PING_DRILL_URL:-}" ] || usage_error "HC_PING_DRILL_URL is required ($DRILL_ENV_FILE)"
+[[ "$TOLERANCE" =~ ^[0-9]+$ ]] || usage_error "DRILL_ROWCOUNT_TOLERANCE is invalid"
+[[ "$DRILL_MIN_FREE_GB" =~ ^[0-9]+$ ]] || usage_error "DRILL_MIN_FREE_GB is invalid"
+
+# ping_hc <success|fail> <body>
+ping_hc() {
+  local url="$HC_PING_DRILL_URL"
+  [ "$1" = success ] || url="$url/fail"
+  # The URL is a secret: it goes in a config on a file descriptor, never on argv.
+  printf '%s\n' "$2" |
+    curl -fsS -m 10 --retry 3 -o /dev/null --data-binary @- -K <(printf 'url = "%s"\n' "$url") ||
+    log "couldn't ping Healthchecks"
+}
+
+fail() {
+  log "$*"
+  ping_hc fail "$*"
+  exit 1
+}
+
+cleanup() {
+  docker rm -f "$DATABASE" >/dev/null 2>&1
+  docker volume rm "$VOLUME" >/dev/null 2>&1
+  docker network rm "$NETWORK" >/dev/null 2>&1
+  rm -rf -- "$DRILL_DIR"
+  if [ -n "$RUN_DIR" ]; then rm -rf -- "$RUN_DIR"; fi
+}
+
+random_hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
+
+# throwaway <database url>: what config.settings.prod requires, none of it production's.
+# `.invalid` never resolves, and the drill network has no outside route anyway.
+throwaway() {
+  printf '%s\n' \
+    "WASSAL_ENV=prod" \
+    "SECRET_KEY=$SECRET_KEY" \
+    "DATABASE_URL=$1" \
+    "CACHE_URL=locmem://" \
+    "CELERY_BROKER_URL=memory://" \
+    "API_HOST=drill.invalid" \
+    "ADMIN_HOST=drill.invalid" \
+    "SENTRY_DSN=https://drill@drill.invalid/1" \
+    "HC_PING_HEARTBEAT_URL=https://drill.invalid/"
+}
+
+# -- the serving release ---------------------------------------------------------------------------
+
+TAG="$(cat "$STATE_DIR/$ENV/release" 2>/dev/null)" || fail "no release serves $ENV yet"
+[[ "$TAG" =~ ^(sha-[0-9a-f]{40}|v[0-9]+\.[0-9]+\.[0-9]+)$ ]] || fail "the release file is invalid"
+IMAGE="$IMAGE_REPO:$TAG"
+POSTGRES_IMAGE="$(
+  sed -n 's/^[[:space:]]*image:[[:space:]]*\(postgres:[A-Za-z0-9._-]*\)[[:space:]]*$/\1/p' \
+    "$STATE_DIR/$ENV/deploy/$TAG/compose.yml" 2>/dev/null | sed -n 1p
+)"
+[ -n "$POSTGRES_IMAGE" ] || fail "the serving compose.yml names no postgres image"
+[ -f "$DRILL_ENV_FILE" ] || fail "$DRILL_ENV_FILE is missing"
+
+# -- 1. disk ---------------------------------------------------------------------------------------
+
+DOCKER_ROOT="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null)"
+DOCKER_ROOT="${DOCKER_ROOT:-/var/lib/docker}"
+FREE_GB="$(df --output=avail -BG "$DOCKER_ROOT" 2>/dev/null | tail -n 1 | tr -dc '0-9')"
+[ -n "$FREE_GB" ] || fail "disk: can't read the free space on $DOCKER_ROOT"
+if [ "$FREE_GB" -lt "$DRILL_MIN_FREE_GB" ]; then
+  fail "disk: $FREE_GB GB free on $DOCKER_ROOT, the drill needs $DRILL_MIN_FREE_GB"
+fi
+
+# Anything a crashed run left behind goes first. From here on, everything goes on exit, also when
+# systemd stops the run (a signal skips the EXIT trap unless the signal exits through it).
+cleanup
+trap cleanup EXIT
+trap 'exit 143' TERM INT HUP
+
+umask 077
+RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/wassal-drill.XXXXXX")" || fail "couldn't make a temp directory"
+SECRET_KEY="$(random_hex 32)"
+DB_PASSWORD="$(random_hex 24)"
+throwaway "postgres://drill:drill@drill.invalid:5432/drill" >"$RUN_DIR/fetch.env"
+{
+  throwaway "postgres://postgres:$DB_PASSWORD@$DATABASE:5432/postgres"
+  echo "DRILL_ROWCOUNT_TOLERANCE=$TOLERANCE"
+} >"$RUN_DIR/check.env"
+echo "POSTGRES_PASSWORD=$DB_PASSWORD" >"$RUN_DIR/db.env"
+
+# -- 2. fetch (storage key, no database) -----------------------------------------------------------
+
+install -d -m 0700 -o "$APP_UID" -g "$APP_GID" "$DRILL_DIR" || fail "couldn't create $DRILL_DIR"
+# The app containers need no capability: they run as the image's user and touch only /drill.
+HARDENED=(--cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g)
+docker run --rm "${HARDENED[@]}" --network bridge --env-file "$RUN_DIR/fetch.env" \
+  --env-file "$DRILL_ENV_FILE" -v "$DRILL_DIR:/drill" "$IMAGE" \
+  python manage.py restore_drill fetch /drill >&2 ||
+  fail "fetch failed"
+
+# -- 3. a throwaway database on a network with no outside route ------------------------------------
+
+docker network create --internal "$NETWORK" >/dev/null || fail "couldn't create the drill network"
+docker volume create "$VOLUME" >/dev/null || fail "couldn't create the drill volume"
+# PostgreSQL's entrypoint switches user itself, so it keeps its capabilities but can't gain more.
+docker run -d --name "$DATABASE" --network "$NETWORK" --memory 1g --pids-limit 256 \
+  --security-opt no-new-privileges --env-file "$RUN_DIR/db.env" \
+  -v "$VOLUME:/var/lib/postgresql/data" "$POSTGRES_IMAGE" >/dev/null ||
+  fail "couldn't start the drill database"
+ready=0
+for ((attempt = 1; attempt <= READY_ATTEMPTS; attempt++)); do
+  # Over TCP, which only listens once the image's first-start setup is done.
+  if docker exec "$DATABASE" pg_isready -U postgres -h 127.0.0.1 >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+[ "$ready" -eq 1 ] || fail "the drill database never got ready"
+
+# -- 4. check (database only, no storage key, no outside access) -----------------------------------
+
+status=0
+output="$(docker run --rm "${HARDENED[@]}" --network "$NETWORK" --env-file "$RUN_DIR/check.env" \
+  -v "$DRILL_DIR:/drill:ro" "$IMAGE" python manage.py restore_drill check /drill)" || status=$?
+printf '%s\n' "$output" >&2
+# The command logs JSON lines to stdout too. The result line is the last one starting so.
+line="$(printf '%s\n' "$output" | grep '^{"started_at":' | tail -n 1)"
+
+# -- 5. record and report --------------------------------------------------------------------------
+
+# The command exits 0 only for a pass and 1 after printing a fail, so both must agree.
+case "$status:$line" in
+  0:*'"outcome":"pass"'*) outcome=success ;;
+  1:*'"outcome":"fail"'*) outcome=fail ;;
+  *) fail "check printed no result (exit $status)" ;;
+esac
+umask 022
+printf '%s\n' "$line" >>"$RESULTS"
+ping_hc "$outcome" "$line"
+[ "$outcome" = success ]

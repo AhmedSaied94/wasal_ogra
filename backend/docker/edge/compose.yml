@@ -1,0 +1,28 @@
+# The production edge (research R6). provision.sh installs this directory as /opt/wassal/edge/ and
+# starts it once /etc/wassal/edge.env exists.
+name: wassal-edge
+
+services:
+  caddy:
+    image: caddy:2.11.7
+    network_mode: host
+    env_file: /etc/wassal/edge.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - /var/log/caddy:/var/log/caddy
+    tmpfs:
+      - /run/caddy
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2020/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,12 @@
+# Host checks: disk, certificates, prod queues, backup storage (FR-038, contracts/operations.md).
+[Unit]
+Description=wassal host monitor
+After=docker.service
+Wants=docker.service
+# Skipped, not failed, until the operator fills the env file (provision-host.md step 4).
+ConditionPathExists=/etc/wassal/host-monitor.env
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/wassal/host-monitor.env
+ExecStart=/opt/wassal/bin/host-monitor

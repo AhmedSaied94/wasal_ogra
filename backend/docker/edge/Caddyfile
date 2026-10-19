@@ -1,0 +1,113 @@
+# Production edge: one Caddy, host networking, both environments (research R6, contracts/operations.md
+# "Edge"). The {$…} values come from /etc/wassal/edge.env (contracts/environment.md). Public sites bind
+# the VNIC's private address, admin sites the WireGuard address, so the admin is never on the public
+# listener.
+{
+	# The admin API rewrites the whole edge, so it is a socket inside the container (a tmpfs in
+	# compose.yml), not 127.0.0.1:2019, which every local process could reach with host networking.
+	admin unix//run/caddy/admin.sock
+	skip_install_trust
+	servers {
+		protocols h1 h2
+		# Slow clients can't hold connections, or the 1MB request buffers, for long.
+		timeouts {
+			read_header 10s
+			read_body 30s
+			idle 2m
+		}
+	}
+}
+
+(headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+		-Via
+	}
+}
+
+# Caddy drops the headers set so far before it runs an error route, so each one sets them again.
+(errors) {
+	handle_errors 413 {
+		import headers
+		respond `{"error":{"code":"payload_too_large","message":"Payload too large","details":{"limit_bytes":524288}}}` 413
+	}
+	handle_errors {
+		import headers
+	}
+}
+
+# {args[0]}: the environment's API port on the loopback (docker/env/<env>.env).
+(api) {
+	import headers
+	import errors
+	# 512KiB is 524,288 bytes, the limit the envelope and Django's backstop use. Caddy reads 512KB
+	# as 512,000.
+	request_body {
+		max_size 512KiB
+	}
+	# The body is buffered before proxying, so the limit fires even when the upstream never reads
+	# it. Dial failures are retried for every method while the upstream restarts (SC-004).
+	reverse_proxy 127.0.0.1:{args[0]} {
+		request_buffers 1MB
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 50MiB
+			roll_keep_for 336h
+		}
+		format json
+	}
+}
+
+# {args[0]}: the environment's admin port on the loopback. The hash is django-celery-beat's inline
+# script on the periodic-task form (research R5); apps/accounts/tests/test_admin_csp.py keeps it current.
+(admin) {
+	import headers
+	import errors
+	log {
+		output file /var/log/caddy/admin-access.log {
+			roll_size 50MiB
+			roll_keep_for 336h
+		}
+		format json
+	}
+	header Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-QE3U2xYF7B4J2ro1/9oxiKhaWCGW39gB7ocQ/xlD0bE='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+	reverse_proxy 127.0.0.1:{args[0]}
+}
+
+{$PROD_API_HOST} {
+	bind {$PUBLIC_BIND_IP}
+	tls {$PUBLIC_TLS}
+	import api 8100
+}
+
+{$STAGING_API_HOST} {
+	bind {$PUBLIC_BIND_IP}
+	tls {$PUBLIC_TLS}
+	import api 8200
+}
+
+# Caddy's local CA. Staff install its root (runbook private-network.md).
+{$PROD_ADMIN_HOST} {
+	bind {$ADMIN_BIND_IP}
+	tls internal
+	import admin 8101
+}
+
+{$STAGING_ADMIN_HOST} {
+	bind {$ADMIN_BIND_IP}
+	tls internal
+	import admin 8201
+}
+
+# The container health check (compose.yml). The admin API is a socket, so it can't serve it.
+http://127.0.0.1:2020 {
+	bind 127.0.0.1
+	respond "ok"
+}

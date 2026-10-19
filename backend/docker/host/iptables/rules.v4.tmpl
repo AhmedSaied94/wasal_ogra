@@ -1,0 +1,22 @@
+# wassal: project INPUT rules (contracts/operations.md "Network exposure", research R13).
+# provision.sh inserts them before Oracle's final INPUT REJECT and keeps everything else of
+# Oracle's rules.v4, including the InstanceServices chain. @PUBLIC_IF@ is the default-route
+# interface. The wassal-bootstrap-ssh rule is dropped by --finalize.
+#
+# Chain lines (":NAME …") go right after "*filter". DOCKER-USER is the chain Docker runs first for
+# container traffic and never edits. Oracle's InstanceServices rules cover only the host's own
+# traffic (OUTPUT), so without these a container could reach the instance metadata service.
+# Containers on the default bridge resolve names through Oracle's resolver at 169.254.169.254, so
+# DNS stays open.
+:DOCKER-USER - [0:0]
+-A DOCKER-USER -d 169.254.169.254/32 -p udp -m udp --dport 53 -m comment --comment wassal-imds -j RETURN
+-A DOCKER-USER -d 169.254.169.254/32 -p tcp -m tcp --dport 53 -m comment --comment wassal-imds -j RETURN
+-A DOCKER-USER -d 169.254.0.0/16 -p tcp -m comment --comment wassal-imds -j REJECT --reject-with tcp-reset
+-A DOCKER-USER -d 169.254.0.0/16 -m comment --comment wassal-imds -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 80 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 443 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p udp -m udp --dport 51820 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 22 -m comment --comment wassal-bootstrap-ssh -j ACCEPT
+-A INPUT -i wg0 -p tcp -m iprange --src-range 10.66.0.2-10.66.0.9 -m state --state NEW -m multiport --dports 22,443 -m comment --comment wassal -j ACCEPT
+-A INPUT -i wg0 -p tcp -m iprange --src-range 10.66.0.10-10.66.0.99 -m state --state NEW -m tcp --dport 443 -m comment --comment wassal -j ACCEPT
+-A INPUT -i wg0 -p tcp -m iprange --src-range 10.66.0.200-10.66.0.209 -m state --state NEW -m tcp --dport 22 -m comment --comment wassal -j ACCEPT

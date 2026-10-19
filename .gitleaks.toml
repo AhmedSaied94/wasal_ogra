@@ -1,0 +1,12 @@
+# Secret scan for the whole repository (FR-027, research R12). CI: .github/workflows/secrets.yml.
+title = "wassal secret scan"
+
+[extend]
+useDefault = true
+
+# Dev placeholders all start with change-me-, which the app refuses outside dev (FR-003), so no
+# real secret can match. Scoped by value only: in gitleaks 8.30.1 a `paths` entry allow-lists the
+# whole file even with condition = "AND", which would hide a real key added to .env.example.
+[[allowlists]]
+description = "change-me- placeholders"
+regexes = ['''^change-me-''']

@@ -1,0 +1,13 @@
+# The nightly backup of one environment (FR-039, contracts/operations.md "Backup job").
+[Unit]
+Description=wassal %i backup
+After=docker.service
+Wants=docker.service
+# Skipped, not failed, until the operator fills the env file (monitoring-setup.md, Backblaze B2).
+ConditionPathExists=/etc/wassal/%i-backup.env
+
+[Service]
+Type=oneshot
+ExecStart=/opt/wassal/bin/backup %i
+MemoryMax=1G
+TimeoutStartSec=2h

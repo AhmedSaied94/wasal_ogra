@@ -40,11 +40,11 @@ A Python **solver/simulator** (`tools/solver`) mirrors the mobile trip engine. I
 | Primary dependencies | Django 5.2 LTS, Django REST Framework, `djangorestframework-simplejwt`, `drf-spectacular` (OpenAPI), `django-environ`, `psycopg` 3, `redis`, Celery 5 + `django-celery-beat`, `jsonschema`, `uuid-utils` (UUIDv7), `google-auth` + `google-api-python-client` (Play Developer API, ID tokens), Apple `app-store-server-library`, `PyJWT` + `cryptography` (Apple ID tokens, AdMob SSV signatures), `firebase-admin` (FCM), `django-storages` (S3-compatible object storage), `django-otp` (admin 2FA), `sentry-sdk`, `gunicorn` |
 | Storage | PostgreSQL 17 (primary), Redis 7 or Valkey (cache, throttling, Celery broker, locks), S3-compatible object storage (content packs, backups) |
 | Testing | `pytest`, `pytest-django`, `factory_boy`, `hypothesis` (ledger and engine invariants), `schemathesis` (OpenAPI contract fuzzing), recorded store webhook payloads, `locust` (load) |
-| Target platform | Linux containers on one Oracle Cloud VM (Ampere A1, ARM64) behind Caddy. **NEEDS CLARIFICATION:** free-tier capacity in the chosen region; fallback is a small paid ARM VM. |
+| Target platform | Linux containers on **one Oracle Cloud Always Free `VM.Standard.A1.Flex` (ARM64), 2 OCPU / 12 GB** (the whole 2026 Always Free allowance), 100 GB boot volume, in the tenancy's home region **`me-jeddah-1`** with a reserved public IP, behind Caddy. The account stays Always Free: no paid fallback (B01 research R1). Latency baseline from Egypt (fixed and mobile ISP, `time_connect` to `/healthz`): recorded here after the first deploy (`docs/runbooks/provision-host.md`). |
 | Project type | Web service: REST API + Django admin (content authoring, live ops) + Celery workers |
 | Performance goals | p95: `GET /v1/bootstrap` < 150 ms, `POST /v1/sync` (100 ops) < 250 ms, `POST /v1/purchases/verify` < 2.5 s (store round-trip included) |
 | Constraints | Idempotent writes (`client_txn_id`); server-authoritative BONAT and entitlements; store compliance (account deletion, Sign in with Apple, purchase acknowledgement); minimal PII; Arabic content stored as UTF-8 data, never in code |
-| Scale/Scope | MVP: Egypt Android, target 10k DAU. Design point: 100k DAU on the same VM (≈1.5M requests/day, ≈100 rps peak). ~13 Django apps. |
+| Scale/Scope | MVP: Egypt Android, target 10k DAU. Design point: 100k DAU (≈1.5M requests/day, ≈100 rps peak), which needs the §15 scale path beyond the 2 OCPU / 12 GB host. ~13 Django apps. |
 
 ---
 
@@ -129,7 +129,7 @@ flowchart LR
     WORKER["worker<br/>Celery"]
     BEAT["beat<br/>Celery beat"]
     PG[("PostgreSQL 17")]
-    RD[("Redis")]
+    RD[("Valkey")]
     CADDY --> API
     CADDY --> ADMIN
     API --> PG
@@ -138,7 +138,8 @@ flowchart LR
     WORKER --> RD
     BEAT --> RD
   end
-  OBJ[("Object storage<br/>packs · backups")]
+  OBJ[("Object storage<br/>packs")]
+  B2[("Backblaze B2<br/>backups")]
   GP["Google Play Developer API<br/>+ RTDN via Pub/Sub"]
   AS["App Store Server API<br/>+ Notifications V2"]
   ADMOB["AdMob SSV"]
@@ -146,7 +147,8 @@ flowchart LR
   SENTRY["Sentry"]
   APP -->|"HTTPS /v1"| CADDY
   APP -->|"download packs"| OBJ
-  WORKER -->|"publish packs, backups"| OBJ
+  WORKER -->|"publish packs"| OBJ
+  PG -.->|"nightly backup job"| B2
   API <--> GP
   API <--> AS
   GP -->|"push"| CADDY
@@ -159,15 +161,15 @@ flowchart LR
 
 | Service | Image | Notes |
 | --- | --- | --- |
-| `caddy` | `caddy:2` (official image) | Automatic HTTPS for `api.<domain>`, `admin.<domain>`; HSTS; request size limit 512 KB |
+| `caddy` | `caddy:2.11` (official image), a separate Compose project `wassal-edge` on the host network | Automatic HTTPS (Let's Encrypt) for the API hostnames on the public address; HSTS; request size limit 512 KB; one edge for staging and prod. The admin hostnames bind only the WireGuard address `10.66.0.1`, with Caddy's internal CA. Hostnames are configuration: `sslip.io` names for the reserved IP until a domain is registered. |
 | `api` | `wassal-backend` | `gunicorn` with `gthread` workers; `/healthz`, `/readyz` |
-| `admin` | `wassal-backend` | Same code, `ADMIN_ONLY=1` URL conf; staff login with 2FA |
+| `admin` | `wassal-backend` | Same code, `ADMIN_ONLY=1` URL conf; staff login with 2FA; reachable only over WireGuard |
 | `worker` | `wassal-backend` | Celery queues: `default`, `purchases`, `content`, `push` |
 | `beat` | `wassal-backend` | Schedules in §11.2 |
 | `postgres` | `postgres:17` | Data volume on block storage; nightly backups (§15) |
-| `redis` | `redis:7` or `valkey` | No persistence required except Celery visibility |
+| `valkey` | `valkey/valkey:8.1` | Cache, throttling and the Celery broker. Append-only file (`everysec`) so queued tasks survive a restart; `noeviction`. |
 
-Environments: `dev` (local compose), `staging` (separate compose project and database on the same VM for MVP, subdomain `staging-api.<domain>`), `prod`.
+Environments: `dev` (local compose), `staging` (separate compose project, database and volumes on the same VM for MVP, hostname `staging-api.<host>`), `prod`. The app containers publish only on `127.0.0.1` (prod 8100/8101, staging 8200/8201); the edge proxies to them (B01 contracts/operations.md).
 
 ---
 
@@ -233,11 +235,18 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | 401 | `token_expired`, `token_invalid` |
 | 403 | `account_deleted`, `forbidden` |
 | 404 | `not_found` |
+| 405 | `method_not_allowed` |
+| 406 | `not_acceptable` |
 | 409 | `provider_in_use`, `already_granted`, `state_conflict` |
+| 413 | `payload_too_large` (the edge's 512 KB limit, with a backstop in Django) |
+| 415 | `unsupported_media_type` |
 | 422 | `insufficient_funds`, `not_eligible`, `price_mismatch`, `cap_reached`, `trip_locked` |
 | 426 | `client_outdated` (below `min_client_version`) |
 | 429 | `rate_limited` |
-| 503 | `maintenance` |
+| 500 | `server_error` (any unhandled exception; the request id is in the `X-Request-ID` header) |
+| 503 | `maintenance`, `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
+
+B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. Any DRF exception code that ships must be listed here first.
 
 ### 6.3 Endpoints
 
@@ -742,8 +751,8 @@ erDiagram
 | Webhooks | Pub/Sub OIDC token check; Apple JWS chain verification; AdMob ECDSA signature; all webhooks idempotent on notification id |
 | Input | DRF serializers with strict schemas; batch and body size limits; `command_log` ≤ 64 KB |
 | Rate limiting | §6.5 throttles; Caddy connection limits |
-| Admin | Separate host, staff-only, 2FA (`django-otp`), audit log of content publishes and wallet adjustments |
-| Secrets | Env files mounted read-only from host (OCI Vault later): Django secret, JWT key, Google service account, Apple `.p8` key, Firebase service account, Sentry DSN |
+| Admin | Separate host, reachable only over WireGuard (the admin hostnames bind `10.66.0.1`); staff-only, 2FA (`django-otp`, TOTP) on every view, lockout after 5 failed sign-ins for 15 min (`django-axes`); audit log of content publishes and wallet adjustments |
+| Secrets | Env files on the host (`/etc/wassal/*.env`, mode 0400; OCI Vault later): Django secret, JWT key, Google service account, Apple `.p8` key, Firebase service account, Sentry DSN, Healthchecks ping URLs, and the Backblaze B2 application keys (write-only backup key, read-only drill key) in their own files that the API and worker never see. The B2 admin key never goes on the host. |
 | Anti-cheat | Server-authoritative BONAT; bounds on JENEHAT and progress (§7.4); replay verification for competitive surfaces; `PlayerFlag` review queue; flagged players excluded from leagues |
 | Device attestation | **NEEDS CLARIFICATION** (phase 3): Play Integrity / App Attest tokens on daily challenge and league submissions |
 
@@ -780,16 +789,17 @@ erDiagram
 
 | Topic | Decision |
 | --- | --- |
-| Host | One Oracle Cloud Ampere A1 VM (ARM64), Ubuntu LTS, Docker + Compose; images built for `linux/arm64` |
-| Scale path | 1) bigger VM → 2) move Postgres to its own VM or managed service → 3) multiple `api` replicas behind a load balancer. Code stays stateless to allow this. |
-| Object storage | OCI Object Storage via S3-compatible API: `packs/` (public read, long cache), `backups/` (private) |
+| Host | One Oracle Cloud Always Free `VM.Standard.A1.Flex` (ARM64), 2 OCPU / 12 GB, 100 GB boot volume, region `me-jeddah-1`, reserved public IP; Ubuntu LTS, Docker + Compose; images built for `linux/arm64`. Only 80/443 TCP and WireGuard (UDP 51820) are open; SSH listens on the WireGuard address only. Runbooks: `docs/runbooks/`. |
+| Scale path | Starts from 2 OCPU / 12 GB, which is all of Always Free: 1) a bigger (paid) VM → 2) move Postgres to its own VM or managed service → 3) multiple `api` replicas behind a load balancer. Code stays stateless to allow this. Any paid step needs the owner's decision (B01 FR-042b). |
+| Object storage | Content packs: OCI Object Storage via S3-compatible API, `packs/` (public read, long cache), B04. Backups: **Backblaze B2**, separate from packs (never reuse its keys): two private buckets (daily 14 days, weekly 56 days) with governance-mode Object Lock and lifecycle rules, a write-only host key, a read-only drill key, USD 0 caps. The B2 account region is recorded in B01 research R9 "Data location". |
 | CDN | **NEEDS CLARIFICATION:** Cloudflare (free) in front of `cdn.<domain>` for packs |
-| Backups | Nightly `pg_dump` (custom format) to object storage, 14 daily + 8 weekly; WAL archiving for point-in-time recovery in phase 2; monthly restore drill on staging |
+| Backups | Nightly `pg_dump` (custom format) at 03:00 Cairo time, in one exported snapshot with exact row counts, to B2: 14 daily + 8 weekly. An automated restore drill on the 1st of each month restores the newest backup on the host, into a throwaway database with no outside route, and checks the restore, migrations, row counts and registered invariants. WAL archiving for point-in-time recovery in phase 2. Runbook: `docs/runbooks/restore.md`. |
 | Targets | Availability 99.5% monthly; RPO 24 h (MVP) → 15 min (phase 2); RTO 4 h |
-| Observability | Sentry (errors + performance traces at low sample rate), structured JSON logs, `pg_stat_statements`, external uptime check on `/healthz`, Celery queue length alert |
-| CI (GitHub Actions) | `ruff`, `mypy` (django-stubs), `pytest` with Postgres/Redis services, schema checks, parity tests, OpenAPI diff, build multi-arch image → GHCR |
-| CD | On tag: SSH deploy → `docker compose pull` → one-off `migrate` → restart `api`, `worker`, `beat`. Migrations follow expand/contract so the previous release keeps working during deploy. |
+| Observability | Sentry, US region (organization `saied-store-div`, project `wassal-backend`), free Developer plan (errors + traces at a low sample rate; IPs, cookies, headers, bodies and local variables scrubbed); structured JSON logs with a request id; `pg_stat_statements`; UptimeRobot on `/healthz`; Healthchecks.io dead-man's switches for the heartbeat task, the backup, the drill and the host monitor; the host monitor (every 5 min) checks disk, certificate expiry, queue backlog and backup storage. Setup: `docs/runbooks/monitoring-setup.md`. |
+| CI (GitHub Actions) | `backend.yml`: `ruff`, `mypy --strict` (django-stubs), `pytest` with real PostgreSQL and Valkey and an 80% coverage gate, the OpenAPI drift check and `schemathesis`, the host-script and edge smoke tests, then an `linux/arm64` image pushed to GHCR as `sha-<commit>`. `secrets.yml`: gitleaks. Schema and parity checks arrive with their features. |
+| CD | A merge to `master` deploys staging; a `vX.Y.Z` tag on a `master` commit re-tags that image and deploys prod. Both go over WireGuard to a forced-command SSH key that runs the host's `deploy` script: lock → pull → migrate → restart `api`, `admin`, `worker`, `beat` → verify `/readyz` and the release in `/healthz`, restoring the previous release if verification fails. Rollback is a deploy of an older tag. Migrations follow expand/contract so the previous release keeps working during deploy. Runbook: `docs/runbooks/deploy-and-rollback.md`. |
 | Maintenance mode | `LiveSetting` flag returns 503 `maintenance` on writes; reads and offline play continue |
+| Monthly routine | Check the drill result; sign in to the OCI console (idle tenancies can be suspended) and to Healthchecks.io; check the B2 caps and storage; confirm every service still shows USD 0 (`docs/runbooks/monitoring-setup.md`). |
 
 ---
 
@@ -905,7 +915,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 
 ## 22. Open Questions (NEEDS CLARIFICATION)
 
-1. OCI free-tier capacity in the chosen region, or the paid fallback provider.
+1. ~~OCI free-tier capacity in the chosen region, or the paid fallback provider.~~ **Resolved (B01):** one Always Free A1 VM, 2 OCPU / 12 GB, in `me-jeddah-1`, with no paid fallback. See `specs/002-b01-backend-skeleton/research.md` R1.
 2. Game-day timezone for daily reset and daily challenge (proposed `Africa/Cairo` for all regions in MVP).
 3. CDN in front of content packs.
 4. iOS purchase payload: StoreKit 2 JWS vs app receipt in the chosen Flutter plugin version.

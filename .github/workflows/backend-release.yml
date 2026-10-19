@@ -1,0 +1,98 @@
+# Production release (specs/002-b01-backend-skeleton/contracts/ci-checks.md "backend-release.yml").
+# A vX.Y.Z tag deploys production only if the commit is on master and its master run passed every
+# check, which is when its sha-<commit> image exists (FR-030). Re-running an older tag's run is the
+# rollback (FR-033).
+name: backend-release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/ahmedsaied94/wassal-backend
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: The tagged commit is on master
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/master
+      - name: Its master run passed every check (the image exists)
+        run: docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA"
+      # The secret scan is its own workflow (secrets.yml), so its result is read separately.
+      - name: Its secret scan passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?check_name=gitleaks" \
+            --jq '[.check_runs[] | select(.app.slug == "github-actions")][0].conclusion // ""')"
+          if [ "$conclusion" != success ]; then
+            echo "gitleaks on $GITHUB_SHA: ${conclusion:-not run}"
+            exit 1
+          fi
+
+  tag:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag the image ${{ github.ref_name }}
+        run: docker buildx imagetools create -t "$IMAGE:$GITHUB_REF_NAME" "$IMAGE:sha-$GITHUB_SHA"
+
+  deploy-prod:
+    needs: tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      # The same steps as deploy-staging in backend.yml.
+      - name: Connect over WireGuard
+        env:
+          WG_CONFIG: ${{ secrets.WG_CONFIG }}
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends wireguard-tools
+          sudo install -m 0600 /dev/null /etc/wireguard/wg0.conf
+          printf '%s\n' "$WG_CONFIG" | sudo tee /etc/wireguard/wg0.conf >/dev/null
+          sudo wg-quick up wg0
+      - name: Deploy
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          REQUEST: prod ${{ github.ref_name }}
+        run: |
+          install -d -m 0700 "$HOME/.ssh"
+          install -m 0600 /dev/null "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/deploy_known_hosts"
+          # The key's forced command reads the request from SSH_ORIGINAL_COMMAND.
+          ssh -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/deploy_known_hosts" -o ConnectTimeout=20 \
+            -o ServerAliveInterval=30 deploy@10.66.0.1 "$REQUEST"
+      - if: always()
+        name: Disconnect
+        run: |
+          rm -f "$HOME/.ssh/deploy_key"
+          if [ -f /etc/wireguard/wg0.conf ]; then sudo wg-quick down wg0 || true; fi

@@ -12,7 +12,7 @@ Tick features off in [Progress](#progress) as they merge.
 
 ## Before the first feature
 
-- [ ] Merge `chore/project-setup` into `master`. Every feature branch is cut from `master`.
+- [x] Merge `chore/project-setup` into `master`. Every feature branch is cut from `master`.
 
 ## The routine for every feature
 
@@ -41,9 +41,11 @@ Tick features off in [Progress](#progress) as they merge.
 6. **`/speckit-tasks`**: writes `tasks.md`. Test tasks are always included (constitution XIII).
 7. **`/speckit-analyze`**: fix every CRITICAL finding before implementing. Constitution violations are
    always CRITICAL.
-8. **`/speckit-implement`**: tests first. If it leaves gaps, run `/speckit-converge`.
+8. **`/speckit-implement`**: tests first. If it leaves gaps, run `/speckit-converge`. What the feature
+   needs from you (accounts, devices, live checks) is added to [owner-actions.md](owner-actions.md).
 9. **Review and merge.**
    - CI gates are green.
+   - The feature's "Before merge" items in [owner-actions.md](owner-actions.md) are done.
    - The code is reviewed, with a security review for changes to auth, purchases, the ledger, sync,
      webhooks or personal data.
    - The PR is merged into `master`. Then start the next feature.
@@ -104,6 +106,12 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - Pin Flutter with FVM, and set up mobile CI on GitHub Actions.
   - Add a `ConfigSource` with bundled defaults, so tunables (constitution VIII) work before Firebase
     is wired up in M15.
+- **Decided in B01** (spec Clarifications): staging and production go live on the real host. Until
+  there is a real domain, they use temporary hostnames derived from the host's IP (sslip.io style).
+  Register the real domain and switch to it before the first closed test, whether that is the step 7
+  option or step 12. B09's account-deletion page needs the real domain too. The switch is
+  configuration: the hostnames in `/etc/wassal/edge.env` and each environment's `API_HOST` and
+  `ADMIN_HOST` (B01 FR-042a).
 - **Done when:**
   - The app launches in RTL with the theme tokens and both digit settings, and its goldens run in CI.
   - The API answers `/healthz` behind Caddy on the ARM64 Compose stack.
@@ -123,6 +131,13 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - backend §22.3 (a CDN in front of content packs) in B04;
   - mobile §24.4 (resume or restart when the app is killed mid-trip) in M01. This decides whether
     the engine needs snapshot and restore.
+- **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
+  features"): in B04, keep content packs and their CDN separate from the Backblaze B2 backup
+  buckets, and never reuse the backup keys.
+- **Handed over from M03** (research, "Handed to later features"): in M01, settle the tunable
+  `trip_hints_enabled_line_gamaa`. The ux-spec's "first time per passenger type" hint mode needs an
+  enum, not the boolean M03 ships. If the key changes, update mobile §14.3 and the backend's copy in
+  the same PR.
 - **Done when:**
   - `trip.schema.json` and the generated models are on `master`.
   - Replaying `(definition, seed, params, command_log)` gives an identical `TripResult`.
@@ -149,6 +164,8 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 
 - **Resolve:** mobile §24.5 (does replaying a completed trip cost fuel?) in M05. B03 must agree with
   the answer.
+- **Handed over from M03** (research R1): in M05, use drift with the native-assets `sqlite3` 3.x
+  package. Don't add `sqlite3_flutter_libs`, which is end-of-life.
 - **Done when:**
   - The app loads the bundled pack and verifies its sha256.
   - The wallet, `ledger_ops` and fuel regeneration all work offline.
@@ -181,6 +198,14 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - backend §22.6 (a re-install without a linked provider creates a new player) in B02 and M06;
   - backend §22.2 (the game-day timezone) in B03;
   - confirm that B03 matches the M05 answer to mobile §24.5.
+- **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
+  features"):
+  - B02: `accounts.User` is staff-only, so decide how `Player` authenticates with simplejwt (B01
+    research R3).
+  - B02: per-player throttles replace the per-address default for authenticated traffic. Mind
+    carrier-grade NAT: many Egyptian mobile players share one address (B01 research R4).
+  - B03: register the `economy.wallet_equals_ledger` invariant with the restore drill's registry
+    (`apps/common/services/invariants.py`), and add the direct-`Wallet`-write scan to CI.
 - **Done when:**
   - The first online launch creates an anonymous account in the background.
   - Offline trips sync without duplicates.
@@ -291,16 +316,45 @@ Each phase starts when the gate before it is met, not on a date (product-spec «
 
 ## Progress
 
-- [ ] Step 1: `001-m03-app-shell` · `002-b01-backend-skeleton`
-- [ ] Step 2: `003-b04-content-pipeline` · `004-m01-trip-engine`
-- [ ] Step 3: `005-b05-solver-parity`
-- [ ] Step 4: `006-m04-content-loader` · `007-m05-local-economy`
-- [ ] Step 5: `008-m02-trip-screen`
-- [ ] Step 6: `009-b02-accounts-auth` · `010-b03-ledger-sync` · `011-m06-identity-sync`
-- [ ] Step 7: `012-m07-onboarding` · `013-m08-home-result` · `014-m09-lines-vehicles` ·
-  `015-m10-apartment-story`
-- [ ] Step 8: `016-b10-catalog-offers` · `017-b07-ads-ssv` · `018-m11-ads`
-- [ ] Step 9: `019-b06-purchases` · `020-m12-shop-iap`
-- [ ] Step 10: `021-b08-daily-challenge` · `022-m13-daily-loop`
-- [ ] Step 11: `023-b09-privacy-deletion` · `024-b11-push` · `025-m14-settings-account`
-- [ ] Step 12: `026-m15-analytics-config`
+Tick a spec when its PR merges, and tick the step when all of its specs have merged.
+
+- [ ] Step 1: Foundations
+  - [x] `001-m03-app-shell` (merged in #1, 2026-10-18). Resolved mobile §24.1 (Android `minSdk 24`,
+    iOS 15.0) and §24.2 (Galaxy A06). Still to do on a real device: the manual quickstart
+    scenarios (T091) and the A06 cold-start and white-frame checks (T092).
+  - [ ] `002-b01-backend-skeleton`
+- [ ] Step 2: The engine and its schemas
+  - [ ] `003-b04-content-pipeline`
+  - [ ] `004-m01-trip-engine`
+- [ ] Step 3: Parity
+  - [ ] `005-b05-solver-parity`
+- [ ] Step 4: Content and the local economy
+  - [ ] `006-m04-content-loader`
+  - [ ] `007-m05-local-economy`
+- [ ] Step 5: The first playable trip
+  - [ ] `008-m02-trip-screen`
+- [ ] Step 6: Accounts and sync
+  - [ ] `009-b02-accounts-auth`
+  - [ ] `010-b03-ledger-sync`
+  - [ ] `011-m06-identity-sync`
+- [ ] Step 7: The full game loop
+  - [ ] `012-m07-onboarding`
+  - [ ] `013-m08-home-result`
+  - [ ] `014-m09-lines-vehicles`
+  - [ ] `015-m10-apartment-story`
+- [ ] Step 8: Ads
+  - [ ] `016-b10-catalog-offers`
+  - [ ] `017-b07-ads-ssv`
+  - [ ] `018-m11-ads`
+- [ ] Step 9: Purchases
+  - [ ] `019-b06-purchases`
+  - [ ] `020-m12-shop-iap`
+- [ ] Step 10: The daily return loop
+  - [ ] `021-b08-daily-challenge`
+  - [ ] `022-m13-daily-loop`
+- [ ] Step 11: Store compliance
+  - [ ] `023-b09-privacy-deletion`
+  - [ ] `024-b11-push`
+  - [ ] `025-m14-settings-account`
+- [ ] Step 12: Measurement
+  - [ ] `026-m15-analytics-config`
