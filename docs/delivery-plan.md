@@ -318,13 +318,16 @@ Each phase starts when the gate before it is met, not on a date (product-spec «
 
 Tick a spec when its PR merges, and tick the step when all of its specs have merged.
 
-- [ ] Step 1: Foundations
+- [x] Step 1: Foundations
   - [x] `001-m03-app-shell` (merged in #1, 2026-10-18). Resolved mobile §24.1 (Android `minSdk 24`,
     iOS 15.0) and §24.2 (Galaxy A06). Still to do on a real device: the manual quickstart
     scenarios (T091) and the A06 cold-start and white-frame checks (T092).
-  - [ ] `002-b01-backend-skeleton`
+  - [x] `002-b01-backend-skeleton` (merged in #2, 2026-10-19). Staging and production run on
+    separate VMs (constitution v1.1.0). Staging deploys from `master`.
 - [ ] Step 2: The engine and its schemas
-  - [ ] `003-b04-content-pipeline`
+  - [ ] `003-b04-content-pipeline`. PR 1 (schemas and generated models, user story 1) merged in #3,
+    2026-10-19, so M01 can be specified. Still to come in PR 2: the admin, validation, pack
+    builds, promotion and the manifest.
   - [ ] `004-m01-trip-engine`
 - [ ] Step 3: Parity
   - [ ] `005-b05-solver-parity`

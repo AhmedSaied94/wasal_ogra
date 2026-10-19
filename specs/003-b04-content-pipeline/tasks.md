@@ -368,7 +368,7 @@ generated file fails `codegen --check`.
     `validate-source`, `schema-diff`, `golden --update`, and the `content_models` build and test)
     and an overview line;
   - `content/README.md`.
-- [ ] T039 [US1] Run quickstart §1 end to end, then open **PR 1**. Its body points M01 at
+- [X] T039 [US1] Run quickstart §1 end to end, then open **PR 1**. Its body points M01 at
   `trip.schema.json` and `package:content_models`. After it merges, tick the delivery-plan step 2
   note in `docs/delivery-plan.md`.
 
