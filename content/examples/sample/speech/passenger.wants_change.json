@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "عايز {amount} باقي يا أسطى"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "فين الـ{amount} بتوعي؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.wants_change"
+}

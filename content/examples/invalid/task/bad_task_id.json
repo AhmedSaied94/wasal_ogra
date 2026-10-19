@@ -1,0 +1,10 @@
+{
+  "metric": "exact_change",
+  "reward_bonat": 0,
+  "reward_jenehat": 30,
+  "target": 5,
+  "task_id": "exact",
+  "text": {
+    "ar-EG": "رجّع الباقي مظبوط {target} مرات"
+  }
+}

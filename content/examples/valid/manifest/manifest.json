@@ -1,0 +1,13 @@
+{
+  "packs": [
+    {
+      "min_client_version": "1.0.0",
+      "pack_id": "core",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000001",
+      "size": 412233,
+      "url": "https://api.example.invalid/packs/core-12.json.gz",
+      "version": 12
+    }
+  ],
+  "version": 12
+}

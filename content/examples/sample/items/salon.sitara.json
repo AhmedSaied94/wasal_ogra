@@ -1,0 +1,17 @@
+{
+  "item_id": "salon.sitara",
+  "name": {
+    "ar-EG": "الستارة"
+  },
+  "order": 2,
+  "room_id": "salon",
+  "variants": [
+    {
+      "art": "sitara_plain",
+      "name": {
+        "ar-EG": "سادة"
+      },
+      "variant_id": "plain"
+    }
+  ]
+}

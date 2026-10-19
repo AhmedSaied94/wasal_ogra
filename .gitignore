@@ -73,3 +73,9 @@ apps/mobile/lib/l10n/generated/
 *.log
 .claude/settings.local.json
 .specify/extensions/.cache/
+
+# Content pipeline (specs/003-b04-content-pipeline): freezed parts and the local packs directory
+**/*.freezed.dart
+# A hand-written fixture for the coverage gate's freezed exclusion.
+!apps/mobile/test/tool/fixtures/lib/core/a.freezed.dart
+backend/var/

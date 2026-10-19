@@ -1,0 +1,70 @@
+{
+  "prices": [
+    {
+      "amount": 10,
+      "currency": "EGP",
+      "sku_id": "change_bag",
+      "sku_kind": "booster"
+    },
+    {
+      "amount": 12,
+      "currency": "BONAT",
+      "sku_id": "ledger_peek",
+      "sku_kind": "booster"
+    },
+    {
+      "amount": 8,
+      "currency": "BONAT",
+      "sku_id": "traffic_jam",
+      "sku_kind": "booster"
+    },
+    {
+      "amount": 8,
+      "currency": "BONAT",
+      "sku_id": "wake_all",
+      "sku_kind": "booster"
+    },
+    {
+      "amount": 900,
+      "currency": "JENEHAT",
+      "sku_id": "ch3_shabka",
+      "sku_kind": "chapter"
+    },
+    {
+      "amount": 30,
+      "currency": "BONAT",
+      "sku_id": "refuel_full",
+      "sku_kind": "fuel"
+    },
+    {
+      "amount": 80,
+      "currency": "BONAT",
+      "sku_id": "fuel_unlimited_1h",
+      "sku_kind": "fuel_unlimited"
+    },
+    {
+      "amount": 400,
+      "currency": "JENEHAT",
+      "sku_id": "salon.nish",
+      "sku_kind": "item"
+    },
+    {
+      "amount": 150,
+      "currency": "JENEHAT",
+      "sku_id": "salon.sitara",
+      "sku_kind": "item"
+    },
+    {
+      "amount": 20,
+      "currency": "BONAT",
+      "sku_id": "revive",
+      "sku_kind": "revive"
+    },
+    {
+      "amount": 1500,
+      "currency": "JENEHAT",
+      "sku_id": "micro_old",
+      "sku_kind": "vehicle"
+    }
+  ]
+}

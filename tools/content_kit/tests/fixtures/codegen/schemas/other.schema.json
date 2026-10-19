@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/9/other.schema.json",
+  "title": "Other",
+  "description": "A second root, referred to by file.",
+  "type": "object",
+  "required": [
+    "value"
+  ],
+  "properties": {
+    "value": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/task.schema.json",
+  "title": "TaskTemplate",
+  "description": "A task template. Its text may use {target}.",
+  "type": "object",
+  "required": [
+    "task_id",
+    "metric",
+    "target",
+    "text",
+    "reward_jenehat",
+    "reward_bonat"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^task_[a-z0-9_]{1,40}$"
+    },
+    "metric": {
+      "$ref": "common.schema.json#/$defs/Slug"
+    },
+    "target": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "text": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "reward_jenehat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    },
+    "reward_bonat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    }
+  },
+  "additionalProperties": false
+}

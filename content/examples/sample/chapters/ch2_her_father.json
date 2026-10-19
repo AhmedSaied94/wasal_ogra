@@ -1,0 +1,13 @@
+{
+  "chapter_id": "ch2_her_father",
+  "completion_bonat": 10,
+  "goal": {
+    "kind": "own_vehicle",
+    "vehicle_id": "micro_old"
+  },
+  "order": 2,
+  "scenes": [],
+  "title": {
+    "ar-EG": "الكلام مع أبوها"
+  }
+}

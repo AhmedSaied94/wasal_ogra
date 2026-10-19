@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/family_request.schema.json",
+  "title": "FamilyRequest",
+  "description": "An optional side task from the bride's family, with a BONAT reward.",
+  "type": "object",
+  "required": [
+    "request_id",
+    "room_id",
+    "item_id",
+    "text",
+    "reward_bonat"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "pattern": "^req_[a-z0-9_]{1,40}$"
+    },
+    "room_id": {
+      "$ref": "common.schema.json#/$defs/RoomId"
+    },
+    "item_id": {
+      "$ref": "common.schema.json#/$defs/ItemId"
+    },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,31}$"
+    },
+    "text": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "reward_bonat": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false
+}

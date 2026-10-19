@@ -1,0 +1,10 @@
+{
+  "item_id": "salon.nish",
+  "request_id": "req_nish_crystal",
+  "reward_bonat": 0,
+  "room_id": "salon",
+  "text": {
+    "ar-EG": "مامة سلمى نفسها في النيش الكريستال"
+  },
+  "variant_id": "crystal"
+}

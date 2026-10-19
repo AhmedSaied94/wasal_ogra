@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/manifest.schema.json",
+  "title": "Manifest",
+  "description": "The answer of GET /v1/content/manifest.",
+  "type": "object",
+  "required": [
+    "version",
+    "packs"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ManifestPack"
+      },
+      "minItems": 0,
+      "maxItems": 5
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ManifestPack": {
+      "description": "One pack an app should have.",
+      "type": "object",
+      "required": [
+        "pack_id",
+        "version",
+        "url",
+        "sha256",
+        "size",
+        "min_client_version"
+      ],
+      "properties": {
+        "pack_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/Sha256"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_client_version": {
+          "$ref": "common.schema.json#/$defs/ClientVersion"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

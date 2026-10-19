@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Optional fields are left out, never written as null (research R3).
+          include_if_null: false
+          explicit_to_json: true
+          checked: false

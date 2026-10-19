@@ -1,0 +1,70 @@
+{
+  "name": {
+    "ar-EG": "الميكروباص القديم"
+  },
+  "order": 2,
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "front",
+      "seat_id": "front_r"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_l"
+    }
+  ],
+  "starter": false,
+  "vehicle_id": "micro_old"
+}

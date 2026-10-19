@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/chapter.schema.json",
+  "title": "Chapter",
+  "description": "A story chapter: its savings goal and its comic scenes.",
+  "type": "object",
+  "required": [
+    "chapter_id",
+    "order",
+    "title",
+    "goal",
+    "completion_bonat",
+    "scenes"
+  ],
+  "properties": {
+    "chapter_id": {
+      "$ref": "common.schema.json#/$defs/ChapterId"
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "goal": {
+      "$ref": "#/$defs/ChapterGoal"
+    },
+    "story_trip_id": {
+      "$ref": "common.schema.json#/$defs/TripId"
+    },
+    "completion_bonat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Scene"
+      },
+      "minItems": 0,
+      "maxItems": 10
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "GoalKind": {
+      "description": "What finishes a chapter.",
+      "type": "string",
+      "enum": [
+        "complete_line",
+        "own_vehicle",
+        "purchase",
+        "complete_room"
+      ]
+    },
+    "ChapterGoal": {
+      "description": "A chapter's goal: complete_line needs line_id, own_vehicle vehicle_id, complete_room room_id, purchase none (its price is in the catalog).",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/GoalKind"
+        },
+        "line_id": {
+          "$ref": "common.schema.json#/$defs/LineId"
+        },
+        "vehicle_id": {
+          "$ref": "common.schema.json#/$defs/VehicleId"
+        },
+        "room_id": {
+          "$ref": "common.schema.json#/$defs/RoomId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Scene": {
+      "description": "A comic scene of 3 to 5 panels.",
+      "type": "object",
+      "required": [
+        "scene_id",
+        "panels"
+      ],
+      "properties": {
+        "scene_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Panel"
+          },
+          "minItems": 3,
+          "maxItems": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    "Panel": {
+      "description": "One comic panel: its art and its lines.",
+      "type": "object",
+      "required": [
+        "art",
+        "lines"
+      ],
+      "properties": {
+        "art": {
+          "$ref": "common.schema.json#/$defs/Slug"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PanelLine"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        }
+      },
+      "additionalProperties": false
+    },
+    "PanelLine": {
+      "description": "A line of dialogue in a panel.",
+      "type": "object",
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "properties": {
+        "speaker": {
+          "$ref": "common.schema.json#/$defs/Slug"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

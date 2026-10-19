@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/trip.schema.json",
+  "title": "TripDefinition",
+  "description": "A self-contained trip definition: everything the engine needs to play one trip (FR-004).",
+  "type": "object",
+  "required": [
+    "trip_id",
+    "rev",
+    "kind",
+    "line_id",
+    "vehicle_id",
+    "seed",
+    "seats",
+    "stations",
+    "initial_tray",
+    "rules",
+    "passengers",
+    "events",
+    "star_rules",
+    "max_earnings_jenehat"
+  ],
+  "properties": {
+    "trip_id": {
+      "$ref": "common.schema.json#/$defs/TripId"
+    },
+    "rev": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "kind": {
+      "$ref": "#/$defs/TripKind"
+    },
+    "line_id": {
+      "$ref": "common.schema.json#/$defs/LineId"
+    },
+    "vehicle_id": {
+      "$ref": "common.schema.json#/$defs/VehicleId"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "seats": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Seat"
+      },
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "stations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TripStation"
+      },
+      "minItems": 1,
+      "maxItems": 4
+    },
+    "initial_tray": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/DenominationKey"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "rules": {
+      "$ref": "#/$defs/TripRules"
+    },
+    "passengers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PassengerSpec"
+      },
+      "minItems": 1,
+      "maxItems": 30
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TripEvent"
+      },
+      "minItems": 0,
+      "maxItems": 10
+    },
+    "star_rules": {
+      "$ref": "#/$defs/StarRules"
+    },
+    "max_earnings_jenehat": {
+      "$ref": "common.schema.json#/$defs/Amount"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "TripKind": {
+      "description": "A regular trip, or a chapter's story trip.",
+      "type": "string",
+      "enum": [
+        "regular",
+        "story"
+      ]
+    },
+    "SeatRow": {
+      "description": "A seat row: front, then A to D from the driver backwards.",
+      "type": "string",
+      "enum": [
+        "front",
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    "SeatCol": {
+      "description": "A seat column: right, middle or left.",
+      "type": "string",
+      "enum": [
+        "r",
+        "m",
+        "l"
+      ]
+    },
+    "Seat": {
+      "description": "One seat of a vehicle's layout.",
+      "type": "object",
+      "required": [
+        "seat_id",
+        "row",
+        "col",
+        "reachable_by_driver"
+      ],
+      "properties": {
+        "seat_id": {
+          "$ref": "common.schema.json#/$defs/SeatId"
+        },
+        "row": {
+          "$ref": "#/$defs/SeatRow"
+        },
+        "col": {
+          "$ref": "#/$defs/SeatCol"
+        },
+        "reachable_by_driver": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TripStation": {
+      "description": "A drop-off station of a trip, with its arrival time and fare.",
+      "type": "object",
+      "required": [
+        "station_id",
+        "at_seconds",
+        "fare_piasters"
+      ],
+      "properties": {
+        "station_id": {
+          "$ref": "common.schema.json#/$defs/StationId"
+        },
+        "at_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "fare_piasters": {
+          "$ref": "common.schema.json#/$defs/PositivePiasters"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TripRules": {
+      "description": "The fare rules of one trip.",
+      "type": "object",
+      "required": [
+        "student_discount_pct",
+        "bag_fare_piasters",
+        "child_free_age",
+        "max_break_requests"
+      ],
+      "properties": {
+        "student_discount_pct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "bag_fare_piasters": {
+          "$ref": "common.schema.json#/$defs/Piasters"
+        },
+        "child_free_age": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18
+        },
+        "max_break_requests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "PassengerSpec": {
+      "description": "One passenger of a trip.",
+      "type": "object",
+      "required": [
+        "passenger_id",
+        "archetype",
+        "skin",
+        "seat_id",
+        "dest_station_id",
+        "payment"
+      ],
+      "properties": {
+        "passenger_id": {
+          "type": "string",
+          "pattern": "^p[0-9]{1,3}$"
+        },
+        "archetype": {
+          "$ref": "common.schema.json#/$defs/Archetype"
+        },
+        "skin": {
+          "$ref": "common.schema.json#/$defs/Slug"
+        },
+        "seat_id": {
+          "$ref": "common.schema.json#/$defs/SeatId"
+        },
+        "board_station_id": {
+          "$ref": "common.schema.json#/$defs/StationId"
+        },
+        "dest_station_id": {
+          "$ref": "common.schema.json#/$defs/StationId"
+        },
+        "pays_at_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "payment": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Denomination"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "group_id": {
+          "type": "string",
+          "pattern": "^g[0-9]{1,2}$"
+        },
+        "group_size": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 12
+        },
+        "speech_keys": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "common.schema.json#/$defs/Slug"
+          },
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/SpeechKey"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TripEvent": {
+      "description": "An in-trip event and its parameters.",
+      "type": "object",
+      "required": [
+        "event_id",
+        "at_seconds"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "common.schema.json#/$defs/EventId"
+        },
+        "at_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "passenger_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^p[0-9]{1,3}$"
+          },
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true
+        },
+        "station_id": {
+          "$ref": "common.schema.json#/$defs/StationId"
+        },
+        "amount_piasters": {
+          "$ref": "common.schema.json#/$defs/Piasters"
+        },
+        "seconds": {
+          "type": "integer",
+          "minimum": -60,
+          "maximum": 60
+        }
+      },
+      "additionalProperties": false
+    },
+    "StarRules": {
+      "description": "What the second and third stars require.",
+      "type": "object",
+      "required": [
+        "two",
+        "three"
+      ],
+      "properties": {
+        "two": {
+          "$ref": "#/$defs/StarRuleTwo"
+        },
+        "three": {
+          "$ref": "#/$defs/StarRuleThree"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StarRuleTwo": {
+      "description": "The second star's rule.",
+      "type": "string",
+      "enum": [
+        "no_fights"
+      ]
+    },
+    "StarRuleThree": {
+      "description": "The third star's rule.",
+      "type": "string",
+      "enum": [
+        "no_fights_no_mistakes"
+      ]
+    }
+  }
+}

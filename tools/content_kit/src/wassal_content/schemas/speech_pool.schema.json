@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wassal.invalid/content/1/speech_pool.schema.json",
+  "title": "SpeechPool",
+  "description": "The lines for one speech key. The engine picks one deterministically from the trip seed.",
+  "type": "object",
+  "required": [
+    "speech_key",
+    "lines"
+  ],
+  "properties": {
+    "speech_key": {
+      "$ref": "common.schema.json#/$defs/SpeechKey"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SpeechLine"
+      },
+      "minItems": 1,
+      "maxItems": 50
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "SpeechLine": {
+      "description": "One line of a speech pool. It may use {amount} and {station}.",
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

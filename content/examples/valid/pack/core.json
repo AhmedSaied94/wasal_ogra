@@ -1,0 +1,1126 @@
+{
+  "catalog": {
+    "prices": [
+      {
+        "amount": 10,
+        "currency": "BONAT",
+        "sku_id": "change_bag",
+        "sku_kind": "booster"
+      },
+      {
+        "amount": 12,
+        "currency": "BONAT",
+        "sku_id": "ledger_peek",
+        "sku_kind": "booster"
+      },
+      {
+        "amount": 8,
+        "currency": "BONAT",
+        "sku_id": "traffic_jam",
+        "sku_kind": "booster"
+      },
+      {
+        "amount": 8,
+        "currency": "BONAT",
+        "sku_id": "wake_all",
+        "sku_kind": "booster"
+      },
+      {
+        "amount": 900,
+        "currency": "JENEHAT",
+        "sku_id": "ch3_shabka",
+        "sku_kind": "chapter"
+      },
+      {
+        "amount": 30,
+        "currency": "BONAT",
+        "sku_id": "refuel_full",
+        "sku_kind": "fuel"
+      },
+      {
+        "amount": 80,
+        "currency": "BONAT",
+        "sku_id": "fuel_unlimited_1h",
+        "sku_kind": "fuel_unlimited"
+      },
+      {
+        "amount": 400,
+        "currency": "JENEHAT",
+        "sku_id": "salon.nish",
+        "sku_kind": "item"
+      },
+      {
+        "amount": 150,
+        "currency": "JENEHAT",
+        "sku_id": "salon.sitara",
+        "sku_kind": "item"
+      },
+      {
+        "amount": 20,
+        "currency": "BONAT",
+        "sku_id": "revive",
+        "sku_kind": "revive"
+      },
+      {
+        "amount": 1500,
+        "currency": "JENEHAT",
+        "sku_id": "micro_old",
+        "sku_kind": "vehicle"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "chapter_id": "ch1_first_job",
+      "completion_bonat": 5,
+      "goal": {
+        "kind": "complete_line",
+        "line_id": "line_hay"
+      },
+      "order": 1,
+      "scenes": [
+        {
+          "panels": [
+            {
+              "art": "stand_morning",
+              "lines": [
+                {
+                  "speaker": "usta",
+                  "text": {
+                    "ar-EG": "يا صباح الفل يا موقف"
+                  }
+                }
+              ]
+            },
+            {
+              "art": "salma_waiting",
+              "lines": [
+                {
+                  "speaker": "salma",
+                  "text": {
+                    "ar-EG": "هو الميكروباص ده رايح الجامعة؟"
+                  }
+                }
+              ]
+            },
+            {
+              "art": "usta_decides",
+              "lines": [
+                {
+                  "speaker": "usta",
+                  "text": {
+                    "ar-EG": "خلاص، من النهارده هحوّش قرش قرش"
+                  }
+                }
+              ]
+            }
+          ],
+          "scene_id": "the_stand"
+        }
+      ],
+      "story_trip_id": "line_hay.03",
+      "title": {
+        "ar-EG": "أول شغلانة"
+      }
+    },
+    {
+      "chapter_id": "ch2_her_father",
+      "completion_bonat": 10,
+      "goal": {
+        "kind": "own_vehicle",
+        "vehicle_id": "micro_old"
+      },
+      "order": 2,
+      "scenes": [],
+      "title": {
+        "ar-EG": "الكلام مع أبوها"
+      }
+    },
+    {
+      "chapter_id": "ch3_shabka",
+      "completion_bonat": 10,
+      "goal": {
+        "kind": "purchase"
+      },
+      "order": 3,
+      "scenes": [],
+      "title": {
+        "ar-EG": "الشبكة"
+      }
+    },
+    {
+      "chapter_id": "ch4_salon",
+      "completion_bonat": 15,
+      "goal": {
+        "kind": "complete_room",
+        "room_id": "salon"
+      },
+      "order": 4,
+      "scenes": [],
+      "title": {
+        "ar-EG": "الصالون"
+      }
+    }
+  ],
+  "daily_rewards": [
+    {
+      "bonat": 0,
+      "day_index": 1,
+      "jenehat": 20
+    },
+    {
+      "bonat": 0,
+      "day_index": 2,
+      "jenehat": 25
+    },
+    {
+      "bonat": 0,
+      "day_index": 3,
+      "jenehat": 30
+    },
+    {
+      "bonat": 0,
+      "day_index": 4,
+      "jenehat": 35
+    },
+    {
+      "bonat": 0,
+      "day_index": 5,
+      "jenehat": 40
+    },
+    {
+      "bonat": 0,
+      "day_index": 6,
+      "jenehat": 45
+    },
+    {
+      "bonat": 5,
+      "day_index": 7,
+      "jenehat": 50
+    }
+  ],
+  "family_requests": [
+    {
+      "item_id": "salon.nish",
+      "request_id": "req_nish_crystal",
+      "reward_bonat": 5,
+      "room_id": "salon",
+      "text": {
+        "ar-EG": "مامة سلمى نفسها في النيش الكريستال"
+      },
+      "variant_id": "crystal"
+    }
+  ],
+  "items": [
+    {
+      "item_id": "salon.nish",
+      "name": {
+        "ar-EG": "النيش"
+      },
+      "order": 1,
+      "room_id": "salon",
+      "variants": [
+        {
+          "art": "nish_classic",
+          "name": {
+            "ar-EG": "كلاسيك"
+          },
+          "variant_id": "classic"
+        },
+        {
+          "art": "nish_crystal",
+          "name": {
+            "ar-EG": "كريستال"
+          },
+          "variant_id": "crystal"
+        },
+        {
+          "art": "nish_modern",
+          "name": {
+            "ar-EG": "مودرن"
+          },
+          "variant_id": "modern"
+        }
+      ]
+    },
+    {
+      "item_id": "salon.sitara",
+      "name": {
+        "ar-EG": "الستارة"
+      },
+      "order": 2,
+      "room_id": "salon",
+      "variants": [
+        {
+          "art": "sitara_plain",
+          "name": {
+            "ar-EG": "سادة"
+          },
+          "variant_id": "plain"
+        }
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "difficulty_band": {
+        "max": 55,
+        "min": 20
+      },
+      "line_id": "line_gamaa",
+      "name": {
+        "ar-EG": "خط الجامعة"
+      },
+      "order": 2,
+      "stations": [
+        {
+          "name": {
+            "ar-EG": "الكوبري"
+          },
+          "station_id": "kobri"
+        },
+        {
+          "name": {
+            "ar-EG": "المستشفى"
+          },
+          "station_id": "mostashfa"
+        },
+        {
+          "name": {
+            "ar-EG": "الجامعة"
+          },
+          "station_id": "gamaa"
+        },
+        {
+          "name": {
+            "ar-EG": "المكتبة"
+          },
+          "station_id": "maktaba"
+        },
+        {
+          "name": {
+            "ar-EG": "السور"
+          },
+          "station_id": "sour"
+        }
+      ],
+      "unlock": {
+        "kind": "vehicle",
+        "vehicle_id": "micro_old"
+      }
+    },
+    {
+      "difficulty_band": {
+        "max": 30,
+        "min": 0
+      },
+      "line_id": "line_hay",
+      "name": {
+        "ar-EG": "خط الحي"
+      },
+      "order": 1,
+      "stations": [
+        {
+          "name": {
+            "ar-EG": "الميدان"
+          },
+          "station_id": "midan"
+        },
+        {
+          "name": {
+            "ar-EG": "المدرسة"
+          },
+          "station_id": "madrasa"
+        },
+        {
+          "name": {
+            "ar-EG": "الفرن"
+          },
+          "station_id": "forn"
+        },
+        {
+          "name": {
+            "ar-EG": "المحطة"
+          },
+          "station_id": "mahatta"
+        }
+      ],
+      "unlock": {
+        "kind": "start"
+      }
+    }
+  ],
+  "pack_id": "core",
+  "rooms": [
+    {
+      "chapter_id": "ch4_salon",
+      "completion_bonat": 20,
+      "name": {
+        "ar-EG": "الصالون"
+      },
+      "order": 1,
+      "room_id": "salon"
+    }
+  ],
+  "schema_version": "1.0",
+  "speech_pools": [
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "اتفضل يا أسطى الأجرة"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "خد يا أسطى، من غير باقي"
+          }
+        }
+      ],
+      "speech_key": "passenger.pays"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "على {station} لو سمحت"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "نزّلني عند {station} يا أسطى"
+          }
+        }
+      ],
+      "speech_key": "passenger.stop_near"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "عايز {amount} باقي يا أسطى"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "فين الـ{amount} بتوعي؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.wants_change"
+    }
+  ],
+  "tasks": [
+    {
+      "metric": "exact_change",
+      "reward_bonat": 0,
+      "reward_jenehat": 30,
+      "target": 5,
+      "task_id": "task_exact_change",
+      "text": {
+        "ar-EG": "رجّع الباقي مظبوط {target} مرات"
+      }
+    },
+    {
+      "metric": "three_star_trips",
+      "reward_bonat": 2,
+      "reward_jenehat": 0,
+      "target": 2,
+      "task_id": "task_three_stars",
+      "text": {
+        "ar-EG": "خد تلات نجوم في {target} رحلات"
+      }
+    },
+    {
+      "metric": "trips_completed",
+      "reward_bonat": 0,
+      "reward_jenehat": 20,
+      "target": 3,
+      "task_id": "task_trips_done",
+      "text": {
+        "ar-EG": "خلّص {target} رحلات النهارده"
+      }
+    }
+  ],
+  "trips": [
+    {
+      "events": [
+        {
+          "at_seconds": 20,
+          "event_id": "bump"
+        }
+      ],
+      "initial_tray": {
+        "100": 5,
+        "1000": 1,
+        "50": 4,
+        "500": 3
+      },
+      "kind": "regular",
+      "line_id": "line_gamaa",
+      "max_earnings_jenehat": 25,
+      "passengers": [
+        {
+          "archetype": "big_note",
+          "dest_station_id": "mostashfa",
+          "passenger_id": "p1",
+          "payment": [
+            5000
+          ],
+          "pays_at_seconds": 4,
+          "seat_id": "front_r",
+          "skin": "effendi_tie"
+        },
+        {
+          "archetype": "sleeper",
+          "dest_station_id": "kobri",
+          "passenger_id": "p2",
+          "payment": [
+            1000
+          ],
+          "seat_id": "B_m",
+          "skin": "worker_blue"
+        },
+        {
+          "archetype": "student",
+          "dest_station_id": "mostashfa",
+          "passenger_id": "p3",
+          "payment": [
+            1000
+          ],
+          "pays_at_seconds": 10,
+          "seat_id": "C_l",
+          "skin": "student_cap"
+        }
+      ],
+      "rev": 1,
+      "rules": {
+        "bag_fare_piasters": 0,
+        "child_free_age": 6,
+        "max_break_requests": 2,
+        "student_discount_pct": 0
+      },
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "front",
+          "seat_id": "front_r"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_l"
+        }
+      ],
+      "seed": 521288629,
+      "star_rules": {
+        "three": "no_fights_no_mistakes",
+        "two": "no_fights"
+      },
+      "stations": [
+        {
+          "at_seconds": 30,
+          "fare_piasters": 850,
+          "station_id": "kobri"
+        },
+        {
+          "at_seconds": 60,
+          "fare_piasters": 850,
+          "station_id": "mostashfa"
+        }
+      ],
+      "trip_id": "line_gamaa.01",
+      "vehicle_id": "micro_old"
+    },
+    {
+      "events": [],
+      "initial_tray": {
+        "100": 3,
+        "1000": 1,
+        "2000": 1,
+        "50": 2,
+        "500": 2
+      },
+      "kind": "regular",
+      "line_id": "line_gamaa",
+      "max_earnings_jenehat": 60,
+      "passengers": [
+        {
+          "archetype": "mother_kids",
+          "dest_station_id": "gamaa",
+          "passenger_id": "p1",
+          "payment": [
+            1000
+          ],
+          "pays_at_seconds": 2,
+          "seat_id": "front_r",
+          "skin": "mother_red"
+        },
+        {
+          "archetype": "hurry",
+          "dest_station_id": "kobri",
+          "passenger_id": "p2",
+          "payment": [
+            1000
+          ],
+          "pays_at_seconds": 5,
+          "seat_id": "A_l",
+          "skin": "effendi_tie"
+        },
+        {
+          "archetype": "group_payer",
+          "dest_station_id": "kobri",
+          "group_id": "g1",
+          "group_size": 3,
+          "passenger_id": "p3",
+          "payment": [
+            5000
+          ],
+          "seat_id": "B_m",
+          "skin": "young_cap"
+        },
+        {
+          "archetype": "sleeper",
+          "dest_station_id": "mostashfa",
+          "passenger_id": "p4",
+          "payment": [
+            5000
+          ],
+          "seat_id": "C_m",
+          "skin": "worker_blue"
+        }
+      ],
+      "rev": 1,
+      "rules": {
+        "bag_fare_piasters": 0,
+        "child_free_age": 6,
+        "max_break_requests": 2,
+        "student_discount_pct": 0
+      },
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "front",
+          "seat_id": "front_r"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_l"
+        }
+      ],
+      "seed": 3141592653,
+      "star_rules": {
+        "three": "no_fights_no_mistakes",
+        "two": "no_fights"
+      },
+      "stations": [
+        {
+          "at_seconds": 38,
+          "fare_piasters": 450,
+          "station_id": "kobri"
+        },
+        {
+          "at_seconds": 70,
+          "fare_piasters": 700,
+          "station_id": "mostashfa"
+        },
+        {
+          "at_seconds": 100,
+          "fare_piasters": 900,
+          "station_id": "gamaa"
+        }
+      ],
+      "trip_id": "line_gamaa.02",
+      "vehicle_id": "micro_old"
+    },
+    {
+      "events": [],
+      "initial_tray": {
+        "100": 4,
+        "50": 4,
+        "500": 2
+      },
+      "kind": "regular",
+      "line_id": "line_hay",
+      "max_earnings_jenehat": 20,
+      "passengers": [
+        {
+          "archetype": "regular",
+          "dest_station_id": "madrasa",
+          "passenger_id": "p1",
+          "payment": [
+            1000
+          ],
+          "pays_at_seconds": 3,
+          "seat_id": "A_r",
+          "skin": "effendi_suit"
+        },
+        {
+          "archetype": "student",
+          "dest_station_id": "forn",
+          "passenger_id": "p2",
+          "payment": [
+            1000
+          ],
+          "pays_at_seconds": 8,
+          "seat_id": "A_l",
+          "skin": "student_cap"
+        }
+      ],
+      "rev": 1,
+      "rules": {
+        "bag_fare_piasters": 0,
+        "child_free_age": 6,
+        "max_break_requests": 2,
+        "student_discount_pct": 0
+      },
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        }
+      ],
+      "seed": 1103515245,
+      "star_rules": {
+        "three": "no_fights_no_mistakes",
+        "two": "no_fights"
+      },
+      "stations": [
+        {
+          "at_seconds": 30,
+          "fare_piasters": 700,
+          "station_id": "madrasa"
+        },
+        {
+          "at_seconds": 55,
+          "fare_piasters": 700,
+          "station_id": "forn"
+        }
+      ],
+      "trip_id": "line_hay.01",
+      "vehicle_id": "tuktuk"
+    },
+    {
+      "events": [
+        {
+          "at_seconds": 40,
+          "event_id": "traffic",
+          "seconds": 10
+        },
+        {
+          "at_seconds": 60,
+          "event_id": "payment_dispute",
+          "passenger_ids": [
+            "p3"
+          ]
+        }
+      ],
+      "initial_tray": {
+        "100": 6,
+        "50": 2,
+        "500": 2
+      },
+      "kind": "regular",
+      "line_id": "line_hay",
+      "max_earnings_jenehat": 30,
+      "passengers": [
+        {
+          "archetype": "group_payer",
+          "dest_station_id": "forn",
+          "group_id": "g1",
+          "group_size": 2,
+          "passenger_id": "p1",
+          "payment": [
+            2000
+          ],
+          "pays_at_seconds": 4,
+          "seat_id": "A_r",
+          "skin": "young_cap",
+          "speech_keys": {
+            "pay": "passenger.pays"
+          }
+        },
+        {
+          "archetype": "regular",
+          "dest_station_id": "forn",
+          "group_id": "g1",
+          "group_size": 2,
+          "passenger_id": "p2",
+          "payment": [
+            1000
+          ],
+          "seat_id": "A_m",
+          "skin": "worker_blue"
+        },
+        {
+          "archetype": "hajja",
+          "board_station_id": "madrasa",
+          "dest_station_id": "mahatta",
+          "passenger_id": "p3",
+          "payment": [
+            500,
+            100,
+            100
+          ],
+          "seat_id": "A_l",
+          "skin": "hajja_black",
+          "speech_keys": {
+            "stop": "passenger.stop_near"
+          }
+        }
+      ],
+      "rev": 1,
+      "rules": {
+        "bag_fare_piasters": 0,
+        "child_free_age": 6,
+        "max_break_requests": 2,
+        "student_discount_pct": 0
+      },
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        }
+      ],
+      "seed": 2654435761,
+      "star_rules": {
+        "three": "no_fights_no_mistakes",
+        "two": "no_fights"
+      },
+      "stations": [
+        {
+          "at_seconds": 25,
+          "fare_piasters": 700,
+          "station_id": "madrasa"
+        },
+        {
+          "at_seconds": 50,
+          "fare_piasters": 700,
+          "station_id": "forn"
+        },
+        {
+          "at_seconds": 80,
+          "fare_piasters": 700,
+          "station_id": "mahatta"
+        }
+      ],
+      "trip_id": "line_hay.02",
+      "vehicle_id": "tuktuk"
+    },
+    {
+      "events": [],
+      "initial_tray": {
+        "100": 4,
+        "50": 2,
+        "500": 1
+      },
+      "kind": "story",
+      "line_id": "line_hay",
+      "max_earnings_jenehat": 15,
+      "passengers": [
+        {
+          "archetype": "chatty",
+          "dest_station_id": "mahatta",
+          "passenger_id": "p1",
+          "payment": [
+            1000
+          ],
+          "seat_id": "A_m",
+          "skin": "effendi_suit",
+          "speech_keys": {
+            "change": "passenger.wants_change",
+            "pay": "passenger.pays"
+          }
+        },
+        {
+          "archetype": "regular",
+          "dest_station_id": "forn",
+          "passenger_id": "p2",
+          "payment": [
+            500,
+            100,
+            100
+          ],
+          "seat_id": "A_r",
+          "skin": "student_cap"
+        }
+      ],
+      "rev": 1,
+      "rules": {
+        "bag_fare_piasters": 0,
+        "child_free_age": 6,
+        "max_break_requests": 2,
+        "student_discount_pct": 0
+      },
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        }
+      ],
+      "seed": 362436069,
+      "star_rules": {
+        "three": "no_fights_no_mistakes",
+        "two": "no_fights"
+      },
+      "stations": [
+        {
+          "at_seconds": 30,
+          "fare_piasters": 700,
+          "station_id": "forn"
+        },
+        {
+          "at_seconds": 60,
+          "fare_piasters": 700,
+          "station_id": "mahatta"
+        }
+      ],
+      "trip_id": "line_hay.03",
+      "vehicle_id": "tuktuk"
+    }
+  ],
+  "vehicles": [
+    {
+      "name": {
+        "ar-EG": "الميكروباص القديم"
+      },
+      "order": 2,
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "front",
+          "seat_id": "front_r"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "B",
+          "seat_id": "B_l"
+        },
+        {
+          "col": "r",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": false,
+          "row": "C",
+          "seat_id": "C_l"
+        }
+      ],
+      "starter": false,
+      "vehicle_id": "micro_old"
+    },
+    {
+      "name": {
+        "ar-EG": "توكتوك المعلم"
+      },
+      "order": 1,
+      "seats": [
+        {
+          "col": "r",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_r"
+        },
+        {
+          "col": "m",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_m"
+        },
+        {
+          "col": "l",
+          "reachable_by_driver": true,
+          "row": "A",
+          "seat_id": "A_l"
+        }
+      ],
+      "starter": true,
+      "vehicle_id": "tuktuk"
+    }
+  ],
+  "version": 1
+}

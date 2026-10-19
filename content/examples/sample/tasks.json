@@ -1,0 +1,32 @@
+[
+  {
+    "metric": "exact_change",
+    "reward_bonat": 0,
+    "reward_jenehat": 30,
+    "target": 5,
+    "task_id": "task_exact_change",
+    "text": {
+      "ar-EG": "رجّع الباقي مظبوط {target} مرات"
+    }
+  },
+  {
+    "metric": "three_star_trips",
+    "reward_bonat": 2,
+    "reward_jenehat": 0,
+    "target": 2,
+    "task_id": "task_three_stars",
+    "text": {
+      "ar-EG": "خد تلات نجوم في {target} رحلات"
+    }
+  },
+  {
+    "metric": "trips_completed",
+    "reward_bonat": 0,
+    "reward_jenehat": 20,
+    "target": 3,
+    "task_id": "task_trips_done",
+    "text": {
+      "ar-EG": "خلّص {target} رحلات النهارده"
+    }
+  }
+]
