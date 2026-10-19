@@ -707,15 +707,22 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
   - The `wg0` rules take their source ranges from the VM's own /24, with the same offsets on both
     VMs: operator `.2`–`.9` (TCP 22 and 443), staff `.10`–`.99` (TCP 443), deploy `.200`–`.209`
     (TCP 22).
-  - **Verified on the host (2026-10-19, T054),** on the staging VM, the first one provisioned:
-    - Oracle's rules are the test fixture `host/tests/fixtures/oracle-rules.v4`. `INPUT` accepts
-      `RELATED,ESTABLISHED`, ICMP, `lo` and TCP 22 on every interface, then `REJECT`s. `OUTPUT`
-      sends `169.254.0.0/16` to `InstanceServices`, and `FORWARD` is a single `REJECT`.
-    - `iptables -S` before the first render (`/var/lib/wassal/iptables-before.txt`) was those rules
-      plus Docker's chains, since the same run installs Docker first, and Docker had set `FORWARD`
-      to `DROP`. It also had two `INPUT` accepts the operator had added by hand (UDP 51820, TCP
-      80/443). They were removed from `rules.v4` before the render, so the fixture doesn't have
-      them.
+  - **Verified on the host (2026-10-19, T054),** on the staging VM. The first instance was set up by
+    hand and then with the one-VM script; the owner rebuilt it from a fresh image the same day and
+    provisioned it with `--env staging`. The records below are from the fresh instance.
+    - Oracle's own `rules.v4` and `rules.v6`, saved before the first render, are the test fixtures
+      `host/tests/fixtures/oracle-rules.v{4,6}`, unchanged. `INPUT` accepts `RELATED,ESTABLISHED`,
+      ICMP, `lo` and TCP 22 on every interface, then `REJECT`s. `OUTPUT` sends `169.254.0.0/16` to
+      `InstanceServices`, and `FORWARD` is a single `REJECT`.
+    - `iptables -S` before the render (`/var/lib/wassal/iptables-before.txt`) was those rules plus
+      Docker's chains, since the same run installs Docker first, and Docker had set `FORWARD` to
+      `DROP`.
+    - `iptables -S` after the render: one `INPUT` set (`RELATED,ESTABLISHED`, ICMP, `lo`, the
+      project's rules on `enp0s6` and on `wg0` with staging's `10.67.0.x` ranges, then one
+      `REJECT`), `FORWARD` unchanged apart from its policy, the four `wassal-imds` rules in
+      `DOCKER-USER`, and `InstanceServices` unchanged. The policy is `ACCEPT` after a live restore
+      (Docker sets `DROP` only when it turns forwarding on itself, at boot); both end in Oracle's
+      `REJECT`, so nothing more is forwarded.
     - The image's `/etc/default/netfilter-persistent` sets `IPTABLES_RESTORE_NOFLUSH=yes` and
       `IP6TABLES_RESTORE_NOFLUSH=yes`, so `netfilter-persistent reload` appends to the built-in
       chains instead of replacing them. After the first render, the old `INPUT` rules and their
@@ -726,9 +733,8 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
       the host ever has a global IPv6 address while `rules.v6` still has no `REJECT`.
     - The public interface is `enp0s6`, not Oracle's documented `ens3`. `provision.sh` takes it
       from the default route, and `--render-firewall` accepts `--public-if`.
-  - **[verify on host]** `iptables -S` after the render, once the full restore has run, on each VM.
-    The production VM uses the same image, but its rules before the render haven't been compared
-    with the fixture yet.
+  - **[verify on host]** The production VM (T104): compare its saved Oracle rules with the fixtures
+    and record its `iptables -S` before and after, as above.
 - **Break-glass access** (spec edge case, the OCI facts in R1), for each VM on its own:
   - The serial console connects through Oracle's console service on port 443, independently of the
     VM's network. But it needs a **local password** (Oracle sets none), and support on A1 isn't
