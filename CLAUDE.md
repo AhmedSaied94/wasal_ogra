@@ -9,12 +9,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
 - `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
+- `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
 - `.github/workflows/mobile.yml`: mobile CI.
 
-There is no backend yet. Its commands arrive with **B01** (backend skeleton); add them here when it lands.
+## Backend commands
+
+Python is pinned by `backend/.python-version` and managed with uv (never pip). Run everything from `backend/`. CI (`.github/workflows/backend.yml`) runs the same commands. `docker compose …` below is short for `docker compose -f docker/compose.yml -f docker/compose.dev.yml`.
+
+| Purpose | Command (in `backend`) |
+| --- | --- |
+| First setup | `cp .env.example .env && uv sync` |
+| Start the local stack (migrates first) | `docker compose -f docker/compose.yml -f docker/compose.dev.yml up -d --wait` |
+| Stop it (keep data) / wipe it | `docker compose … down` / `docker compose … down -v` |
+| Migrate | `uv run manage.py migrate` |
+| Lint and format check | `uv run ruff check . && uv run ruff format --check .` |
+| Type check | `uv run mypy .` |
+| Tests + coverage gate | `uv run pytest --cov --cov-fail-under=80` |
+| Missing-migration check | `uv run manage.py makemigrations --check --dry-run` |
+| Regenerate the API contract | `uv run manage.py spectacular --file ../contracts/openapi.yaml --validate --fail-on-warn` |
+| Create a staff user / issue TOTP | `uv run manage.py create_staff <name>` / `uv run manage.py staff_totp <name>` |
+| Deploy, roll back, restore | See `docs/runbooks/deploy-and-rollback.md` and `docs/runbooks/restore.md` |
+
+- The API is on <http://localhost:8000> (the Android emulator reaches it as `10.0.2.2:8000`), the admin on <http://localhost:8001/admin/>.
+- Tests need the stack's PostgreSQL and Valkey: they run against the real services, never mocks (constitution XIII). pytest reads only the `TEST_*` URLs from `backend/.env`.
+- If port 5432 or 6379 is taken on your machine, export `WASSAL_DEV_PG_PORT` or `WASSAL_DEV_VALKEY_PORT` before `docker compose up`, and use the same port in the URLs in `backend/.env`.
+- Every value comes from the environment (`specs/002-b01-backend-skeleton/contracts/environment.md`). Outside `dev` and `test`, a missing, empty or `change-me` secret stops the process at startup.
 
 ## Mobile commands
 
@@ -62,7 +84,7 @@ The two architecture docs are paired, so read both:
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
 - To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
-- **The constitution** (`.specify/memory/constitution.md`, v1.0.0, ratified 2026-10-18) overrides conflicting guidance, including this file.
+- **The constitution** (`.specify/memory/constitution.md`, v1.1.0, ratified 2026-10-18, amended 2026-10-19) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
   - Any other deviation goes in the plan's Complexity Tracking and needs the owner's approval.
@@ -70,6 +92,7 @@ The two architecture docs are paired, so read both:
 - **Tests are mandatory for every feature**, even though `tasks-template.md` says they are optional (constitution XIII).
   - Write tests first for engine rules, ledger/sync validators, entitlements, and purchase/webhook verification.
   - Coverage: ≥ 90% lines in `trip_engine`, ≥ 80% everywhere else.
+- **Owner actions.** When `/speckit-implement` finishes a feature, add its section to `docs/owner-actions.md`. It lists everything only the owner can do (accounts, consoles, secrets, devices, live checks), split into before and after merge, each with its task ID and where its steps are. Keep the "Open now" table current, and tick items as the owner reports them done.
 - Every feature ID becomes one `specs/NNN-<short-name>/` folder (sequential numbering). Backend features are `B01`–`B15` (backend §20) and mobile features are `M01`–`M20` (mobile §23). Plan each B/M pair together so they share `contracts/` content.
 - MVP joint order (backend §21): M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
 - `docs/delivery-plan.md` turns that order into spec numbers and branch names (`001-m03-app-shell` …). It also lists the open questions each feature must resolve and each step's "done when". Tick its Progress list when a feature merges.
@@ -126,7 +149,7 @@ These invariants cut across both sides, and you need several docs to see them:
 
 - **Mobile:** use Riverpod with `riverpod_generator`, not BLoC. Use **drift (SQLite)** for structured local data; Hive and Isar were explicitly rejected (mobile §25). Use `flutter_secure_storage` for tokens. Use `freezed` + `json_serializable`, `dio`, `go_router`. Pin Flutter with FVM (`.fvmrc`). The flavors are `dev`, `staging` and `prod`.
 - **Backend:** Python 3.13 managed with **`uv`** (not pip). Plain Django + DRF, with Django admin as the content-authoring and live-ops tool (no Wagtail, no React). PostgreSQL 17, Redis/Valkey, Celery with `django-celery-beat`, `simplejwt`, `drf-spectacular`. CI runs `ruff`, `mypy` (django-stubs), `pytest` with real Postgres/Redis, `hypothesis`, `schemathesis` and the parity tests.
-- **Deployment target:** a single ARM64 Oracle Cloud VM running Docker Compose behind Caddy. Build images for `linux/arm64`. iOS builds run on Codemagic, because the dev machine is Linux.
+- **Deployment target:** two Oracle Cloud Always Free A1 VMs (ARM64) in `me-jeddah-1`, one per environment: production and staging, each 1 OCPU / 6 GB with its own reserved IP, running Docker Compose behind its own host-network Caddy. `provision.sh --env` fixes each VM's environment. Each VM has its own WireGuard network (`10.66.0.1` prod, `10.67.0.1` staging); its admin is reachable only over it, and so is SSH. Backups run on production; the monthly restore drill runs on staging. Backups go to Backblaze B2. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
 
 ## UI rules (from `docs/ux-spec.md`)
 

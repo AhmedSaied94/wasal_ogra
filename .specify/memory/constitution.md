@@ -244,8 +244,9 @@ hand-testing the whole game.
     React).
   - PostgreSQL 17, Redis 7 or Valkey, Celery 5 + `django-celery-beat`, `simplejwt` and
     `drf-spectacular`.
-- Deployment: one ARM64 Oracle Cloud VM running Docker Compose behind Caddy, with images built for
-  `linux/arm64`. iOS builds run on Codemagic.
+- Deployment: two ARM64 Oracle Cloud Always Free VMs, one per environment (production and
+  staging), each 1 OCPU / 6 GB and each running Docker Compose behind its own Caddy, with images
+  built for `linux/arm64`. Staging and production never share a VM. iOS builds run on Codemagic.
 
 **Architecture boundaries.**
 
@@ -273,7 +274,7 @@ hand-testing the whole game.
   Apple JWS, AdMob ECDSA).
 - Input is validated with strict serializers and size limits, and every endpoint is rate-limited.
   Raw SQL, where unavoidable, MUST be parameterized.
-- Django admin runs on a separate host, is staff-only and requires 2FA. Content publishes and
+- Django admin runs on a separate hostname, is staff-only and requires 2FA. Content publishes and
   wallet adjustments are audit-logged.
 - Personal data is kept to a minimum: no email, phone number or real name.
 - Account deletion MUST be available both in the app and on a public web page, as the stores
@@ -377,4 +378,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-18
+**Version**: 1.1.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-19

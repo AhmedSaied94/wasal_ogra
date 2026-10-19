@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the wassal %i restore drill on the 1st of each month at 05:00 Cairo time
+
+[Timer]
+# The quiet hour, two hours after that night's backup. Change it with a drop-in if needed.
+OnCalendar=*-*-01 05:00:00 Africa/Cairo
+# A run missed while the host was down fires at the next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

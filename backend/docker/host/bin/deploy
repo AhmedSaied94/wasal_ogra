@@ -1,0 +1,319 @@
+#!/usr/bin/env bash
+# Deploy one release to one environment (contracts/operations.md "Deploy interface", research R10).
+#
+#   sudo /opt/wassal/bin/deploy --only <staging|prod>
+#
+# The request comes in SSH_ORIGINAL_COMMAND as "<env> <tag> [rehearse-migrate-fail|rehearse-verify-fail]".
+# The deploy key's forced command and the sudoers rule allow nothing else. <env> must also be this
+# host's own WASSAL_ENV, from /etc/wassal/host.env (FR-001a).
+#
+# Exit codes: 0 deployed, or already serving; 2 bad input, or not this host's environment, nothing
+# touched; 3 lock timeout; 4 pull failed, or the release's stack definition was refused; 5 migrate
+# failed, the previous release still serving; 6 the release failed verification and the previous
+# one was restored; 7 the restore failed too.
+set -euo pipefail
+shopt -s nullglob
+
+readonly IMAGE_REPO=ghcr.io/ahmedsaied94/wassal-backend
+readonly SERVICES=(api admin worker beat)
+readonly LOCK_TIMEOUT=900
+readonly UP_TIMEOUT=180
+STATE_DIR="${WASSAL_STATE_DIR:-/var/lib/wassal}"
+LOCK_DIR="${WASSAL_LOCK_DIR:-/run/lock}"
+ETC_DIR="${WASSAL_ETC:-/etc/wassal}"
+VERIFY_TIMEOUT="${WASSAL_VERIFY_TIMEOUT:-120}"
+VERIFY_INTERVAL="${WASSAL_VERIFY_INTERVAL:-2}"
+
+log() { echo "deploy: $*" >&2; }
+refuse() { log "refused: $*"; exit 2; }
+
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || refuse "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || refuse "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || refuse "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    refuse "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) refuse "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || refuse "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
+
+# -- 1. Validate -----------------------------------------------------------------------------------
+
+if [ $# -ne 2 ] || [ "$1" != --only ]; then refuse "usage: deploy --only <staging|prod>"; fi
+ONLY="$2"
+case "$ONLY" in
+  staging) TAG_PATTERN='^sha-[0-9a-f]{40}$' ;;
+  prod) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$' ;;
+  *) refuse "unknown environment" ;;
+esac
+# Here and not only in sudoers and the deploy key, so even the operator's own sudo can't deploy the
+# other environment on this host.
+read_host_env
+[ "$ONLY" = "$HOST_ENV" ] || refuse "this host serves $HOST_ENV, not $ONLY"
+
+REQUEST="${SSH_ORIGINAL_COMMAND:-}"
+[[ "$REQUEST" != *$'\n'* ]] || refuse "the request has more than one line"
+read -r -a TOKENS <<<"$REQUEST"
+if [ "${#TOKENS[@]}" -lt 2 ] || [ "${#TOKENS[@]}" -gt 3 ]; then
+  refuse "expected '<env> <tag> [rehearse-migrate-fail|rehearse-verify-fail]'"
+fi
+ENV="${TOKENS[0]}"
+TAG="${TOKENS[1]}"
+REHEARSAL="${TOKENS[2]:-}"
+[ "$ENV" = "$ONLY" ] || refuse "this key deploys $ONLY only"
+[[ "$TAG" =~ $TAG_PATTERN ]] || refuse "not a $ENV tag"
+case "$REHEARSAL" in
+  "") ;;
+  rehearse-migrate-fail | rehearse-verify-fail)
+    [ "$ENV" = staging ] || refuse "rehearsals are for staging only"
+    ;;
+  *) refuse "unknown option" ;;
+esac
+
+ENV_STATE="$STATE_DIR/$ENV"
+DEPLOY_ROOT="$ENV_STATE/deploy"
+RELEASE_FILE="$ENV_STATE/release"
+PREVIOUS_FILE="$ENV_STATE/release.previous"
+
+# -- helpers ---------------------------------------------------------------------------------------
+
+# compose <tag> <args…>: docker compose with that release's own stack definition and sizing file.
+compose() {
+  local tag=$1 dir="$DEPLOY_ROOT/$1"
+  shift
+  RELEASE_TAG="$tag" docker compose -p "wassal-$ENV" -f "$dir/compose.yml" \
+    --env-file "$dir/env/$ENV.env" "$@"
+}
+
+# The RELEASE baked into the image, which /healthz reports.
+image_release() {
+  docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGE_REPO:$1" |
+    sed -n 's/^RELEASE=//p'
+}
+
+# port <tag> <API_PORT|ADMIN_PORT>: the loopback port from that release's sizing file.
+port() { sed -n "s/^$2=\([0-9][0-9]*\)$/\1/p" "$DEPLOY_ROOT/$1/env/$ENV.env"; }
+
+# serves <port> <release>: ready, and reporting that release. Direct calls carry no
+# X-Forwarded-For, so the rate limit doesn't count them.
+serves() {
+  local body
+  curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:$1/readyz" 2>/dev/null || return 1
+  body="$(curl -fsS --max-time 5 "http://127.0.0.1:$1/healthz" 2>/dev/null)" || return 1
+  [ "$(sed -n 's/.*"release": *"\([^"]*\)".*/\1/p' <<<"$body")" = "$2" ]
+}
+
+# verify <tag> <release>: both ports serve that release within VERIFY_TIMEOUT seconds.
+verify() {
+  local api admin attempt attempts=$((VERIFY_TIMEOUT / VERIFY_INTERVAL))
+  api="$(port "$1" API_PORT)"
+  admin="$(port "$1" ADMIN_PORT)"
+  if [ -z "$api" ] || [ -z "$admin" ]; then return 1; fi
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if serves "$api" "$2" && serves "$admin" "$2"; then
+      return 0
+    fi
+    if [ "$attempt" -lt "$attempts" ]; then sleep "$VERIFY_INTERVAL"; fi
+  done
+  return 1
+}
+
+restart() { compose "$1" up -d --no-deps --wait --wait-timeout "$UP_TIMEOUT" "${SERVICES[@]}" >&2; }
+
+# Copy the release's /app/deploy/ (compose.yml, env/, postgres/initdb/) out of the image, so the
+# stack definition deploys and rolls back with the code.
+copy_stack() {
+  local dir="$DEPLOY_ROOT/$TAG" container status=0
+  mkdir -p "$DEPLOY_ROOT"
+  rm -rf "$dir.new"
+  mkdir "$dir.new"
+  container="$(docker create "$IMAGE_REPO:$TAG")" || return 1
+  docker cp "$container:/app/deploy/." "$dir.new/" >&2 || status=1
+  docker rm "$container" >/dev/null || true
+  if [ "$status" -ne 0 ] || [ ! -f "$dir.new/compose.yml" ] || [ ! -f "$dir.new/env/$ENV.env" ]; then
+    return 1
+  fi
+  rm -rf "$dir"
+  mv "$dir.new" "$dir"
+}
+
+# The stack definition comes out of the image, and root runs it: check it before anything starts.
+# A commit on master, or a write to the image registry, must not be able to give a container the
+# host (privileged mode, host namespaces, a bind of /). Only the known services and images, ports on
+# 127.0.0.1, plain named volumes and the two host directories below are allowed (security review).
+# The rendered config holds the environment's secrets, so it only ever goes to the checker's stdin.
+read -r -d '' STACK_POLICY <<'PY' || true
+import json, re, sys
+
+image, state = sys.argv[1], sys.argv[2]
+APP = {"api", "admin", "worker", "beat", "migrate", "backup"}
+OTHER = {
+    "postgres": r"postgres:[0-9][A-Za-z0-9._-]*",
+    "valkey": r"valkey/valkey:[0-9][A-Za-z0-9._-]*",
+}
+KEYS = {
+    "command", "depends_on", "entrypoint", "environment", "healthcheck", "image", "logging",
+    "mem_limit", "networks", "ports", "profiles", "restart", "stop_grace_period", "volumes",
+    "working_dir",
+}
+BINDS = {
+    ("postgres", f"{state}/initdb", "/docker-entrypoint-initdb.d", True),
+    ("backup", f"{state}/backup", "/var/lib/wassal/backup", False),
+}
+try:
+    config = json.load(sys.stdin)
+except ValueError:
+    sys.exit("stack: the definition doesn't render")
+problems = []
+for key in config:
+    if key not in {"name", "services", "networks", "volumes"} and not key.startswith("x-"):
+        problems.append(f"top-level {key} isn't allowed")
+named = config.get("volumes") or {}
+for name, volume in named.items():
+    if set(volume) - {"name"}:
+        problems.append(f"volume {name}: only a plain named volume is allowed")
+for name, network in (config.get("networks") or {}).items():
+    if name != "default" or set(network) - {"name", "ipam"} or network.get("ipam"):
+        problems.append(f"network {name} isn't allowed")
+for name, service in (config.get("services") or {}).items():
+    if name in APP:
+        if service.get("image") != image:
+            problems.append(f"{name}: the image isn't {image}")
+    elif name in OTHER:
+        if not re.fullmatch(OTHER[name], str(service.get("image", ""))):
+            problems.append(f"{name}: unexpected image")
+    else:
+        problems.append(f"unknown service {name}")
+        continue
+    problems += [f"{name}: {key} isn't allowed" for key in sorted(set(service) - KEYS)]
+    for network in service.get("networks") or {}:
+        if network != "default":
+            problems.append(f"{name}: network {network} isn't allowed")
+    for port in service.get("ports") or []:
+        if port.get("host_ip") != "127.0.0.1":
+            problems.append(f"{name}: a port isn't bound to 127.0.0.1")
+    for mount in service.get("volumes") or []:
+        kind, source = mount.get("type"), mount.get("source")
+        if kind == "volume" and source in named or kind == "tmpfs":
+            continue
+        if kind == "bind" and (name, source, mount.get("target"), bool(mount.get("read_only"))) in BINDS:
+            continue
+        problems.append(f"{name}: the {kind} mount of {source} isn't allowed")
+for problem in problems:
+    print(f"stack: {problem}", file=sys.stderr)
+sys.exit(1 if problems else 0)
+PY
+
+check_stack() {
+  compose "$TAG" --profile ops config --format json 2>/dev/null |
+    python3 -I -c "$STACK_POLICY" "$IMAGE_REPO:$TAG" "$ENV_STATE" >&2
+}
+
+# Postgres mounts its init scripts from a fixed path per environment (POSTGRES_INITDB_DIR in the
+# sizing file), filled here from the new release. With the release's own copy, the mount path would
+# change with every tag, and compose would restart the database on every deploy, a failed one too.
+sync_initdb() {
+  local target="$ENV_STATE/initdb" declared
+  declared="$(sed -n 's/^POSTGRES_INITDB_DIR=//p' "$DEPLOY_ROOT/$TAG/env/$ENV.env")"
+  if [ "$declared" != "$target" ]; then
+    log "the sizing file's POSTGRES_INITDB_DIR is '$declared', not $target"
+    return 1
+  fi
+  rm -rf "$target.new"
+  cp -r "$DEPLOY_ROOT/$TAG/postgres/initdb" "$target.new" || return 1
+  rm -rf "$target"
+  mv "$target.new" "$target"
+}
+
+# Keep the stack copies and images of the serving and previous releases only. Each environment
+# prunes its own kind of tag, so staging never touches a production image, and back.
+prune() {
+  local dir tag
+  for dir in "$DEPLOY_ROOT"/*/; do
+    tag="$(basename "$dir")"
+    if [ "$tag" != "$TAG" ] && [ "$tag" != "$CURRENT" ]; then rm -rf "$dir"; fi
+  done
+  while read -r tag; do
+    if [[ "$tag" =~ $TAG_PATTERN ]] && [ "$tag" != "$TAG" ] && [ "$tag" != "$CURRENT" ]; then
+      docker image rm "$IMAGE_REPO:$tag" >/dev/null || log "could not remove $IMAGE_REPO:$tag"
+    fi
+  done < <(docker image ls --format '{{.Tag}}' "$IMAGE_REPO" || true)
+}
+
+summary() {
+  printf '{"env":"%s","tag":"%s","release":"%s","previous":"%s","seconds":%d}\n' \
+    "$ENV" "$TAG" "$1" "$2" "$SECONDS"
+}
+
+# -- 2. Lock ---------------------------------------------------------------------------------------
+
+exec 9>"$LOCK_DIR/wassal-deploy-$ENV.lock"
+flock -w "$LOCK_TIMEOUT" 9 || { log "another $ENV deploy held the lock for ${LOCK_TIMEOUT}s"; exit 3; }
+CURRENT="$(cat "$RELEASE_FILE" 2>/dev/null || true)"
+
+if [ "$TAG" = "$CURRENT" ] && [ -z "$REHEARSAL" ]; then
+  log "$TAG is already serving $ENV; verifying it"
+  RELEASE="$(image_release "$TAG" || true)"
+  verify "$TAG" "$RELEASE" || { log "$TAG doesn't verify"; exit 6; }
+  summary "$RELEASE" "$(cat "$PREVIOUS_FILE" 2>/dev/null || true)"
+  exit 0
+fi
+
+# -- 3. Pull ---------------------------------------------------------------------------------------
+
+log "pulling $IMAGE_REPO:$TAG"
+docker pull --quiet "$IMAGE_REPO:$TAG" >&2 || { log "pull failed"; exit 4; }
+RELEASE="$(image_release "$TAG" || true)"
+[[ "$RELEASE" =~ ^[A-Za-z0-9._-]+$ ]] || { log "the image has no usable RELEASE"; exit 4; }
+copy_stack || { log "couldn't copy the stack definition out of the image"; exit 4; }
+check_stack || { log "the stack definition asks for more than this host allows"; exit 4; }
+sync_initdb || { log "couldn't install the database init scripts"; exit 4; }
+
+# -- 4. Migrate ------------------------------------------------------------------------------------
+
+MIGRATE=()
+if [ "$REHEARSAL" = rehearse-migrate-fail ]; then
+  MIGRATE=(python -c "raise SystemExit('rehearsal: the migration fails')")
+fi
+log "migrating with $TAG"
+if ! compose "$TAG" --profile ops run --rm migrate "${MIGRATE[@]}" >&2; then
+  log "migrate failed; ${CURRENT:-nothing} keeps serving"
+  exit 5
+fi
+
+# -- 5.–7. Restart, verify, restore ----------------------------------------------------------------
+
+EXPECTED="$RELEASE"
+if [ "$REHEARSAL" = rehearse-verify-fail ]; then EXPECTED="rehearsal-never-served"; fi
+log "starting $TAG ($RELEASE)"
+if ! { restart "$TAG" && verify "$TAG" "$EXPECTED"; }; then
+  if [ -z "$CURRENT" ]; then
+    log "$TAG failed verification, and there is no earlier release to restore; leaving it running"
+    exit 6
+  fi
+  log "$TAG failed verification; restoring $CURRENT"
+  if restart "$CURRENT" && verify "$CURRENT" "$(image_release "$CURRENT")"; then
+    log "restored $CURRENT"
+    exit 6
+  fi
+  log "the restore of $CURRENT failed too"
+  exit 7
+fi
+
+# -- 8. Record -------------------------------------------------------------------------------------
+
+if [ -n "$CURRENT" ]; then printf '%s\n' "$CURRENT" >"$PREVIOUS_FILE"; fi
+printf '%s\n' "$TAG" >"$RELEASE_FILE.new"
+mv "$RELEASE_FILE.new" "$RELEASE_FILE"
+prune
+log "$ENV now serves $TAG ($RELEASE)"
+summary "$RELEASE" "$CURRENT"

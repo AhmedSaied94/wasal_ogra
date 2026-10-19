@@ -1,0 +1,50 @@
+# Dev edge (profile `edge`): the production headers in front of the local API (8443) and admin
+# (8444). The production edge is docker/edge/Caddyfile (contracts/operations.md "Edge").
+{
+	skip_install_trust
+	servers {
+		protocols h1 h2
+	}
+}
+
+(headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+		-Via
+	}
+}
+
+# Caddy drops the headers set so far before it runs an error route, so each one sets them again.
+(errors) {
+	handle_errors 413 {
+		import headers
+		respond `{"error":{"code":"payload_too_large","message":"Payload too large","details":{"limit_bytes":524288}}}` 413
+	}
+	handle_errors {
+		import headers
+	}
+}
+
+https://localhost:8443 {
+	tls internal
+	import headers
+	request_body {
+		max_size 512KiB
+	}
+	import errors
+	reverse_proxy api:8000 {
+		request_buffers 1MB
+	}
+}
+
+https://localhost:8444 {
+	tls internal
+	import headers
+	import errors
+	header Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-QE3U2xYF7B4J2ro1/9oxiKhaWCGW39gB7ocQ/xlD0bE='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+	reverse_proxy admin:8000
+}

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# The nightly backup (FR-039, contracts/operations.md "Backup job"), run by wassal-backup@prod.timer:
+#
+#   /opt/wassal/bin/backup prod
+#
+# It runs on the prod host only: /etc/wassal/host.env must say WASSAL_ENV=prod (FR-001a). The
+# staging host drills these backups instead of taking its own.
+#
+# It runs `python manage.py backup_db` in the serving release's image, with that release's own stack
+# definition and sizing file, as deploy does. The command pings Healthchecks.io itself. If this
+# script can't start it, the check's grace period raises the alert.
+#
+# Exit codes: 0 backed up; 1 the backup failed (backup_db pinged /fail); 2 bad input or setup, or
+# not the prod host; 3 a deploy held the lock.
+set -euo pipefail
+
+# The image's `app` user (docker/Dockerfile), which owns the backup's state directory.
+APP_UID="${WASSAL_APP_UID:-10001}"
+APP_GID="${WASSAL_APP_GID:-$APP_UID}"
+readonly LOCK_TIMEOUT=900
+STATE_DIR="${WASSAL_STATE_DIR:-/var/lib/wassal}"
+ETC_DIR="${WASSAL_ETC:-/etc/wassal}"
+LOCK_DIR="${WASSAL_LOCK_DIR:-/run/lock}"
+
+log() { echo "backup: $*" >&2; }
+die() { log "$*"; exit 2; }
+
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || die "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || die "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || die "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    die "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) die "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || die "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
+
+if [ $# -ne 1 ] || ! [[ "$1" =~ ^(staging|prod)$ ]]; then die "usage: backup <staging|prod>"; fi
+ENV="$1"
+read_host_env
+[ "$HOST_ENV" = prod ] || die "backups run on the prod host only; this is the $HOST_ENV host"
+[ "$ENV" = "$HOST_ENV" ] || die "this host serves $HOST_ENV, not $ENV"
+ENV_STATE="$STATE_DIR/$ENV"
+BACKUP_ENV_FILE="$ETC_DIR/$ENV-backup.env"
+
+[ -f "$BACKUP_ENV_FILE" ] || die "$BACKUP_ENV_FILE is missing (monitoring-setup.md, Backblaze B2)"
+TAG="$(cat "$ENV_STATE/release" 2>/dev/null)" || die "no release serves $ENV yet"
+[[ "$TAG" =~ ^(sha-[0-9a-f]{40}|v[0-9]+\.[0-9]+\.[0-9]+)$ ]] || die "the release file is invalid"
+STACK="$ENV_STATE/deploy/$TAG"
+if [ ! -f "$STACK/compose.yml" ] || [ ! -f "$STACK/env/$ENV.env" ]; then
+  die "the serving release's stack definition is missing"
+fi
+
+# One at a time with deploy: a release switch never happens under a running backup.
+exec 9>"$LOCK_DIR/wassal-deploy-$ENV.lock"
+flock -w "$LOCK_TIMEOUT" 9 || { log "a deploy held the lock for ${LOCK_TIMEOUT}s"; exit 3; }
+
+# The container writes last-backup.json here, and nowhere else on the host: the rest of
+# $ENV_STATE holds the stack definitions that root runs.
+install -d -m 0750 -o "$APP_UID" -g "$APP_GID" "$ENV_STATE/backup"
+
+status=0
+RELEASE_TAG="$TAG" BACKUP_ENV_FILE="$BACKUP_ENV_FILE" BACKUP_STATE_DIR="$ENV_STATE/backup" \
+  docker compose -p "wassal-$ENV" -f "$STACK/compose.yml" --env-file "$STACK/env/$ENV.env" \
+  --profile ops run --rm --no-deps -T backup || status=$?
+if [ "$status" -ne 0 ]; then
+  log "backup_db failed (exit $status)"
+  exit 1
+fi

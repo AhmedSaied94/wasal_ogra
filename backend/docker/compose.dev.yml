@@ -1,0 +1,77 @@
+# Local development overrides (quickstart "Setup", data-model dev column).
+# Publishes the database and cache on loopback only, so pytest and manage.py can run on the host.
+# If those ports are taken, export WASSAL_DEV_PG_PORT / WASSAL_DEV_VALKEY_PORT and change the
+# matching URLs in backend/.env.
+
+name: wassal-dev
+
+# The containers reach the database and cache by service name, not 127.0.0.1 as in backend/.env.
+x-dev-app: &dev-app
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  image: wassal-backend:dev
+  volumes:
+    - ..:/app
+  environment:
+    # env_file already passes backend/.env. Reading it again would fail on a 0600 file.
+    WASSAL_READ_DOTENV: "0"
+    DATABASE_URL: postgres://wassal:${WASSAL_DB_PASSWORD:-change-me-db}@postgres:5432/wassal
+    CACHE_URL: redis://valkey:6379/0
+    CELERY_BROKER_URL: redis://valkey:6379/1
+
+x-after-migrate: &after-migrate
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${WASSAL_DEV_PG_PORT:-5432}:5432"
+
+  valkey:
+    ports:
+      - "127.0.0.1:${WASSAL_DEV_VALKEY_PORT:-6379}:6379"
+
+  # In dev the migrations run on every `up`, before the app starts (prod runs them in deploy).
+  migrate:
+    <<: *dev-app
+    profiles: !reset []
+    command: python manage.py migrate --noinput
+
+  api:
+    <<: *dev-app
+    command: gunicorn -c config/gunicorn.conf.py --reload config.wsgi
+    depends_on: *after-migrate
+
+  admin:
+    <<: *dev-app
+    command: gunicorn -c config/gunicorn.conf.py --reload config.wsgi
+    depends_on: *after-migrate
+
+  worker:
+    <<: *dev-app
+    depends_on: *after-migrate
+
+  beat:
+    <<: *dev-app
+    depends_on: *after-migrate
+
+  edge:
+    image: caddy:2.11.7
+    profiles: [edge]
+    volumes:
+      - ./edge/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - edgedata:/data
+    ports:
+      - "127.0.0.1:8443:8443"
+      - "127.0.0.1:8444:8444"
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  edgedata:

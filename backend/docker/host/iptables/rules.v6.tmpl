@@ -1,0 +1,6 @@
+# wassal: project INPUT rules for IPv6, the public ones only (WireGuard is IPv4). Inserted before
+# Oracle's final INPUT REJECT in rules.v6, like rules.v4.tmpl.
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 80 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 443 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p udp -m udp --dport 51820 -m comment --comment wassal -j ACCEPT
+-A INPUT -i @PUBLIC_IF@ -p tcp -m state --state NEW -m tcp --dport 22 -m comment --comment wassal-bootstrap-ssh -j ACCEPT

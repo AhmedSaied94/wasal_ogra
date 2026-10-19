@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# Host checks every 5 minutes (FR-038, contracts/operations.md "Host monitor"), run on each host by
+# wassal-host-monitor.timer with that host's /etc/wassal/host-monitor.env. The host's environment,
+# from host.env, picks its checks: disk, certificates and queues on both hosts, backup storage on
+# the prod host only. It pings the host's own Healthchecks.io check when every check passes, with
+# the checks that ran, and `/fail` with the failing checks listed otherwise. When the monitor itself
+# stops, Healthchecks alerts after its grace period.
+#
+# Exit codes: 0 all checks pass; 1 a check failed (pinged /fail); 2 the ping or the config failed.
+set -uo pipefail
+
+STATE_DIR="${WASSAL_STATE_DIR:-/var/lib/wassal}"
+ETC_DIR="${WASSAL_ETC:-/etc/wassal}"
+BACKLOG="$STATE_DIR/host-monitor/backlog.json"
+QUEUES=(default purchases content push)
+# 14 daily and 8 weekly copies are kept (research R9).
+KEPT_BACKUPS=22
+
+log() { echo "host-monitor: $*" >&2; }
+die() { log "$*"; exit 2; }
+
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || die "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || die "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || die "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    die "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) die "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || die "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
+
+if [ -z "${HC_PING_HOST_MONITOR_URL:-}" ]; then
+  log "HC_PING_HOST_MONITOR_URL is required"
+  exit 2
+fi
+read_host_env
+ENV="$HOST_ENV"
+DISK_ALERT_PERCENT="${DISK_ALERT_PERCENT:-80}"
+CERT_ALERT_DAYS="${CERT_ALERT_DAYS:-14}"
+QUEUE_BACKLOG_THRESHOLD="${QUEUE_BACKLOG_THRESHOLD:-100}"
+QUEUE_BACKLOG_MINUTES="${QUEUE_BACKLOG_MINUTES:-10}"
+BACKUP_STORAGE_ALERT_BYTES="${BACKUP_STORAGE_ALERT_BYTES:-8000000000}"
+
+FAILURES=()
+fail() { FAILURES+=("$*"); }
+
+# edge_value <NAME>: a value from edge.env, read as data, never sourced.
+edge_value() { sed -n "s/^$1=//p" "$ETC_DIR/edge.env" 2>/dev/null | tail -n 1; }
+
+check_disk() {
+  local path used
+  for path in / "$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || echo /var/lib/docker)"; do
+    used="$(df --output=pcent "$path" 2>/dev/null | tail -n 1 | tr -dc '0-9')"
+    if [ -z "$used" ]; then
+      fail "disk $path: can't read its usage"
+    elif [ "$used" -ge "$DISK_ALERT_PERCENT" ]; then
+      fail "disk $path at $used% (alert at $DISK_ALERT_PERCENT%)"
+    fi
+  done
+}
+
+# check_certificate <host> <address> <seconds> <problem>: the certificate served for <host> is still
+# valid <seconds> from now. It is read from the address the site binds, with its SNI.
+check_certificate() {
+  local host=$1 address=$2 pem
+  if ! pem="$(openssl s_client -connect "$address:443" -servername "$host" </dev/null 2>/dev/null)" ||
+    [ -z "$pem" ]; then
+    fail "certificate $host: couldn't be read from $address:443"
+  elif ! openssl x509 -noout -checkend "$3" <<<"$pem" >/dev/null 2>&1; then
+    fail "certificate $host $4"
+  fi
+}
+
+check_certificates() {
+  local name
+  for name in API_HOST ADMIN_HOST PUBLIC_BIND_IP ADMIN_BIND_IP; do
+    if [ -z "$(edge_value "$name")" ]; then
+      fail "certificates: $name is missing from edge.env"
+      return
+    fi
+  done
+  check_certificate "$(edge_value API_HOST)" "$(edge_value PUBLIC_BIND_IP)" \
+    "$((CERT_ALERT_DAYS * 86400))" "expires within $CERT_ALERT_DAYS days"
+  # Caddy's local CA (`tls internal`) issues the admin certificate for 12 hours and renews it
+  # itself, so a 14-day threshold would always fail. This only catches a broken renewal.
+  check_certificate "$(edge_value ADMIN_HOST)" "$(edge_value ADMIN_BIND_IP)" 0 "has expired"
+}
+
+# The backlog state is {"<queue>": <first epoch seen over the threshold>, …}.
+check_queues() {
+  local now queue length seen next=()
+  now="$(date +%s)"
+  for queue in "${QUEUES[@]}"; do
+    if ! length="$(docker exec "wassal-$ENV-valkey-1" valkey-cli -n 1 LLEN "$queue" 2>/dev/null)" ||
+      ! [[ "$length" =~ ^[0-9]+$ ]]; then
+      fail "queues: can't read the $ENV cache"
+      return
+    fi
+    if [ "$length" -le "$QUEUE_BACKLOG_THRESHOLD" ]; then
+      continue
+    fi
+    seen="$(sed -n "s/.*\"$queue\": *\([0-9][0-9]*\).*/\1/p" "$BACKLOG" 2>/dev/null)"
+    seen="${seen:-$now}"
+    next+=("\"$queue\": $seen")
+    if [ $((now - seen)) -ge $((QUEUE_BACKLOG_MINUTES * 60)) ]; then
+      fail "queue $queue has $length messages, over $QUEUE_BACKLOG_THRESHOLD for $(((now - seen) / 60)) min"
+    fi
+  done
+  mkdir -p "$(dirname "$BACKLOG")"
+  local IFS=,
+  printf '{%s}\n' "${next[*]}" >"$BACKLOG.new" && mv "$BACKLOG.new" "$BACKLOG"
+}
+
+# Prod host only: the backups are production's, and only the prod host takes them.
+check_backup_storage() {
+  local last="$STATE_DIR/prod/backup/last-backup.json" size
+  [ -f "$last" ] || return 0 # no backup yet
+  size="$(sed -n 's/.*"size_bytes": *\([0-9][0-9]*\).*/\1/p' "$last" | sed -n 1p)"
+  # The backup container writes this file, so its number is checked before any arithmetic.
+  if ! [[ "$size" =~ ^(0|[1-9][0-9]{0,12})$ ]]; then
+    fail "backup-storage: $last has no valid size_bytes"
+  elif [ $((size * KEPT_BACKUPS)) -ge "$BACKUP_STORAGE_ALERT_BYTES" ]; then
+    fail "backup-storage: $KEPT_BACKUPS copies of a $size-byte dump reach $BACKUP_STORAGE_ALERT_BYTES bytes"
+  fi
+}
+
+check_disk
+check_certificates
+check_queues
+# The ping names the checks that ran, so a skipped one never reads as passed.
+RAN="disk, certificates, queues"
+if [ "$ENV" = prod ]; then
+  check_backup_storage
+  RAN="$RAN, backup storage"
+fi
+
+if [ "${#FAILURES[@]}" -eq 0 ]; then
+  url="$HC_PING_HOST_MONITOR_URL"
+  body="ok: $RAN"
+  status=0
+else
+  url="$HC_PING_HOST_MONITOR_URL/fail"
+  body="$(printf '%s\n' "${FAILURES[@]}")"
+  status=1
+  log "$body"
+fi
+# The URL is a secret: it goes in a config on a file descriptor, never on argv.
+if ! printf '%s\n' "$body" |
+  curl -fsS -m 10 --retry 3 -o /dev/null --data-binary @- -K <(printf 'url = "%s"\n' "$url"); then
+  log "couldn't ping Healthchecks"
+  exit 2
+fi
+exit "$status"

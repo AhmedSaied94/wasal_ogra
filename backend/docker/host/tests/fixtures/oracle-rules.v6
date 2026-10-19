@@ -1,0 +1,10 @@
+# T054: Oracle's own /etc/iptables/rules.v6 from the same fresh image. It filters nothing: ACCEPT
+# policies, no rules, no final REJECT, so provision.sh leaves it unchanged. Unchanged below.
+# CLOUD_IMG: This file was created/modified by the Cloud Image build process
+# iptables configuration for Oracle Cloud Infrastructure
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT

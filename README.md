@@ -83,5 +83,7 @@ specify extension add --dev tools/speckit-extensions/feature-branch --force
 
 ## Development setup
 
-Build, lint and test commands arrive with `B01` (backend) and `M03` (mobile). Until then you only need
-Git, the Spec Kit CLI (`specify` 1.2.1) and Claude Code.
+The build, lint and test commands for the backend (`B01`) and the mobile app (`M03`) are in
+[`CLAUDE.md`](CLAUDE.md) ("Backend commands" and "Mobile commands"). For the spec workflow you also
+need Git, the Spec Kit CLI (`specify` 1.2.1) and Claude Code. Operating the servers (provisioning,
+deploys, rollback, backups and restore, monitoring) is in [`docs/runbooks/`](docs/runbooks/).

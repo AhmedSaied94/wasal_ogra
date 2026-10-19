@@ -1,0 +1,129 @@
+openapi: 3.0.3
+info:
+  title: wassal API
+  version: '1'
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      description: Answers while the process runs. Checks nothing outside it.
+      summary: Liveness
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liveness'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests
+  /readyz:
+    get:
+      operationId: readyz
+      description: Ready when the database, the cache and the migrations all pass.
+      summary: Readiness
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: A check failed
+components:
+  schemas:
+    CheckResultEnum:
+      enum:
+      - pass
+      - fail
+      type: string
+      description: |-
+        * `pass` - pass
+        * `fail` - fail
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: {}
+      required:
+      - code
+      - details
+      - message
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+      required:
+      - error
+    Liveness:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/LivenessStatusEnum'
+        release:
+          type: string
+      required:
+      - release
+      - status
+    LivenessStatusEnum:
+      enum:
+      - ok
+      type: string
+      description: '* `ok` - ok'
+    Readiness:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ReadinessStatusEnum'
+        checks:
+          $ref: '#/components/schemas/ReadinessChecks'
+      required:
+      - checks
+      - status
+    ReadinessChecks:
+      type: object
+      properties:
+        database:
+          $ref: '#/components/schemas/CheckResultEnum'
+        cache:
+          $ref: '#/components/schemas/CheckResultEnum'
+        migrations:
+          $ref: '#/components/schemas/CheckResultEnum'
+      required:
+      - cache
+      - database
+      - migrations
+    ReadinessStatusEnum:
+      enum:
+      - ready
+      type: string
+      description: '* `ready` - ready'

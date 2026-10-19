@@ -1,0 +1,14 @@
+# The monthly restore drill of one environment's backups (FR-040, contracts/operations.md
+# "Restore drill").
+[Unit]
+Description=wassal %i restore drill
+After=docker.service
+Wants=docker.service
+# Skipped, not failed, until the operator fills the env file (monitoring-setup.md, Backblaze B2).
+ConditionPathExists=/etc/wassal/%i-drill.env
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/wassal/%i-drill.env
+ExecStart=/opt/wassal/bin/restore-drill %i
+TimeoutStartSec=3h

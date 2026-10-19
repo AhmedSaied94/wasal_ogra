@@ -1,0 +1,145 @@
+# Services shared by every environment (research R1, data-model "Environments").
+# Dev adds compose.dev.yml on top. On the server, deploy runs this file with `-p wassal-<env>`.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+# One image for every app process. Secrets come from the env file, never from the image.
+x-app: &app
+  image: ghcr.io/ahmedsaied94/wassal-backend:${RELEASE_TAG:-dev}
+  env_file: ${APP_ENV_FILE:-../.env}
+  restart: unless-stopped
+  logging: *logging
+  depends_on:
+    postgres:
+      condition: service_healthy
+    valkey:
+      condition: service_healthy
+
+x-http-healthcheck: &http-healthcheck
+  test:
+    - CMD
+    - python
+    - -c
+    - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 20s
+
+services:
+  api:
+    <<: *app
+    command: gunicorn -c config/gunicorn.conf.py config.wsgi
+    environment:
+      GUNICORN_WORKERS: ${API_WORKERS:-2}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck: *http-healthcheck
+    mem_limit: ${API_MEM_LIMIT:-768m}
+
+  admin:
+    <<: *app
+    command: gunicorn -c config/gunicorn.conf.py config.wsgi
+    environment:
+      ADMIN_ONLY: "1"
+      GUNICORN_WORKERS: "1"
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-8001}:8000"
+    healthcheck: *http-healthcheck
+    mem_limit: ${ADMIN_MEM_LIMIT:-384m}
+
+  worker:
+    <<: *app
+    command: >-
+      celery -A config worker -Q default,purchases,content,push
+      --concurrency 2 --without-gossip --without-mingle
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME --timeout 5"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    mem_limit: ${WORKER_MEM_LIMIT:-512m}
+
+  beat:
+    <<: *app
+    command: celery -A config beat --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; os.kill(1, 0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: ${BEAT_MEM_LIMIT:-192m}
+
+  migrate:
+    <<: *app
+    profiles: [ops]
+    restart: "no"
+    command: sh -c "python manage.py migrate --noinput && python manage.py check --deploy"
+
+  # The nightly backup (contracts/operations.md "Backup job"), run by /opt/wassal/bin/backup.
+  backup:
+    <<: *app
+    profiles: [ops]
+    restart: "no"
+    command: python manage.py backup_db
+    env_file:
+      - path: ${APP_ENV_FILE:-../.env}
+      - path: ${BACKUP_ENV_FILE:-/etc/wassal/prod-backup.env}
+        required: false
+    volumes:
+      # A directory of its own, owned by the image's user. The rest of /var/lib/wassal/<env> holds
+      # the stack definitions that root runs, so the container never gets write access to it.
+      - ${BACKUP_STATE_DIR:-/var/lib/wassal/prod/backup}:/var/lib/wassal/backup
+    mem_limit: 1g
+
+  postgres:
+    image: postgres:17.11-trixie
+    env_file: ${DB_ENV_FILE:-../.env}
+    command: >-
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+      -c max_connections=50
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # On the server a fixed path (the sizing file), not the release's own copy: a path that
+      # changed with every release would make compose restart the database on every deploy.
+      - ${POSTGRES_INITDB_DIR:-./postgres/initdb}:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Over TCP, so it stays unhealthy while the init scripts run on the socket-only server.
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1024m}
+    restart: unless-stopped
+    logging: *logging
+
+  valkey:
+    image: valkey/valkey:8.1.10-trixie
+    command: >-
+      valkey-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory ${VALKEY_MAXMEMORY:-160mb}
+      --maxmemory-policy noeviction
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: ${VALKEY_MEM_LIMIT:-256m}
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  valkeydata:
