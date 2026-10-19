@@ -314,7 +314,8 @@ jobs:
           done
 
   # Staging deploys every master push that built an image, or a rehearsal (contracts/ci-checks.md,
-  # contracts/operations.md "Deploy interface"). The host is reached only over WireGuard.
+  # contracts/operations.md "Deploy interface"). The staging host is reached only over its own
+  # WireGuard network, at 10.67.0.1.
   deploy-staging:
     needs: [backend, image-manifest]
     if: >-
@@ -354,6 +355,7 @@ jobs:
           done
           echo "::error::none of the last 50 master commits has an image"
           exit 1
+      # WG_CONFIG is the staging host's deploy-staging peer.
       - name: Connect over WireGuard
         env:
           WG_CONFIG: ${{ secrets.WG_CONFIG }}
@@ -373,10 +375,11 @@ jobs:
           install -m 0600 /dev/null "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/deploy_known_hosts"
-          # The key's forced command reads the request from SSH_ORIGINAL_COMMAND.
+          # The key's forced command reads the request from SSH_ORIGINAL_COMMAND. 10.67.0.1 is the
+          # staging host's WireGuard address.
           ssh -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/deploy_known_hosts" -o ConnectTimeout=20 \
-            -o ServerAliveInterval=30 deploy@10.66.0.1 "$REQUEST"
+            -o ServerAliveInterval=30 deploy@10.67.0.1 "$REQUEST"
       - if: always()
         name: Disconnect
         run: |

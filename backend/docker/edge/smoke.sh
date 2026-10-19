@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Edge smoke assertions (contracts/ci-checks.md "Edge smoke assertions", FR-019 – FR-021, FR-023).
 #
-# Runs the production Caddyfile with host networking, in front of a stack that already listens on
-# 127.0.0.1:8100 (API) and 127.0.0.1:8101 (admin), the production upstream ports. The API sites bind
-# 127.0.0.1 and the admin sites 127.0.0.2, standing in for the VNIC and WireGuard addresses. Linux
-# only, since 127.0.0.2 has to be a local address. Needs ports 80, 443 and 2019 free.
+# Runs the hosts' Caddyfile as the prod host's edge (WASSAL_ENV=prod) with host networking, in front
+# of a stack that already listens on 127.0.0.1:8100 (API) and 127.0.0.1:8101 (admin), prod's
+# upstream ports. The API site binds 127.0.0.1 and the admin site 127.0.0.2, standing in for the VNIC
+# and WireGuard addresses. Linux only, since 127.0.0.2 has to be a local address. Needs ports 80, 443
+# and 2019 free.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -14,10 +15,11 @@ PUBLIC_IP=127.0.0.1
 ADMIN_IP=127.0.0.2
 API=api.127-0-0-1.sslip.io
 ADMIN=admin.127-0-0-2.sslip.io
+# host.env's and edge.env's variables, as the prod host has them.
 EDGE_ENV=(
+  -e WASSAL_ENV=prod
   -e "PUBLIC_BIND_IP=$PUBLIC_IP" -e "ADMIN_BIND_IP=$ADMIN_IP" -e PUBLIC_TLS=internal
-  -e "PROD_API_HOST=$API" -e "PROD_ADMIN_HOST=$ADMIN"
-  -e "STAGING_API_HOST=staging-$API" -e "STAGING_ADMIN_HOST=staging-$ADMIN"
+  -e "API_HOST=$API" -e "ADMIN_HOST=$ADMIN"
 )
 WORK="$(mktemp -d)"
 HEADERS="$WORK/headers"
@@ -80,15 +82,34 @@ expect_security_headers() {
   [ -z "$(header Via)" ] || fail "$1: the Via header is still there"
 }
 
-echo "== caddy validate"
-for file in Caddyfile Caddyfile.dev; do
-  docker run --rm "${EDGE_ENV[@]}" -v "$HERE:/etc/caddy:ro" "$IMAGE" \
-    caddy validate --config "/etc/caddy/$file" >"$WORK/validate.log" 2>&1 ||
-    { cat "$WORK/validate.log" >&2; fail "caddy validate $file"; }
-done
-pass "both Caddyfiles validate"
+# validate <file> [docker run args…]: the exit status of `caddy validate`, its output in a file.
+validate() {
+  local file=$1
+  shift
+  docker run --rm "${EDGE_ENV[@]}" "$@" -v "$HERE:/etc/caddy:ro" "$IMAGE" \
+    caddy validate --config "/etc/caddy/$file" --adapter caddyfile >"$WORK/validate.log" 2>&1
+}
 
-echo "== start the production edge"
+echo "== caddy validate"
+# Each host's environment loads; a later -e overrides EDGE_ENV's.
+for env in prod staging; do
+  validate Caddyfile -e "WASSAL_ENV=$env" ||
+    { cat "$WORK/validate.log" >&2; fail "caddy validate Caddyfile with WASSAL_ENV=$env"; }
+done
+validate Caddyfile.dev || { cat "$WORK/validate.log" >&2; fail "caddy validate Caddyfile.dev"; }
+pass "the Caddyfile validates for prod and staging, and Caddyfile.dev validates"
+
+# An edge that doesn't know its environment must not start, rather than guess the ports.
+for env in "" dev; do
+  if validate Caddyfile -e "WASSAL_ENV=$env"; then
+    fail "caddy validate Caddyfile passed with WASSAL_ENV='$env'"
+  fi
+  grep -q "File to import not found" "$WORK/validate.log" ||
+    { cat "$WORK/validate.log" >&2; fail "WASSAL_ENV='$env': not refused for the missing snippet"; }
+done
+pass "the Caddyfile doesn't load with WASSAL_ENV empty or unknown"
+
+echo "== start the prod host's edge"
 docker run -d --name "$NAME" --network host "${EDGE_ENV[@]}" --tmpfs /run/caddy \
   -v "$HERE/Caddyfile:/etc/caddy/Caddyfile:ro" "$IMAGE" >/dev/null
 for _ in $(seq 60); do

@@ -20,8 +20,10 @@ build, lint and test commands are added to `CLAUDE.md`.
 - Q: Does B01 end with live staging and production environments on the real host, or only with a
   deployable stack verified on ARM64 in CI? → A: Live staging and production.
   - The owner sets up the host during B01, which settles backend §22.1 (free tier only; see the
-    budget answer below).
-  - Deploys, HTTPS, backups and alerts are proven on the real host before B02 stores any player data.
+    budget answer below). Since 2026-10-19 there are two hosts, one per environment (Session
+    2026-10-19).
+  - Deploys, HTTPS, backups and alerts are proven on the real hosts before B02 stores any player
+    data.
 - Q: Is a domain already owned for the API and admin hostnames? → A: No. Use a temporary hostname for
   now.
   - The hostnames come from a free wildcard DNS service that maps names to the host's IP address
@@ -33,7 +35,7 @@ build, lint and test commands are added to `CLAUDE.md`.
   Nobody. Both are reachable only over a private network.
   - The admin (staging and production) and remote login are reachable only over a private network the
     operator runs (WireGuard or Tailscale style; the plan picks the tool). The internet sees only the
-    API on HTTP and HTTPS.
+    API on HTTP and HTTPS. Since 2026-10-19 each host runs its own private network (FR-023a).
   - The admin still requires a staff account, a second factor and the sign-in lockout (FR-022).
   - The operator adds each staff device to the network and removes it when access ends. Content
     authors join the network too.
@@ -42,14 +44,16 @@ build, lint and test commands are added to `CLAUDE.md`.
 - Q: What is the most we may spend per month on hosting and operations for the MVP? → A: USD 0. Free
   tiers only.
   - The host is an Oracle Cloud Always Free ARM (A1) VM, as the constitution says. There is no paid
-    fallback in the MVP, which resolves the "paid fallback" half of backend §22.1.
+    fallback in the MVP, which resolves the "paid fallback" half of backend §22.1. Since 2026-10-19
+    there are two A1 VMs, which together use the whole Always Free allowance (Session 2026-10-19).
   - If the region has no free A1 capacity, provisioning is retried until it succeeds (FR-042).
   - The risk that an idle free VM is reclaimed is accepted. It is covered by off-host backups, the
     outside uptime alert and the rebuild procedure (FR-043).
   - Every other tool (error tracking, uptime monitoring, the container registry, backup storage) must
     fit a free plan.
-  - Confirmed by the owner during planning (2026-10-18): the Oracle tenancy already exists, with home
-    region Jeddah (`me-jeddah-1`), and it allows a reserved public IP.
+  - Confirmed by the owner during planning (2026-10-18): the Oracle tenancy already exists, with
+    home region Jeddah (`me-jeddah-1`), and it allows a reserved public IP. On 2026-10-19 it also
+    allowed a second one, so each host has its own.
 - Q: Where are the nightly production backups stored? → A: With a second, independent provider, not
   in the Oracle account that runs the server.
   - The provider is S3-compatible and its free tier covers the backups.
@@ -66,10 +70,37 @@ build, lint and test commands are added to `CLAUDE.md`.
   - Monthly, at a quiet hour, the latest backup is restored from the backup storage (Backblaze B2,
     see above) into a temporary database
     container on the production host. It is not restored into production's database server.
+  - Changed on 2026-10-19: the temporary container now runs on the staging host, not the production
+    host. Staging's own database and data are still never touched (Session 2026-10-19).
   - The drill checks four things: the restore succeeds, the migrations match the code, row counts
     are within range, and every wallet equals its ledger sum.
   - It records how long the restore took, then deletes the container and its volume.
   - Any failure alerts the operator.
+
+### Session 2026-10-19
+
+- Q: Do staging and production keep sharing one VM, or get one VM each? → A: One VM each. The owner
+  reversed the one-host design of 2026-10-18 (research R1 had rejected two VMs).
+  - Both VMs are Always Free A1 with 1 OCPU and 6 GB, which together is the whole A1 allowance.
+    Production's boot volume is 100 GB and staging's 47 GB. That leaves 53 GB of the 200 GB free
+    block storage, enough for the 47 GB break-glass rescue boot volume.
+  - Each host serves only its own environment, with its own reserved public IP, private network,
+    edge, deploy access and host monitor (FR-001a). The operator's device can be on both private
+    networks at once.
+  - Nightly backups run on the production host only. The monthly restore drill runs on the staging
+    host and fetches production's latest backup with the drill's read-only key. Production data is
+    on the staging host only while the drill runs, and the drill leaves nothing behind (FR-040,
+    FR-040a).
+  - Why: separate Compose projects on one VM don't isolate CPU, disk or host configuration
+    (firewall, private network, remote login, container-runtime upgrades). On separate VMs, a
+    staging mistake can't take production down. That risk showed up in practice while the first host
+    was being set up.
+  - Costs accepted: twice the edge, private network, monitoring and patching; production is capped
+    at one core; and the staging host, idle most of the time, may fall under Oracle's
+    idle-reclamation thresholds. Its host monitor's alert and the break-glass procedure cover that
+    (Edge Cases).
+  - Each host is set up, patched, monitored and recovered on its own, and the 4-hour recovery target
+    applies to each (SC-009). The budget stays USD 0 (SC-013).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -139,22 +170,22 @@ API contract, and another that commits a credential. Both are blocked. A clean p
 
 ---
 
-### User Story 3 - The API is live over HTTPS on the production host (Priority: P3)
+### User Story 3 - The API is live over HTTPS on the staging and production hosts (Priority: P3)
 
-The operator sets up the production host and the stack serves the staging and production API and admin
-hostnames over HTTPS. Plain HTTP is redirected. The admin lives on its own hostname, is reachable only
-over the operator's private network, and requires a staff account with a second factor. Until the
-project has a real domain, the hostnames are temporary ones derived from the host's IP address
-(Clarifications).
+The operator sets up two hosts, one for staging and one for production. Each serves its own
+environment's API and admin hostnames over HTTPS. Plain HTTP is redirected. The admin lives on its
+own hostname, is reachable only over its host's private network, and requires a staff account with a
+second factor. Until the project has a real domain, the hostnames are temporary ones derived from
+each host's IP addresses (Clarifications).
 
 **Why this priority**: The constitution fixes the deployment target, and backend §22.1 (free-tier
-capacity) can only be settled by actually getting a host. Doing it now finds hosting problems before
-any player data exists.
+capacity) can only be settled by actually getting the hosts. Doing it now finds hosting problems
+before any player data exists.
 
 **Independent Test**: From an outside network, request `/healthz` on the production and staging API
-hostnames. Both answer over HTTPS with a valid certificate, while the admin and remote login can't be
-reached at all. From a device on the private network, the admin asks for a staff sign-in and a second
-factor. The API hostname never shows admin pages.
+hostnames. Both answer over HTTPS with a valid certificate, while the admin and remote login of
+either host can't be reached at all. From a device on a host's private network, that host's admin
+asks for a staff sign-in and a second factor. The API hostname never shows admin pages.
 
 **Acceptance Scenarios**:
 
@@ -167,15 +198,19 @@ factor. The API hostname never shows admin pages.
    **Given** the admin hostname, **When** someone requests an API path on it, **Then** it is not found.
 4. **Given** a request body larger than 512 KB, **When** it reaches the edge, **Then** it is rejected
    before it reaches the application.
-5. **Given** staging and production on the same host, **When** staging is deployed, migrated or broken,
-   **Then** production's data, cache and settings are untouched.
+5. **Given** staging and production on separate hosts, **When** staging is deployed, migrated or
+   broken, or the staging host's configuration is changed or broken, **Then** production's host,
+   data, cache and settings are untouched and production keeps serving.
 6. **Given** a staff member signs in to the admin, **When** they enter a correct password, **Then** they
    still can't reach any admin page until they enter a valid second-factor code.
-7. **Given** a device that is not on the private network, **When** it tries to open the admin or the
-   remote login of staging or production, **Then** it gets no connection.
-8. **Given** the operator removes a device from the private network, **When** that device tries the
-   admin or remote login again, **Then** it gets no connection, even with a valid staff password and
-   second factor.
+7. **Given** a device that is not on a host's private network, **When** it tries to open that host's
+   admin or remote login, **Then** it gets no connection. A device on staging's network only can't
+   reach production's admin or remote login.
+8. **Given** the operator removes a device from a host's private network, **When** that device tries
+   that host's admin or remote login again, **Then** it gets no connection, even with a valid staff
+   password and second factor.
+9. **Given** the operator's device is on both hosts' private networks at once, **When** it opens the
+   staging and the production admin, **Then** both work.
 
 ---
 
@@ -215,7 +250,8 @@ release and the operator is alerted.
 Errors from the API, the admin, the worker and the scheduler reach the error tracker with their
 environment and release, and without personal data. An outside monitor checks production health. The
 operator is alerted when the API is down, when background jobs stop running, when the job queue backs
-up, when a backup fails, when the disk is filling up, or when a certificate is about to expire.
+up, when a backup fails, when either host's disk is filling up or either host stops reporting, or
+when a certificate is about to expire.
 
 **Why this priority**: The availability target (99.5% monthly, backend §15) can't be met or even
 measured without monitoring. It matters less than the stack and the deploys themselves.
@@ -243,8 +279,9 @@ error tracker with the right tags. Stop the production API and receive an alert.
 
 Every night the production database is backed up to private storage at a second provider, independent
 of the hosting account. Old backups expire on a fixed schedule. Once a month, an automated restore
-drill proves that the latest backup can be restored, without touching production's database or
-staging. The operator can also restore by hand by following a written procedure.
+drill on the staging host proves that the latest backup can be restored, without touching the
+production host or staging's own database. The operator can also restore by hand by following a
+written procedure.
 
 **Why this priority**: The first player data arrives with B02. The backup pipeline must be proven
 before then, but nothing in B01 itself stores player data yet.
@@ -260,16 +297,17 @@ and leaves nothing behind.
 2. **Given** a backup run fails, or no backup has completed in the last 26 hours, **When** the check
    runs, **Then** the operator is alerted.
 3. **Given** the monthly drill time arrives, **When** the drill runs, **Then** it restores the latest
-   backup into a temporary database container, confirms the restore succeeded, the migrations match
-   the code, row counts are within range and every wallet equals its ledger sum. It records the
-   restore duration, then deletes the container and its volume.
+   backup into a temporary database container on the staging host, confirms the restore succeeded,
+   the migrations match production's code, row counts are within range and every wallet equals its
+   ledger sum. It records the restore duration, then deletes the container and its volume.
 4. **Given** any drill check fails, or the drill can't start or finish, **When** it ends, **Then** the
    operator is alerted, and the temporary container and volume are still removed.
-5. **Given** a drill is running, **When** production serves requests, **Then** production's database,
-   staging and their data are untouched.
+5. **Given** a drill is running, **When** production serves requests, **Then** the production host,
+   its database, and staging's own database and data are untouched.
 6. **Given** the backup storage, **When** anyone without a key the operator created tries to list or
-   read it, **Then** access is refused. The production host holds one such key, the drill's, which
-   can list and read but can't delete or change anything.
+   read it, **Then** access is refused. The staging host holds one such key, the drill's, which can
+   list and read but can't add, delete or change anything. The production host's key can only add
+   backups (scenario 8).
 7. **Given** the hosting account is suspended or closed, **When** the operator follows the rebuild
    procedure on a new host, **Then** the latest backup is still available from the second provider.
 8. **Given** the backup credentials stored on the production host, **When** they are used to delete a
@@ -284,10 +322,10 @@ and leaves nothing behind.
 - **Database or cache unreachable while running**: API requests fail fast (within 5 s) with an error
   envelope instead of hanging. The service recovers by itself when the dependency returns, with no
   restart.
-- **Host reboots**: every service comes back by itself, and the database's data survives because it
-  lives on persistent storage, not inside a container.
-- **Host disk filling up**: logs are rotated with a size cap, and the operator is alerted at 80% disk
-  use, before the database can run out of space.
+- **A host reboots**: every service on it comes back by itself, and the database's data survives
+  because it lives on persistent storage, not inside a container. The other host is unaffected.
+- **A host's disk filling up**: logs are rotated with a size cap, and the operator is alerted at 80%
+  disk use on either host, before a database or the restore drill can run out of space.
 - **Certificate renewal fails**: the operator is alerted when any public certificate has less than 14
   days left.
 - **Health endpoints hammered**: they fall under the default rate limit and answer `429 rate_limited`
@@ -299,27 +337,36 @@ and leaves nothing behind.
   key types. The UUIDv7 rule covers the project's apps only.
 - **Staff member loses their second-factor device**: the operator resets it with a documented
   server-side command. There is no self-service reset on the admin.
-- **Private network down, or the operator's own device key lost**: the operator gets in through the
-  provider's web or serial console (the break-glass path), following a written procedure, and repairs
-  or re-keys the network. The public API keeps serving the whole time.
+- **A host's private network down, or the operator's own device key lost**: the operator gets in
+  through the provider's web or serial console (the break-glass path), following a written
+  procedure, and repairs or re-keys that host's network. Each host is break-glassed on its own. The
+  public API keeps serving the whole time.
 - **Migration that would break the running release**: migrations follow expand/contract (constitution),
   so the previous release keeps working against the new schema. Rollback never reverses a migration
   automatically.
 - **Idle free-tier host reclaimed by the provider**: free-tier hosts can be stopped or reclaimed when
   idle, and the owner accepts this risk (Clarifications). The plan's research records the provider's
-  current policy (backend §22.1). The outside uptime check alerts the operator, and the rebuild
-  procedure (FR-043) brings service back from backups within the recovery target.
+  current policy (backend §22.1). The staging host, which carries no player traffic, is the likelier
+  one to be stopped. For production, the outside uptime check alerts the operator; for either host,
+  so does its host monitor's missing report (FR-038). The break-glass procedure starts a stopped
+  host, and the rebuild procedure (FR-043) brings service back within the recovery target, from
+  backups for production.
+- **Staging host down when the monthly drill is due**: the drill can't run, and the operator is
+  alerted when no drill has run in 35 days (FR-038). Production is unaffected.
 - **No free capacity in the region**: provisioning is retried, for example once a day, until a free
-  VM is granted. Meanwhile the stories that don't need the host (US1 and US2) go ahead, and US3–US6
+  VM is granted. Meanwhile the stories that don't need the hosts (US1 and US2) go ahead, and US3–US6
   wait. B01 isn't done until the host stories pass.
 - **Trial credit ends**: new cloud accounts start with a time-limited trial credit. Anything created
   during the trial that isn't Always Free is stopped when the trial ends, so every resource must be
   Always Free–eligible from the start (FR-042b).
-- **Staging broken for days**: production is unaffected, and production deploys are not blocked by
-  staging's state.
-- **Host's public IP address changes** (a rebuild, or a provider change): the temporary hostnames are
-  derived from the IP, so they would change too. The host keeps a reserved public IP address, and the
-  rebuild procedure (FR-043) reattaches it.
+- **Staging broken for days**: production is unaffected, because it runs on its own host, and
+  production deploys are not blocked by staging's state. Only the monthly drill waits for the
+  staging host (see above).
+- **A host's public IP address changes** (a rebuild, or a provider change): the temporary hostnames
+  are derived from the IP, so they would change too. Each host keeps its own reserved public IP
+  address, and the rebuild procedure (FR-043) reattaches it.
+- **A host set up for one environment is pointed at the other**: setup refuses to switch an existing
+  host's environment, and the host refuses deploys for the other environment (FR-001a).
 
 ## Requirements *(mandatory)*
 
@@ -327,10 +374,16 @@ and leaves nothing behind.
 
 #### Environments and configuration
 
-- **FR-001**: The backend MUST have three environments, `dev`, `staging` and `prod`, matching the mobile
-  build variants (mobile §21). Each has its own settings, database, cache and hostnames. Staging and
-  production MAY share one host in the MVP (backend §4), but MUST NOT share a database, cache, stored
-  files or secrets.
+- **FR-001**: The backend MUST have three environments, `dev`, `staging` and `prod`, matching the
+  mobile build variants (mobile §21). Each has its own settings, database, cache and hostnames.
+  Staging and production MUST each run on their own host (Clarifications, Session 2026-10-19), and
+  MUST NOT share a database, cache, stored files or secrets.
+- **FR-001a**: Each host MUST serve exactly one environment, chosen once when the host is set up.
+  Setup MUST refuse to switch an existing host to the other environment. Each host has its own edge,
+  private network and device list, firewall, remote-login and container-runtime configuration,
+  deploy access (FR-034) and host monitor (FR-038), so a change or failure on the staging host can't
+  affect production. Nightly backups run only on the production host, and the restore drill only on
+  the staging host (FR-039, FR-040).
 - **FR-002**: All configuration MUST come from the environment. Secrets MUST come only from files
   mounted on the host or a secret manager, never from source code, committed configuration or committed
   `.env` files. The repository holds only an example configuration with placeholder values, and `dev`
@@ -396,20 +449,23 @@ and leaves nothing behind.
 - **FR-020**: The edge MUST reject request bodies larger than 512 KB before they reach the application
   (backend §4).
 - **FR-021**: The API and the admin MUST run on separate hostnames (backend §4, §13). Each hostname
-  serves only its own role. The admin MUST be reachable only over the private network, and MUST still
-  be served over HTTPS there. Its certificate MAY come from a private authority installed on staff
-  devices, because a public authority can't check a private address.
+  serves only its own role. Each environment's admin MUST be reachable only over its host's private
+  network, and MUST still be served over HTTPS there. Its certificate MAY come from a private
+  authority (one per host) installed on staff devices, because a public authority can't check a
+  private address.
 - **FR-022**: The admin MUST allow only staff accounts and MUST require a second factor (an
   authenticator app code) at every sign-in. After 5 failed sign-ins for one account or from one client
   address within 15 minutes, further attempts MUST be refused for 15 minutes. Staff accounts are created
   only by a server-side command, never through a public sign-up.
-- **FR-023**: From the internet, only the edge (HTTP and HTTPS, serving the API) and the private
-  network's own endpoint may be reachable. The private-network endpoint MUST NOT answer packets that
-  aren't from a known device. The admin, remote login, the database, the cache and the application
-  services MUST NOT be reachable from the internet.
-- **FR-023a**: The operator MUST be able to add and remove private-network devices with a written
-  procedure, one key per device, and removing a device MUST cut its access at once. The break-glass
-  path through the provider's console MUST be written down too.
+- **FR-023**: On each host, only the edge (HTTP and HTTPS, serving that host's API) and the private
+  network's own endpoint may be reachable from the internet. The private-network endpoint MUST NOT
+  answer packets that aren't from a known device. The admin, remote login, the database, the cache
+  and the application services MUST NOT be reachable from the internet.
+- **FR-023a**: Each host MUST have its own private network and device list. The operator MUST be
+  able to add a device to, and remove it from, each host's network with a written procedure, one key
+  per device, and removing a device MUST cut its access to that host at once. One device MUST be
+  able to join both networks at the same time. The break-glass path through the provider's console
+  MUST be written down too.
 - **FR-024**: No secret may be built into an image or written to a log. Before sending anything to the
   error tracker, the services MUST strip IP addresses, authorization headers, cookies and request
   bodies.
@@ -429,7 +485,7 @@ and leaves nothing behind.
 - **FR-028**: The language version and every dependency MUST be pinned in the repository, so developer
   machines and the checks resolve the same versions.
 - **FR-029**: Release images MUST be published to a container registry, tagged with their commit, and
-  built for ARM64 (the production host) and for the developers' machines.
+  built for ARM64 (the staging and production hosts) and for the developers' machines.
 
 #### Deployment
 
@@ -443,10 +499,10 @@ and leaves nothing behind.
 - **FR-033**: Rolling back MUST mean deploying the previous version tag, and the procedure MUST be
   written down. A rollback never reverses migrations; expand/contract migrations keep the previous
   release working.
-- **FR-034**: Deploy credentials MUST live only in the CI secret store. On the host, they MUST allow
-  deploying and nothing else. The deploy path MUST NOT open remote login to the internet. Either CI
-  joins the private network for the deploy, or the host fetches and applies releases itself. The plan
-  chooses.
+- **FR-034**: Deploy credentials MUST live only in the CI secret store. Each host has its own, and
+  on that host it MUST allow deploying that host's environment and nothing else. The deploy path
+  MUST NOT open remote login to the internet. Either CI joins the host's private network for the
+  deploy, or the host fetches and applies releases itself. The plan chooses.
 
 #### Observability
 
@@ -458,7 +514,8 @@ and leaves nothing behind.
   in a response header so a support case can be traced. Logs are rotated with a size cap. Client IP
   addresses appear only in the edge's logs, which are kept for at most 14 days (backend §14.2).
 - **FR-037**: The database MUST record per-query statistics, so slow queries can be found (backend §15).
-- **FR-038**: For production, the operator MUST be alerted when:
+- **FR-038**: For production, and for each host where a line says so, the operator MUST be alerted
+  when:
   - `/healthz` fails for 5 minutes in a row (checked from outside the host);
   - a public certificate has less than 14 days left;
   - the heartbeat job (FR-007) hasn't run for 15 minutes;
@@ -466,35 +523,42 @@ and leaves nothing behind.
     10 minutes;
   - a backup fails, or none has completed in 26 hours;
   - a restore drill fails any check, can't run, or hasn't run in 35 days;
-  - disk use reaches 80%;
+  - disk use on either host reaches 80%;
+  - either host's monitor stops reporting, which also covers a host the provider has stopped;
   - a deploy fails.
 
 #### Backups and recovery
 
 - **FR-039**: The production database MUST be backed up every night to private, S3-compatible object
   storage at a second provider, independent of the hosting account: Backblaze B2 (Clarifications).
-  Backups are kept for 14 days (daily) and 8 weeks (weekly) (backend §15). Each backup MUST be checked
-  as readable right after it is written, and MUST record each table's row count for the restore drill
-  (FR-040).
+  The backup runs on the production host. Backups are kept for 14 days (daily) and 8 weeks (weekly)
+  (backend §15). Each backup MUST be checked as readable right after it is written, and MUST record
+  each table's row count for the restore drill (FR-040).
 - **FR-039a**: The credentials on the production host MUST be able to add backups, but MUST NOT be able
   to delete a stored backup or shorten its retention, so a compromised host can't destroy its own
   backups. Uploading under an existing name keeps the original, and hiding a backup deletes nothing.
   Expiry is done by the storage's own retention rules. Only the operator's separate credentials can
-  delete a backup before it expires.
+  delete a backup before it expires. The restore drill's credentials, on the staging host, MUST be
+  able to list and read backups only.
 - **FR-040**: A restore drill MUST run automatically once a month (backend §15), and its first run is
   part of this feature. It runs at a low-traffic hour (configurable, default early morning Cairo time),
   never at the same time as the nightly backup. Each run MUST:
   - restore the latest backup from the backup storage into a temporary database container on the
-    host, never into production's database server or staging. It has its own memory limit and starts
-    only when a configured minimum of disk is free, so it can't starve production;
-  - check that the restore succeeded, that the applied migrations match the serving release's code,
-    that each table's row count is within the range expected from production at backup time (the
-    plan sets how the range is recorded), and that every wallet equals the sum of its ledger entries
-    (constitution, backend §7.2). There are no wallets until B03, which makes this check meaningful;
+    staging host (Clarifications, Session 2026-10-19), never on the production host, into
+    production's database server or into staging's database. It has its own memory limit and starts
+    only when a configured minimum of disk is free, so it can't starve staging;
+  - check that the restore succeeded, that the applied migrations match the code of the production
+    release that took the backup (not staging's, which may be newer), that each table's row count is within
+    the range expected from production at backup time (the plan sets how the range is recorded), and
+    that every wallet equals the sum of its ledger entries (constitution, backend §7.2). There are
+    no wallets until B03, which makes this check meaningful;
   - record the restore duration, so the recovery target (FR-041) can be tracked;
   - delete the temporary container and its volume, whether the checks passed or failed.
   The manual restore procedure MUST also be written down, for real recoveries.
-- **FR-040a**: Production backups MUST NOT be copied to developer machines, to CI or to staging.
+- **FR-040a**: Production backups MUST NOT be copied to developer machines, to CI or into the
+  staging environment (its database, cache or stored files). The one exception is the restore drill
+  (FR-040): its temporary container on the staging host is not part of staging's stack, and it is
+  deleted, with everything the drill fetched, when the drill ends.
 - **FR-041**: The recovery targets are those of backend §15: at most 24 h of data loss (RPO) and at most
   4 h to restore service (RTO).
 
@@ -502,8 +566,9 @@ and leaves nothing behind.
 
 - **FR-042**: This feature resolves backend §22.1, with a USD 0 budget and no paid fallback
   (Clarifications). The plan's research MUST:
-  - choose the region and the VM shape within Oracle's Always Free limits, checking that staging and
-    production both fit on it;
+  - choose the region and the VM shapes within Oracle's Always Free limits, one VM per environment
+    (Clarifications, Session 2026-10-19). Check that each environment fits its VM (the staging VM
+    also runs the drill), and that both VMs plus a rescue boot volume fit the allowance;
   - record the idle-reclamation policy, the accepted risk and how it is covered;
   - record the expected capacity against the targets in backend §2 and §18.
   The same change MUST record the decision in backend §2, §15 and §22.1.
@@ -512,12 +577,13 @@ and leaves nothing behind.
   possible. Every other service the stack uses (error tracking, uptime monitoring, container
   registry, backup storage) MUST run on a free plan.
 - **FR-042a**: Every public hostname MUST be configuration, set per environment, never written in code.
-  Until the project has a real domain, the hostnames are temporary ones derived from the host's reserved
-  public IP address, with publicly trusted certificates (Clarifications). Moving to a real domain MUST
-  need only configuration and DNS changes.
-- **FR-043**: Setting up a new host MUST be written down as a procedure, scripted where practical, so a
-  fresh host can be brought to a serving state and restored from the latest backup within the RTO
-  (FR-041).
+  Until the project has a real domain, the hostnames are temporary ones derived from each host's
+  addresses (Clarifications): the API hostname from that host's reserved public IP address, with a
+  publicly trusted certificate, and the admin hostname from its private-network address (FR-021).
+  Moving to a real domain MUST need only configuration and DNS changes.
+- **FR-043**: Setting up a new host MUST be written down as one procedure for both environments,
+  scripted where practical, so a fresh host of either environment can be brought to a serving state
+  within the RTO (FR-041), and a fresh production host also restored from the latest backup.
 - **FR-044**: `CLAUDE.md` MUST list the real backend commands (start the local stack, migrate, test,
   lint, type check, regenerate the API contract, deploy, roll back, restore) and replace the "There is
   no backend yet" note.
@@ -525,7 +591,10 @@ and leaves nothing behind.
 ### Key Entities *(include if feature involves data)*
 
 - **Environment**: `dev`, `staging` or `prod`, with its own settings, database, cache, hostnames and
-  secrets.
+  secrets. `staging` and `prod` each run on their own host.
+- **Host**: a VM that serves exactly one environment (`staging` or `prod`), with its own reserved
+  public IP address, private network, edge, deploy access and host monitor. The production host also
+  runs the nightly backup, and the staging host the restore drill.
 - **Service**: one role in the stack (edge, API, admin, worker, scheduler, database, cache), with a
   health check and a restart policy.
 - **Release**: a built image identified by its commit. A version tag marks a production release.
@@ -534,13 +603,14 @@ and leaves nothing behind.
 - **Staff account**: a person allowed into the admin, with a second-factor device. Created only by a
   server-side command.
 - **Private-network device**: a device (the operator's, a staff member's, or the deploy path's) with
-  its own key on the private network. Added and removed by the operator.
+  its own key on a host's private network. Added and removed by the operator, per host. A device can
+  be on both hosts' networks.
 - **Backup**: a nightly copy of the production database, with its time, size, retention class (daily or
   weekly), storage location, verification result, and the per-table row counts the drill compares
   against.
 - **Restore drill result**: one monthly run, with its time, the backup it used, pass or fail for each
   of the four checks, and the restore duration.
-- **Alert**: a notice to the operator, with its cause (one of FR-038) and the environment.
+- **Alert**: a notice to the operator, with its cause (one of FR-038) and the environment or host.
 
 ## Success Criteria *(mandatory)*
 
@@ -564,14 +634,18 @@ and leaves nothing behind.
 - **SC-008**: With the production API stopped, the operator is alerted within 10 minutes. With the
   heartbeat stopped, within 20 minutes.
 - **SC-009**: Every monthly restore drill passes all four checks, records its duration, and leaves no
-  temporary container or volume behind. The recorded restore duration, plus the host setup time
-  measured once by following FR-043, stays within the 4-hour RTO.
-- **SC-010**: After a host reboot, every service serves again within 5 minutes with no manual step.
-- **SC-011**: A port scan of the host from outside finds only the HTTP and HTTPS ports open. The admin
-  and remote login don't answer, and the private-network endpoint stays silent to unknown devices.
+  temporary container or volume behind. The 4-hour RTO applies to each host: the recorded restore
+  duration plus the production host's setup time, and the staging host's setup time on its own,
+  each measured once by following FR-043, stay within 4 hours. The drill runs on the staging host,
+  which has the same shape as production.
+- **SC-010**: After either host reboots, every service on it serves again within 5 minutes with no
+  manual step.
+- **SC-011**: A port scan of either host from outside finds only the HTTP and HTTPS ports open. The
+  admin and remote login don't answer, and the private-network endpoint stays silent to unknown
+  devices.
 - **SC-012**: Line coverage of the backend is at least 80%.
-- **SC-013**: After the account's trial credit has ended, every service still runs, and every month
-  the hosting account and every other service show USD 0 in charges.
+- **SC-013**: After the account's trial credit has ended, every service on both hosts still runs,
+  and every month the hosting account and every other service show USD 0 in charges.
 
 ## Assumptions
 
@@ -582,18 +656,20 @@ and leaves nothing behind.
   backups. Each must be free (FR-042b).
 - **Hostnames**: the roles follow backend §4: `api` and `admin` for production, `staging-api` for
   staging, and `staging-admin` for staging's admin (this spec's choice, following the same pattern).
-  In this feature they sit under the temporary IP-based domain (FR-042a). The API hostnames point at
-  the host's public address, and the admin hostnames point at its private-network address (FR-021).
-  Once a real domain exists,
-  they become `api.<domain>` and so on, as backend §4 describes.
+  In this feature they sit under the temporary IP-based domain (FR-042a). Each environment's API
+  hostname points at its own host's public address, and its admin hostname at that host's
+  private-network address (FR-021). Staging keeps the `staging-` prefix on its own host, so the
+  names stay distinct. Once a real domain exists, they become `api.<domain>` and so on, as backend
+  §4 describes.
 - **Real domain**: registering it and switching to it happens before the first closed test (the
   step 7 option or step 12 in `docs/delivery-plan.md`). The account-deletion page that B09 publishes
   for the store listing needs it too (backend §14.1).
 - **Deploy triggers**: backend §15 says production deploys on a tag. Deploying staging on every merge
   to `master` is this spec's choice, so each feature is tried on staging before it is tagged.
 - **Alerts** go to the owner's email. There is no paging service in the MVP.
-- **Staging is not backed up** and never receives production data (FR-040a). It can be rebuilt from
-  scratch, so playtesters' progress on staging lasts until staging is rebuilt.
+- **Staging is not backed up**, and production data never enters the staging environment (FR-040a).
+  The restore drill borrows the staging host for its temporary container only. Staging can be
+  rebuilt from scratch, so playtesters' progress on staging lasts until staging is rebuilt.
 - **No player data exists until B02.** In this feature the production database holds only staff
   accounts and schedules. Backups still run from day one, so the pipeline is proven before real data
   arrives.

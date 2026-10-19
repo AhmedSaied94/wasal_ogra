@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Host checks every 5 minutes (FR-038, contracts/operations.md "Host monitor"), run by
-# wassal-host-monitor.timer with /etc/wassal/host-monitor.env. It pings Healthchecks.io when every
-# check passes, and `/fail` with the failing checks listed otherwise. When the monitor itself stops,
-# Healthchecks alerts after its grace period.
+# Host checks every 5 minutes (FR-038, contracts/operations.md "Host monitor"), run on each host by
+# wassal-host-monitor.timer with that host's /etc/wassal/host-monitor.env. The host's environment,
+# from host.env, picks its checks: disk, certificates and queues on both hosts, backup storage on
+# the prod host only. It pings the host's own Healthchecks.io check when every check passes, with
+# the checks that ran, and `/fail` with the failing checks listed otherwise. When the monitor itself
+# stops, Healthchecks alerts after its grace period.
 #
 # Exit codes: 0 all checks pass; 1 a check failed (pinged /fail); 2 the ping or the config failed.
 set -uo pipefail
@@ -15,11 +17,33 @@ QUEUES=(default purchases content push)
 KEPT_BACKUPS=22
 
 log() { echo "host-monitor: $*" >&2; }
+die() { log "$*"; exit 2; }
+
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || die "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || die "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || die "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    die "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) die "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || die "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
 
 if [ -z "${HC_PING_HOST_MONITOR_URL:-}" ]; then
   log "HC_PING_HOST_MONITOR_URL is required"
   exit 2
 fi
+read_host_env
+ENV="$HOST_ENV"
 DISK_ALERT_PERCENT="${DISK_ALERT_PERCENT:-80}"
 CERT_ALERT_DAYS="${CERT_ALERT_DAYS:-14}"
 QUEUE_BACKLOG_THRESHOLD="${QUEUE_BACKLOG_THRESHOLD:-100}"
@@ -44,23 +68,31 @@ check_disk() {
   done
 }
 
+# check_certificate <host> <address> <seconds> <problem>: the certificate served for <host> is still
+# valid <seconds> from now. It is read from the address the site binds, with its SNI.
+check_certificate() {
+  local host=$1 address=$2 pem
+  if ! pem="$(openssl s_client -connect "$address:443" -servername "$host" </dev/null 2>/dev/null)" ||
+    [ -z "$pem" ]; then
+    fail "certificate $host: couldn't be read from $address:443"
+  elif ! openssl x509 -noout -checkend "$3" <<<"$pem" >/dev/null 2>&1; then
+    fail "certificate $host $4"
+  fi
+}
+
 check_certificates() {
-  local public admin name address pem
-  public="$(edge_value PUBLIC_BIND_IP)"
-  admin="$(edge_value ADMIN_BIND_IP)"
-  for name in PROD_API_HOST STAGING_API_HOST PROD_ADMIN_HOST STAGING_ADMIN_HOST; do
-    local host
-    host="$(edge_value "$name")"
-    [ -n "$host" ] || continue
-    case "$name" in *ADMIN*) address="$admin" ;; *) address="$public" ;; esac
-    # The served certificate, from the address the site binds, with its SNI.
-    if ! pem="$(openssl s_client -connect "$address:443" -servername "$host" </dev/null 2>/dev/null)" ||
-      [ -z "$pem" ]; then
-      fail "certificate $host: couldn't be read from $address:443"
-    elif ! openssl x509 -noout -checkend "$((CERT_ALERT_DAYS * 86400))" <<<"$pem" >/dev/null 2>&1; then
-      fail "certificate $host expires within $CERT_ALERT_DAYS days"
+  local name
+  for name in API_HOST ADMIN_HOST PUBLIC_BIND_IP ADMIN_BIND_IP; do
+    if [ -z "$(edge_value "$name")" ]; then
+      fail "certificates: $name is missing from edge.env"
+      return
     fi
   done
+  check_certificate "$(edge_value API_HOST)" "$(edge_value PUBLIC_BIND_IP)" \
+    "$((CERT_ALERT_DAYS * 86400))" "expires within $CERT_ALERT_DAYS days"
+  # Caddy's local CA (`tls internal`) issues the admin certificate for 12 hours and renews it
+  # itself, so a 14-day threshold would always fail. This only catches a broken renewal.
+  check_certificate "$(edge_value ADMIN_HOST)" "$(edge_value ADMIN_BIND_IP)" 0 "has expired"
 }
 
 # The backlog state is {"<queue>": <first epoch seen over the threshold>, …}.
@@ -68,9 +100,9 @@ check_queues() {
   local now queue length seen next=()
   now="$(date +%s)"
   for queue in "${QUEUES[@]}"; do
-    if ! length="$(docker exec wassal-prod-valkey-1 valkey-cli -n 1 LLEN "$queue" 2>/dev/null)" ||
+    if ! length="$(docker exec "wassal-$ENV-valkey-1" valkey-cli -n 1 LLEN "$queue" 2>/dev/null)" ||
       ! [[ "$length" =~ ^[0-9]+$ ]]; then
-      fail "queues: can't read the prod cache"
+      fail "queues: can't read the $ENV cache"
       return
     fi
     if [ "$length" -le "$QUEUE_BACKLOG_THRESHOLD" ]; then
@@ -88,6 +120,7 @@ check_queues() {
   printf '{%s}\n' "${next[*]}" >"$BACKLOG.new" && mv "$BACKLOG.new" "$BACKLOG"
 }
 
+# Prod host only: the backups are production's, and only the prod host takes them.
 check_backup_storage() {
   local last="$STATE_DIR/prod/backup/last-backup.json" size
   [ -f "$last" ] || return 0 # no backup yet
@@ -103,11 +136,16 @@ check_backup_storage() {
 check_disk
 check_certificates
 check_queues
-check_backup_storage
+# The ping names the checks that ran, so a skipped one never reads as passed.
+RAN="disk, certificates, queues"
+if [ "$ENV" = prod ]; then
+  check_backup_storage
+  RAN="$RAN, backup storage"
+fi
 
 if [ "${#FAILURES[@]}" -eq 0 ]; then
   url="$HC_PING_HOST_MONITOR_URL"
-  body="ok: disk, certificates, queues, backup storage"
+  body="ok: $RAN"
   status=0
 else
   url="$HC_PING_HOST_MONITOR_URL/fail"

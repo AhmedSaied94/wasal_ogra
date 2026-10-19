@@ -41,7 +41,7 @@ the model is project-owned from the first migration, B02 can also extend it with
 | Table (app) | Purpose | Notes |
 | --- | --- | --- |
 | `otp_totp_totpdevice` (django-otp) | One TOTP device per staff member | `key` is a secret held only in the database. Throttling fields enforce django-otp's backoff after wrong codes. |
-| `axes_accessattempt`, `axes_accessfailurelog` (django-axes) | Failed admin sign-ins | 5 failures per username **or** per client address within 15 min → 15 min lockout (FR-022). The client addresses are private-network addresses (10.66.0.x), not player data. |
+| `axes_accessattempt`, `axes_accessfailurelog` (django-axes) | Failed admin sign-ins | 5 failures per username **or** per client address within 15 min → 15 min lockout (FR-022). The client addresses are private-network addresses from the host's own WireGuard range (10.66.0.x on prod, 10.67.0.x on staging), not player data. |
 | `django_celery_beat_*` | Schedules as data (FR-006) | A data migration creates the `heartbeat` `PeriodicTask`: task `common.tasks.heartbeat`, every 5 min, queue `default` (FR-007). |
 | `django_session` | Admin sessions | Secure, HTTP-only cookies on the admin hostname only |
 | `django_admin_log`, `auth_group`, `auth_permission`, `django_content_type`, `django_migrations` | Django contrib | — |
@@ -60,16 +60,28 @@ the model is project-owned from the first migration, B02 can also extend it with
 
 | Field | `dev` | `staging` | `prod` |
 | --- | --- | --- | --- |
+| Host | The developer's machine | The staging VM: 1 OCPU / 6 GB, 47 GB boot volume | The prod VM: 1 OCPU / 6 GB, 100 GB boot volume |
+| Host identity (`/etc/wassal/host.env`) | none | `WASSAL_ENV=staging`, `WG_ADDRESS=10.67.0.1` | `WASSAL_ENV=prod`, `WG_ADDRESS=10.66.0.1` |
 | Settings module | `config.settings.dev` | `config.settings.staging` | `config.settings.prod` |
 | Compose project | `wassal-dev` | `wassal-staging` | `wassal-prod` |
 | API hostname | `localhost` | `staging-api.<public-ip>.sslip.io` | `api.<public-ip>.sslip.io` |
-| Admin hostname | `localhost` | `staging-admin.10-66-0-1.sslip.io` | `admin.10-66-0-1.sslip.io` |
+| Admin hostname | `localhost` | `staging-admin.10-67-0-1.sslip.io` | `admin.10-66-0-1.sslip.io` |
 | API / admin upstream | `127.0.0.1:8000` / `127.0.0.1:8001` (the emulator reaches them as `10.0.2.2`) | `127.0.0.1:8200` / `127.0.0.1:8201` | `127.0.0.1:8100` / `127.0.0.1:8101` |
 | App env file | `backend/.env` (copied from `.env.example`) | `/etc/wassal/staging.env` | `/etc/wassal/prod.env` |
 | Backups | none | none | nightly to B2 `prod/` |
+| Restore drill | none | monthly, of prod's backups (`wassal-restore-drill@prod`) | none |
 | Heartbeat check | none | `heartbeat-staging` | `heartbeat-prod` |
+| Host monitor check | none | `host-monitor-staging` | `host-monitor-prod` |
 
-- `<public-ip>` is the reserved public IP with dots replaced by dashes (FR-042a).
+- `staging` and `prod` each have their own VM, and each VM serves only its own environment. The one
+  crossover is the restore drill: it restores prod's newest backup on the staging host and leaves
+  nothing behind (research R9).
+- `provision.sh --env <env>` writes the host identity on its first run and refuses a different
+  `--env` later.
+- `<public-ip>` is the reserved public IP of the environment's own host, with dots replaced by
+  dashes (FR-042a): `141-147-129-92` for staging, `193-122-74-125` for prod.
+- Each admin hostname names its host's WireGuard address. Each host's edge has its own local CA, so
+  a device that uses both admins trusts two CA roots.
 - Every value is configuration. The variables are listed in
   [contracts/environment.md](./contracts/environment.md).
 
@@ -80,7 +92,7 @@ the model is project-owned from the first migration, B02 can also extend it with
 | Image | `ghcr.io/ahmedsaied94/wassal-backend:sha-<40-hex>`, multi-arch (arm64 + amd64), pushed only by a green `master` run |
 | Production tag | `:vMAJOR.MINOR.PATCH`, added to an existing `sha-` image by the release workflow |
 | `RELEASE` | The 40-hex commit, baked into the image and reported by `/healthz` |
-| Serving release | `/var/lib/wassal/<env>/release` on the host, holding the image tag. `release.previous` holds the one before. |
+| Serving release | `/var/lib/wassal/<env>/release` on the environment's host, holding the image tag. `release.previous` holds the one before. |
 
 **Deploy state transitions** (one deploy at a time per environment, FR-032):
 
@@ -131,19 +143,19 @@ B2_WEEKLY_BUCKET  prod/YYYY/MM/DD/…                            # same pair, on
   leaves the locked original in place, so a real restore may need to list versions (`restore.md`).
 - **Validation:** a backup without its metadata object is incomplete, and the drill never uses it.
 - **Local copy of the metadata:** the latest metadata is also written to
-  `/var/lib/wassal/prod/backup/last-backup.json` for the host monitor's storage check. It holds no
-  data.
+  `/var/lib/wassal/prod/backup/last-backup.json` on the prod host, for its host monitor's storage
+  check. It holds no data.
 
 ### Restore drill result (FR-040, SC-009)
 
-One JSON line per run, appended to `/var/lib/wassal/drill-results.jsonl` and sent as the
-Healthchecks.io ping body:
+One JSON line per run, appended to `/var/lib/wassal/drill-results.jsonl` on the staging host, where
+the drill runs, and sent as the Healthchecks.io ping body:
 
 | Field | Type |
 | --- | --- |
 | `started_at`, `finished_at` | ISO-8601 UTC |
 | `backup_key`, `backup_created_at` | string, ISO-8601 UTC |
-| `release` | 40-hex (the serving release whose code ran the checks) |
+| `release` | 40-hex (the release whose code ran the checks) |
 | `checks` | `{restore, migrations, row_counts}`: `pass` \| `fail`, plus `invariants`: `{<name>: pass \| fail}` |
 | `restore_duration_s`, `total_duration_s` | number |
 | `outcome` | `pass` \| `fail` |
@@ -165,31 +177,37 @@ database connection and returns `passed` and `detail`.
 | `uptime-prod` | UptimeRobot Free (research R11), plus an optional Sentry uptime monitor | 5 min | `GET https://<prod API host>/healthz` fails |
 | `heartbeat-prod`, `heartbeat-staging` | Healthchecks.io | 5 min / 10 min | No ping for 15 min (FR-007) |
 | `backup-prod` | Healthchecks.io | 1 day / 2 h | `/fail` ping, or no success in 26 h |
-| `restore-drill-prod` | Healthchecks.io | 30 days / 5 days | `/fail` ping, or no run in 35 days |
-| `host-monitor` | Healthchecks.io | 5 min / 10 min | `/fail` (disk ≥ 80%, certificate < 14 days, queue backlog, projected backup storage ≥ 8 GB), or the monitor itself stops |
+| `restore-drill-prod` | Healthchecks.io, pinged from the staging host | 30 days / 5 days | `/fail` ping, or no run in 35 days |
+| `host-monitor-prod`, `host-monitor-staging` | Healthchecks.io, one per host | 5 min / 10 min | `/fail` (disk ≥ 80%, API certificate < 14 days or admin certificate invalid, queue backlog, and on prod projected backup storage ≥ 8 GB), or that host's monitor itself stops |
 | Error tracking | Sentry | — | New issue in any environment |
 | Deploy failure | GitHub Actions notification email | — | A deploy job fails |
 
 ### Private-network peer (FR-023a)
 
-The registry file `/etc/wassal/wg-peers.tsv`, managed only by `wg-peer add|remove`, which also rewrites
-`/etc/wireguard/wg0.conf` and applies it live:
+Each host runs its own WireGuard server with its own registry file, `/etc/wassal/wg-peers.tsv`,
+managed only by that host's `wg-peer add|remove`, which also rewrites `/etc/wireguard/wg0.conf` and
+applies it live. A device that needs both hosts is added on each, and each host gives it its own key
+pair and address.
 
 | Field | Rule |
 | --- | --- |
-| `name` | Unique, `^[a-z0-9-]{2,32}$` (for example `ahmed-laptop`) |
-| `role` | `operator` \| `staff` \| `deploy-staging` \| `deploy-prod` |
-| `address` | `/32` from the role's range: operator `10.66.0.2–9`, staff `10.66.0.10–99`, deploy `10.66.0.200–209` |
-| `public_key` | WireGuard public key. One per device, never reused. |
+| `name` | Unique on its host, `^[a-z0-9-]{2,32}$` (for example `ahmed-laptop`) |
+| `role` | `operator` \| `staff` \| the host's own deploy role: `deploy-prod` on the prod host, `deploy-staging` on the staging host |
+| `address` | `/32` from the role's range in the host's `/24` (prod `10.66.0.0/24`, staging `10.67.0.0/24`): operator `.2–.9`, staff `.10–.99`, deploy `.200–.209` |
+| `public_key` | WireGuard public key. One per device and host, never reused. |
 | `added_at` | ISO-8601 UTC |
 
-**What each role may reach on `wg0`** (enforced by host iptables rules by source range, FR-023):
+The two hosts use different subnets so an operator laptop can run both tunnels at once. A phone runs
+one tunnel at a time.
 
-| Role | `10.66.0.1:22` (SSH) | `10.66.0.1:443` (admin) |
+**What each role may reach on a host's `wg0`** (enforced by that host's iptables rules by source
+range, FR-023). `<wg>` is the host's WireGuard address: `10.66.0.1` on prod, `10.67.0.1` on staging.
+
+| Role | `<wg>:22` (SSH) | `<wg>:443` (that host's admin) |
 | --- | --- | --- |
 | operator | yes | yes |
 | staff | no | yes |
-| deploy-staging / deploy-prod | yes, as user `deploy` with a forced command limited to its environment | no |
+| `deploy-prod` / `deploy-staging` | yes, as user `deploy` with a forced command limited to the host's own environment | no |
 
-Removing a peer deletes it from the live interface at once (`wg set wg0 peer <key> remove`), so access
-ends immediately.
+Removing a peer deletes it from that host's live interface at once (`wg set wg0 peer <key> remove`),
+so its access to that host ends immediately. A device on both hosts is removed from each.

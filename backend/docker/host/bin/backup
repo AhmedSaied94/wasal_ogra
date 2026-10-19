@@ -3,12 +3,15 @@
 #
 #   /opt/wassal/bin/backup prod
 #
+# It runs on the prod host only: /etc/wassal/host.env must say WASSAL_ENV=prod (FR-001a). The
+# staging host drills these backups instead of taking its own.
+#
 # It runs `python manage.py backup_db` in the serving release's image, with that release's own stack
 # definition and sizing file, as deploy does. The command pings Healthchecks.io itself. If this
 # script can't start it, the check's grace period raises the alert.
 #
-# Exit codes: 0 backed up; 1 the backup failed (backup_db pinged /fail); 2 bad input or setup;
-# 3 a deploy held the lock.
+# Exit codes: 0 backed up; 1 the backup failed (backup_db pinged /fail); 2 bad input or setup, or
+# not the prod host; 3 a deploy held the lock.
 set -euo pipefail
 
 # The image's `app` user (docker/Dockerfile), which owns the backup's state directory.
@@ -22,8 +25,30 @@ LOCK_DIR="${WASSAL_LOCK_DIR:-/run/lock}"
 log() { echo "backup: $*" >&2; }
 die() { log "$*"; exit 2; }
 
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || die "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || die "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || die "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    die "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) die "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || die "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
+
 if [ $# -ne 1 ] || ! [[ "$1" =~ ^(staging|prod)$ ]]; then die "usage: backup <staging|prod>"; fi
 ENV="$1"
+read_host_env
+[ "$HOST_ENV" = prod ] || die "backups run on the prod host only; this is the $HOST_ENV host"
+[ "$ENV" = "$HOST_ENV" ] || die "this host serves $HOST_ENV, not $ENV"
 ENV_STATE="$STATE_DIR/$ENV"
 BACKUP_ENV_FILE="$ETC_DIR/$ENV-backup.env"
 

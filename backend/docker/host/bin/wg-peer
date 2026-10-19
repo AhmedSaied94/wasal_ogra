@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 # Private-network peers (FR-023a, contracts/operations.md "Private-network administration").
 #
-#   sudo wg-peer add <name> <role>   role: operator | staff | deploy-staging | deploy-prod
+#   sudo wg-peer add <name> <role>   role: operator | staff | this host's deploy-<env>
 #   sudo wg-peer remove <name>
 #   sudo wg-peer list
 #
 # The registry is $WASSAL_ETC/wg-peers.tsv (default /etc/wassal). The client's private key is
 # generated here, printed once in its config, and never written to disk.
+#
+# Each host has its own WireGuard server and /24. `add` takes both from $WASSAL_ETC/host.env
+# (contracts/operations.md "Host identity"): WG_ADDRESS gives the subnet, and WASSAL_ENV the one
+# deploy role this host accepts.
 set -euo pipefail
 
 WASSAL_ETC="${WASSAL_ETC:-/etc/wassal}"
 REGISTRY="$WASSAL_ETC/wg-peers.tsv"
 SERVER_ENV="$WASSAL_ETC/wg-server.env"
+HOST_ENV_FILE="$WASSAL_ETC/host.env"
 IFACE=wg0
-SERVER_ADDRESS=10.66.0.1
 DNS_SERVER=1.1.1.1
 HEADER=$'name\trole\taddress\tpublic_key\tadded_at\tremoved_at'
 
@@ -21,12 +25,31 @@ die() { echo "wg-peer: $*" >&2; exit 1; }
 usage() { echo "usage: wg-peer add <name> <role> | remove <name> | list" >&2; exit 2; }
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-# Address range (last octet) per role. Both deploy roles share one range.
+# This host's identity, read as data and never sourced. Sets HOST_ENV and WG_ADDRESS.
+read_host_env() {
+  local env address expected
+  [ -f "$HOST_ENV_FILE" ] || die "$HOST_ENV_FILE is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$HOST_ENV_FILE")" || die "can't read $HOST_ENV_FILE"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$HOST_ENV_FILE")" || die "can't read $HOST_ENV_FILE"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$HOST_ENV_FILE"; then
+    die "$HOST_ENV_FILE: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) die "$HOST_ENV_FILE: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || die "$HOST_ENV_FILE: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+  WG_ADDRESS="$address"
+}
+
+# Address range (last octet in this host's /24) per role. A host has one deploy role, its own.
 role_range() {
   case "$1" in
     operator) echo "2 9" ;;
     staff) echo "10 99" ;;
-    deploy-staging | deploy-prod) echo "200 209" ;;
+    "deploy-$HOST_ENV") echo "200 209" ;;
     *) return 1 ;;
   esac
 }
@@ -46,13 +69,21 @@ active_rows() { awk -F'\t' 'NR > 1 && $6 == ""' "$REGISTRY"; }
 
 cmd_add() {
   [ $# -eq 2 ] || usage
-  local name="$1" role="$2" range low high octet address used private_key public_key
+  local name="$1" role="$2" range low high octet address used private_key public_key subnet
   [[ "$name" =~ ^[a-z0-9-]{2,32}$ ]] || die "invalid name '$name' (use 2-32 of a-z, 0-9 and -)"
-  range="$(role_range "$role")" || die "invalid role '$role' (operator, staff, deploy-staging or deploy-prod)"
   [ -f "$SERVER_ENV" ] || die "missing $SERVER_ENV (provision.sh writes it)"
   # shellcheck source=/dev/null
   . "$SERVER_ENV"
   : "${WG_SERVER_PUBLIC_KEY:?missing in $SERVER_ENV}" "${WG_ENDPOINT:?missing in $SERVER_ENV}"
+  # After wg-server.env, so nothing in it can change the host's identity.
+  read_host_env
+  case "$role" in
+    deploy-staging | deploy-prod)
+      [ "$role" = "deploy-$HOST_ENV" ] ||
+        die "role $role belongs on the ${role#deploy-} host; this is the $HOST_ENV host (use deploy-$HOST_ENV)"
+      ;;
+  esac
+  range="$(role_range "$role")" || die "invalid role '$role' (operator, staff or deploy-$HOST_ENV)"
 
   ensure_registry
   if active_rows | awk -F'\t' -v n="$name" '$1 == n { found = 1 } END { exit !found }'; then
@@ -60,11 +91,12 @@ cmd_add() {
   fi
 
   read -r low high <<< "$range"
+  subnet="${WG_ADDRESS%.*}"
   used="$(active_rows | cut -f3)"
   address=""
   for ((octet = low; octet <= high; octet++)); do
-    if ! grep -qxF "10.66.0.$octet" <<< "$used"; then
-      address="10.66.0.$octet"
+    if ! grep -qxF "$subnet.$octet" <<< "$used"; then
+      address="$subnet.$octet"
       break
     fi
   done
@@ -86,7 +118,7 @@ cmd_add() {
   echo "[Peer]"
   echo "PublicKey = $WG_SERVER_PUBLIC_KEY"
   echo "Endpoint = $WG_ENDPOINT"
-  echo "AllowedIPs = $SERVER_ADDRESS/32"
+  echo "AllowedIPs = $WG_ADDRESS/32"
   echo "PersistentKeepalive = 25"
 }
 

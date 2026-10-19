@@ -1119,3 +1119,81 @@ T053 host runbooks · T060 deploy runbook · T069 monitoring runbook · T086–T
 - **Generated files:** `contracts/openapi.yaml` is generated and committed. Regenerate it whenever a
   view, serializer or `extend_schema` changes.
 - **Owner actions** after the first CI run: make `backend` and `gitleaks` required checks (T040).
+
+---
+
+## Phase 10: Convergence
+
+Two VMs, one per environment (2026-10-19, constitution v1.1.0). Tests come first for every script
+change (constitution XIII). Keep the operator's uncommitted runbook edits when rewriting runbooks.
+
+- [X] T092 CRITICAL: give each host one environment in `backend/docker/host/provision.sh` per Constitution locked stack (v1.1.0) and FR-001a (contradicts)
+  - Tests first in a new `backend/docker/host/tests/test_provision_identity.py`. Make the identity logic testable without root, e.g. with path overrides like `wg-peer`'s `WASSAL_ETC`.
+  - The first run requires `--env staging|prod` with `--public-ip`. It writes `/etc/wassal/host.env` (`0600`: `WASSAL_ENV`, `WG_ADDRESS`, where prod is `10.66.0.1` and staging is `10.67.0.1`). Later runs read it. A different `--env`, or a malformed `host.env`, is refused before anything changes (contracts/operations.md "Host identity").
+  - The sudoers rule allows only `deploy --only <WASSAL_ENV>`. Create only that environment's state directory.
+  - Enable only this host's timers: prod gets `wassal-backup@prod` and `wassal-host-monitor`; staging gets `wassal-restore-drill@prod` and `wassal-host-monitor`. Disable every other `wassal-*` timer. Install all unit files on both hosts.
+  - Warn about leftovers from the one-host design (another environment's state, env files, timers or peers), but never delete them.
+- [X] T093 Derive the private-network address from `WG_ADDRESS` in the firewall, WireGuard and sshd per FR-023, FR-023a and contracts/operations.md "Network exposure" (contradicts)
+  - Tests first in `test_firewall_template.py`, for both `10.66.0.x` and `10.67.0.x`.
+  - `iptables/rules.v4.tmpl`: replace `10.66.0` with `@WG_NET@`. `render_firewall` fills it in, and `--render-firewall` gains `--wg-address` (default `10.66.0.1`).
+  - `wireguard/wg0.conf.example`: make the address a placeholder that `wireguard()` fills from `WG_ADDRESS`.
+  - `--finalize` renders `sshd_config.d/wassal.conf` with `ListenAddress <WG_ADDRESS>` and checks that sshd listens only there.
+  - Update the `10.66.0.1` comments in `sysctl.d/90-wassal.conf`, `systemd/docker.service.d/after-wg.conf` and `systemd/ssh.socket.d/wassal.conf`.
+- [X] T094 Make `backend/docker/host/bin/wg-peer` per-host per FR-023a and data-model.md "Private-network peer" (contradicts)
+  - Tests first in `test_wg_peer.py`: drop the test where both deploy roles share one range, and add staging-subnet cases.
+  - Addresses and `AllowedIPs` come from the host's `WG_ADDRESS`, with the same offsets in its /24.
+  - Accept only this host's deploy role (`deploy-<WASSAL_ENV>`).
+- [X] T095 Run one environment per edge in `backend/docker/edge/` per FR-001a, contracts/operations.md "Edge" and contracts/ci-checks.md (contradicts)
+  - Tests first in a new `backend/docker/host/tests/test_edge_ports.py`: the snippet ports must equal `API_PORT` and `ADMIN_PORT` in `docker/env/<env>.env`.
+  - `Caddyfile`: two sites, `{$API_HOST}` and `{$ADMIN_HOST}`, importing the snippets `api-{$WASSAL_ENV}` and `admin-{$WASSAL_ENV}` (prod 8100/8101, staging 8200/8201). An empty or unknown `WASSAL_ENV` must fail to load.
+  - `compose.yml`: `env_file` reads `/etc/wassal/host.env`, then `/etc/wassal/edge.env`.
+  - `provision.sh edge()` refuses to start when `ADMIN_BIND_IP` ≠ `WG_ADDRESS`.
+  - `smoke.sh` sets `WASSAL_ENV=prod`, `API_HOST` and `ADMIN_HOST`. `caddy validate` must pass for prod and staging and fail for an empty value.
+- [X] T096 Move the restore drill to the staging host in `backend/docker/host/bin/restore-drill` per FR-040, FR-040a and contracts/operations.md "Restore drill" (contradicts)
+  - Tests first in `test_restore_drill_script.py`.
+  - Refuse unless `host.env` says `WASSAL_ENV=staging`.
+  - Fetch with the staging host's serving image (`/var/lib/wassal/staging/release`).
+  - Then read `release` from `/drill/backup.json` and validate it as 40 hex characters. `docker pull` `sha-<release>`.
+  - Take the postgres image from that image's own `/app/deploy/compose.yml` (`docker create` and `docker cp`, with the temporary container removed afterwards).
+  - Run the check with that image. Record the backup's release as the result's `release`.
+- [X] T097 Make `backend/docker/host/bin/host-monitor` per-host per FR-038 and contracts/operations.md "Host monitor" (partial)
+  - Tests first in `test_host_monitor.py`.
+  - Read `WASSAL_ENV` from `host.env`. Exit 2 if it's missing or unknown.
+  - Certificates: `API_HOST` must have more than `CERT_ALERT_DAYS` left. `ADMIN_HOST` is only checked for being valid now (`-checkend 0`), which fixes the 14-day check that can't pass on Caddy's 12-hour internal certificates.
+  - Queues come from `wassal-$WASSAL_ENV-valkey-1`. Backup storage is checked on prod only.
+  - Update the comment in `systemd/wassal-host-monitor.service`.
+- [X] T098 Make `backend/docker/host/bin/deploy` refuse the other environment per FR-034 and contracts/operations.md "Deploy interface" step 1 (partial)
+  - Tests first in `test_deploy_script.py`.
+  - Read `WASSAL_ENV` from `$WASSAL_ETC/host.env`. A missing `host.env` is an error. Exit 2 when `--only` differs, even when the operator runs it with sudo.
+- [X] T099 Make `backend/docker/host/bin/backup` run only on the prod host per FR-039 and contracts/operations.md "Backup job" (partial)
+  - Tests first in `test_backup_script.py`. Refuse unless `host.env` says `WASSAL_ENV=prod`.
+- [X] T100 Point the staging deploy at the staging host in `.github/workflows/backend.yml` (`deploy@10.67.0.1`) per contracts/ci-checks.md `deploy-staging` and FR-034 (contradicts)
+  - `backend-release.yml` keeps `deploy@10.66.0.1`; update its comments to say "the prod host".
+- [X] T101 Rewrite the runbooks for two VMs per FR-043, SC-009, research R13 and quickstart.md (partial)
+  - `provision-host.md`: one pass per VM, covering the security list, console password, `provision.sh --env <env> --public-ip <ip>`, that VM's `edge.env`, its peer and `--finalize`.
+  - `private-network.md`: two WireGuard servers (`10.66` and `10.67`), two tunnels, two CA roots, one deploy peer per host.
+  - `deploy-and-rollback.md`: deploy key, peer and known-hosts per host; each GitHub Environment points at its own host; rollback runs on the prod host.
+  - `monitoring-setup.md`: 6 Healthchecks.io checks, including `host-monitor-staging`; 1 UptimeRobot monitor; `prod-backup.env` on prod and `prod-drill.env` on staging.
+  - `restore.md`: the drill runs on staging; a rebuild is per host.
+  - `break-glass.md`: per VM; the rescue volume fits the 53 GB left.
+  - `staff-accounts.md`: an admin URL per environment and two CA roots.
+  - `README.md`: the first-time setup order for both VMs.
+- [X] T102 Update `docs/owner-actions.md` for two VMs per the repo's owner-actions rule and FR-043 (partial)
+  - Before/after-merge items per VM, the staging re-provision (T103), the prod provision (T104), the secrets (T105) and checks (T106), the second CA root, and the "Open now" table.
+- [ ] T103 Operator: re-provision the staging VM as `staging` per FR-001a and T054 (missing)
+  - Copy the updated `backend/docker` to `~/wassal-docker`.
+  - Stop `wg-quick@wg0`. Move the `10.66` `/etc/wireguard/wg0.conf` and `/etc/wassal/wg-server.env` aside; there are no peers yet.
+  - Run `sudo ./wassal-docker/host/provision.sh --env staging --public-ip 141.147.129.92`.
+  - Confirm `host.env`, `wg0` on `10.67.0.1/24`, only staging's timers (`wassal-backup@prod.timer` is now disabled), and a single rule set in `iptables -S INPUT`. Act on any leftover warnings.
+  - Record the `iptables -S` "after" in research R13 (closing its **[verify on host]**), then continue `provision-host.md` §4–7 for staging.
+- [ ] T104 Operator: provision the prod VM (`193.122.74.125`, private `10.0.0.28`) as `prod` per FR-001a, FR-042 and T054 (missing)
+  - Follow `provision-host.md`: security list, console password and serial-console test, `provision.sh --env prod --public-ip 193.122.74.125`, env files, operator peer, `--finalize`.
+  - Compare its `/var/lib/wassal/oracle-rules.v4` and `.v6` with the test fixtures (taken from the staging VM), and record any difference in R13.
+  - Time the setup for SC-009.
+- [ ] T105 Operator: regenerate each GitHub Environment's `WG_CONFIG`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS` from its own host per FR-034 and contracts/environment.md "CI secrets" (missing)
+  - Staging: `wg-peer add deploy-staging deploy-staging` on the staging VM, with the host key pinned at `10.67.0.1`.
+  - Production: the same on the prod VM, at `10.66.0.1`.
+- [ ] T106 Operator: create the `host-monitor-staging` check in Healthchecks.io (6 checks in all), fill each host's `host-monitor.env`, and keep UptimeRobot on production only, per FR-038 and research R11 (missing)
+- [X] T107 Document that `sha-` images must stay in GHCR for at least 56 days in `docs/runbooks/deploy-and-rollback.md`, per contracts/ci-checks.md's registry rule and FR-040 (missing)
+  - The drill pulls the backup's release by that tag. If a registry cleanup is ever added, it must keep them.
+- [ ] T108 Run the live validations (T055, T062, T070, T085, T091) on the host named in the "Host" column of quickstart.md's scenario table, per quickstart.md (partial)

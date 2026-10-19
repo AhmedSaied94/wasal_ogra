@@ -1,4 +1,6 @@
-# Host checks: disk, certificates, prod queues, backup storage (FR-038, contracts/operations.md).
+# This host's checks (FR-038, contracts/operations.md "Host monitor"), for the environment in
+# /etc/wassal/host.env: disk, certificates and that environment's queues on both hosts, backup
+# storage on the prod host only. Each host pings its own Healthchecks.io check.
 [Unit]
 Description=wassal host monitor
 After=docker.service

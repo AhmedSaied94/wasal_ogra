@@ -33,7 +33,7 @@ workflows: `backend.yml` (checks, image, staging deploy), `backend-release.yml` 
 | `image-manifest` | lint, types, test, contract, image, smoke | ubuntu-24.04 | `master` only, and only when every check passed: `docker buildx imagetools create -t ghcr.io/ahmedsaied94/wassal-backend:sha-<sha>` from both digests. The release workflow relies on that tag meaning "every check passed". | manifest error |
 | `smoke` | changes | ubuntu-24.04 | build amd64 image locally → `docker compose -f compose.yml -f compose.dev.yml up -d --wait` → `curl /healthz`, `/readyz` → edge smoke (below) → `docker compose down -v` | any service unhealthy within 120 s, or any edge assertion failing |
 | `backend` | all of the above | ubuntu-24.04 | `if: always()`. Fails if any needed job failed or was cancelled. Skipped counts as passing. | a needed job failed |
-| `deploy-staging` | backend, image-manifest | ubuntu-24.04 | Runs on a `master` push whose `image-manifest` succeeded, or on a rehearsal dispatch. Environment `staging`, `concurrency: deploy-staging` (`cancel-in-progress: false`). Steps: install `wireguard-tools` → `wg-quick up` from `WG_CONFIG` → `ssh deploy@10.66.0.1 staging sha-<sha>`, with the key and `known_hosts` from the environment secrets, `StrictHostKeyChecking=yes` and `ServerAliveInterval=30` → `wg-quick down` (`always()`) | the remote `deploy` exits non-zero (GitHub then emails the failure, FR-038) |
+| `deploy-staging` | backend, image-manifest | ubuntu-24.04 | Runs on a `master` push whose `image-manifest` succeeded, or on a rehearsal dispatch. Environment `staging`, `concurrency: deploy-staging` (`cancel-in-progress: false`). Steps: install `wireguard-tools` → `wg-quick up` from `WG_CONFIG` (the staging host's tunnel) → `ssh deploy@10.67.0.1 staging sha-<sha>` (the staging host's WireGuard address), with the key and `known_hosts` from the environment secrets, `StrictHostKeyChecking=yes` and `ServerAliveInterval=30` → `wg-quick down` (`always()`) | the remote `deploy` exits non-zero (GitHub then emails the failure, FR-038) |
 
 - Every job has `timeout-minutes: 15` (SC-003).
 - `lint`, `types`, `test`, `contract`, `image` and `smoke` run in parallel.
@@ -43,11 +43,15 @@ workflows: `backend.yml` (checks, image, staging deploy), `backend-release.yml` 
 
 ### Edge smoke assertions (inside `smoke`)
 
-The real `edge/Caddyfile` runs with `network_mode: host` and these settings:
+The real `edge/Caddyfile` (the one both hosts run) is started with `network_mode: host` and these
+settings:
 
+- `WASSAL_ENV=prod`, so the sites proxy to `127.0.0.1:8100` and `127.0.0.1:8101`, where the job's
+  stack listens;
 - `PUBLIC_BIND_IP=127.0.0.1`, `ADMIN_BIND_IP=127.0.0.2`;
 - `PUBLIC_TLS=internal`;
-- hostnames `api.127-0-0-1.sslip.io` and `admin.127-0-0-2.sslip.io`, pinned with `curl --resolve`.
+- `API_HOST=api.127-0-0-1.sslip.io` and `ADMIN_HOST=admin.127-0-0-2.sslip.io`, pinned with
+  `curl --resolve`.
 
 | Assertion | Requirement |
 | --- | --- |
@@ -56,7 +60,7 @@ The real `edge/Caddyfile` runs with `network_mode: host` and these settings:
 | A 600 KB `POST` to `https://api…/v1/` → 413 with the `payload_too_large` envelope | FR-020, contracts/api.md |
 | `https://api…/admin/` → 404 envelope; `https://admin…/v1/` → 404 | FR-021 |
 | On `127.0.0.1:443` with `Host: admin…`, the response has no `Content-Security-Policy` header and no admin content (Caddy answers an unknown hostname with an empty `200`, research R6). On `127.0.0.2:443`, the admin answers with the CSP header. | FR-021, FR-023 |
-| `caddy validate` passes for `Caddyfile` and `Caddyfile.dev` | — |
+| `caddy validate` passes for `Caddyfile` with `WASSAL_ENV=prod` and with `WASSAL_ENV=staging`, and for `Caddyfile.dev`. With `WASSAL_ENV` empty, `Caddyfile` fails to validate, so an edge that doesn't know its environment never starts. | FR-001a |
 
 ## `backend-release.yml` (production)
 
@@ -65,7 +69,12 @@ The real `edge/Caddyfile` runs with `network_mode: host` and these settings:
 | Trigger | `push` of a tag matching `v[0-9]+.[0-9]+.[0-9]+` |
 | Verify | `git merge-base --is-ancestor $SHA origin/master`, **and** `docker buildx imagetools inspect …:sha-$SHA` succeeds (the image exists only if that commit's `master` run passed every check, FR-030), **and** the commit's `gitleaks` check run (secrets.yml) concluded `success`. Otherwise fail without deploying. |
 | Tag | `imagetools create -t …:<tag> …:sha-$SHA` |
-| Deploy | environment `production` (deployment rule: `v*` tags only), `concurrency: deploy-prod` (`cancel-in-progress: false`) → WireGuard → `ssh deploy@10.66.0.1 prod <tag>` |
+| Deploy | environment `production` (deployment rule: `v*` tags only), `concurrency: deploy-prod` (`cancel-in-progress: false`) → WireGuard (the prod host's tunnel) → `ssh deploy@10.66.0.1 prod <tag>` (the prod host's WireGuard address) |
+
+The `sha-<commit>` image of every commit production has run must stay in the registry while
+backups taken by it are kept (56 days): the restore drill on the staging host pulls it by that tag
+([operations.md](./operations.md#restore-drill-fr-040-fr-040a)). No registry cleanup may delete
+it sooner.
 
 ## `secrets.yml`
 
@@ -107,5 +116,12 @@ defence in depth. It isn't a CI job.
 | Backup metadata counts equal restored counts (same snapshot); daily and weekly go to their own buckets | `apps/common/tests/test_backups.py` | FR-039 |
 | `b2_setup.py` creates locked buckets and refuses a key whose capabilities differ from the expected list | `tests/test_b2_setup.py` | FR-039a |
 | Drill: fetch and check steps, all four checks, failure paths, invariant registry | `apps/common/tests/test_restore_drill.py` | FR-040 |
-| `deploy` decision logic (validation, lock, migrate-fail, verify-fail → restore) | `backend/docker/host/tests/test_deploy_script.py` | FR-031 – FR-033 |
+| `deploy` decision logic (validation, including an `--only` other than the host's `WASSAL_ENV`; lock, migrate-fail, verify-fail → restore) | `backend/docker/host/tests/test_deploy_script.py` | FR-001a, FR-031 – FR-033 |
+| `provision.sh` host identity: the first run records `--env` and its `WG_ADDRESS` in `host.env`; a later, different `--env`, a malformed `host.env`, or an `edge.env` whose `ADMIN_BIND_IP` isn't `WG_ADDRESS` is refused before anything changes | `backend/docker/host/tests/test_provision_identity.py` | FR-001a |
+| Firewall render: Oracle's rules kept, project rules before the final `REJECT`, `wg0` ranges from the host's own /24 (rendered with `--wg-address 10.66.0.1` and `10.67.0.1`) | `backend/docker/host/tests/test_firewall_template.py` | FR-023 |
+| `wg-peer`: addresses from the role's range inside the host's /24, only the host's own deploy role accepted, configs with the host's own endpoint and address | `backend/docker/host/tests/test_wg_peer.py` | FR-023a |
+| Edge upstream ports: the Caddyfile's `api-<env>` and `admin-<env>` snippets use the `API_PORT` and `ADMIN_PORT` of `docker/env/<env>.env`, for both environments | `backend/docker/host/tests/test_edge_ports.py` | FR-005 |
+| Host monitor: each host checks its own hostnames' certificates (the admin's only for current validity) and its own environment's queues; backup storage on prod only; exit 2 without `WASSAL_ENV` | `backend/docker/host/tests/test_host_monitor.py` | FR-038 |
+| `backup` refuses an environment other than the host's | `backend/docker/host/tests/test_backup_script.py` | FR-001a, FR-039 |
+| `restore-drill` runs only on the staging host, fetches with staging's serving image, checks with `sha-<the backup's release>` and that release's postgres image, and leaves no container, volume, network or directory behind | `backend/docker/host/tests/test_restore_drill_script.py` | FR-040, FR-040a |
 | Contract: every operation in the committed `openapi.yaml` | `tests/test_contract.py` (schemathesis) | FR-018, constitution XIII |

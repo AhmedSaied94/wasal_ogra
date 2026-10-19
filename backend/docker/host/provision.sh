@@ -1,22 +1,34 @@
 #!/usr/bin/env bash
-# Provision the production host: Ubuntu 24.04 aarch64 on OCI (research R13,
+# Provision one host for one environment: Ubuntu 24.04 aarch64 on OCI (research R13,
 # docs/runbooks/provision-host.md). Idempotent: every step checks before it changes anything.
 #
-#   sudo ./provision.sh --public-ip <ip>   first run
+#   sudo ./provision.sh --env <staging|prod> --public-ip <ip>
+#                                          first run: records the host's environment for good
 #   sudo ./provision.sh                    later runs, e.g. after filling /etc/wassal/*.env
 #   sudo ./provision.sh --finalize         once the operator's WireGuard peer works: SSH moves
-#                                          to 10.66.0.1 only and public TCP 22 closes for good
-#   ./provision.sh --render-firewall <oracle-rules> [--finalize] [--public-if <if>] [--ipv6]
+#                                          to the host's WireGuard address only and public TCP 22
+#                                          closes for good
+#   ./provision.sh --render-firewall <oracle-rules> [--finalize] [--public-if <if>]
+#                  [--wg-address <address>] [--ipv6]
 #                                          print the rendered rules and change nothing
+#   ./provision.sh --identity [--env <env>] [--public-ip <ip>] [--root <dir>]
+#                                          the host-identity step alone, with every path under
+#                                          <dir> (the tests)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OPT=/opt/wassal
 ETC=/etc/wassal
 STATE=/var/lib/wassal
+WG_CONF=/etc/wireguard/wg0.conf
 FINALIZED_MARKER="$STATE/ssh-finalized"
-WG_ADDRESS=10.66.0.1
+# Rendered rules that aren't loaded yet. It outlives a run that dies before the reload.
+FIREWALL_PENDING="$STATE/firewall-pending"
 DEFAULT_PUBLIC_IF=ens3
+# The host's identity, from host.env or, on the first run, --env (host_identity).
+WASSAL_ENV=""
+WG_ADDRESS=""
+WG_NET=""
 
 log() { echo "provision: $*"; }
 die() { echo "provision: $*" >&2; exit 1; }
@@ -25,12 +37,14 @@ die() { echo "provision: $*" >&2; exit 1; }
 
 # Oracle's rules file with the project rules inserted before the final INPUT REJECT. Rules from an
 # earlier render (comment "wassal…") and Oracle's SSH accept for every interface are dropped: the
-# latter would let any WireGuard peer, staff included, reach SSH.
+# latter would let any WireGuard peer, staff included, reach SSH. An IPv6 file without that REJECT
+# filters nothing (Oracle's Ubuntu image, R13), so it comes back unchanged; an IPv4 one is an error.
+# <wg_net> is the host's /24 without its last octet (10.66.0 on prod, 10.67.0 on staging).
 render_firewall() {
-  local source="$1" template="$2" public_if="$3" finalize="$4"
+  local source="$1" template="$2" public_if="$3" wg_net="$4" finalize="$5" ipv6="$6"
   [ -f "$source" ] || die "no such rules file: $source"
   [ -f "$template" ] || die "no such template: $template"
-  awk -v template="$template" -v public_if="$public_if" -v finalize="$finalize" '
+  awk -v template="$template" -v public_if="$public_if" -v wg_net="$wg_net" -v finalize="$finalize" -v ipv6="$ipv6" '
     function project_chains(   line) {
       while ((getline line < template) > 0) if (line ~ /^:/) print line
       close(template)
@@ -40,6 +54,7 @@ render_firewall() {
         if (line ~ /^#/ || line == "" || line ~ /^:/) continue
         if (finalize == "1" && line ~ /--comment wassal-bootstrap-ssh/) continue
         gsub(/@PUBLIC_IF@/, public_if, line)
+        gsub(/@WG_NET@/, wg_net, line)
         print line
       }
       close(template)
@@ -49,22 +64,154 @@ render_firewall() {
     /^-A INPUT / && / --dport 22 / && / -j ACCEPT/ && !/ -i / { next }
     /^-A INPUT -j REJECT/ && !inserted { project_rules(); inserted = 1 }
     { print }
-    END { if (!inserted) { print "provision: no final INPUT REJECT in the rules file" > "/dev/stderr"; exit 1 } }
+    END { if (!inserted && ipv6 != "1") { print "provision: no final INPUT REJECT in the rules file" > "/dev/stderr"; exit 1 } }
   ' "$source"
 }
 
 render_mode() {
-  local source="" finalize=0 public_if="$DEFAULT_PUBLIC_IF" template="$HERE/iptables/rules.v4.tmpl"
+  local source="" finalize=0 public_if="$DEFAULT_PUBLIC_IF" template="$HERE/iptables/rules.v4.tmpl" ipv6=0
+  local wg_address
+  wg_address="$(wg_address_for prod)"
   while [ $# -gt 0 ]; do
     case "$1" in
       --render-firewall) source="${2:?--render-firewall needs a rules file}"; shift 2 ;;
       --finalize) finalize=1; shift ;;
       --public-if) public_if="${2:?--public-if needs an interface}"; shift 2 ;;
-      --ipv6) template="$HERE/iptables/rules.v6.tmpl"; shift ;;
+      --wg-address) wg_address="${2:?--wg-address needs an address}"; shift 2 ;;
+      --ipv6) template="$HERE/iptables/rules.v6.tmpl"; ipv6=1; shift ;;
       *) die "unknown option for --render-firewall: $1" ;;
     esac
   done
-  render_firewall "$source" "$template" "$public_if" "$finalize"
+  [[ "$wg_address" =~ ^([0-9]{1,3}\.){3}1$ ]] || die "--wg-address needs a host's WireGuard address, like 10.66.0.1"
+  render_firewall "$source" "$template" "$public_if" "${wg_address%.*}" "$finalize" "$ipv6"
+}
+
+# -- Host identity (FR-001a; also used without root by the tests) ----------------------------------
+
+# The WireGuard address of each environment's host. It follows from the environment and is never
+# given on its own.
+wg_address_for() {
+  case "$1" in
+    prod) echo 10.66.0.1 ;;
+    staging) echo 10.67.0.1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# The timers that run on each environment's host: the backups on prod, the drill of prod's
+# backups on staging, and the host monitor on both.
+host_timers() {
+  case "$1" in
+    prod) echo wassal-backup@prod.timer wassal-host-monitor.timer ;;
+    staging) echo wassal-restore-drill@prod.timer wassal-host-monitor.timer ;;
+  esac
+}
+
+# host_identity <--env or ""> <--public-ip or "">: sets WASSAL_ENV, WG_ADDRESS and WG_NET from
+# host.env, or from --env on the first run, and changes nothing. host.env is data, never sourced:
+# exactly the two lines record_identity writes, in either order.
+host_identity() {
+  local requested="$1" public_ip="$2" file="$ETC/host.env" recorded address expected
+  if [ -n "$requested" ]; then
+    wg_address_for "$requested" >/dev/null || die "--env must be staging or prod, not '$requested'"
+  fi
+  if [ ! -e "$file" ]; then
+    if [ -z "$requested" ] || [ -z "$public_ip" ]; then
+      die "the first run needs --env staging|prod and --public-ip <reserved public IP>"
+    fi
+    WASSAL_ENV="$requested"
+  else
+    recorded="$(sed -n 's/^WASSAL_ENV=//p' "$file")"
+    address="$(sed -n 's/^WG_ADDRESS=//p' "$file")"
+    if ! expected="$(wg_address_for "$recorded")" || [ "$address" != "$expected" ] \
+      || [ "$(grep -c '' "$file")" -ne 2 ]; then
+      die "$file is malformed: it must hold WASSAL_ENV (staging or prod) and that environment's WG_ADDRESS, and nothing else. provision.sh wrote it; find out what changed it"
+    fi
+    [ -z "$requested" ] || [ "$requested" = "$recorded" ] \
+      || die "this is the $recorded host ($file); it can't become $requested. Changing a host's environment means rebuilding it (FR-043)"
+    WASSAL_ENV="$recorded"
+  fi
+  WG_ADDRESS="$(wg_address_for "$WASSAL_ENV")"
+  WG_NET="${WG_ADDRESS%.*}"
+}
+
+# What has to agree with the identity before anything changes. With ip_nonlocal_bind and FreeBind,
+# an address that isn't the host's would still bind, and nobody could reach it.
+check_host() {
+  local recorded
+  if [ -f "$WG_CONF" ]; then
+    recorded="$(sed -n 's/^Address *= *//p' "$WG_CONF")"
+    [ "$recorded" = "$WG_ADDRESS/24" ] \
+      || die "$WG_CONF has Address '$recorded', not this host's $WG_ADDRESS/24. Stop wg-quick@wg0, move it and $ETC/wg-server.env aside (provision-host.md), then re-run"
+  fi
+  if [ -f "$ETC/edge.env" ]; then
+    recorded="$(sed -n 's/^ADMIN_BIND_IP=//p' "$ETC/edge.env")"
+    [ "$recorded" = "$WG_ADDRESS" ] \
+      || die "$ETC/edge.env has ADMIN_BIND_IP '$recorded', not this host's WG_ADDRESS $WG_ADDRESS; the admin site would never answer"
+  fi
+}
+
+# Records host.env on the first run (root, 0600). Later runs leave it alone.
+record_identity() {
+  local tmp
+  [ ! -e "$ETC/host.env" ] || return 0
+  [ -d "$ETC" ] || install -d -m 0700 "$ETC"
+  tmp="$(mktemp "$ETC/.host.env.XXXXXX")"
+  printf 'WASSAL_ENV=%s\nWG_ADDRESS=%s\n' "$WASSAL_ENV" "$WG_ADDRESS" > "$tmp"
+  chmod 0600 "$tmp"
+  mv "$tmp" "$ETC/host.env"
+  log "recorded $ETC/host.env"
+}
+
+# identity <--env or ""> <--public-ip or "">: the first step of every run.
+identity() {
+  host_identity "$1" "$2"
+  check_host
+  record_identity
+  log "$WASSAL_ENV host, WireGuard $WG_ADDRESS, timers $(host_timers "$WASSAL_ENV")"
+}
+
+# The one-host design ran both environments on one VM. provision.sh never deletes data, so it names
+# what of that is still here and leaves it to the runbook (provision-host.md).
+warn_leftovers() {
+  local other path peers
+  if [ "$WASSAL_ENV" = prod ]; then other=staging; else other=prod; fi
+  local foreign=("$STATE/$other" "$ETC/$other.env" "$ETC/$other-db.env")
+  case "$WASSAL_ENV" in
+    prod) foreign+=("$ETC/staging-backup.env" "$ETC/staging-drill.env" "$ETC/prod-drill.env") ;;
+    staging) foreign+=("$ETC/prod-backup.env") ;;
+  esac
+  for path in "${foreign[@]}"; do
+    [ ! -e "$path" ] || log "WARNING: $path belongs to the $other host, not this one. Remove it (provision-host.md)."
+  done
+  if [ -f "$ETC/wg-peers.tsv" ]; then
+    peers="$(awk -F'\t' -v net="$WG_NET." -v deploy="deploy-$WASSAL_ENV" '
+      NR > 1 && $6 == "" && (index($3, net) != 1 || ($2 ~ /^deploy-/ && $2 != deploy)) { printf " %s (%s, %s)", $1, $2, $3 }
+    ' "$ETC/wg-peers.tsv")"
+    [ -z "$peers" ] || log "WARNING: peers that don't belong to this host's $WG_NET.0/24 network:$peers. Remove them with wg-peer remove."
+  fi
+  if [ -f "$ETC/edge.env" ] && grep -qE '^(PROD|STAGING)_' "$ETC/edge.env"; then
+    log "WARNING: $ETC/edge.env still has the one-host PROD_/STAGING_ variables. The edge reads API_HOST and ADMIN_HOST (contracts/environment.md)."
+  fi
+}
+
+# --identity: the identity step alone. --root puts every path it reads or writes under <dir>.
+identity_mode() {
+  local env="" public_ip="" root=""
+  shift
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --env) env="${2:?--env needs staging or prod}"; shift 2 ;;
+      --public-ip) public_ip="${2:?--public-ip needs an address}"; shift 2 ;;
+      --root) root="${2:?--root needs a directory}"; shift 2 ;;
+      *) die "unknown option for --identity: $1" ;;
+    esac
+  done
+  ETC="$root$ETC"
+  STATE="$root$STATE"
+  WG_CONF="$root$WG_CONF"
+  identity "$env" "$public_ip"
+  warn_leftovers
 }
 
 # -- Host steps ----------------------------------------------------------------------------------
@@ -125,10 +272,11 @@ users_and_dirs() {
   local sudoers tmp
   sudoers=/etc/sudoers.d/wassal-deploy
   tmp="$(mktemp)"
-  cat > "$tmp" <<'SUDOERS'
-# The deploy key's forced command is `sudo /opt/wassal/bin/deploy --only <env>` (contracts/environment.md).
+  # This host's environment only (contracts/environment.md).
+  cat > "$tmp" <<SUDOERS
+# The deploy key's forced command is: sudo /opt/wassal/bin/deploy --only $WASSAL_ENV
 Defaults!/opt/wassal/bin/deploy env_keep += "SSH_ORIGINAL_COMMAND"
-deploy ALL=(root) NOPASSWD: /opt/wassal/bin/deploy --only staging, /opt/wassal/bin/deploy --only prod
+deploy ALL=(root) NOPASSWD: /opt/wassal/bin/deploy --only $WASSAL_ENV
 SUDOERS
   visudo -cf "$tmp" >/dev/null || die "the sudoers rule doesn't parse"
   install -m 0440 -o root -g root "$tmp" "$sudoers"
@@ -136,7 +284,7 @@ SUDOERS
 
   install -d -m 0755 -o root -g root "$OPT" "$OPT/bin" "$OPT/edge"
   install -d -m 0700 -o root -g root "$ETC"
-  install -d -m 0755 -o root -g root "$STATE" "$STATE/staging" "$STATE/prod" "$STATE/host-monitor"
+  install -d -m 0755 -o root -g root "$STATE" "$STATE/$WASSAL_ENV" "$STATE/host-monitor"
   install -d -m 0755 -o root -g root /var/log/caddy
 }
 
@@ -151,29 +299,35 @@ install_files() {
   install -m 0644 "$HERE/sysctl.d/90-wassal.conf" /etc/sysctl.d/90-wassal.conf
   sysctl --quiet --system
 
-  local unit timers=()
+  # Every unit file on both hosts; only this host's timers are enabled.
+  local unit link timers
+  read -r -a timers <<< "$(host_timers "$WASSAL_ENV")"
   for unit in "$HERE"/systemd/*.service "$HERE"/systemd/*.timer; do
     [ -e "$unit" ] || continue
     install -m 0644 "$unit" /etc/systemd/system/
-    # Templates (backup, restore drill) run for production only.
-    case "$unit" in
-      *@.timer) timers+=("$(basename "$unit" .timer)prod.timer") ;;
-      *.timer) timers+=("$(basename "$unit")") ;;
-    esac
   done
   systemctl daemon-reload
-  if [ "${#timers[@]}" -gt 0 ]; then systemctl enable --now "${timers[@]}"; fi
+  # An enabled timer is a link in timers.target.wants, template instances included.
+  for link in /etc/systemd/system/timers.target.wants/wassal-*.timer; do
+    [ -L "$link" ] || continue
+    unit="$(basename "$link")"
+    [[ " ${timers[*]} " == *" $unit "* ]] && continue
+    log "disabling $unit: it doesn't run on the $WASSAL_ENV host"
+    systemctl disable --now "$unit"
+  done
+  systemctl enable --now "${timers[@]}"
 }
 
 wireguard() {
   local public_ip="$1" private_key
-  log "WireGuard wg0"
-  if [ ! -f /etc/wireguard/wg0.conf ]; then
+  log "WireGuard wg0 on $WG_ADDRESS/24"
+  if [ ! -f "$WG_CONF" ]; then
     [ -n "$public_ip" ] || die "the first run needs --public-ip <reserved public IP>"
     umask 077
     private_key="$(wg genkey)"
-    sed "s|@SERVER_PRIVATE_KEY@|$private_key|" "$HERE/wireguard/wg0.conf.example" > /etc/wireguard/wg0.conf
-    chmod 0600 /etc/wireguard/wg0.conf
+    sed -e "s|@WG_ADDRESS@|$WG_ADDRESS|" -e "s|@SERVER_PRIVATE_KEY@|$private_key|" \
+      "$HERE/wireguard/wg0.conf.example" > "$WG_CONF"
+    chmod 0600 "$WG_CONF"
     printf 'WG_SERVER_PUBLIC_KEY=%s\nWG_ENDPOINT=%s:51820\n' \
       "$(wg pubkey <<< "$private_key")" "$public_ip" > "$ETC/wg-server.env"
     umask 022
@@ -186,7 +340,7 @@ wireguard() {
 # firewall <finalized 0|1> <force 0|1>: render the rules, and apply them only when they changed or
 # when forced (--finalize). Applying restarts Docker, so every container restarts, production's too.
 firewall() {
-  local finalize="$1" force="$2" changed=0 public_if family source target template
+  local finalize="$1" force="$2" public_if family source target template
   public_if="$(ip -o route show default | awk '{ print $5; exit }')"
   [ -n "$public_if" ] || die "no default route, so the public interface is unknown"
   log "firewall (public interface $public_if, finalized=$finalize)"
@@ -198,26 +352,38 @@ firewall() {
     [ -f "$target" ] || continue
     # Always render from Oracle's original, saved on the first run.
     [ -f "$source" ] || cp "$target" "$source"
-    render_firewall "$source" "$template" "$public_if" "$finalize" > "$target.new"
+    if [ "$family" = 6 ] && ! grep -q '^-A INPUT -j REJECT' "$source"; then
+      # Leaving IPv6 unfiltered is safe only while the host has no IPv6 address.
+      [ -z "$(ip -6 -o addr show scope global)" ] \
+        || die "the host has a global IPv6 address, but Oracle's rules.v6 filters nothing"
+      log "rules.v6 filters nothing and the host has no IPv6 address; leaving it as it is"
+    fi
+    render_firewall "$source" "$template" "$public_if" "$WG_NET" "$finalize" "$((family == 6))" > "$target.new"
     if cmp -s "$target.new" "$target"; then
       rm -f "$target.new"
     else
+      touch "$FIREWALL_PENDING"
       mv "$target.new" "$target"
-      changed=1
     fi
   done
-  if [ "$changed" -eq 0 ] && [ "$force" -eq 0 ]; then
+  if [ ! -f "$FIREWALL_PENDING" ] && [ "$force" -eq 0 ]; then
     log "firewall unchanged; not reloading"
     return
   fi
-  netfilter-persistent reload
-  # The reload flushes Docker's chains; restarting Docker puts them back (R13).
+  # Not `netfilter-persistent reload`: Oracle's image sets IPTABLES_RESTORE_NOFLUSH=yes, so a reload
+  # appends to INPUT and the old rules, ahead of the new ones, keep deciding (R13). A full restore
+  # leaves what a reboot loads. It drops Docker's chains too; restarting Docker puts them back.
+  [ ! -f /etc/iptables/rules.v4 ] || iptables-restore < /etc/iptables/rules.v4
+  [ ! -f /etc/iptables/rules.v6 ] || ip6tables-restore < /etc/iptables/rules.v6
   systemctl restart docker
+  rm -f "$FIREWALL_PENDING"
 }
 
+# The edge reads host.env, then edge.env. check_host has made sure edge.env's ADMIN_BIND_IP is this
+# host's WG_ADDRESS.
 edge() {
   if [ -f "$ETC/edge.env" ]; then
-    log "edge"
+    log "edge ($WASSAL_ENV)"
     docker compose -p wassal-edge -f "$OPT/edge/compose.yml" up -d --wait
     # `up` leaves a running container alone, so a changed Caddyfile needs a reload.
     docker compose -p wassal-edge -f "$OPT/edge/compose.yml" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
@@ -226,27 +392,40 @@ edge() {
   fi
 }
 
+# The other environment's Compose project: containers or volumes the one-host design left here.
+warn_other_project() {
+  local other found
+  if [ "$WASSAL_ENV" = prod ]; then other=staging; else other=prod; fi
+  found="$(docker ps -aq --filter "label=com.docker.compose.project=wassal-$other")$(
+    docker volume ls -q --filter "label=com.docker.compose.project=wassal-$other")"
+  [ -z "$found" ] || log "WARNING: the $other environment's Compose project wassal-$other has containers or volumes here. Remove them (provision-host.md)."
+}
+
 operator_peer_is_live() {
-  # An operator peer (10.66.0.2-9) with a handshake in the last 10 minutes. No pipeline: with
-  # pipefail, `… | grep -q` can fail on SIGPIPE when several peers match.
+  # An operator peer of this host (<wg>.2-9) with a handshake in the last 10 minutes. No pipeline:
+  # with pipefail, `… | grep -q` can fail on SIGPIPE when several peers match.
   local now handshakes
   now="$(date +%s)"
   [ -f "$ETC/wg-peers.tsv" ] || return 1
   handshakes="$(wg show wg0 latest-handshakes)" || return 1
-  HANDSHAKES="$handshakes" awk -F'\t' -v now="$now" '
+  HANDSHAKES="$handshakes" awk -F'\t' -v now="$now" -v net="$WG_NET." '
     BEGIN {
       n = split(ENVIRON["HANDSHAKES"], lines, "\n")
       for (i = 1; i <= n; i++) { split(lines[i], field, /[ \t]+/); latest[field[1]] = field[2] }
     }
-    NR > 1 && $2 == "operator" && $6 == "" && ($4 in latest) && latest[$4] > now - 600 { found = 1 }
+    NR > 1 && $2 == "operator" && $6 == "" && index($3, net) == 1 && ($4 in latest) && latest[$4] > now - 600 { found = 1 }
     END { exit !found }
   ' "$ETC/wg-peers.tsv"
 }
 
 finalize_ssh() {
   log "finalize: SSH on $WG_ADDRESS only"
+  # A wg0 still up with an older config would leave sshd on an address nobody can reach.
+  [[ "$(ip -4 -o addr show dev wg0)" == *" inet $WG_ADDRESS/24 "* ]] \
+    || die "wg0 doesn't have $WG_ADDRESS/24. Restart wg-quick@wg0 and reconnect first."
   operator_peer_is_live || die "no operator peer has a recent handshake. Connect over WireGuard first, or you would lock yourself out."
-  install -m 0644 "$HERE/sshd_config.d/wassal.conf" /etc/ssh/sshd_config.d/wassal.conf
+  sed "s|@WG_ADDRESS@|$WG_ADDRESS|" "$HERE/sshd_config.d/wassal.conf" > /etc/ssh/sshd_config.d/wassal.conf
+  chmod 0644 /etc/ssh/sshd_config.d/wassal.conf
   install -D -m 0644 "$HERE/systemd/ssh.socket.d/wassal.conf" /etc/systemd/system/ssh.socket.d/wassal.conf
   sshd -t || die "sshd rejects the drop-in"
   systemctl daemon-reload
@@ -258,9 +437,10 @@ finalize_ssh() {
 }
 
 main() {
-  local public_ip="" finalize_now=0
+  local env="" public_ip="" finalize_now=0
   while [ $# -gt 0 ]; do
     case "$1" in
+      --env) env="${2:?--env needs staging or prod}"; shift 2 ;;
       --public-ip) public_ip="${2:?--public-ip needs an address}"; shift 2 ;;
       --finalize) finalize_now=1; shift ;;
       *) die "unknown option: $1" ;;
@@ -268,6 +448,8 @@ main() {
   done
 
   check_platform
+  # Before anything changes: a different --env, or a malformed host.env, stops here.
+  identity "$env" "$public_ip"
   install_packages
   console_password
   users_and_dirs
@@ -277,11 +459,13 @@ main() {
   # Once finalized, every later run keeps public SSH closed.
   if [ -f "$FINALIZED_MARKER" ]; then firewall 1 "$finalize_now"; else firewall 0 "$finalize_now"; fi
   edge
+  warn_leftovers
+  warn_other_project
   log "done"
 }
 
-if [ "${1:-}" = --render-firewall ]; then
-  render_mode "$@"
-else
-  main "$@"
-fi
+case "${1:-}" in
+  --render-firewall) render_mode "$@" ;;
+  --identity) identity_mode "$@" ;;
+  *) main "$@" ;;
+esac

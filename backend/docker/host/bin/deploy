@@ -4,11 +4,13 @@
 #   sudo /opt/wassal/bin/deploy --only <staging|prod>
 #
 # The request comes in SSH_ORIGINAL_COMMAND as "<env> <tag> [rehearse-migrate-fail|rehearse-verify-fail]".
-# The deploy key's forced command and the sudoers rule allow nothing else.
+# The deploy key's forced command and the sudoers rule allow nothing else. <env> must also be this
+# host's own WASSAL_ENV, from /etc/wassal/host.env (FR-001a).
 #
-# Exit codes: 0 deployed, or already serving; 2 bad input, nothing touched; 3 lock timeout; 4 pull
-# failed, or the release's stack definition was refused; 5 migrate failed, the previous release still serving; 6 the release failed verification
-# and the previous one was restored; 7 the restore failed too.
+# Exit codes: 0 deployed, or already serving; 2 bad input, or not this host's environment, nothing
+# touched; 3 lock timeout; 4 pull failed, or the release's stack definition was refused; 5 migrate
+# failed, the previous release still serving; 6 the release failed verification and the previous
+# one was restored; 7 the restore failed too.
 set -euo pipefail
 shopt -s nullglob
 
@@ -18,11 +20,31 @@ readonly LOCK_TIMEOUT=900
 readonly UP_TIMEOUT=180
 STATE_DIR="${WASSAL_STATE_DIR:-/var/lib/wassal}"
 LOCK_DIR="${WASSAL_LOCK_DIR:-/run/lock}"
+ETC_DIR="${WASSAL_ETC:-/etc/wassal}"
 VERIFY_TIMEOUT="${WASSAL_VERIFY_TIMEOUT:-120}"
 VERIFY_INTERVAL="${WASSAL_VERIFY_INTERVAL:-2}"
 
 log() { echo "deploy: $*" >&2; }
 refuse() { log "refused: $*"; exit 2; }
+
+# This host's environment (contracts/operations.md "Host identity"), read as data and never sourced.
+# Sets HOST_ENV.
+read_host_env() {
+  local file="$ETC_DIR/host.env" env address expected
+  [ -f "$file" ] || refuse "$file is missing (provision.sh --env writes it)"
+  env="$(sed -n 's/^WASSAL_ENV=//p' "$file")" || refuse "can't read $file"
+  address="$(sed -n 's/^WG_ADDRESS=//p' "$file")" || refuse "can't read $file"
+  if grep -qvE '^(WASSAL_ENV|WG_ADDRESS)=' "$file"; then
+    refuse "$file: only WASSAL_ENV and WG_ADDRESS belong in it"
+  fi
+  case "$env" in
+    prod) expected=10.66.0.1 ;;
+    staging) expected=10.67.0.1 ;;
+    *) refuse "$file: WASSAL_ENV '$env' isn't staging or prod" ;;
+  esac
+  [ "$address" = "$expected" ] || refuse "$file: WG_ADDRESS '$address' isn't $env's $expected"
+  HOST_ENV="$env"
+}
 
 # -- 1. Validate -----------------------------------------------------------------------------------
 
@@ -33,6 +55,10 @@ case "$ONLY" in
   prod) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$' ;;
   *) refuse "unknown environment" ;;
 esac
+# Here and not only in sudoers and the deploy key, so even the operator's own sudo can't deploy the
+# other environment on this host.
+read_host_env
+[ "$ONLY" = "$HOST_ENV" ] || refuse "this host serves $HOST_ENV, not $ONLY"
 
 REQUEST="${SSH_ORIGINAL_COMMAND:-}"
 [[ "$REQUEST" != *$'\n'* ]] || refuse "the request has more than one line"

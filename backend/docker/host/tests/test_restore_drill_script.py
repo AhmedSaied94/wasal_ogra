@@ -3,7 +3,11 @@
 
 `bin/restore-drill` runs under bash with stub `docker`, `df`, `curl` and `sleep` first on `PATH`.
 They log every call in order, with the contents of each `--env-file`, so the tests can check what
-each container is given.
+each container is given. The stub fetch writes `backup.json`, and the stub `docker cp` writes the
+check image's `compose.yml`.
+
+The drill runs on the staging host: it fetches with staging's serving image, then checks with the
+production release that took the backup.
 """
 
 from __future__ import annotations
@@ -22,17 +26,28 @@ import pytest
 BASH = shutil.which("bash") or "/bin/bash"
 HOST = Path(__file__).resolve().parent.parent
 DRILL = HOST / "bin" / "restore-drill"
-TAG = "v1.2.3"
-IMAGE = f"ghcr.io/ahmedsaied94/wassal-backend:{TAG}"
-POSTGRES = "postgres:17.11-trixie"
+REPO = "ghcr.io/ahmedsaied94/wassal-backend"
+# Staging's serving release fetches; the release that took the backup checks.
+STAGING_TAG = "sha-" + "5a" * 20
+FETCH_IMAGE = f"{REPO}:{STAGING_TAG}"
+RELEASE = "0123456789abcdef" * 2 + "01234567"
+CHECK_IMAGE = f"{REPO}:sha-{RELEASE}"
+# The check image's own compose file names production's database for that release. Staging's
+# serving stack names another one, which the drill must not use.
+POSTGRES = "postgres:17.9-trixie"
+STAGING_POSTGRES = "postgres:18.1-trixie"
+COPIER = "wassal-drill-copy"
+HOST_ENV = "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n"
 PING = "https://hc-ping.example.test/drill-uuid"
 COMPACT = (",", ":")
 STARTED = "2026-11-01T03:00:00Z"
 PASS_LINE = json.dumps(
-    {"started_at": STARTED, "outcome": "pass", "failure": None}, separators=COMPACT
+    {"started_at": STARTED, "release": RELEASE, "outcome": "pass", "failure": None},
+    separators=COMPACT,
 )
 FAIL_LINE = json.dumps(
-    {"started_at": STARTED, "outcome": "fail", "failure": "row counts"}, separators=COMPACT
+    {"started_at": STARTED, "release": RELEASE, "outcome": "fail", "failure": "row counts"},
+    separators=COMPACT,
 )
 # The check container logs JSON lines to stdout too; the result line is the last one.
 LOG_LINE = json.dumps({"ts": STARTED, "level": "INFO", "message": "x"}, separators=COMPACT)
@@ -46,6 +61,26 @@ B2_DRILL_APP_KEY=drill-app-key-secret
 DRILL_ROWCOUNT_TOLERANCE=0
 HC_PING_DRILL_URL=https://hc-ping.example.test/drill-uuid
 """
+
+
+def compose(postgres: str) -> str:
+    return f"services:\n  api:\n    image: {REPO}:x\n  postgres:\n    image: {postgres}\n"
+
+
+def metadata(**fields: object) -> str:
+    """`backup.json` as `restore_drill fetch` writes it."""
+    meta: dict[str, object] = {
+        "schema_version": 1,
+        "environment": "prod",
+        "created_at": "2026-11-01T01:00:12Z",
+        "release": RELEASE,
+        "dump": {"key": "prod/2026/11/01/prod-20261101T010012Z.dump", "size_bytes": 1},
+        "tables": {"public.release": 3},
+        **fields,
+    }
+    return json.dumps({k: v for k, v in meta.items() if v is not None}, indent=2) + "\n"
+
+
 THROWAWAY_KEYS = {
     "WASSAL_ENV",
     "SECRET_KEY",
@@ -98,7 +133,20 @@ elif args[0] == "run" and "-d" in args:
 elif args[0] == "exec":
     sys.exit(1 if fail("ready") else 0)
 elif args[0] == "run" and "fetch" in args:
-    sys.exit(1 if fail("fetch") else 0)
+    if fail("fetch"):
+        sys.exit(1)
+    drill = next(a for a in args if a.endswith(":/drill")).removesuffix(":/drill")
+    Path(drill, "backup.json").write_text(os.environ["STUB_BACKUP_JSON"])
+elif args[0] == "pull":
+    sys.exit(1 if fail("pull") else 0)
+elif args[0] == "create":
+    if fail("create"):
+        sys.exit(1)
+    print("0123abcd")
+elif args[0] == "cp":
+    if fail("cp"):
+        sys.exit(1)
+    Path(args[2]).write_text(os.environ["STUB_COMPOSE"])
 elif args[0] == "run" and "check" in args:
     sys.stdout.write(os.environ.get("STUB_CHECK_OUTPUT", "{}\\n"))
     sys.exit(int(os.environ.get("STUB_CHECK_EXIT", "0")))
@@ -190,6 +238,8 @@ class Host:
             "HC_PING_DRILL_URL": PING,
             "DRILL_ROWCOUNT_TOLERANCE": "0",
             "STUB_CHECK_OUTPUT": f"{LOG_LINE}\n{PASS_LINE}\n",
+            "STUB_BACKUP_JSON": metadata(),
+            "STUB_COMPOSE": compose(POSTGRES),
             "WASSAL_DRILL_READY_ATTEMPTS": "3",
             **stub_env,
         }
@@ -218,12 +268,11 @@ def host(tmp_path: Path) -> Host:
     (tmp_path / "tmp").mkdir()
     (tmp_path / "etc").mkdir()
     (tmp_path / "etc" / "prod-drill.env").write_text(DRILL_ENV)
-    stack = host.state / "prod" / "deploy" / TAG
+    (tmp_path / "etc" / "host.env").write_text(HOST_ENV)
+    stack = host.state / "staging" / "deploy" / STAGING_TAG
     (stack / "env").mkdir(parents=True)
-    (stack / "compose.yml").write_text(
-        f"services:\n  api:\n    image: ghcr.io/x:1\n  postgres:\n    image: {POSTGRES}\n"
-    )
-    (host.state / "prod" / "release").write_text(TAG)
+    (stack / "compose.yml").write_text(compose(STAGING_POSTGRES))
+    (host.state / "staging" / "release").write_text(STAGING_TAG + "\n")
     return host
 
 
@@ -253,6 +302,10 @@ def test_the_steps_run_in_order(host: Host) -> None:
         "volume rm",
         "network rm",
         "fetch",
+        "pull",
+        "create",
+        "cp",
+        "rm",
         "network create",
         "volume create",
         "database",
@@ -274,9 +327,36 @@ def test_fetch_runs_on_the_default_bridge_with_the_drill_key(host: Host) -> None
     assert args[args.index("--network") + 1] == "bridge"
     assert args.count("--network") == 1
     assert f"{host.drill_dir}:/drill" in args
-    assert args[-6:] == [IMAGE, "python", "manage.py", "restore_drill", "fetch", "/drill"]
+    assert args[-6:] == [FETCH_IMAGE, "python", "manage.py", "restore_drill", "fetch", "/drill"]
     assert str(host.root / "etc" / "prod-drill.env") in fetch["env_files"]
     assert set(env_file(fetch, skip="prod-drill.env")) == THROWAWAY_KEYS
+
+
+def test_the_check_image_is_the_release_that_took_the_backup(host: Host) -> None:
+    result = host.run()
+
+    assert result.docker("pull") == [["pull", "--quiet", CHECK_IMAGE]]
+    assert result.docker("create") == [["create", "--name", COPIER, CHECK_IMAGE]]
+    [copy] = result.docker("cp")
+    assert copy[1] == f"{COPIER}:/app/deploy/compose.yml"
+    assert Path(copy[2]).parent.parent == host.root / "tmp"
+    # The temporary container goes as soon as the file is out, and again on exit.
+    assert result.docker("rm")[-2:] == [
+        ["rm", "-f", COPIER],
+        ["rm", "-f", "wassal-drill-db", COPIER],
+    ]
+
+
+def test_the_backups_release_is_read_as_data_from_the_fetched_metadata(host: Host) -> None:
+    other = "f" * 40
+    line = PASS_LINE.replace(RELEASE, other)
+
+    result = host.run(STUB_BACKUP_JSON=metadata(release=other), STUB_CHECK_OUTPUT=f"{line}\n")
+
+    assert result.code == 0, result.stderr
+    assert result.docker("pull") == [["pull", "--quiet", f"{REPO}:sha-{other}"]]
+    assert result.run_of("check")["args"][-6] == f"{REPO}:sha-{other}"
+    assert host.results.read_text() == line + "\n"
 
 
 def test_the_database_is_internal_capped_and_on_prods_postgres_tag(host: Host) -> None:
@@ -305,7 +385,7 @@ def test_check_gets_only_the_drill_network_and_throwaway_values(host: Host) -> N
     assert args[args.index("--network") + 1] == "wassal-drill"
     assert args.count("--network") == 1
     assert f"{host.drill_dir}:/drill:ro" in args
-    assert args[-6:] == [IMAGE, "python", "manage.py", "restore_drill", "check", "/drill"]
+    assert args[-6:] == [CHECK_IMAGE, "python", "manage.py", "restore_drill", "check", "/drill"]
     values = env_file(check)
     assert set(values) == THROWAWAY_KEYS | {"DRILL_ROWCOUNT_TOLERANCE"}
     assert not any("prod-drill.env" in path for path in check["env_files"])
@@ -367,18 +447,76 @@ def test_low_disk_pings_fail_and_starts_nothing(host: Host) -> None:
     assert not host.results.exists()
 
 
-@pytest.mark.parametrize("step", ["fetch", "network", "volume", "database", "ready"])
+@pytest.mark.parametrize(
+    "step", ["fetch", "pull", "create", "cp", "network", "volume", "database", "ready"]
+)
 def test_a_failed_step_still_cleans_up_and_pings_fail(host: Host, step: str) -> None:
     result = host.run(STUB_FAIL=step)
 
     assert result.code == 1
     assert result.steps()[-4:] == ["curl", "rm", "volume rm", "network rm"]
-    assert result.docker("rm")[-1] == ["rm", "-f", "wassal-drill-db"]
+    assert result.docker("rm")[-1] == ["rm", "-f", "wassal-drill-db", COPIER]
     assert result.docker("volume", "rm")[-1] == ["volume", "rm", "wassal-drill-pgdata"]
     assert result.docker("network", "rm")[-1] == ["network", "rm", "wassal-drill"]
     assert result.ping_url == f"{PING}/fail"
     assert not host.drill_dir.exists()
     assert "check" not in result.steps()
+
+
+@pytest.mark.parametrize(
+    "release",
+    [
+        None,
+        "",
+        RELEASE[:-1],
+        RELEASE + "0",
+        RELEASE.upper(),
+        f"sha-{RELEASE}",
+        f"{RELEASE[:-1]}g",
+        f"{RELEASE}\\n{RELEASE}",
+        "../../etc",
+    ],
+)
+def test_a_bad_backup_release_pings_fail_and_pulls_nothing(host: Host, release: str | None) -> None:
+    result = host.run(STUB_BACKUP_JSON=metadata(release=release))
+
+    assert result.code == 1
+    assert result.ping_url == f"{PING}/fail"
+    assert "release" in result.ping["body"]
+    assert result.docker("pull") == []
+    assert result.docker("create") == []
+    assert result.steps()[-4:] == ["curl", "rm", "volume rm", "network rm"]
+    assert not host.drill_dir.exists()
+
+
+def test_a_second_release_field_is_refused(host: Host) -> None:
+    text = metadata().replace('  "release"', f'  "release": "{"e" * 40}",\n  "release"', 1)
+
+    result = host.run(STUB_BACKUP_JSON=text)
+
+    assert result.code == 1
+    assert result.docker("pull") == []
+
+
+def test_a_compose_file_with_no_postgres_image_pings_fail(host: Host) -> None:
+    result = host.run(STUB_COMPOSE="services:\n  api:\n    image: x\n")
+
+    assert result.code == 1
+    assert result.ping_url == f"{PING}/fail"
+    assert "no postgres image" in result.ping["body"]
+    assert "database" not in result.steps()
+    assert result.docker("rm")[-1] == ["rm", "-f", "wassal-drill-db", COPIER]
+
+
+def test_a_result_from_another_release_pings_fail(host: Host) -> None:
+    line = PASS_LINE.replace(RELEASE, "e" * 40)
+
+    result = host.run(STUB_CHECK_OUTPUT=f"{line}\n")
+
+    assert result.code == 1
+    assert result.ping_url == f"{PING}/fail"
+    assert "not the backup's" in result.ping["body"]
+    assert not host.results.exists()
 
 
 @pytest.mark.parametrize(
@@ -414,6 +552,73 @@ def test_the_drill_containers_are_hardened(host: Host) -> None:
     assert "--pids-limit" in database
 
 
+# -- the staging host only -------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\n",
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.66.0.1\n",
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=dev\nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging\n",
+        "WG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging\nWASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging \nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n\n",
+        "# the staging host\nWASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n",
+        "export WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\nOTHER=1\n",
+        'WASSAL_ENV="staging"\nWG_ADDRESS=10.67.0.1\n',
+        "WASSAL_ENV=staging\r\nWG_ADDRESS=10.67.0.1\r\n",
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\nWG_ADDRESS=10.67.0.1\n",
+        "",
+        None,
+    ],
+)
+def test_the_drill_runs_on_the_staging_host_only(host: Host, text: str | None) -> None:
+    path = host.root / "etc" / "host.env"
+    if text is None:
+        path.unlink()
+    else:
+        path.write_text(text)
+
+    result = host.run()
+
+    assert result.code == 2
+    assert result.calls == []
+    assert "host.env" in result.stderr or "staging host" in result.stderr
+
+
+def test_host_env_is_read_as_data_never_sourced(host: Host) -> None:
+    marker = host.root / "sourced"
+    (host.root / "etc" / "host.env").write_text(
+        f"WASSAL_ENV=staging$(touch {marker})\nWG_ADDRESS=10.67.0.1\ntouch {marker}\n"
+    )
+
+    result = host.run()
+
+    assert result.code == 2
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("text", [None, "", "v1.2.3\n", "sha-123\n", f"{STAGING_TAG}x\n"])
+def test_no_staging_release_pings_fail_and_starts_nothing(host: Host, text: str | None) -> None:
+    path = host.state / "staging" / "release"
+    if text is None:
+        path.unlink()
+    else:
+        path.write_text(text)
+
+    result = host.run()
+
+    assert result.code == 1
+    assert result.steps() == ["curl"]
+    assert result.ping_url == f"{PING}/fail"
+    assert "staging release" in result.ping["body"]
+
+
 def test_the_ping_url_is_required(host: Host) -> None:
     result = host.run(HC_PING_DRILL_URL="")
 
@@ -421,7 +626,7 @@ def test_the_ping_url_is_required(host: Host) -> None:
     assert result.calls == []
 
 
-@pytest.mark.parametrize("args", [("dev",), ("prod", "extra")])
+@pytest.mark.parametrize("args", [("dev",), ("staging",), ("prod", "extra")])
 def test_bad_arguments_exit_2(host: Host, args: tuple[str, ...]) -> None:
     result = host.run(*args)
 

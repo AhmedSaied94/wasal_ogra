@@ -3,66 +3,104 @@
 Phase 0 output. Researched 2026-10-18 against PyPI, Docker Hub, GitHub releases and official vendor
 docs. Every Technical Context unknown is resolved below. Backend §22.1, the open question this
 feature owns, is closed in R1. Items marked **[verify in spike]** are confirmed by the spike
-tasks T004, T005 and T047 (plan, "Spikes come first").
+tasks T004, T005 and T047 (plan, "Spikes come first"). Revised 2026-10-19 for the owner's decision
+to run each environment on its own VM (R1).
 
-## R1 Host: Oracle Cloud Always Free (resolves backend §22.1)
+## R1 Hosts: Oracle Cloud Always Free (resolves backend §22.1)
+
+**Changed 2026-10-19 (owner):** two VMs, one per environment. The one-VM design is below under
+Alternatives rejected.
 
 - **Decision:**
-  - The host is **one `VM.Standard.A1.Flex` instance with 2 OCPU and 12 GB**, which is the entire
-    Always Free A1 allowance. The account is never upgraded (FR-042b), and there is no paid fallback.
-  - Boot volume: 100 GB. That leaves 100 GB of the 200 GB Always Free block storage for a 47 GB
-    rescue boot volume (R13).
-  - OS: Canonical Ubuntu 24.04 aarch64 platform image.
+  - **Two `VM.Standard.A1.Flex` instances, 1 OCPU and 6 GB each**: one runs production, the other
+    staging. Together they are the entire Always Free A1 allowance. The account is never upgraded
+    (FR-042b), and there is no paid fallback.
+  - Boot volumes: 100 GB for production, 47 GB for staging. That is 147 GB of the 200 GB Always Free
+    block storage, and the 53 GB left fits the 47 GB rescue boot volume (R13).
+  - OS: Canonical Ubuntu 24.04 aarch64 platform image, on both.
   - **Region: `me-jeddah-1`**, the home region of the owner's existing tenancy (owner, 2026-10-18).
     It can't be changed, and it is also the natural region for the Gulf launch in phase 2.
-  - **Reserved public IP:** the owner confirmed the tenancy allows one. Provisioning reserves it and
-    attaches it, so FR-042a holds as written.
-  - Staging and production both run on it, within the memory budget below.
+  - **Reserved public IPs:** the owner confirmed the tenancy allows two (2026-10-19). Each VM has
+    its own, production `193.122.74.125` and staging `141.147.129.92`, so FR-042a holds as written.
+  - Each VM is in its own VCN (private address: production `10.0.0.28`, staging `10.1.0.216`). It
+    runs one environment's Compose project, with its own edge Caddy (R6), WireGuard server (R5) and
+    host monitor (R11). Each VM is provisioned, patched, monitored and break-glassed on its own
+    (R13).
+- **Why two VMs (owner, 2026-10-19):** isolation that separate Compose projects on one host don't
+  give.
+  - CPU: a staging load or a runaway job can't take production's core.
+  - Disk: staging's images, logs and data can't fill production's volume.
+  - Host configuration: the firewall, WireGuard, sshd and Docker upgrades are per VM. A mistake
+    while setting up or changing staging can't take production down. That happened while
+    provisioning the first host: hand-made WireGuard and firewall rules had to be undone (R13).
+  - Costs accepted: twice the edge, WireGuard, monitoring and patching; production capped at one
+    core; and staging alone may fall under Oracle's idle-reclamation thresholds (below).
 - **The allowance was halved in 2026.** Oracle's Always Free page (modified 2026-06-12) says: "the
   first 1,500 OCPU hours and 9,000 GB hours per month … equivalent to 2 OCPUs and 12 GB of memory".
   The 2025 page said 4 OCPUs and 24 GB, as do most blogs and backend §2's assumption. Sizing must use
-  2/12.
+  2/12 in total, which is 1/6 per VM.
 
 ### Memory budget
 
-| Service | prod | staging |
+Each VM has 6 GB. The stack limits are the `mem_limit` values that `docker/env/<env>.env` passes to
+`compose.yml` (FR-008). Limits are ceilings, not expected use.
+
+| Service | production VM | staging VM |
 | --- | --- | --- |
-| `postgres` (`shared_buffers=256MB`, `max_connections=50`) | 1024 MB | 512 MB |
-| `valkey` (`maxmemory 160mb`, `noeviction`, AOF `everysec`) | 256 MB | 128 MB |
+| `postgres` (`max_connections=50`; `shared_buffers` 256MB prod, 128MB staging) | 1024 MB | 512 MB |
+| `valkey` (`noeviction`, AOF `everysec`; `maxmemory` 160mb prod, 80mb staging) | 256 MB | 128 MB |
 | `api` (gunicorn `gthread`, 2 workers × 4 threads) | 768 MB | 384 MB (1 worker) |
 | `admin` (1 worker × 4 threads) | 384 MB | 256 MB |
 | `worker` (`--concurrency 2`) | 512 MB | 384 MB |
 | `beat` | 192 MB | 192 MB |
-| **Sum of limits** | **3.1 GB** | **1.8 GB** |
+| **Sum of stack limits** | **3,136 MB** | **1,856 MB** |
+| Edge Caddy (`edge/compose.yml`) | 256 MB | 256 MB |
+| OS, Docker and page cache (estimate) | 1 GB | 1 GB |
+| Largest transient job | 1 GB, the backup | 2 GB, the restore drill |
+| **Worst case** | **5,440 MB, 89% of 6 GB** | **5,184 MB, 84% of 6 GB** |
 
-- The shared edge Caddy adds 256 MB.
-- Transient one-off jobs add up to 1.5 GB: migrate, backup at `MemoryMax=1G`, and the drill's
-  database plus runner, which never overlap the backup.
-- The OS, Docker and page cache need about 1 GB.
-- The total is about 7.7 GB of 12 GB (64%), leaving headroom. These are the `mem_limit` values in
-  `compose.yml` (FR-008).
-- **CPU:** 2 OCPU, which on Ampere means 2 cores. That is ample for B01. The p95 targets in backend §2
-  and the 100 rps design point (§18) are load-tested before each phase launch (backend §16). The
-  scale path in §15 (bigger VM, then a separate DB) now starts from a smaller box, which §15's update
-  must say.
+- **Production:**
+  - The backup container has `mem_limit: 1g` (`compose.yml`). `migrate` has no limit of its own, but
+    it never runs beside the backup, because deploy and backup take the same lock (R10). The drill
+    no longer runs here (R9).
+  - Outside the backup window the VM peaks at about 4.3 GB (72%).
+  - **This is tight.** In the nightly backup window about 0.7 GB is left, and the 1 GB for the OS is
+    an estimate. It holds because the limits are ceilings: while their sum stays under the VM's
+    memory, a process that reaches its limit is stopped by its own cgroup, and the rest of the VM is
+    untouched.
+- **Staging:**
+  - The drill's fetch container (`--memory 1g`) exits before the drill's database starts. The peak
+    is that database plus the check runner, 1 GB each (`host/bin/restore-drill`).
+  - The drill doesn't take the deploy lock, so a staging deploy during a drill adds `migrate` on
+    top. The drill runs at 05:00 Cairo on the 1st, a quiet hour.
+  - Outside the drill the VM peaks at about 3.1 GB (51%).
+- **CPU:** 1 OCPU per VM, which on Ampere means 1 core. Production can't borrow staging's core, and
+  staging can't take production's. One core is enough for B01. The p95 targets in backend §2 and the
+  100 rps design point (§18) are load-tested before each phase launch (backend §16). The owner kept
+  the §18 target unchanged for one core on 2026-10-19; the first load test decides whether it holds. The scale path
+  in §15 (bigger VM, then a separate DB) now starts from 1 OCPU / 6 GB, which §15's update must say.
 
 ### Constraints that shape provisioning
 
 | Fact (Oracle docs, checked 2026-10-18) | Consequence |
 | --- | --- |
 | Home region "is not changeable after your tenancy is provisioned". Always Free compute exists only in the home region. | The region is `me-jeddah-1`, the existing tenancy's home region. |
-| "Out of host capacity" is "a temporary lack of Always Free shapes … might take several days". Oracle's advice is another availability domain, but Jeddah has only one. | The retry rule in the spec edge case: retry daily, with nothing else to rotate. US1 and US2 go ahead meanwhile. |
-| Idle reclamation: over 7 days, CPU p95 < 20% **and** network < 20% **and** memory < 20% (A1). Oracle doesn't define what "reclaim" does. Community evidence from 2023 says idle instances are *stopped* with about a week's notice, and data is kept. | Accepted risk (Clarifications). Coverage: the uptime alert, and `docs/runbooks/break-glass.md` "Instance stopped by Oracle" (start it, and retry if capacity is short). The stack's normal memory footprint is expected above 20% (2.4 GB) but isn't guaranteed. Nothing artificial is added to dodge the rule. |
+| "Out of host capacity" is "a temporary lack of Always Free shapes … might take several days". Oracle's advice is another availability domain, but Jeddah has only one. | The retry rule in the spec edge case: retry daily, with nothing else to rotate. US1 and US2 go ahead meanwhile. Both VMs exist (2026-10-19), so the rule now applies to a rebuild. |
+| Idle reclamation: over 7 days, CPU p95 < 20% **and** network < 20% **and** memory < 20% (A1). Oracle doesn't define what "reclaim" does. Community evidence from 2023 says idle instances are *stopped* with about a week's notice, and data is kept. | Accepted risk (Clarifications), judged per instance. Coverage: the production uptime alert and each VM's host-monitor ping (R11), and `docs/runbooks/break-glass.md` "Instance stopped by Oracle" (start it, and retry if capacity is short). Production's normal memory footprint is expected above 20% of 6 GB (1.2 GB) but isn't guaranteed. Staging's is smaller, and when nobody uses it, it may fall under all three thresholds (accepted, owner 2026-10-19). Nothing artificial is added to dodge the rule. |
 | "Accounts left idle for 30 days or more may be deemed abandoned and become eligible for suspension or termination." | The operator signs in to the OCI console at least monthly. It goes in the monthly routine with checking the drill result (`monitoring-setup.md`). |
-| At trial end, non-Always-Free resources are deleted after 30 days. If A1 usage is over 2/12, *all* A1 instances are disabled and then deleted. | Create only Always Free resources from day one. Never size above 2/12, even during the trial. |
+| At trial end, non-Always-Free resources are deleted after 30 days. If A1 usage is over 2/12, *all* A1 instances are disabled and then deleted. | Create only Always Free resources from day one. Never size above 2/12 in total, even during the trial: 1/6 + 1/6. Growing one VM means shrinking the other. |
 | "Your credit card will not be charged unless you upgrade your account." | SC-013 holds by construction for Oracle. |
-| Ephemeral public IPs "remain assigned" when an instance is stopped and are deleted only on terminate. Reserved IPs persist until deleted. The Always Free page lists no reserved-IP allowance, but the owner confirmed the tenancy allows one. | Provisioning reserves the IP before creating the VM and attaches it, and the rebuild procedure reattaches the same IP (spec edge case). The sslip.io hostnames therefore survive a rebuild. |
+| Ephemeral public IPs "remain assigned" when an instance is stopped and are deleted only on terminate. Reserved IPs persist until deleted. The Always Free page lists no reserved-IP allowance, but the owner confirmed the tenancy allows two (2026-10-19). | Provisioning reserves each VM's IP before creating the VM and attaches it, and the rebuild procedure reattaches the same IP (spec edge case). The sslip.io hostnames therefore survive a rebuild. |
+| Always Free block storage is 200 GB, boot volumes included. | Boot volumes 100 GB + 47 GB = 147 GB. The 53 GB left fits one 47 GB rescue boot volume, so break-glass rescues one VM at a time (R13). |
 
 - **Alternatives rejected:**
   - Upgrading to pay-as-you-go: forbidden by the USD 0 budget, even though it would stop
     reclamation.
-  - Two 1-OCPU instances, one per environment: twice the edge, WireGuard, monitoring and patching for
-    no isolation gain that separate Compose projects don't already give.
+  - One 2-OCPU / 12 GB VM running both environments as separate Compose projects behind one shared
+    edge (the design until 2026-10-19). It needs half the edge, WireGuard, monitoring and patching,
+    and production could burst onto 2 cores. But both environments share CPU, disk and host
+    configuration, so staging load, a runaway job or a mistake in staging's setup can take
+    production down ("Why two VMs" above).
   - Splitting environments across the AMD Micro VMs: 1 GB each is too small for PostgreSQL plus
     Django.
 
@@ -70,13 +108,22 @@ tasks T004, T005 and T047 (plan, "Spikes come first").
 
 Oracle publishes no latency data, and the region is fixed anyway. Still, measure once and record it
 in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fixed and mobile), run
-`curl -o /dev/null -s -w '%{time_connect}\n' https://<api host>/healthz` 10 times each
+`curl -o /dev/null -s -w '%{time_connect}\n' https://<production api host>/healthz` 10 times each
 (`provision-host.md`).
 
 ### Risks the owner should know
 
-- **Serial console on A1 is not confirmed** (R13 covers the fallback).
-- **Capacity:** Jeddah has one availability domain, so provisioning may take days of retries.
+- **Production memory is tight** in the nightly backup window: 89% of 6 GB at worst (Memory budget).
+  The free allowance can't grow, so more memory for production has to come from staging's 6 GB
+  (resize both, 12 GB in total) or from the paid scale path in §15. Staging's own worst case leaves
+  it under 1 GB to give, unless its sizes or the drill's shrink.
+- **Staging may be stopped when idle** (constraints above). Its timers are `Persistent=true`, so a
+  drill missed while it was stopped runs at the next boot.
+- **The staging VM can read production's backups,** because the drill runs there (R9).
+- **Twice the host work:** each VM is patched, provisioned, monitored and break-glassed on its own.
+  Staff who use both admins run two WireGuard tunnels and install two CA roots (R5).
+- **Serial console on A1 is not confirmed** (R13 covers the fallback). Test it on each VM.
+- **Capacity:** Jeddah has one availability domain, so a rebuild may take days of retries.
 - **Data location:** player data from B02 onward is stored in Saudi Arabia. Egypt's PDPL rules on
   cross-border transfer belong to the legal review in backend §22.9 (B09). Record the hosting
   location there.
@@ -224,9 +271,16 @@ in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fi
 ## R5 Admin security: private network, 2FA, lockout, CSP
 
 - **Private network (Clarifications):**
-  - Plain WireGuard (kernel module, `wireguard-tools` from Ubuntu main) on `wg0` = `10.66.0.1/24`,
-    UDP 51820. It is silent to packets from unknown keys, which satisfies FR-023.
-  - Peers are managed by `wg-peer` (contracts/operations.md).
+  - Plain WireGuard (kernel module, `wireguard-tools` from Ubuntu main), one server per VM on UDP
+    51820 of its own public IP: `wg0` = `10.66.0.1/24` on production, `10.67.0.1/24` on staging.
+    It is silent to packets from unknown keys, which satisfies FR-023.
+  - Each VM has its own peers, managed by its own `wg-peer` (contracts/operations.md). The role
+    ranges keep the same offsets inside each /24: operator `.2`–`.9`, staff `.10`–`.99`, deploy
+    `.200`–`.209`.
+  - The subnets differ so an operator laptop can run both tunnels at once without clashing routes.
+    A phone runs one at a time.
+  - Each VM's edge has its own local CA for its admin site (R6), so staff who use both admins
+    install two CA roots.
   - Roles are enforced with host iptables rules by source range (R13, data-model "Private-network
     peer").
   - The owner named WireGuard in the first clarification attempt, and the restarted session left
@@ -278,10 +332,15 @@ in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fi
 
 ## R6 Edge: Caddy layout
 
-- **Decision:** one `caddy:2.11.7` container with `network_mode: host` serves every site.
-  - Public sites bind to the VNIC's private IP; admin sites bind to `10.66.0.1`. Caddy says to bind
-    every site on a port explicitly, and both are explicit.
-  - `net.ipv4.ip_nonlocal_bind=1` lets it bind `10.66.0.1` before `wg0` is up at boot.
+- **Decision:** on each VM, one `caddy:2.11.7` container with `network_mode: host` serves that VM's
+  environment only: its public API site and its admin site.
+  - The API site binds to the VNIC's private IP; the admin site binds to the VM's WireGuard address
+    (`10.66.0.1` on production, `10.67.0.1` on staging). Caddy says to bind every site on a port
+    explicitly, and both are explicit.
+  - `/etc/wassal/edge.env` holds `PUBLIC_BIND_IP`, `ADMIN_BIND_IP` (the VM's WireGuard address),
+    `PUBLIC_TLS`, `API_HOST` and `ADMIN_HOST`. These replace the `PROD_…`/`STAGING_…` hostname
+    pairs of the one-VM design.
+  - `net.ipv4.ip_nonlocal_bind=1` lets it bind the WireGuard address before `wg0` is up at boot.
   - App containers publish only on `127.0.0.1`.
 - **Why host networking:**
   - In a bridge network the container can't see which host interface a connection arrived on, so a
@@ -312,8 +371,9 @@ in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fi
   non-idempotent writes.
 - **TLS:**
   - Public sites use Let's Encrypt via HTTP-01/TLS-ALPN.
-  - Admin sites use `tls internal`. The root is `/data/caddy/pki/authorities/local/root.crt` in the
-    volume, `skip_install_trust` is set, and leaf certificates last 12 h and renew on their own.
+  - The admin site uses `tls internal`, so each VM's Caddy has its own local CA. The root is
+    `/data/caddy/pki/authorities/local/root.crt` in that VM's volume, `skip_install_trust` is set,
+    and leaf certificates last 12 h and renew on their own.
   - HTTP/3 is off (`protocols h1 h2`), so UDP 443 stays closed.
 - **Logs:** a JSON access log at `/var/log/caddy/access.log` with `roll_size 50MiB` and
   `roll_keep_for 336h`. Client IPs (`remote_ip`/`client_ip`) are kept at most 14 days (backend
@@ -357,9 +417,14 @@ in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fi
 - **Test services:** `postgres:17.11-trixie` and `valkey/valkey:8.1.10-trixie` as job services with
   health options.
 - **Deploy jobs:** they run on `ubuntu-24.04` (amd64), where WireGuard on runners is proven.
+  - Each environment deploys to its own VM over that VM's tunnel: staging runs
+    `ssh deploy@10.67.0.1 staging <tag>`, production runs `ssh deploy@10.66.0.1 prod <tag>`. The
+    `staging` and `production` GitHub environments each hold their own `WG_CONFIG`,
+    `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`.
   - `wireguard-tools` is installed from apt, since it isn't preinstalled.
-  - The client config has **no** `DNS=` line, which would need `resolvconf`, and its
-    `AllowedIPs = 10.66.0.1/32`, so the runner's default route is untouched.
+  - The client config has **no** `DNS=` line, which would need `resolvconf`, and its `AllowedIPs`
+    is that VM's WireGuard address alone (`10.67.0.1/32` or `10.66.0.1/32`), so the runner's
+    default route is untouched.
   - **[verify at first deploy]** `wg-quick up` and an SSH round trip from a hosted runner. T004 ran
     locally, without root, so it couldn't bring up `wg0`. The first staging deploy (T062) proves both.
 - **Alternatives rejected:**
@@ -372,6 +437,26 @@ in backend §2 as a baseline for the latency budgets. From two Egyptian ISPs (fi
 Sources were checked on 2026-10-18: Backblaze docs, API docs, pricing, terms and blog, and the boto3
 changelog. Help-center articles from 2022–2023 count as legacy.
 
+- **Where each job runs (two VMs, 2026-10-19):**
+  - The nightly backup runs on the production VM (`wassal-backup@prod.timer`). Staging isn't backed
+    up.
+  - The monthly drill runs on the **staging VM** (`wassal-restore-drill@prod.timer`). It fetches
+    production's newest complete backup from B2 with the read-only drill key, using the staging
+    VM's serving image. It restores and checks it with `sha-<release>`, the production release that
+    took the backup (read from the backup's metadata). Staging's own image is wrong for the check:
+    it usually carries migrations production hasn't applied yet (contracts/operations.md).
+  - So `prod-backup.env` (the write key) is only on the production VM, and `prod-drill.env` (the
+    read key) only on the staging VM. Neither VM keeps both, and the admin key is on neither. A real
+    restore into production puts a temporary copy of the read key on the prod VM (restore.md).
+  - A copy of production data is on the staging VM only while the drill runs. The throwaway
+    database sits on an internal Docker network that staging's containers can't reach, and the drill
+    removes its container, volume, network and directory on exit, pass or fail. No staging
+    container, database, cache or volume ever sees the data (FR-040a).
+  - Gains: production's VM never carries the drill's 2 GB (R1), and every drill proves a restore
+    onto a different machine, as a rebuild would need.
+  - Cost: the staging VM, which takes every merge to `master`, can read every production backup.
+    From B02 on that is player data, so the staging VM's access rules (WireGuard-only SSH, its own
+    operator peers) protect production data too. Accepted by the owner on 2026-10-19.
 - **Free allowance:**
   - The first 10 GB of storage is free. Since 2026-05-01, Class A, B and C API calls are free for
     pay-as-you-go accounts. Egress is free up to 3× the average monthly storage.
@@ -391,8 +476,9 @@ changelog. Help-center articles from 2022–2023 count as legacy.
     isn't documented). The backup then pings `/fail`, so the problem shows up as an alert, not a bill.
   - No primary source says what happens to an account without a card at 10 GB. The caps make that
     moot.
-  - The host can't list the bucket. Instead the backup job records the dump size, and the host
-    monitor warns when the retained total (size × 22) passes 8 GB, 80% of the free storage.
+  - Neither VM can list the bucket. Instead the backup job records the dump size on the production
+    VM, and that VM's host monitor warns when the retained total (size × 22) passes 8 GB, 80% of the
+    free storage.
 - **Two buckets, Object Lock on at creation (FR-039a):**
   - Default retention is set per bucket, not per prefix. Daily and weekly backups therefore get one
     bucket each: `B2_DAILY_BUCKET` (14 days) and `B2_WEEKLY_BUCKET` (56 days). Bucket names are
@@ -401,11 +487,11 @@ changelog. Help-center articles from 2022–2023 count as legacy.
     later protects existing files, and it can never be turned off.
   - **Governance mode**, not compliance:
     - In compliance mode nobody can remove a lock, Backblaze Support included. The only way out is to
-      close the account. A compromised host could then fill the free 10 GB with junk that inherits
-      56 days of retention, and at a USD 0 cap backups would stop for up to 8 weeks.
+      close the account. A compromised production VM could then fill the free 10 GB with junk that
+      inherits 56 days of retention, and at a USD 0 cap backups would stop for up to 8 weeks.
     - Governance mode stops every key that lacks `bypassGovernance`. Only the operator's admin key
-      has that capability, and that key never goes on the host. This also matches FR-039a: "only the
-      operator's separate credentials can delete backups".
+      has that capability, and that key never goes on either VM. This also matches FR-039a: "only
+      the operator's separate credentials can delete backups".
     - Governance can later be switched to compliance, but compliance can never be undone.
     - The web console only sets compliance as a default, so the setup goes through the API.
   - **What a write key can still do:**
@@ -429,13 +515,13 @@ changelog. Help-center articles from 2022–2023 count as legacy.
 - **Application keys** (created by `b2_create_key` with an explicit capability list):
   - Never use a console "Write Only" key for all buckets. That combination gets `bypassGovernance`,
     `writeBucketRetentions`, `writeFileRetentions` and `writeFileLegalHolds`.
-  - **Backup key** (host, `prod-backup.env`): `bucketIds` = both buckets, `namePrefix` = `prod/`,
-    capabilities `["writeFiles"]`. Add `listAllBucketNames` only if the spike shows boto3 needs it.
-    It reveals bucket names only. No `listFiles`, `readFiles`, `deleteFiles`, retention, bucket or
-    key capabilities.
-  - **Drill key** (host, `prod-drill.env`): the same buckets and prefix, `["listBuckets", "listFiles",
-    "readFiles"]`.
-  - **Admin key** (operator only, kept in the password manager, never on the host): creates the
+  - **Backup key** (production VM, `prod-backup.env`): `bucketIds` = both buckets, `namePrefix` =
+    `prod/`, capabilities `["writeFiles"]`. Add `listAllBucketNames` only if the spike shows boto3
+    needs it. It reveals bucket names only. No `listFiles`, `readFiles`, `deleteFiles`, retention,
+    bucket or key capabilities.
+  - **Drill key** (staging VM, `prod-drill.env`): the same buckets and prefix, `["listBuckets",
+    "listFiles", "readFiles"]`.
+  - **Admin key** (operator only, kept in the password manager, never on either VM): creates the
     buckets and keys, and can delete with `bypassGovernance`.
   - B2 accounts have no IAM users or bucket policies outside Enterprise, so key capabilities are the
     only control.
@@ -477,7 +563,7 @@ changelog. Help-center articles from 2022–2023 count as legacy.
     a second copy whose health the monthly drill proves.
 - **Data location:** the B2 region was chosen when the owner's account was created. Its choices are
   US East, US West, EU Central and Canada East. From B02 on, the backups hold player data, so record
-  the region next to the Jeddah host for the PDPL review (backend §22.9, B09).
+  the region next to the Jeddah VMs for the PDPL review (backend §22.9, B09).
 - **Snapshot-consistent counts:**
   - The backup opens a `REPEATABLE READ` transaction, exports its snapshot, counts rows in it, and
     runs `pg_dump --snapshot=<id>` before committing. The recorded counts are therefore exactly what
@@ -507,16 +593,20 @@ changelog. Help-center articles from 2022–2023 count as legacy.
 ## R10 Deploy mechanism
 
 - **Decision:** push-based over WireGuard to a forced-command SSH key, which runs
-  `sudo /opt/wassal/bin/deploy` (contracts/operations.md). A sudoers rule allows only that script
-  with `--only staging` or `--only prod`, and `deploy` isn't in the `docker` group.
+  `sudo /opt/wassal/bin/deploy` (contracts/operations.md).
+  - Each VM has its own `deploy` user, deploy key and deploy WireGuard peer. Its sudoers rule and
+    forced command allow only that script with the VM's own environment: `--only staging` on the
+    staging VM, `--only prod` on the production VM. `deploy` isn't in the `docker` group.
+  - The staging key and peer exist only on the staging VM, so they can't reach production's VM at
+    all.
   - **Order:** migrate first, restart second. Expand/contract migrations, which the constitution
     requires, keep the serving release working on the new schema. A failed migration therefore
     never restarts anything (US4-4).
   - **Proof that checks passed:** the `sha-<commit>` image exists only when that commit's `master`
     run passed every job. The production workflow checks that it exists and that the commit is an
     ancestor of `master` (FR-030).
-  - **Serialization:** GitHub job concurrency, plus `flock` on the host, so manual and CI deploys
-    can't overlap (FR-032).
+  - **Serialization:** GitHub job concurrency, plus `flock` on the VM, so manual and CI deploys
+    can't overlap (FR-032). The nightly backup takes the same lock on the production VM.
   - **Rollback:** a deploy of the previous tag. Migrations are never reversed (FR-033).
   - **Rehearsal:** an argument that only the staging key may send (`rehearse-migrate-fail` or
     `rehearse-verify-fail`). It drives the real failure and restore paths without a broken image
@@ -536,19 +626,28 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
 
 | Need (FR-038) | Service | Plan facts |
 | --- | --- | --- |
-| Heartbeat, backup, drill, host-monitor dead-man's switches | **Healthchecks.io** Hobbyist | 20 checks (B01 uses 5), email, `/start` and `/fail` pings, cron or period schedules with a time zone. Commercial use explicitly allowed. No card. Accounts with no login for a year are deleted after a 30-day notice, so this goes in the monthly routine. The service is run by one person, so multi-hour outages are possible. This is accepted for the MVP: a monitoring outage causes missed alerts, not app downtime. |
-| External uptime of production `/healthz` | **UptimeRobot** Free | 50 monitors, 5-min interval, email. Its terms allow "any use, including commercial" **since 2026-05-26**. Before that the free plan was non-commercial only, so a dated copy of the terms is kept in `monitoring-setup.md`. |
+| Heartbeat, backup, drill, host-monitor dead-man's switches | **Healthchecks.io** Hobbyist | 20 checks (B01 uses 6: a heartbeat per environment, the backup, the drill, and a host monitor per VM), email, `/start` and `/fail` pings, cron or period schedules with a time zone. Commercial use explicitly allowed. No card. Accounts with no login for a year are deleted after a 30-day notice, so this goes in the monthly routine. The service is run by one person, so multi-hour outages are possible. This is accepted for the MVP: a monitoring outage causes missed alerts, not app downtime. |
+| External uptime of the production API's `/healthz` | **UptimeRobot** Free | 50 monitors (B01 uses 1, production, for SC-008; a staging VM that Oracle stops is noticed by its host monitor's missed ping), 5-min interval, email. Its terms allow "any use, including commercial" **since 2026-05-26**. Before that the free plan was non-commercial only, so a dated copy of the terms is kept in `monitoring-setup.md`. |
 | Second uptime opinion (optional) | **Sentry Uptime** | 1 monitor on every plan, 5-min interval. An issue opens after 3 failures, so it is too slow to be the primary for SC-008. |
-| Certificate expiry < 14 days | **The host monitor** (`openssl` on the VM) → Healthchecks.io | No free external service alerts on expiry, and Let's Encrypt stopped expiry emails on 2025-06-04. If the VM itself is down, the missed ping alerts. |
+| Certificate expiry < 14 days | **The host monitor** on each VM (`openssl`, that VM's own API hostname; its admin hostname only for current validity, since Caddy's `tls internal` certificates last 12 hours) → Healthchecks.io | No free external service alerts on expiry, and Let's Encrypt stopped expiry emails on 2025-06-04. If a VM itself is down, its missed ping alerts. |
 | Errors and traces | **Sentry** Developer | 1 user, 5k errors and 5M spans a month, 30-day retention, email alerts. Over-quota data is dropped, never billed. **Data region: US**, chosen at org creation and permanent: the owner kept the existing `saied-store-div` organization on 2026-10-19 instead of the EU (Frankfurt) region first planned. The terms forbid personal data without a DPA, and R7's scrubber sends none. |
 | Deploy failures | GitHub Actions notification email | Default for the triggering user. The runbook checks the setting is on. |
 
 - **Decision:** the stack above.
+- **A host monitor on each VM** (`wassal-host-monitor.timer`, each with its own Healthchecks.io
+  check). The checks in `host/bin/host-monitor` split like this:
+  - Disk (`/` and the Docker data root): on both VMs. On staging that includes the drill's space.
+  - Certificates: each VM checks its own API and admin hostnames (`API_HOST` and `ADMIN_HOST` in its
+    `edge.env`), from the addresses its edge binds. The API certificate must have 14 days left; the
+    admin one, from Caddy's internal CA, lasts 12 hours, so it is only checked for being valid now.
+  - Queue backlog: on both VMs, each for the 4 queues of its own environment.
+  - Backup storage: on the production VM only, where the backup writes `last-backup.json`.
 - **Alternatives rejected:**
   - Better Stack: its free plan is "for personal projects".
   - Sentry Crons as the dead-man's switch: only 1 on the free plan, and check-ins are stored in the
     US.
-  - Self-hosted Uptime Kuma: it would run on the very VM it's meant to watch.
+  - Self-hosted Uptime Kuma: it would run on a VM it's meant to watch, or watch production from
+    staging, the VM Oracle may stop when idle.
 
 ## R12 Repository and CI security
 
@@ -572,64 +671,104 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
 
 ## R13 Host provisioning
 
-- **Decision:** `backend/docker/host/provision.sh` is idempotent and safe to re-run. On Ubuntu 24.04
-  aarch64 it does the following:
+- **Decision:** `backend/docker/host/provision.sh` is idempotent and safe to re-run. It sets up one
+  VM for one environment, and runs on each VM separately. On Ubuntu 24.04 aarch64 it does the
+  following:
+  - the first run takes `--env staging|prod` with `--public-ip`, and records the choice in
+    `/etc/wassal/host.env` (`WASSAL_ENV`, `WG_ADDRESS`). Later runs read it, and a different `--env`
+    on a later run is refused. The WireGuard address follows the environment: `10.66.0.1` for
+    prod, `10.67.0.1` for staging;
   - apt updates, then `unattended-upgrades` for security updates;
   - Docker Engine + Compose from Docker's apt repository;
-  - `wireguard-tools`;
+  - `wireguard-tools`, and `wg0` on the VM's WireGuard address;
   - the firewall (below);
-  - sshd: a drop-in that sets `ListenAddress 10.66.0.1`, keys only, no root login;
-  - the `deploy` user, `/opt/wassal`, `/etc/wassal` (`0700`) and `/var/lib/wassal`;
-  - sysctl `net.ipv4.ip_nonlocal_bind=1`, so Caddy and sshd can bind `10.66.0.1` before `wg0` is up;
-  - the systemd units and timers.
-  - `--finalize` applies the WireGuard-only SSH rule after the operator's peer works.
+  - sshd: a drop-in that sets `ListenAddress` to the VM's WireGuard address, keys only, no root
+    login;
+  - the `deploy` user with a sudoers rule for the VM's own environment only (R10), `/opt/wassal`,
+    `/etc/wassal` (`0700`) and `/var/lib/wassal`;
+  - sysctl `net.ipv4.ip_nonlocal_bind=1`, so Caddy and sshd can bind the WireGuard address before
+    `wg0` is up;
+  - the systemd units, and the VM's timers: `wassal-backup@prod.timer` and
+    `wassal-host-monitor.timer` on production, `wassal-restore-drill@prod.timer` (R9) and
+    `wassal-host-monitor.timer` on staging.
+  - `--finalize` applies the WireGuard-only SSH rule after the operator's peer on that VM works.
 - **Firewall: keep Oracle's iptables framework, don't replace it.**
   - Oracle platform images ship host rules that "allow only SSH". On Ubuntu they live in
-    `/etc/iptables/rules.v4`/`rules.v6` through `netfilter-persistent` and end in a `REJECT`.
+    `/etc/iptables/rules.v4` through `netfilter-persistent` and end in a `REJECT`.
   - Oracle warns against UFW ("might cause an instance not to boot"), and its rules include
     `InstanceServices` entries (iSCSI `169.254.0.2:3260`, metadata) that must stay.
-  - So `provision.sh` renders `rules.v4`/`rules.v6` from `host/iptables/rules.v4.tmpl`. The
+  - So `provision.sh` renders `rules.v4` from `host/iptables/rules.v4.tmpl`, and `rules.v6` from
+    `rules.v6.tmpl` unless Oracle's `rules.v6` filters nothing (then it stays unchanged). The
     template keeps Oracle's `InstanceServices` chain unchanged and inserts the project's `INPUT`
-    rules (contracts/operations.md) **before** the final `REJECT`. It then runs
-    `netfilter-persistent reload`, followed by `systemctl restart docker`. A reload flushes
-    Docker's own chains, and the restart puts them back.
-  - **[verify on host]** At first provisioning, save `iptables -S` before and after.
-  - **[verify on host]** The public interface name. Oracle's docs use `ens3`, but A1 shapes can
-    show `enp0s6`. `provision.sh` takes it from the default route, and `--render-firewall` accepts
-    `--public-if`, so either works. Record the real name with the rules.
-- **Break-glass access** (spec edge case, the OCI facts in R1):
+    rules (contracts/operations.md) **before** the final `REJECT`. It then loads the files with a
+    full `iptables-restore`/`ip6tables-restore` (not `netfilter-persistent reload`, see below),
+    followed by `systemctl restart docker`. The restore drops Docker's own chains, and the restart
+    puts them back.
+  - The `wg0` rules take their source ranges from the VM's own /24, with the same offsets on both
+    VMs: operator `.2`–`.9` (TCP 22 and 443), staff `.10`–`.99` (TCP 443), deploy `.200`–`.209`
+    (TCP 22).
+  - **Verified on the host (2026-10-19, T054),** on the staging VM, the first one provisioned:
+    - Oracle's rules are the test fixture `host/tests/fixtures/oracle-rules.v4`. `INPUT` accepts
+      `RELATED,ESTABLISHED`, ICMP, `lo` and TCP 22 on every interface, then `REJECT`s. `OUTPUT`
+      sends `169.254.0.0/16` to `InstanceServices`, and `FORWARD` is a single `REJECT`.
+    - `iptables -S` before the first render (`/var/lib/wassal/iptables-before.txt`) was those rules
+      plus Docker's chains, since the same run installs Docker first, and Docker had set `FORWARD`
+      to `DROP`. It also had two `INPUT` accepts the operator had added by hand (UDP 51820, TCP
+      80/443). They were removed from `rules.v4` before the render, so the fixture doesn't have
+      them.
+    - The image's `/etc/default/netfilter-persistent` sets `IPTABLES_RESTORE_NOFLUSH=yes` and
+      `IP6TABLES_RESTORE_NOFLUSH=yes`, so `netfilter-persistent reload` appends to the built-in
+      chains instead of replacing them. After the first render, the old `INPUT` rules and their
+      `REJECT` sat ahead of the project's, so the new rules never matched. Boot is unaffected,
+      because it loads into an empty ruleset. A full restore leaves what boot would load.
+    - The image doesn't filter IPv6. Its `rules.v6` has `ACCEPT` policies and no rules, and the
+      host has no global IPv6 address. So `provision.sh` leaves `rules.v6` unchanged, and stops if
+      the host ever has a global IPv6 address while `rules.v6` still has no `REJECT`.
+    - The public interface is `enp0s6`, not Oracle's documented `ens3`. `provision.sh` takes it
+      from the default route, and `--render-firewall` accepts `--public-if`.
+  - **[verify on host]** `iptables -S` after the render, once the full restore has run, on each VM.
+    The production VM uses the same image, but its rules before the render haven't been compared
+    with the fixture yet.
+- **Break-glass access** (spec edge case, the OCI facts in R1), for each VM on its own:
   - The serial console connects through Oracle's console service on port 443, independently of the
     VM's network. But it needs a **local password** (Oracle sets none), and support on A1 isn't
     confirmed.
-  - `provision.sh` therefore asks the operator to set a password for the `ubuntu` sudo user, which
-    is stored in the operator's password manager. The runbook's first step is to **test the serial
-    console once**.
+  - `provision.sh` therefore asks the operator to set a password for the `ubuntu` sudo user on each
+    VM, stored in the operator's password manager. The runbook's first step is to **test the serial
+    console once** on each VM.
   - Fallback: stop the VM, detach its boot volume, attach it to a temporary Always Free
-    `VM.Standard.E2.1.Micro` rescue instance (47 GB boot, which fits the remaining 100 GB), fix
-    `wg0` or sshd, then re-attach and start.
+    `VM.Standard.E2.1.Micro` rescue instance (47 GB boot, which fits the 53 GB left, so one rescue
+    at a time), fix `wg0` or sshd, then re-attach and start.
   - `docs/runbooks/break-glass.md` covers both paths, plus "instance stopped by Oracle" (R1).
-- **Public IP:** the reserved public IP (R1) is created before the VM and attached to its VNIC. A
-  rebuild reattaches the same IP, so the hostnames don't change.
+- **Public IPs:** each VM's reserved public IP (R1) is created before the VM and attached to its
+  VNIC. A rebuild reattaches the same IP, so the hostnames don't change.
 - **Reboot behaviour (FR-008, SC-010):**
   - Containers use `restart: unless-stopped`, and Docker starts at boot, after `wg-quick@wg0`
     (drop-in `After=`).
   - `Persistent=true` timers catch up on missed runs.
   - No custom stack units are needed: Docker's restart policy is the supervisor.
 - **Alternatives rejected:**
-  - Ansible or Terraform: another toolchain for one VM. The script and runbook are enough to meet
-    the 4 h RTO.
+  - Ansible or Terraform: another toolchain for two VMs. The script, run once per VM, and the
+    runbook are enough to meet the 4 h RTO.
   - cloud-init only: hard to re-run and test.
 
 ## R14 Temporary hostnames (sslip.io) and certificates
 
-- **Decision:**
-  - API: `api.<public-ip-dashed>.sslip.io` and `staging-api.<public-ip-dashed>.sslip.io`.
-  - Admin: `admin.10-66-0-1.sslip.io` and `staging-admin.10-66-0-1.sslip.io`.
-  - Every one of them is configuration (FR-042a).
+- **Decision:** each hostname is derived from its own VM's address: the API from the VM's reserved
+  public IP, the admin from its WireGuard address.
+
+  | | Production VM | Staging VM |
+  | --- | --- | --- |
+  | API | `api.193-122-74-125.sslip.io` | `staging-api.141-147-129-92.sslip.io` |
+  | Admin | `admin.10-66-0-1.sslip.io` | `staging-admin.10-67-0-1.sslip.io` |
+
+  - Every one of them is configuration (FR-042a): `API_HOST` and `ADMIN_HOST` in that VM's
+    `edge.env` and its environment's settings.
 - **Facts (checked live 2026-10-18):**
   - Dash and dot forms both resolve, and **private addresses resolve too**: `admin.10-66-0-1.sslip.io`
     → `10.66.0.1`, TTL 3600.
   - sslip.io and nip.io are one service.
+  - Rechecked 2026-10-19: all four hostnames above resolve to their VM's address.
 - **Rate limits:**
   - sslip.io is **not** on the Public Suffix List; its PR was withdrawn in 2024 under the PSL's rule
     against IP-wildcard domains. For Let's Encrypt, every sslip.io user worldwide therefore shares
@@ -638,10 +777,10 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
   - Initial issuance can still be rate-limited. Caddy retries with backoff. The fallback is the
     same names under `nip.io`, which is a separate bucket.
   - Renewals coordinated through ARI are exempt from all limits, and Caddy's CertMagic uses ARI.
-  - The duplicate limit (5 a week for the same names) only matters if the edge's `/data` volume is
-    lost. It is a named volume, kept across redeploys.
+  - The duplicate limit (5 a week for the same names) only matters if a VM's edge loses its `/data`
+    volume. It is a named volume, kept across redeploys.
 - **Home-router DNS-rebind protection** (Fritz!Box, dnsmasq `--stop-dns-rebind`) can drop
-  private-address answers for the admin hostnames. The WireGuard client config sets
+  private-address answers for the admin hostnames. Each VM's WireGuard client configs set
   `DNS = 1.1.1.1`, which bypasses the router. The fallback is a `hosts` entry
   (`private-network.md`).
 - **Certificate lifetime:** Let's Encrypt moves to 64-day certificates on 2027-02-10. Caddy renews at
@@ -659,14 +798,15 @@ All of these are free, and their terms allow commercial use (checked 2026-10-18)
 
 | Doc | Change |
 | --- | --- |
-| backend §2 | Target platform: one Always Free A1 VM, **2 OCPU / 12 GB** (the 2026 allowance), no paid fallback, region `me-jeddah-1` with a reserved public IP, and the Egypt latency baseline (R1). Scale/Scope: note that the 100k-DAU design point needs the §15 scale path. |
-| backend §4 | The edge runs host-network Caddy. Admin is over WireGuard. Hostnames are configuration (sslip.io until a domain). `ADMIN_ONLY` unchanged. |
+| backend §2 | Target platform: two Always Free A1 VMs, one per environment, **1 OCPU / 6 GB each** (together the 2026 allowance), no paid fallback, region `me-jeddah-1` with a reserved public IP each, and the Egypt latency baseline (R1). Scale/Scope: note that the 100k-DAU design point needs the §15 scale path. |
+| backend §4 | The edge runs host-network Caddy, one per VM. Admin is over WireGuard, one network per VM. Hostnames are configuration (sslip.io until a domain). `ADMIN_ONLY` unchanged. |
 | backend §6.2 | The 7 new error codes (R4) |
-| backend §13 | Admin: + WireGuard-only, lockout. Secrets: + B2 application keys. |
-| backend §15 | Host, shape and region (`me-jeddah-1`). The scale path now starts from 2 OCPU / 12 GB. Object storage: backups → Backblaze B2 (two buckets, governance Object Lock, lifecycle, write-only host key, USD 0 caps) and its account region. Backups: + monthly automated drill. Observability: Healthchecks.io, UptimeRobot, the host monitor (certificate expiry, backup storage), Sentry (US region). CI and CD as built. The monthly operating routine. |
+| backend §13 | Admin: + WireGuard-only, lockout. Secrets: + B2 application keys (write key on the production VM, read key on the staging VM). |
+| backend §15 | Hosts, shapes and region (`me-jeddah-1`), one VM per environment. The scale path now starts from 1 OCPU / 6 GB. Object storage: backups → Backblaze B2 (two buckets, governance Object Lock, lifecycle, write-only key on the production VM, USD 0 caps) and its account region. Backups: on the production VM, + monthly automated drill on the staging VM. Observability: Healthchecks.io, UptimeRobot, a host monitor per VM (certificate expiry; backup storage on production), Sentry (US region). CI and CD as built. The monthly operating routine. |
 | backend §22.1 | Resolved, with a link to R1 |
-| `CLAUDE.md` | The backend commands table, replacing "There is no backend yet". Deployment target: Always Free A1, WireGuard. |
+| `CLAUDE.md` | The backend commands table, replacing "There is no backend yet". Deployment target: two Always Free A1 VMs (1 OCPU / 6 GB each, one per environment), WireGuard per VM. |
 | `docs/delivery-plan.md` | Hand-overs to B02 and B03 (below) |
+| `docs/runbooks/`, `docs/owner-actions.md` | Every host step per VM: provisioning (`--env`), private network (two tunnels, two CA roots), break-glass, monitoring (a host monitor per VM, the uptime monitor on production), and which VM runs the backup and which the drill. |
 
 ## Handed to later features
 

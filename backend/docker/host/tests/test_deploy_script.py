@@ -5,6 +5,9 @@ The steps and exit codes are contracts/operations.md "Deploy interface".
 `bin/deploy` runs under bash with stub `docker`, `curl`, `flock` and `sleep` first on `PATH`. The
 stubs log every call and act like the real stack: `compose up` with `RELEASE_TAG=<tag>` makes
 `/healthz` report that image's release, unless the case says the release never gets ready.
+
+Each host serves one environment, named by `WASSAL_ENV` in its `host.env` (contracts/operations.md
+"Host identity"). The test host is the staging host unless a case says otherwise.
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ OLD = "sha-" + "a" * 40
 NEW = "sha-" + "b" * 40
 OLDER = "sha-" + "c" * 40
 PORTS = {"staging": (8200, 8201), "prod": (8100, 8101)}
+WG_ADDRESS = {"staging": "10.67.0.1", "prod": "10.66.0.1"}
 
 STUB = """
 import json, os, sys
@@ -141,9 +145,14 @@ class Host:
     stubs: Path
     state: Path
     locks: Path
+    etc: Path
 
     def env_state(self, env: str) -> Path:
         return self.state / env
+
+    def identity(self, env: str) -> None:
+        """Make this the `env` host, as `provision.sh --env` does."""
+        (self.etc / "host.env").write_text(f"WASSAL_ENV={env}\nWG_ADDRESS={WG_ADDRESS[env]}\n")
 
     def serving(self, env: str, tag: str) -> None:
         """Pretend `tag` is the release serving `env`, deployed earlier by this script."""
@@ -165,6 +174,7 @@ class Host:
             "STUB_DIR": str(self.stubs),
             "WASSAL_STATE_DIR": str(self.state),
             "WASSAL_LOCK_DIR": str(self.locks),
+            "WASSAL_ETC": str(self.etc),
             "WASSAL_VERIFY_TIMEOUT": "6",
             "WASSAL_VERIFY_INTERVAL": "2",
             **stub_env,
@@ -224,7 +234,10 @@ def host(tmp_path: Path) -> Host:
         target.write_text(f"#!{sys.executable}\n{STUB}")
         target.chmod(0o755)
     (tmp_path / "locks").mkdir()
-    return Host(tmp_path, stubs, tmp_path / "state", tmp_path / "locks")
+    (tmp_path / "etc").mkdir()
+    host = Host(tmp_path, stubs, tmp_path / "state", tmp_path / "locks", tmp_path / "etc")
+    host.identity("staging")
+    return host
 
 
 def compose_prefix(host: Host, env: str, tag: str) -> list[str]:
@@ -332,6 +345,8 @@ def test_a_later_deploy_records_the_previous_release_and_prunes(host: Host) -> N
 
 
 def test_production_deploys_a_version_tag(host: Host) -> None:
+    host.identity("prod")
+
     result = host.run("prod", "prod v1.2.3")
 
     assert result.code == 0, result.stderr
@@ -341,10 +356,15 @@ def test_production_deploys_a_version_tag(host: Host) -> None:
     assert (host.env_state("prod") / "release").read_text() == "v1.2.3\n"
 
 
-def test_the_lock_is_per_environment(host: Host) -> None:
-    host.run("staging", f"staging {NEW}")
-    assert (host.locks / "wassal-deploy-staging.lock").exists()
-    flock = next(c for c in host.run("prod", "prod v1.0.0").calls if c["cmd"] == "flock")
+@pytest.mark.parametrize(
+    ("env", "request_"), [("staging", f"staging {NEW}"), ("prod", "prod v1.0.0")]
+)
+def test_the_lock_is_per_environment(host: Host, env: str, request_: str) -> None:
+    host.identity(env)
+
+    flock = next(c for c in host.run(env, request_).calls if c["cmd"] == "flock")
+
+    assert (host.locks / f"wassal-deploy-{env}.lock").exists()
     assert flock["args"][:2] == ["-w", "900"]
 
 
@@ -385,6 +405,9 @@ def test_redeploying_the_serving_tag_only_reverifies(host: Host) -> None:
 def test_bad_input_exits_2_without_touching_docker(
     host: Host, only: str, request_: str | None
 ) -> None:
+    if only in WG_ADDRESS:
+        host.identity(only)  # so each case is refused for its own reason
+
     result = host.run(only, request_)
 
     assert result.code == 2
@@ -399,6 +422,7 @@ def test_bad_arguments_exit_2(host: Host, argv: list[str]) -> None:
         env={
             "PATH": f"{host.stubs}:{os.environ['PATH']}",
             "STUB_DIR": str(host.stubs),
+            "WASSAL_ETC": str(host.etc),
             "SSH_ORIGINAL_COMMAND": f"staging {NEW}",
         },
         capture_output=True,
@@ -411,10 +435,83 @@ def test_bad_arguments_exit_2(host: Host, argv: list[str]) -> None:
 
 @pytest.mark.parametrize("rehearsal", ["rehearse-migrate-fail", "rehearse-verify-fail"])
 def test_rehearsals_are_refused_for_production(host: Host, rehearsal: str) -> None:
+    host.identity("prod")
+
     result = host.run("prod", f"prod v1.2.3 {rehearsal}")
 
     assert result.code == 2
+    assert "rehearsals are for staging only" in result.stderr
     assert result.calls == []
+
+
+# -- host identity ---------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("host_env", "only", "request_"),
+    [("staging", "prod", "prod v1.2.3"), ("prod", "staging", f"staging {NEW}")],
+)
+def test_the_other_environment_is_refused_on_this_host(
+    host: Host, host_env: str, only: str, request_: str
+) -> None:
+    # A consistent request, as the operator's own `sudo deploy --only <env>` would send: only the
+    # host's identity stops it.
+    host.identity(host_env)
+
+    result = host.run(only, request_)
+
+    assert result.code == 2
+    assert f"this host serves {host_env}" in result.stderr
+    assert result.calls == []
+    assert not host.state.exists()
+
+
+def test_a_missing_host_env_exits_2(host: Host) -> None:
+    (host.etc / "host.env").unlink()
+
+    result = host.run("staging", f"staging {NEW}")
+
+    assert result.code == 2
+    assert "host.env is missing" in result.stderr
+    assert result.calls == []
+    assert not host.state.exists()
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        "",
+        "WASSAL_ENV=staging\n",  # no WG_ADDRESS
+        "WG_ADDRESS=10.67.0.1\n",  # no WASSAL_ENV
+        "WASSAL_ENV=dev\nWG_ADDRESS=10.67.0.1\n",
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.66.0.1\n",  # prod's address on staging
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",  # and staging's on prod
+        "WASSAL_ENV=staging\nWASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",
+        'WASSAL_ENV="staging"\nWG_ADDRESS=10.67.0.1\n',
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\nPATH=/tmp\n",  # only the two lines belong
+        "WASSAL_ENV=staging\r\nWG_ADDRESS=10.67.0.1\r\n",
+    ],
+)
+def test_a_malformed_host_env_exits_2(host: Host, contents: str) -> None:
+    (host.etc / "host.env").write_text(contents)
+
+    result = host.run("staging", f"staging {NEW}")
+
+    assert result.code == 2
+    assert "host.env" in result.stderr
+    assert result.calls == []
+    assert not host.state.exists()
+
+
+def test_host_env_is_read_as_data(host: Host) -> None:
+    marker = host.root / "sourced"
+    (host.etc / "host.env").write_text(
+        f"WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\ntouch {marker}\n"
+    )
+
+    host.run("staging", f"staging {NEW}")
+
+    assert not marker.exists()
 
 
 def test_the_image_repository_cannot_be_changed(host: Host) -> None:

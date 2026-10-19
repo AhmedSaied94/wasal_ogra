@@ -1,7 +1,8 @@
 """The host backup script and its units (FR-039, contracts/operations.md "Backup job").
 
 `bin/backup` runs under bash with stub `docker` and `flock` first on `PATH`. The stubs log every
-call with the environment compose would interpolate.
+call with the environment compose would interpolate. Backups run on the prod host only, the one
+whose `host.env` says `WASSAL_ENV=prod` (contracts/operations.md "Host identity").
 """
 
 from __future__ import annotations
@@ -22,6 +23,10 @@ BASH = shutil.which("bash") or "/bin/bash"
 HOST = Path(__file__).resolve().parent.parent
 BACKUP = HOST / "bin" / "backup"
 TAG = "v1.2.3"
+HOST_ENV = {
+    "prod": "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\n",
+    "staging": "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n",
+}
 
 STUB = """
 import json, os, sys
@@ -96,6 +101,7 @@ def host(tmp_path: Path) -> Host:
         stub.write_text(f"#!{sys.executable}\n{STUB}")
         stub.chmod(0o755)
     host.etc.mkdir()
+    (host.etc / "host.env").write_text(HOST_ENV["prod"])
     (host.etc / "prod-backup.env").write_text("B2_REGION=eu-central-003\n")
     return host
 
@@ -198,6 +204,85 @@ def test_the_backup_env_file_is_required(host: Host) -> None:
     assert code == 2
     assert "prod-backup.env is missing" in stderr
     assert calls == []
+
+
+# -- host identity ---------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_the_staging_host_never_backs_up(host: Host, env: str) -> None:
+    # Even with a release and a backup env file left from the one-host design.
+    (host.etc / "host.env").write_text(HOST_ENV["staging"])
+    (host.etc / "staging-backup.env").write_text("B2_REGION=eu-central-003\n")
+    host.serve(env, TAG)
+
+    code, stderr, calls = host.run(env)
+
+    assert code == 2
+    assert "the prod host only" in stderr
+    assert calls == []
+    assert not (host.state / env / "backup").exists()
+
+
+def test_the_prod_host_backs_up_prod_only(host: Host) -> None:
+    (host.etc / "staging-backup.env").write_text("B2_REGION=eu-central-003\n")
+    host.serve("staging", "sha-" + "a" * 40)
+
+    code, stderr, calls = host.run("staging")
+
+    assert code == 2
+    assert "this host serves prod" in stderr
+    assert calls == []
+    assert not (host.state / "staging" / "backup").exists()
+
+
+def test_a_missing_host_env_exits_2(host: Host) -> None:
+    host.serve("prod", TAG)
+    (host.etc / "host.env").unlink()
+
+    code, stderr, calls = host.run("prod")
+
+    assert code == 2
+    assert "host.env is missing" in stderr
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        "",
+        "WASSAL_ENV=prod\n",  # no WG_ADDRESS
+        "WG_ADDRESS=10.66.0.1\n",  # no WASSAL_ENV
+        "WASSAL_ENV=dev\nWG_ADDRESS=10.66.0.1\n",
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",  # staging's address on prod
+        "WASSAL_ENV=prod\nWASSAL_ENV=staging\nWG_ADDRESS=10.66.0.1\n",
+        'WASSAL_ENV="prod"\nWG_ADDRESS=10.66.0.1\n',
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\nPATH=/tmp\n",  # only the two lines belong
+        "WASSAL_ENV=prod\r\nWG_ADDRESS=10.66.0.1\r\n",
+    ],
+)
+def test_a_malformed_host_env_exits_2(host: Host, contents: str) -> None:
+    host.serve("prod", TAG)
+    (host.etc / "host.env").write_text(contents)
+
+    code, stderr, calls = host.run("prod")
+
+    assert code == 2
+    assert "host.env" in stderr
+    assert calls == []
+
+
+def test_host_env_is_read_as_data(host: Host) -> None:
+    host.serve("prod", TAG)
+    marker = host.root / "sourced"
+    (host.etc / "host.env").write_text(f"{HOST_ENV['prod']}touch {marker}\n")
+
+    host.run("prod")
+
+    assert not marker.exists()
+
+
+# -- units -----------------------------------------------------------------------------------------
 
 
 def unit(name: str) -> dict[str, str]:

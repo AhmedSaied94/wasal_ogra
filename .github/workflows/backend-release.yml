@@ -67,7 +67,8 @@ jobs:
       group: deploy-prod
       cancel-in-progress: false
     steps:
-      # The same steps as deploy-staging in backend.yml.
+      # The same steps as deploy-staging in backend.yml, against the prod host. WG_CONFIG is the prod
+      # host's deploy-prod peer.
       - name: Connect over WireGuard
         env:
           WG_CONFIG: ${{ secrets.WG_CONFIG }}
@@ -87,7 +88,8 @@ jobs:
           install -m 0600 /dev/null "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/deploy_known_hosts"
-          # The key's forced command reads the request from SSH_ORIGINAL_COMMAND.
+          # The key's forced command reads the request from SSH_ORIGINAL_COMMAND. 10.66.0.1 is the
+          # prod host's WireGuard address.
           ssh -i "$HOME/.ssh/deploy_key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/deploy_known_hosts" -o ConnectTimeout=20 \
             -o ServerAliveInterval=30 deploy@10.66.0.1 "$REQUEST"

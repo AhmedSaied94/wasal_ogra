@@ -1,4 +1,8 @@
-"""`wg-peer add|remove|list` (FR-023a, data-model "Private-network peer")."""
+"""`wg-peer add|remove|list` (FR-023a, data-model "Private-network peer").
+
+Each host has its own /24, from `WG_ADDRESS` in its `host.env`: `10.66.0.0/24` on the prod host,
+`10.67.0.0/24` on the staging host (contracts/operations.md "Host identity").
+"""
 
 from __future__ import annotations
 
@@ -15,6 +19,10 @@ BASH = shutil.which("bash") or "/bin/bash"
 WG_PEER = Path(__file__).resolve().parent.parent / "bin" / "wg-peer"
 SERVER_PUBLIC_KEY = "SERVERPUBLICKEYxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
 ENDPOINT = "203.0.113.10:51820"
+HOST_ENV = {
+    "prod": "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\n",
+    "staging": "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n",
+}
 
 STUB_WG = """#!/usr/bin/env bash
 set -euo pipefail
@@ -61,8 +69,7 @@ class Host:
         return [line.split("\t") for line in lines[1:]]
 
 
-@pytest.fixture
-def host(tmp_path: Path) -> Host:
+def make_host(tmp_path: Path, wassal_env: str) -> Host:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     for name, body in (("wg", STUB_WG), ("wg-quick", STUB_WG_QUICK)):
@@ -74,6 +81,7 @@ def host(tmp_path: Path) -> Host:
     (etc / "wg-server.env").write_text(
         f"WG_SERVER_PUBLIC_KEY={SERVER_PUBLIC_KEY}\nWG_ENDPOINT={ENDPOINT}\n"
     )
+    (etc / "host.env").write_text(HOST_ENV[wassal_env])
     handshakes = tmp_path / "handshakes"
     handshakes.write_text("")
     log = tmp_path / "wg.log"
@@ -84,6 +92,18 @@ def host(tmp_path: Path) -> Host:
         "WG_STUB_HANDSHAKES": str(handshakes),
     }
     return Host(etc, log, handshakes, env)
+
+
+@pytest.fixture
+def host(tmp_path: Path) -> Host:
+    """The prod host."""
+    return make_host(tmp_path, "prod")
+
+
+@pytest.fixture
+def staging(tmp_path: Path) -> Host:
+    """The staging host."""
+    return make_host(tmp_path, "staging")
 
 
 def public_key_of(private_key: str) -> str:
@@ -99,24 +119,29 @@ def config_value(config: str, key: str) -> str | None:
     return None
 
 
-def test_add_operator(host: Host) -> None:
+@pytest.mark.parametrize(
+    ("wassal_env", "address", "server"),
+    [("prod", "10.66.0.2", "10.66.0.1"), ("staging", "10.67.0.2", "10.67.0.1")],
+)
+def test_add_operator(tmp_path: Path, wassal_env: str, address: str, server: str) -> None:
+    host = make_host(tmp_path, wassal_env)
     config = host.add("ahmed-laptop", "operator")
     private_key = config_value(config, "PrivateKey")
     assert private_key
-    assert config_value(config, "Address") == "10.66.0.2/32"
+    assert config_value(config, "Address") == f"{address}/32"
     assert config_value(config, "DNS") == "1.1.1.1"
     assert config_value(config, "PublicKey") == SERVER_PUBLIC_KEY
     assert config_value(config, "Endpoint") == ENDPOINT
-    assert config_value(config, "AllowedIPs") == "10.66.0.1/32"
+    assert config_value(config, "AllowedIPs") == f"{server}/32"
     assert config_value(config, "PersistentKeepalive") == "25"
 
     public_key = public_key_of(private_key)
     assert host.calls() == [
-        f"wg set wg0 peer {public_key} allowed-ips 10.66.0.2/32",
+        f"wg set wg0 peer {public_key} allowed-ips {address}/32",
         "wg-quick save wg0",
     ]
     [row] = host.rows()
-    assert row[:4] == ["ahmed-laptop", "operator", "10.66.0.2", public_key]
+    assert row[:4] == ["ahmed-laptop", "operator", address, public_key]
     assert row[4].endswith("Z")
     assert row[5] == ""
 
@@ -130,29 +155,49 @@ def test_private_key_is_kept_in_no_file(host: Host) -> None:
 
 
 @pytest.mark.parametrize(
-    ("role", "first", "second"),
+    ("wassal_env", "role", "first", "second"),
     [
-        ("operator", "10.66.0.2", "10.66.0.3"),
-        ("staff", "10.66.0.10", "10.66.0.11"),
-        ("deploy-staging", "10.66.0.200", "10.66.0.201"),
-        ("deploy-prod", "10.66.0.200", "10.66.0.201"),
+        ("prod", "operator", "10.66.0.2", "10.66.0.3"),
+        ("prod", "staff", "10.66.0.10", "10.66.0.11"),
+        ("prod", "deploy-prod", "10.66.0.200", "10.66.0.201"),
+        ("staging", "operator", "10.67.0.2", "10.67.0.3"),
+        ("staging", "staff", "10.67.0.10", "10.67.0.11"),
+        ("staging", "deploy-staging", "10.67.0.200", "10.67.0.201"),
     ],
 )
-def test_addresses_come_from_the_role_range(host: Host, role: str, first: str, second: str) -> None:
+def test_addresses_come_from_the_role_range_in_the_hosts_subnet(
+    tmp_path: Path, wassal_env: str, role: str, first: str, second: str
+) -> None:
+    host = make_host(tmp_path, wassal_env)
     assert config_value(host.add("one", role), "Address") == f"{first}/32"
     assert config_value(host.add("two", role), "Address") == f"{second}/32"
 
 
-def test_deploy_ranges_are_shared(host: Host) -> None:
-    host.add("ci-staging", "deploy-staging")
-    assert config_value(host.add("ci-prod", "deploy-prod"), "Address") == "10.66.0.201/32"
+@pytest.mark.parametrize(
+    ("wassal_env", "role"), [("prod", "deploy-staging"), ("staging", "deploy-prod")]
+)
+def test_the_other_hosts_deploy_role_is_refused(tmp_path: Path, wassal_env: str, role: str) -> None:
+    host = make_host(tmp_path, wassal_env)
+
+    result = host.run("add", "ci", role)
+
+    assert result.returncode != 0
+    assert f"this is the {wassal_env} host" in result.stderr
+    assert f"deploy-{wassal_env}" in result.stderr
+    assert host.calls() == []
+    assert not (host.etc / "wg-peers.tsv").exists()
 
 
-@pytest.mark.parametrize("role", ["deploy-staging", "deploy-prod"])
-def test_deploy_configs_have_no_dns(host: Host, role: str) -> None:
-    config = host.add("ci", role)
+@pytest.mark.parametrize(
+    ("wassal_env", "role", "server"),
+    [("prod", "deploy-prod", "10.66.0.1"), ("staging", "deploy-staging", "10.67.0.1")],
+)
+def test_deploy_configs_have_no_dns(
+    tmp_path: Path, wassal_env: str, role: str, server: str
+) -> None:
+    config = make_host(tmp_path, wassal_env).add("ci", role)
     assert config_value(config, "DNS") is None
-    assert config_value(config, "AllowedIPs") == "10.66.0.1/32"
+    assert config_value(config, "AllowedIPs") == f"{server}/32"
 
 
 def test_staff_configs_have_dns(host: Host) -> None:
@@ -209,21 +254,21 @@ def test_remove_unknown_peer_is_refused(host: Host) -> None:
     assert "no active peer" in result.stderr
 
 
-def test_list_shows_peers_and_handshakes(host: Host) -> None:
-    host.add("ahmed-laptop", "operator")
-    host.add("ci-staging", "deploy-staging")
-    host.add("old-phone", "staff")
-    host.run("remove", "old-phone")
-    laptop_key = host.rows()[0][3]
-    deploy_key = host.rows()[1][3]
-    host.handshakes.write_text(f"{laptop_key}\t1792320000\n{deploy_key}\t0\n")
+def test_list_shows_peers_and_handshakes(staging: Host) -> None:
+    staging.add("ahmed-laptop", "operator")
+    staging.add("deploy-staging", "deploy-staging")
+    staging.add("old-phone", "staff")
+    staging.run("remove", "old-phone")
+    laptop_key = staging.rows()[0][3]
+    deploy_key = staging.rows()[1][3]
+    staging.handshakes.write_text(f"{laptop_key}\t1792320000\n{deploy_key}\t0\n")
 
-    result = host.run("list")
+    result = staging.run("list")
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
     assert lines[0].split() == ["NAME", "ROLE", "ADDRESS", "LATEST-HANDSHAKE"]
-    assert lines[1].split() == ["ahmed-laptop", "operator", "10.66.0.2", "2026-10-18T10:40:00Z"]
-    assert lines[2].split() == ["ci-staging", "deploy-staging", "10.66.0.200", "never"]
+    assert lines[1].split() == ["ahmed-laptop", "operator", "10.67.0.2", "2026-10-18T10:40:00Z"]
+    assert lines[2].split() == ["deploy-staging", "deploy-staging", "10.67.0.200", "never"]
     assert len(lines) == 3  # removed peers aren't listed
 
 
@@ -231,3 +276,64 @@ def test_unknown_command_shows_usage(host: Host) -> None:
     result = host.run("frobnicate")
     assert result.returncode != 0
     assert "usage" in result.stderr.lower()
+
+
+# -- host identity ---------------------------------------------------------------------------------
+
+
+def test_add_needs_host_env(host: Host) -> None:
+    (host.etc / "host.env").unlink()
+
+    result = host.run("add", "ahmed-laptop", "operator")
+
+    assert result.returncode != 0
+    assert "host.env is missing" in result.stderr
+    assert host.calls() == []
+    assert not (host.etc / "wg-peers.tsv").exists()
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        "",
+        "WASSAL_ENV=prod\n",  # no WG_ADDRESS
+        "WG_ADDRESS=10.66.0.1\n",  # no WASSAL_ENV
+        "WASSAL_ENV=dev\nWG_ADDRESS=10.66.0.1\n",
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.67.0.1\n",  # staging's address on prod
+        "WASSAL_ENV=staging\nWG_ADDRESS=10.66.0.1\n",  # and prod's on staging
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1/24\n",
+        "WASSAL_ENV=prod\nWASSAL_ENV=staging\nWG_ADDRESS=10.66.0.1\n",
+        'WASSAL_ENV="prod"\nWG_ADDRESS=10.66.0.1\n',
+        "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\nPATH=/tmp\n",  # only the two lines belong
+        "WASSAL_ENV=prod\r\nWG_ADDRESS=10.66.0.1\r\n",
+    ],
+)
+def test_add_refuses_a_malformed_host_env(host: Host, contents: str) -> None:
+    (host.etc / "host.env").write_text(contents)
+
+    result = host.run("add", "ahmed-laptop", "operator")
+
+    assert result.returncode != 0
+    assert "host.env" in result.stderr
+    assert host.calls() == []
+    assert not (host.etc / "wg-peers.tsv").exists()
+
+
+def test_host_env_is_read_as_data(host: Host, tmp_path: Path) -> None:
+    marker = tmp_path / "sourced"
+    (host.etc / "host.env").write_text(f"WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\ntouch {marker}\n")
+
+    host.run("add", "ahmed-laptop", "operator")
+
+    assert not marker.exists()
+
+
+def test_revoking_access_does_not_depend_on_host_env(host: Host) -> None:
+    host.add("old-phone", "staff")
+    (host.etc / "host.env").unlink()
+
+    assert host.run("list").returncode == 0
+    result = host.run("remove", "old-phone")
+
+    assert result.returncode == 0, result.stderr
+    assert host.rows()[0][5].endswith("Z")

@@ -1,4 +1,4 @@
-# The production edge (research R6). provision.sh installs this directory as /opt/wassal/edge/ and
+# The edge of each host (research R6). provision.sh installs this directory as /opt/wassal/edge/ and
 # starts it once /etc/wassal/edge.env exists.
 name: wassal-edge
 
@@ -6,7 +6,10 @@ services:
   caddy:
     image: caddy:2.11.7
     network_mode: host
-    env_file: /etc/wassal/edge.env
+    # host.env's WASSAL_ENV picks the upstream ports; edge.env holds the binds and hostnames.
+    env_file:
+      - /etc/wassal/host.env
+      - /etc/wassal/edge.env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

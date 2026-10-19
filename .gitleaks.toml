@@ -10,3 +10,9 @@ useDefault = true
 [[allowlists]]
 description = "change-me- placeholders"
 regexes = ['''^change-me-''']
+
+# The temporary hostnames are public sslip.io names derived from the hosts' addresses (research
+# R14), never secrets. Scoped by value only, for the same reason as above.
+[[allowlists]]
+description = "sslip.io hostnames"
+regexes = ['''^[a-z0-9.-]+\.sslip\.io$''']
