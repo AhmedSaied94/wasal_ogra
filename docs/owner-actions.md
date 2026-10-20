@@ -18,8 +18,8 @@ left, in what order, and where to look.
 | --- | --- | --- | --- |
 | [001 M03 app shell](#001-m03-app-shell) | none | 2 device checks | Merged in #1 |
 | [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
-| [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3. PR 2 open as #4. |
-| [004 M01 trip engine](#004-m01-trip-engine) | none | none | Built 2026-10-20 on `004-m01-trip-engine`. PR not opened yet. |
+| [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
+| [004 M01 trip engine](#004-m01-trip-engine) | none | none | Built 2026-10-20 on `004-m01-trip-engine`. Open as #5. |
 
 ## Every month
 
