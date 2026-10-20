@@ -15,7 +15,7 @@ from typing import Any
 from wassal_content.findings import Finding
 from wassal_content.schemas import IDENTIFIER_FIELDS, PACK_ARRAYS
 
-__all__ = ["BONAT_SKUS", "reference_findings"]
+__all__ = ["BONAT_SKUS", "reference_findings", "trip_local_findings"]
 
 STAGE = "references"
 
@@ -169,7 +169,7 @@ def _trip_seats(trip: Any, entity: Entity, ix: _Index) -> Iterator[Finding]:
     yield from _seat_layout(trip["seats"], entity)
 
 
-def _passengers(trip: Any, entity: Entity, ix: _Index) -> Iterator[Finding]:
+def _passengers(trip: Any, entity: Entity) -> Iterator[Finding]:
     seat_ids = {seat["seat_id"] for seat in trip["seats"]}
     stops = [station["station_id"] for station in trip["stations"]]
     for n, passenger in enumerate(trip["passengers"]):
@@ -198,12 +198,19 @@ def _passengers(trip: Any, entity: Entity, ix: _Index) -> Iterator[Finding]:
                 f"{base}.board_station_id",
                 f"{board!r} must come before the destination {dest!r}",
             )
+    yield from _duplicates(trip["passengers"], "passenger_id", entity, "$.passengers")
+
+
+def _speech_keys(trip: Any, entity: Entity, ix: _Index) -> Iterator[Finding]:
+    for n, passenger in enumerate(trip["passengers"]):
         for slot, key in sorted(passenger.get("speech_keys", {}).items()):
             if key not in ix.pools:
                 yield _error(
-                    "V-T6", entity, f"{base}.speech_keys.{slot}", f"no speech pool {key!r}"
+                    "V-T6",
+                    entity,
+                    f"$.passengers[{n}].speech_keys.{slot}",
+                    f"no speech pool {key!r}",
                 )
-    yield from _duplicates(trip["passengers"], "passenger_id", entity, "$.passengers")
 
 
 def _groups(trip: Any, entity: Entity) -> Iterator[Finding]:
@@ -262,8 +269,7 @@ def _events(trip: Any, entity: Entity) -> Iterator[Finding]:
             )
 
 
-def _trip(trip: Any, ix: _Index) -> Iterator[Finding]:
-    entity: Entity = ("trip", trip["trip_id"])
+def _trip_local(trip: Any, entity: Entity) -> Iterator[Finding]:
     if not trip["trip_id"].startswith(trip["line_id"] + "."):
         yield _error(
             "V-T1",
@@ -271,11 +277,26 @@ def _trip(trip: Any, ix: _Index) -> Iterator[Finding]:
             "$.trip_id",
             f"trip_id doesn't start with its line_id {trip['line_id']!r}",
         )
-    yield from _trip_stations(trip, entity, ix)
-    yield from _trip_seats(trip, entity, ix)
-    yield from _passengers(trip, entity, ix)
+    yield from _passengers(trip, entity)
     yield from _groups(trip, entity)
     yield from _events(trip, entity)
+
+
+def trip_local_findings(trip: Any) -> list[Finding]:
+    """The reference rules a trip can break on its own, without a pack (V-T1, V-T4 to V-T6).
+
+    A lone trip, such as a parity fixture's definition or a daily challenge, has no pack, so
+    its line, vehicle and speech pools aren't checked. The trip has passed the schema.
+    """
+    return sorted(_trip_local(trip, ("trip", trip["trip_id"])))
+
+
+def _trip(trip: Any, ix: _Index) -> Iterator[Finding]:
+    entity: Entity = ("trip", trip["trip_id"])
+    yield from _trip_local(trip, entity)
+    yield from _trip_stations(trip, entity, ix)
+    yield from _trip_seats(trip, entity, ix)
+    yield from _speech_keys(trip, entity, ix)
 
 
 def _trip_numbers(trips: list[Any]) -> Iterator[Finding]:

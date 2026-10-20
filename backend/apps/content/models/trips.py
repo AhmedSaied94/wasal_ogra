@@ -73,6 +73,8 @@ class Trip(PermanentModel):
     bag_fare_piasters = models.PositiveIntegerField(default=0)
     child_free_age = models.PositiveSmallIntegerField(validators=[MaxValueValidator(18)])
     max_break_requests = models.PositiveSmallIntegerField(validators=[MaxValueValidator(2)])
+    # The database default keeps the previous release's inserts working (expand/contract).
+    no_fights_required = models.BooleanField(default=False, db_default=False)
     tray_50 = models.PositiveSmallIntegerField(default=0)
     tray_100 = models.PositiveSmallIntegerField(default=0)
     tray_500 = models.PositiveSmallIntegerField(default=0)

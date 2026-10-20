@@ -2,8 +2,8 @@
 
 | Command | What it does |
 | --- | --- |
-| `codegen [--check]` | Write (or drift-check) the server models, app models and schema copy |
-| `validate <file> [--part P]` | Validate one document against its part's schema |
+| `codegen [--check]` | Write (or drift-check) the models, and the schema and capabilities copies |
+| `validate <file> [--part P]` | Validate one document: its part's schema, and a trip's V-T8, V-T9 |
 | `validate-source <dir>` | Validate a `content/source` layout as files, then as a whole pack |
 | `schema-diff --base <ref>` | Refuse a breaking schema change without a major-version bump |
 | `golden [--update]` | Check (or rewrite) the sample pack's golden checksums |
@@ -24,9 +24,9 @@ from wassal_content.findings import Finding
 from wassal_content.golden import golden_bytes
 from wassal_content.loader import ContentLoadError, load_json_file
 from wassal_content.schema_diff import check_sets, read_tree_at
-from wassal_content.schemas import PARTS, default_schema_set
+from wassal_content.schemas import PARTS
 from wassal_content.source import FOLDERS, assemble_pack, read_layout
-from wassal_content.validate import validate_pack
+from wassal_content.validate import document_findings, validate_pack
 
 __all__ = ["main"]
 
@@ -90,7 +90,7 @@ def _validate(args: argparse.Namespace) -> int:
     except ContentLoadError as error:
         print(f"{path}: {error}")
         return FINDINGS
-    findings = default_schema_set().validate_document(part, document, file=str(PurePath(path)))
+    findings = document_findings(part, document, file=str(PurePath(path)))
     _print_findings(findings)
     if not findings:
         print(f"{path}: valid {part}")

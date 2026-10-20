@@ -368,6 +368,186 @@
       "lines": [
         {
           "text": {
+            "ar-EG": "إنت بتتهمني؟ أنا دافع يا أسطى!"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "عيب كده، أنا دفعت"
+          }
+        }
+      ],
+      "speech_key": "passenger.accused"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "أيوه يا أسطى؟ معاك"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "بتكلمني أنا؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.attentive"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "السلام عليكم"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "صباح الخير يا أسطى"
+          }
+        }
+      ],
+      "speech_key": "passenger.boards"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "خلاص خلاص، أهو دافع"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "طب ماشي، اتفضل"
+          }
+        }
+      ],
+      "speech_key": "passenger.caught"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "معاك فكة {amount} يا أسطى؟"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "ممكن تفكّلي {amount}؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.change_request"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "ماشي، خلّيها"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "يعني مفيش فكة خالص؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.change_request_declined"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "أنا دافع يا أسطى!"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "والله دفعت من بدري"
+          }
+        }
+      ],
+      "speech_key": "passenger.claims_paid"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "هو اللي ما دفعش!"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "أنا دافع، اسأله هو"
+          }
+        }
+      ],
+      "speech_key": "passenger.dispute"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "نزّلني هنا يا أسطى"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "على جنب هنا لو سمحت"
+          }
+        }
+      ],
+      "speech_key": "passenger.drop_me_here"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "يعني أنزل من غير باقي؟ لسه ليّا {amount}!"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "فين الـ{amount} بتوعي يا أسطى؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.fight"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "إيه يا أسطى، الباقي هييجي إمتى؟"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "أنا مستعجل ولسه ما خدتش الباقي!"
+          }
+        }
+      ],
+      "speech_key": "passenger.impatient"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "يا نهار! فاتتني {station}"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "مش كان المفروض أنزل في {station}؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.missed_stop"
+    },
+    {
+      "lines": [
+        {
+          "text": {
             "ar-EG": "اتفضل يا أسطى الأجرة"
           }
         },
@@ -378,6 +558,81 @@
         }
       ],
       "speech_key": "passenger.pays"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "خد يا أسطى، عنّي وعن صحابي"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "الأجرة دي عننا كلنا"
+          }
+        }
+      ],
+      "speech_key": "passenger.pays_group"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "هي الأجرة زادت؟ أنا معايا ده بس"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "أنا دافع زي كل يوم يا أسطى"
+          }
+        }
+      ],
+      "speech_key": "passenger.pays_old_fare"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "خد الباقي اللي عليّا يا أسطى"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "حقك، كمّلتلك {amount}"
+          }
+        }
+      ],
+      "speech_key": "passenger.pays_rest"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "إديتني زيادة يا أسطى، خد {amount}"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "الحلال حلال، دول {amount} زيادة"
+          }
+        }
+      ],
+      "speech_key": "passenger.returns_excess"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "لسه ليّا {amount} يا أسطى"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "الباقي ناقص {amount}"
+          }
+        }
+      ],
+      "speech_key": "passenger.short_change"
     },
     {
       "lines": [
@@ -398,6 +653,36 @@
       "lines": [
         {
           "text": {
+            "ar-EG": "تسلم يا أسطى"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "متشكرين يا ريّس"
+          }
+        }
+      ],
+      "speech_key": "passenger.thanks"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "خلّي {amount} عشانك"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "والباقي حلاوتك يا أسطى"
+          }
+        }
+      ],
+      "speech_key": "passenger.tip"
+    },
+    {
+      "lines": [
+        {
+          "text": {
             "ar-EG": "عايز {amount} باقي يا أسطى"
           }
         },
@@ -408,6 +693,21 @@
         }
       ],
       "speech_key": "passenger.wants_change"
+    },
+    {
+      "lines": [
+        {
+          "text": {
+            "ar-EG": "هه؟ وصلنا؟"
+          }
+        },
+        {
+          "text": {
+            "ar-EG": "صحيت أهو، إحنا فين؟"
+          }
+        }
+      ],
+      "speech_key": "passenger.woke"
     }
   ],
   "tasks": [
@@ -498,6 +798,7 @@
         "bag_fare_piasters": 0,
         "child_free_age": 6,
         "max_break_requests": 2,
+        "no_fights_required": false,
         "student_discount_pct": 0
       },
       "seats": [
@@ -596,7 +897,7 @@
       "max_earnings_jenehat": 60,
       "passengers": [
         {
-          "archetype": "mother_kids",
+          "archetype": "honest",
           "dest_station_id": "gamaa",
           "passenger_id": "p1",
           "payment": [
@@ -604,7 +905,7 @@
           ],
           "pays_at_seconds": 2,
           "seat_id": "front_r",
-          "skin": "mother_red"
+          "skin": "effendi_suit"
         },
         {
           "archetype": "hurry",
@@ -645,6 +946,7 @@
         "bag_fare_piasters": 0,
         "child_free_age": 6,
         "max_break_requests": 2,
+        "no_fights_required": false,
         "student_discount_pct": 0
       },
       "seats": [
@@ -773,7 +1075,8 @@
         "bag_fare_piasters": 0,
         "child_free_age": 6,
         "max_break_requests": 2,
-        "student_discount_pct": 0
+        "no_fights_required": false,
+        "student_discount_pct": 50
       },
       "seats": [
         {
@@ -823,10 +1126,11 @@
           "seconds": 10
         },
         {
-          "at_seconds": 60,
+          "at_seconds": 70,
           "event_id": "payment_dispute",
           "passenger_ids": [
-            "p3"
+            "p3",
+            "p4"
           ]
         }
       ],
@@ -852,7 +1156,7 @@
           "seat_id": "A_r",
           "skin": "young_cap",
           "speech_keys": {
-            "pay": "passenger.pays"
+            "pays_group": "passenger.pays"
           }
         },
         {
@@ -880,8 +1184,19 @@
           "seat_id": "A_l",
           "skin": "hajja_black",
           "speech_keys": {
-            "stop": "passenger.stop_near"
+            "stop_near": "passenger.stop_near"
           }
+        },
+        {
+          "archetype": "regular",
+          "board_station_id": "forn",
+          "dest_station_id": "mahatta",
+          "passenger_id": "p4",
+          "payment": [
+            1000
+          ],
+          "seat_id": "A_r",
+          "skin": "worker_blue"
         }
       ],
       "rev": 1,
@@ -889,6 +1204,7 @@
         "bag_fare_piasters": 0,
         "child_free_age": 6,
         "max_break_requests": 2,
+        "no_fights_required": false,
         "student_discount_pct": 0
       },
       "seats": [
@@ -957,8 +1273,8 @@
           "seat_id": "A_m",
           "skin": "effendi_suit",
           "speech_keys": {
-            "change": "passenger.wants_change",
-            "pay": "passenger.pays"
+            "pays": "passenger.pays",
+            "wants_change": "passenger.wants_change"
           }
         },
         {
@@ -979,6 +1295,7 @@
         "bag_fare_piasters": 0,
         "child_free_age": 6,
         "max_break_requests": 2,
+        "no_fights_required": true,
         "student_discount_pct": 0
       },
       "seats": [

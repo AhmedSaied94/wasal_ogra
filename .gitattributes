@@ -1,0 +1,2 @@
+# The fixture tool compares parity fixtures byte for byte (contracts/replay-and-fixtures.md).
+fixtures/parity/*.json text eol=lf

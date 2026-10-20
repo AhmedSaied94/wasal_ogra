@@ -127,6 +127,7 @@ def trip_part(trip: Trip) -> dict[str, Any]:
             "bag_fare_piasters": trip.bag_fare_piasters,
             "child_free_age": trip.child_free_age,
             "max_break_requests": trip.max_break_requests,
+            "no_fights_required": trip.no_fights_required,
         },
         "passengers": [
             passenger_part(p) for p in sorted(trip.passengers.all(), key=lambda p: p.order)

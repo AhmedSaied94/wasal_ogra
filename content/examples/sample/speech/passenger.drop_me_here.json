@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "نزّلني هنا يا أسطى"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "على جنب هنا لو سمحت"
+      }
+    }
+  ],
+  "speech_key": "passenger.drop_me_here"
+}

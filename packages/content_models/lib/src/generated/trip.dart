@@ -136,7 +136,7 @@ enum TripKind {
   story,
 }
 
-/// The fare rules of one trip.
+/// The rules of one trip: fares, break requests, and whether a fight fails it.
 @Freezed(
   copyWith: false,
   toStringOverride: false,
@@ -149,6 +149,7 @@ abstract class TripRules with _$TripRules {
     @JsonKey(name: 'bag_fare_piasters') required int bagFarePiasters,
     @JsonKey(name: 'child_free_age') required int childFreeAge,
     @JsonKey(name: 'max_break_requests') required int maxBreakRequests,
+    @JsonKey(name: 'no_fights_required') required bool noFightsRequired,
   }) = _TripRules;
 
   factory TripRules.fromJson(Map<String, dynamic> json) =>

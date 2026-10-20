@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "هو اللي ما دفعش!"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "أنا دافع، اسأله هو"
+      }
+    }
+  ],
+  "speech_key": "passenger.dispute"
+}

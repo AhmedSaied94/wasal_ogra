@@ -1,0 +1,19 @@
+name: trip_engine
+description: >-
+  The trip rules engine for wassal: fares, the passing chain, passengers,
+  events, reputation, stars and earnings. Pure Dart and deterministic.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  content_models:
+    path: ../content_models
+  crypto: ^3.0.7
+
+dev_dependencies:
+  coverage: ^1.16.0
+  lints: ^6.1.0
+  test: ^1.33.0

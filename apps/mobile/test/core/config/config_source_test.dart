@@ -42,8 +42,22 @@ void main() {
   test('bundled reads return the defaults', () {
     expect(bundled.read(Tunable.fuelMax), 5);
     expect(bundled.read(Tunable.tripHopMs(LineId.lineGamaa)), 1100);
-    expect(bundled.read(Tunable.tripHintsEnabled(LineId.lineHay)), isTrue);
+    expect(
+      bundled.read(Tunable.tripHintsMode(LineId.lineHay)),
+      TripHintsMode.always,
+    );
+    expect(bundled.read(Tunable.tripPatienceMs), 20000);
     expect(bundled.read(Tunable.preTripCardMode), PreTripCardMode.always);
+  });
+
+  test('a hints-mode override applies only with a known wire value', () {
+    final hints = Tunable.tripHintsMode(LineId.lineHay);
+    final valid = OverrideConfigSource({hints.key: 'off'}, fallback: bundled);
+    expect(valid.read(hints), TripHintsMode.off);
+    final bad = OverrideConfigSource({
+      hints.key: 'sometimes',
+    }, fallback: bundled);
+    expect(bad.read(hints), TripHintsMode.always);
   });
 
   test('a valid override changes only its key', () {

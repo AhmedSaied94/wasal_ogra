@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "يعني أنزل من غير باقي؟ لسه ليّا {amount}!"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "فين الـ{amount} بتوعي يا أسطى؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.fight"
+}

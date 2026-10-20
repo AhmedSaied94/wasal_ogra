@@ -93,7 +93,7 @@ def test_an_import_logs_each_added_and_changed_object(author: User) -> None:
     importer.import_dir(SAMPLE, author)
 
     added = LogEntry.objects.filter(user=author, action_flag=ADDITION)
-    assert added.count() == 41
+    assert added.count() == 61
     assert {entry.change_message for entry in added} == {importer.IMPORT_MESSAGE}
     assert "line_hay" in {entry.object_repr for entry in entries(Line, author)}
 

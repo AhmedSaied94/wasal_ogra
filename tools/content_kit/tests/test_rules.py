@@ -24,7 +24,6 @@ TRIP_GAMAA_02, TRIP_HAY_01, TRIP_HAY_02 = 1, 2, 3
 LINE_GAMAA, LINE_HAY = 0, 1
 VEHICLE_TUKTUK = 1
 ITEM_NISH, ITEM_SITARA = 0, 1
-POOL_WANTS_CHANGE = 2
 
 
 def _price(pack: dict[str, Any], kind: str, sku: str) -> dict[str, Any]:
@@ -99,15 +98,13 @@ def _jenehat_booster(pack: dict[str, Any]) -> None:
 
 
 def _replace_amount(new: str) -> Mutation:
-    return _text(
-        "speech_pools",
-        POOL_WANTS_CHANGE,
-        "lines",
-        0,
-        "text",
-        "ar-EG",
-        edit=lambda text: text.replace("{amount}", new),
-    )
+    # By key: the pack has a pool per engine slot (specs/004), so the index would shift.
+    def apply(pack: dict[str, Any]) -> None:
+        [pool] = [p for p in pack["speech_pools"] if p["speech_key"] == "passenger.wants_change"]
+        text = pool["lines"][0]["text"]
+        text["ar-EG"] = text["ar-EG"].replace("{amount}", new)
+
+    return apply
 
 
 _trip = ("trips", TRIP_HAY_02)
@@ -141,8 +138,9 @@ CASES: list[tuple[str, Mutation, str, tuple[str, str], str]] = [
     ("V-T5 count", _third_member, "V-T5", _hay_02, "$.passengers[2].group_id"),
     ("V-T5 together", _set(*_trip, "passengers", 2, "group_id", value="g2"), "V-T5", _hay_02,
      "$.passengers[2].group_size"),
-    ("V-T6 speech", _set(*_trip, "passengers", 0, "speech_keys", "pay", value="passenger.gone"),
-     "V-T6", _hay_02, "$.passengers[0].speech_keys.pay"),
+    ("V-T6 speech",
+     _set(*_trip, "passengers", 0, "speech_keys", "pays_group", value="passenger.gone"),
+     "V-T6", _hay_02, "$.passengers[0].speech_keys.pays_group"),
     ("V-T6 event passenger", _set(*_trip, "events", 1, "passenger_ids", value=["p9"]), "V-T6",
      _hay_02, "$.events[1].passenger_ids[0]"),
     ("V-T6 event station", _set(*_trip, "events", 0, "station_id", value="midan"), "V-T6", _hay_02,

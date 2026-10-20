@@ -17,12 +17,12 @@ from wassal_content.findings import Finding
 from wassal_content.rules.references import price_entity
 from wassal_content.schemas import IDENTIFIER_FIELDS, PACK_ARRAYS
 
-__all__ = ["JENEHAT_KINDS", "content_rule_findings"]
+__all__ = ["JENEHAT_KINDS", "PLACEHOLDER", "content_rule_findings", "localized_texts"]
 
 STAGE = "content_rules"
 JENEHAT_KINDS = frozenset({"item", "vehicle", "chapter"})
 _LOCALES = ("ar-EG", "ar")
-_PLACEHOLDER = re.compile(r"\{([^{}]*)\}")
+PLACEHOLDER = re.compile(r"\{([^{}]*)\}")
 _SPEECH = frozenset({"amount", "station"})
 _TASK = frozenset({"target"})
 _NONE: frozenset[str] = frozenset()
@@ -46,7 +46,7 @@ def _currencies(pack: Mapping[str, Any]) -> Iterator[Finding]:
             )
 
 
-def _texts(value: Any, path: str) -> Iterator[tuple[str, str]]:
+def localized_texts(value: Any, path: str) -> Iterator[tuple[str, str]]:
     """Every (path, text) of the `LocalizedText` objects under `value`."""
     if isinstance(value, dict):
         if "ar-EG" in value:
@@ -55,10 +55,10 @@ def _texts(value: Any, path: str) -> Iterator[tuple[str, str]]:
                     yield f"{path}.{locale}", value[locale]
             return
         for key, child in value.items():
-            yield from _texts(child, f"{path}.{key}")
+            yield from localized_texts(child, f"{path}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            yield from _texts(child, f"{path}[{index}]")
+            yield from localized_texts(child, f"{path}[{index}]")
 
 
 def _allowed(part: str, path: str) -> frozenset[str]:
@@ -82,9 +82,9 @@ def _text_findings(
             path,
             f"the text contains the digits {''.join(digits)!r}: numbers go through placeholders",
         )
-    if "{" in _PLACEHOLDER.sub("", text) or "}" in _PLACEHOLDER.sub("", text):
+    if "{" in PLACEHOLDER.sub("", text) or "}" in PLACEHOLDER.sub("", text):
         yield _error("V-X2", entity, path, "the text has an unbalanced brace")
-    for name in _PLACEHOLDER.findall(text):
+    for name in PLACEHOLDER.findall(text):
         if name not in allowed:
             accepted = ", ".join(f"{{{n}}}" for n in sorted(allowed)) or "none"
             yield _error(
@@ -102,6 +102,6 @@ def content_rule_findings(pack: Mapping[str, Any]) -> list[Finding]:
         field = IDENTIFIER_FIELDS[part]
         for element in pack[array]:
             entity = (part, str(element[field]))
-            for path, text in _texts(element, "$"):
+            for path, text in localized_texts(element, "$"):
                 findings.extend(_text_findings(text, _allowed(part, path), entity, path))
     return findings

@@ -12,7 +12,7 @@
   "max_earnings_jenehat": 60,
   "passengers": [
     {
-      "archetype": "mother_kids",
+      "archetype": "honest",
       "dest_station_id": "gamaa",
       "passenger_id": "p1",
       "payment": [
@@ -20,7 +20,7 @@
       ],
       "pays_at_seconds": 2,
       "seat_id": "front_r",
-      "skin": "mother_red"
+      "skin": "effendi_suit"
     },
     {
       "archetype": "hurry",
@@ -61,6 +61,7 @@
     "bag_fare_piasters": 0,
     "child_free_age": 6,
     "max_break_requests": 2,
+    "no_fights_required": false,
     "student_discount_pct": 0
   },
   "seats": [

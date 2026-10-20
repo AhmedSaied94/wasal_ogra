@@ -384,3 +384,57 @@ def test_dev_packs_dir_defaults_inside_the_backend() -> None:
     assert values["packs_dir"] == str(BACKEND_DIR / "var" / "packs")
     assert values["public_url"] == "http://localhost:8000/packs/"
     assert values["solver_stage"] == "stand_in"
+
+
+# -- Parallel tests (pytest-xdist) ---------------------------------------------------------------
+
+VALKEY_PROBE = """
+import json, django
+django.setup()
+from django.conf import settings
+print(json.dumps({
+    "cache": settings.CACHES["default"]["LOCATION"],
+    "broker": settings.CELERY_BROKER_URL,
+}))
+"""
+
+
+def valkey_probe(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    clean = {
+        "PATH": os.environ["PATH"],
+        "WASSAL_READ_DOTENV": "0",
+        "DJANGO_SETTINGS_MODULE": "config.settings.test",
+        **env,
+    }
+    return subprocess.run(  # noqa: S603 - fixed interpreter and arguments
+        [sys.executable, "-c", VALKEY_PROBE],
+        cwd=BACKEND_DIR,
+        env=clean,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("worker", "cache_db", "broker_db"),
+    [(None, 2, 3), ("gw0", 2, 3), ("gw1", 4, 5), ("gw6", 14, 15)],
+)
+def test_each_xdist_worker_gets_its_own_valkey_databases(
+    worker: str | None, cache_db: int, broker_db: int
+) -> None:
+    """Every test clears the cache, so workers sharing a database would clear each other's."""
+    result = valkey_probe({"PYTEST_XDIST_WORKER": worker} if worker else {})
+    assert result.returncode == 0, result.stderr
+    values = json.loads(result.stdout.strip().splitlines()[-1])
+    assert values == {
+        "cache": f"redis://127.0.0.1:6379/{cache_db}",
+        "broker": f"redis://127.0.0.1:6379/{broker_db}",
+    }
+
+
+def test_more_xdist_workers_than_valkey_databases_are_refused() -> None:
+    result = valkey_probe({"PYTEST_XDIST_WORKER": "gw7"})
+    assert result.returncode != 0
+    assert "at most 7 pytest-xdist workers" in result.stderr

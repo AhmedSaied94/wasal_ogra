@@ -8,6 +8,7 @@ import hashlib
 from typing import Any
 
 from django.db import transaction
+from wassal_content.engine import capabilities
 
 from apps.content.models import (
     Chapter,
@@ -58,6 +59,7 @@ def trip(on: Line, by: Vehicle, number: int = 1, **fields: Any) -> Trip:
         "student_discount_pct": 50,
         "child_free_age": 6,
         "max_break_requests": 1,
+        "no_fights_required": False,
     }
     return Trip.objects.create(line=on, vehicle=by, number=number, **{**defaults, **fields})
 
@@ -85,6 +87,18 @@ def variant(of: Item, variant_id: str = "crystal", order: int = 1) -> ItemVarian
 def speech_line(speech_key: str = "wants.change", order: int = 1) -> SpeechLine:
     pool, _ = SpeechPool.objects.get_or_create(speech_key=speech_key)
     return SpeechLine.objects.create(pool=pool, order=order, text_ar_eg="text")
+
+
+def engine_speech_pools() -> list[SpeechPool]:
+    """A pool for every speech slot of the engine (V-T10), each with one unreviewed line that
+    uses only its slot's placeholders and no digits (V-X1, V-T11)."""
+    pools = []
+    for slot in capabilities().speech_slots.values():
+        pool = SpeechPool.objects.create(speech_key=slot.default_key)
+        text = " ".join([slot.slot, *(f"{{{name}}}" for name in slot.placeholders)])
+        SpeechLine.objects.create(pool=pool, order=1, text_ar_eg=text)
+        pools.append(pool)
+    return pools
 
 
 def published(kind: str, identifier: str, version: int = 3) -> PublishedIdentifier:

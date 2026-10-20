@@ -11,10 +11,13 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 - `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
+- `packages/trip_engine/`: the pure-Dart rules engine from **M01** (`specs/004-m01-trip-engine/`): every trip rule, the 13 commands, replay and rebuild, and the fixture tool. Its living rules reference is `packages/trip_engine/RULES.md`.
+- `fixtures/parity/`: the parity fixtures from **M01**, `{definition, seed, params, command_log, expected_result}`, which the engine replays in CI and B05's Python mirror will reproduce.
+- `content/engine/capabilities.json`: what the engine supports (archetypes, events and their parameters, speech slots, change-request notes). The content kit validates trips against it.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
-- `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models`).
+- `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models` and `packages/trip_engine`).
 
 ## Backend commands
 
@@ -28,7 +31,7 @@ Python is pinned by `backend/.python-version` and managed with uv (never pip). R
 | Migrate | `uv run manage.py migrate` |
 | Lint and format check | `uv run ruff check . && uv run ruff format --check .` |
 | Type check | `uv run mypy .` |
-| Tests + coverage gate | `uv run pytest --cov --cov-fail-under=80` |
+| Tests + coverage gate (on 4 workers, as CI; at most 7) | `uv run pytest -n 4 --cov --cov-fail-under=80` |
 | Missing-migration check | `uv run manage.py makemigrations --check --dry-run` |
 | Regenerate the API contract | `uv run manage.py spectacular --file ../contracts/openapi.yaml --validate --fail-on-warn` |
 | Create a staff user / issue TOTP | `uv run manage.py create_staff <name> [--group content_author]` / `uv run manage.py staff_totp <name>` |
@@ -66,9 +69,29 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
 - `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks and the tunables registry.
 
+### Trip engine commands
+
+Run these in `packages/trip_engine`, after `packages/content_models` has been built (see "Content commands"). CI runs them in the mobile `packages` job.
+
+| Purpose | Command (in `packages/trip_engine`) |
+| --- | --- |
+| Install deps | `fvm dart pub get` |
+| Format check | `fvm dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')` |
+| Analyze | `fvm dart analyze --fatal-infos` |
+| Tests (rules, fixtures, replay, fuzz, perf budget) | `fvm dart test --coverage=coverage` |
+| Coverage gate (≥ 90%) | `fvm dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info && fvm dart run ../../apps/mobile/tool/check_coverage.dart --min 90 --lcov coverage/lcov.info` |
+| Replay every fixture, exit 1 on a difference | `fvm dart run tool/fixtures.dart check` |
+| Recompute a fixture's `expected_result` (then review the diff) | `fvm dart run tool/fixtures.dart update <file>...` |
+| Print a fixture's event sequence | `fvm dart run tool/fixtures.dart show <file>` |
+| Regenerate the longest-trip stress fixture | `fvm dart run tool/stress_fixture.dart` |
+
+- A rule change edits `packages/trip_engine/RULES.md`, the code and the affected fixtures in the same PR (constitution III). `update` rewrites only `expected_result`; review every changed fixture before committing.
+- Every fixture needs an entry in `test/fixtures/expectations/`, which pins what the fixture is about. The fixtures test fails on a fixture without one.
+- The engine takes every balancing number as `TripParams`, built from `apps/mobile/assets/config/tunables.json` with `TripParams.fromTunables`. It has no defaults of its own.
+
 ## Content commands
 
-The schemas in `content/schemas/` are the only definition of content. `tools/content_kit` (the uv project `wassal-content`, Python pinned by its `.python-version`) generates both model sets from them and validates content. CI runs the same commands in the backend workflow's `content-kit` job and in the mobile `check` job.
+The schemas in `content/schemas/` are the only definition of content. `tools/content_kit` (the uv project `wassal-content`, Python pinned by its `.python-version`) generates both model sets from them and validates content. CI runs the same commands in the backend workflow's `content-kit` job and in the mobile `packages` job.
 
 | Purpose | Command |
 | --- | --- |
@@ -113,7 +136,7 @@ The two architecture docs are paired, so read both:
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
 - To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
-- **The constitution** (`.specify/memory/constitution.md`, v1.1.0, ratified 2026-10-18, amended 2026-10-19) overrides conflicting guidance, including this file.
+- **The constitution** (`.specify/memory/constitution.md`, v1.1.1, ratified 2026-10-18, amended 2026-10-20) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
   - Any other deviation goes in the plan's Complexity Tracking and needs the owner's approval.
@@ -130,9 +153,9 @@ The two architecture docs are paired, so read both:
   - `.specify/scripts/bash/check-prerequisites.sh --json [--require-spec|--require-tasks|--paths-only]`
   - `.specify/scripts/bash/setup-plan.sh --json` and `setup-tasks.sh --json`
 
-## Planned architecture (big picture)
+## Architecture (big picture)
 
-A monorepo laid out as described in backend §5 and mobile §5:
+A monorepo laid out as described in backend §5 and mobile §5. Everything below exists except `tools/solver/`, which arrives with B05:
 
 ```text
 apps/mobile/            Flutter app: screens + Flame trip scene + Rive characters
@@ -149,7 +172,7 @@ fixtures/parity/        {definition, seed, params, command_log, expected_result}
 
 These invariants cut across both sides, and you need several docs to see them:
 
-- **One rules engine, mirrored twice.** All trip rules live in `packages/trip_engine`, with a Python mirror in `tools/solver`. Neither the UI nor the server re-implements them. The engine is deterministic: a 33 ms fixed step, a `xorshift32` PRNG, and integer piasters. Replaying `(definition, seed, params, command_log)` reproduces the same `TripResult`. Any rule change must ship with updated `fixtures/parity/*.json` that pass in **both** Dart and pytest, or CI fails.
+- **One rules engine, mirrored twice.** All trip rules live in `packages/trip_engine` (exact rules in its `RULES.md`), with a Python mirror in `tools/solver`. Neither the UI nor the server re-implements them. The engine is deterministic: a 33 ms fixed step, a `xorshift32` PRNG, and integer piasters. Replaying `(definition, seed, params, command_log)` reproduces the same `TripResult`. Any rule change must ship with updated `fixtures/parity/*.json` that pass in **both** Dart and pytest, or CI fails. Until B05 creates `tools/solver`, fixtures must pass the Dart suite and the content-kit check of their definitions (constitution III), and B05 must reproduce every existing fixture before it merges.
 - **Integer money only.** Trip cash is in piasters (1 EGP = 100, smallest coin 50). `JENEHAT`, `BONAT` and `FUEL` are integers. Floats are forbidden for money. **BONAT can never be converted into JENEHAT.**
 - **Server authority for value.** BONAT, purchases, entitlements and subscriptions are decided by the backend. The client is optimistic only for JENEHAT and progress, and the server checks both against bounds such as `max_earnings_jenehat` and catalog prices for the declared `content_version`.
 - **Offline-first sync** (backend §7, mobile §12). The client records ops (`trip_start`, `trip_result`, `spend_bonat`, …), each with a UUIDv7 `client_txn_id`, and sends them through `POST /v1/sync`. The server runs one transaction per batch with `SELECT … FOR UPDATE` on `Wallet`, makes ops idempotent through `ProcessedOp`, and returns a per-op accepted/rejected result. Soft anomalies are **accepted and recorded as `PlayerFlag`**, not rejected, so honest offline play is never punished.

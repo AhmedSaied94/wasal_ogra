@@ -253,102 +253,138 @@ Everything that decides the outcome of a trip: fares, tray, hand, passing chain,
 
 ### 7.2 Core types
 
+The full field lists are in M01's [data-model.md](../specs/004-m01-trip-engine/data-model.md), and the Dart surface is in [engine-api.md](../specs/004-m01-trip-engine/contracts/engine-api.md). Every amount is integer piasters, every time is integer milliseconds, and every value is immutable.
+
 | Type | Key fields |
 | --- | --- |
-| `TripDefinition` | `trip_id`, `line_id`, `vehicle_id`, `stations[] {station_id, at_seconds, fare_piasters}`, `seats[]`, `passengers[]`, `events[]`, `initial_tray {denomination: count}`, `rules {student_discount, bag_fare_piasters, child_free_age}`, `star_rules`, `max_earnings_jenehat`. Schema: `content/schemas/trip.schema.json` (owned by backend §9). |
-| `PassengerSpec` | `passenger_id`, `archetype`, `skin`, `seat_id`, `dest_station_id`, `board_station_id`, `pays_at_seconds?`, `payment [denominations]`, `group_id?`, `group_size?`, `speech_keys {}` |
+| `TripDefinition` | `trip_id`, `rev`, `kind`, `line_id`, `vehicle_id`, `seed`, `stations[] {station_id, at_seconds, fare_piasters}`, `seats[]`, `passengers[]`, `events[]`, `initial_tray {denomination: count}`, `rules {student_discount_pct, bag_fare_piasters, child_free_age, max_break_requests, no_fights_required}`, `star_rules`, `max_earnings_jenehat`. Generated from `content/schemas/trip.schema.json` (owned by backend §9) into `packages/content_models`; the engine never redefines it. |
+| `PassengerSpec` | `passenger_id`, `archetype`, `skin`, `seat_id`, `dest_station_id`, `board_station_id?`, `pays_at_seconds?`, `payment [denominations]`, `group_id?`, `group_size?`, `speech_keys? {slot: key}` |
 | `Seat` | `seat_id`, `row` (`front`, `A`, `B`, `C`, `D`), `col` (`r`, `m`, `l`), `reachable_by_driver` (bool) |
-| `TripState` | `t_ms`, `stations[]`, `passengers{}`, `tray{}`, `hand[]`, `tokens[]`, `reputation 0..100`, `counters {fights, mistakes, lost_fares, caught_liars, tips_piasters, overpaid_piasters}`, `boosters_used[]`, `status` (`running`, `paused`, `failed`, `finished`) |
-| `MoneyToken` | `token_id`, `kind` (`fare`, `change`, `return`, `redirect`), `amount [denominations]`, `path [seat_id… or DRIVER]`, `hop_index`, `hop_progress_ms`, `blocked_by?` |
-| `TripResult` | `trip_id`, `stars 0..3`, `star_flags {reached, no_fights, no_mistakes}`, `fares_collected_piasters`, `earnings_jenehat`, `fights`, `mistakes[] {passenger_id, kind, amount}`, `lost_fares`, `duration_ms`, `boosters_used[]`, `revived` (bool), `command_log_hash` |
+| `TripParams` | One integer per rule number, keyed by tunable name (§14.3), with `trip_hop_ms_<line_id>` written as `trip_hop_ms`. Built with `TripParams.fromTunables(values, line)`. There are no defaults in code. |
+| `TripState` | `t_ms`, `status` (`running`, `paused`, `failed`, `finished`, `abandoned`), `reputation 0..100`, `tray`, `hand`, `passengers[]`, `tokens[]`, `schedule[]` (stations with their shifted `at_ms`), the open choices (`claims`, `disputes`, `change_requests`, `pending_breaks`), `counters {fights, lost_fares, missed_stops, impatient, caught_liars, tips_piasters, overpaid_piasters}`, `mistakes[]`, `reputation_lost {cause: int}`, `boosters_used[]`, `revived`, `revivable`, `prng`, `result?` |
+| `PassengerState` | `presence` (`waiting`, `aboard`, `gone`), `alertness` (`asleep`, `waking`, `awake`, `muted`, `attentive`), `fare_sent`, `fare_piasters`, `balance` (> 0 owed change, < 0 owes the driver), `paid_in`, `patience_ms`, `impatient`, `deadline_ms?`, `outcome?` |
+| `MoneyToken` | `token_id`, `kind` (`fare`, `change`, `return`, `redirect`, `break_out`, `break_in`), `pieces`, `owner`, `target`, `holder` (`DRIVER` or a passenger id), `hop? {to, elapsed_ms, duration_ms}`, `hops_done`, `blocked_by?`, `dropped_until_ms?` |
+| `TripResult` | `trip_id`, `rev`, `outcome` (`finished`, `failed`, `abandoned`), `stars 0..3`, `star_flags {reached, no_fights, no_mistakes}`, `fares_collected_piasters`, `overpaid_piasters`, `tips_piasters`, `earnings_jenehat`, `fights`, `lost_fares`, `missed_stops`, `impatient`, `caught_liars`, `mistakes[] {passenger_id, kind, amount_piasters}` (`kind`: `over`, `not_owed`, `unreturned`), `reputation`, `reputation_lost`, `duration_ms`, `boosters_used[]`, `revived` (bool), `command_log_hash` |
+| `ReplayRecord` | `definition`, `seed`, `params`, `command_log`, `t_ms` (§7.10, §10) |
 
 ### 7.3 Simulation loop
 
-- Fixed logic step of **33 ms** (≈30 Hz), independent of render frame rate. The scene interpolates between steps.
-- Each step: advance clock → fire scheduled passenger actions (`pays_at_seconds`) → advance tokens hop by hop → resolve arrivals → evaluate station warnings (T−8 s) → evaluate station arrivals → update reputation → emit events.
+- Fixed logic step of **33 ms** (≈30 Hz), independent of render frame rate. The scene interpolates between steps (`MoneyToken.progressPermille`).
+- Each step, in this order: advance the clock → timers (waking, falling asleep, attentive ending, ledger peek ending, dropped money lost, breaks completing) → authored events → scheduled payments → tokens hop by hop → patience → station warning → `drop_me_here` deadlines and stations → failure check → end check. The exact order is [RULES.md](../packages/trip_engine/RULES.md) §3.
+- `TripEngine` is the only stateful object: `start`, `rebuild`, `step`, `stepTo`, `apply`, `pause` and `resume`. It has no async API, and it never throws during `step` or `apply`: invalid commands are rejected.
 - `pause()` freezes `t_ms`; the app calls it on lifecycle `paused` and on any overlay.
 
 ### 7.4 Commands (player intents)
 
+13 commands. Each one applies at the current clock, between steps. A rejected command returns a `Rejection {code, message}` and changes nothing; the message is English and for developers, and player text comes from the ARB file keyed by the code. At most 1,200 commands are accepted per trip, except `Abandon`, which is always accepted so the player can leave.
+
 | Command | Meaning |
 | --- | --- |
-| `PickFromTray(denomination)` | Move one unit from tray to hand |
-| `ReturnHand()` | Move hand back to tray |
-| `SendHand(passenger_id)` | Create a `change` token along the chain to that passenger |
-| `UndoLastSend()` | Valid for 1000 ms while the token is still on its first hop (UX doc decision) |
-| `Tap(passenger_id)` | Context action: ask fare / wake / call headphones (2 taps) / trigger "أنا دافع!" dispute |
-| `ResolveClaim(passenger_id, insist: bool)` | Answer to "أنا دافع!" |
-| `RequestBreak(denomination)` | «حد معاه فكة؟»; ≥1000 piasters; max 2 per trip |
-| `CollectDropped(token_id)` | Pick up money dropped by a `bump` event |
-| `UseBooster(booster_id)` | `change_bag`, `wake_all`, `ledger_peek`, `traffic_jam` |
-| `Revive()` | After `failed`, sets reputation to 40 and resumes |
+| `PickFromTray(denomination)` | Move one piece from the tray to the hand |
+| `ReturnHand()` | Move the hand back to the tray |
+| `SendHand(passenger_id)` | Send the hand as a `change` token along the chain to that passenger |
+| `UndoLastSend()` | Take the last send back while `trip_undo_window_ms` lasts and its first hop hasn't finished |
+| `Tap(passenger_id)` | Context action: wake a sleeper, call headphones (2 taps), ask for the fare or the rest, or raise «أنا دافع!» on someone who has paid. A tap on a group member acts on the payer |
+| `ResolveClaim(passenger_id, insist: bool)` | Answer to «أنا دافع!» |
+| `ResolveDispute(dispute_id, paid_passenger_id)` | Answer to a `payment_dispute`: which of the two has paid |
+| `ResolveChangeRequest(passenger_id, agree: bool)` | Answer to a `change_request` (break a passenger's note from the tray) |
+| `RequestBreak(denomination)` | «حد معاه فكة؟»: a note of at least `trip_break_min_piasters` comes back broken after `trip_break_delay_ms`, at most `rules.max_break_requests` times per trip |
+| `CollectDropped(token_id)` | Pick up money dropped by a `bump`, within `trip_bump_collect_ms` |
+| `UseBooster(booster_id)` | `change_bag`, `wake_all`, `ledger_peek`, `traffic_jam` (at most `booster_traffic_jam_max_per_trip` times) |
+| `Revive()` | After `failed`, once: reputation becomes `rep_revive_to` and the trip resumes. Not after a fight in a `no_fights_required` trip |
+| `Abandon()` | Ends the trip as `abandoned` |
+
+`ResolveClaim`, `ResolveDispute`, `ResolveChangeRequest` and `UseBooster` are also accepted while paused, because they are answered from an overlay.
 
 ### 7.5 Domain events (engine → UI/analytics)
 
-`PassengerBoarded`, `PassengerSpeaks {passenger_id, speech_key, params}`, `FareSent`, `MoneyArrivedAtDriver`, `TokenBlocked {by}`, `TokenUnblocked`, `ChangeDelivered {result: exact|short|over}`, `ExcessReturned`, `ClaimRaised`, `LiarCaught`, `FalseAccusation`, `StationWarning`, `StationReached`, `PassengerAlighted {outcome: thanked|fight|missed_stop|left_unpaid}`, `BreakCompleted`, `EventStarted {event_id}`, `ReputationChanged`, `TripFailed`, `TripFinished {TripResult}`.
+Every `step` and accepted command returns the events it produced, in order. Payloads are in [engine-api.md](../specs/004-m01-trip-engine/contracts/engine-api.md).
 
-The engine never contains Arabic text. It emits `speech_key` values; the app resolves them to localized lines from the content pack's speech pools (§14).
+- **Passengers:** `PassengerBoarded`, `PassengerSpeaks {passenger_id, slot, speech_key, variant, amount_piasters?, station_id?}`, `PassengerWaking`, `PassengerWoke`, `PassengerFellAsleep`, `PassengerCalled`, `PassengerAttentive`, `PassengerMuted`, `PatienceRanOut`, `StopChanged`, `PassengerAlighted {outcome: thanked|fight|missed_stop|left_unpaid}`.
+- **Money:** `FareSent`, `ChangeSent`, `SendUndone`, `TokenHopStarted`, `TokenBlocked {by}`, `TokenUnblocked`, `MoneyArrivedAtDriver`, `ChangeDelivered {result: exact|short|over|not_owed}`, `ExcessReturned`, `MoneyDropped`, `DroppedCollected`, `DroppedLost`, `BreakRequested`, `BreakCompleted`.
+- **Choices:** `ClaimRaised`, `ClaimAccepted`, `LiarCaught`, `FalseAccusation`, `DisputeRaised`, `DisputeResolved`, `ChangeRequestRaised`, `ChangeRequestResolved`, `ChangeRequestCompleted`.
+- **Trip:** `EventStarted {event_id}`, `EventSkipped`, `FareIncreased`, `ScheduleShifted`, `StationWarning {alighting, owed}`, `StationReached`, `ReputationChanged {delta, cause, value}`, `MistakeMade`, `BoosterUsed`, `LedgerPeekStarted`, `LedgerPeekEnded`, `TripFailed`, `TripRevived`, `TripFinished {TripResult}`, `TripAbandoned {TripResult}`.
 
-### 7.6 Passenger state machine
+The engine never contains Arabic text. It emits `speech_key` values and a seeded `variant`; the app resolves them to localized lines from the content pack's speech pools (§14). Some events, such as `FareSent`, reveal who has paid. The engine reports them anyway, and M02 decides what to show (the ux-spec's «اللاعب يفتكر، والشاشة ما تفضحش» is presentation).
+
+### 7.6 Passenger state machines
+
+Alertness:
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Boarding
-  Boarding --> Seated
-  state Seated {
-    [*] --> Awake
-    Awake --> Asleep : archetype sleeper
-    Asleep --> Awake : Tap / wake_all
-    Awake --> Muted : archetype headphones
-    Muted --> Attentive : 2 taps
-    Attentive --> Muted : after 15 s
-  }
-  Seated --> FareSent : pays (scheduled or asked)
-  FareSent --> Paid : token reaches driver
-  Paid --> Owed : change_due > 0
-  Paid --> Settled : change_due == 0
-  Owed --> Settled : exact change received
-  Owed --> Owed : partial change received
-  Settled --> Alighted : station reached
-  Owed --> Fight : station reached
-  Fight --> Alighted
-  Seated --> Alighted : station reached, unpaid (lost fare) or asleep (missed stop)
-  Alighted --> [*]
+  [*] --> asleep : sleeper boards
+  [*] --> muted : headphones boards
+  [*] --> awake : any other type boards
+  asleep --> waking : Tap
+  waking --> awake : trip_wake_ms later
+  asleep --> awake : wake_all
+  waking --> awake : wake_all
+  awake --> asleep : sleeper, trip_sleeper_awake_ms after waking
+  muted --> muted : Tap (taps = 1)
+  muted --> attentive : second Tap
+  attentive --> muted : trip_headphones_attentive_ms later
 ```
+
+Fare and balance:
+
+```mermaid
+stateDiagram-v2
+  [*] --> unpaid : boards
+  unpaid --> claiming : false claimer's time, or Tap
+  claiming --> unpaid : accepted (never pays)
+  claiming --> sent : insisted (caught, pays)
+  unpaid --> sent : pays (scheduled or Tap)
+  sent --> owed : balance > 0
+  sent --> settled : balance == 0
+  sent --> owes : balance < 0
+  owes --> sent : Tap, pays the rest
+  owed --> owed : short change
+  owed --> settled : exact or over change
+  settled --> gone : stop (thanked)
+  owed --> gone : stop (fight), or asleep (missed stop)
+  unpaid --> gone : stop (left unpaid)
+  owes --> gone : stop (thanked, remainder lost)
+```
+
+A passenger is *able* when aboard and `awake` or `attentive`. Only able passengers pay on schedule and pass money on.
 
 ### 7.7 Money flow & chain routing rules
 
-- Seats in row `A` and `front` are reachable by the driver directly. Rows behind pass money seat by seat in the same column toward the driver, and back the same way.
-- Empty seats are skipped. A seat occupied by an `Asleep` or `Muted` passenger **blocks** the token until that passenger becomes awake/attentive.
-- Hop duration comes from Remote Config per line (`trip_hop_ms_<line_id>`), ×2 when the holder is a `hajja`.
-- A `change` token to a non-payer member of a group is redirected to the group's payer (fast hop, 600 ms).
-- Delivery evaluation: `exact` settles; `short` reduces `change_due` and is not a mistake; `over` is a mistake; honest archetypes return the excess (`return` token), `false_claimer` keeps it (`overpaid_piasters`).
-- Change to a passenger who has not sent a fare is a mistake; honest passengers return it.
+A summary. The exact rules are [RULES.md](../packages/trip_engine/RULES.md) §5 and §6.
+
+- Seats in rows `front` and `A` are one hop from the driver. Rows behind pass money seat by seat in the same column toward the driver, and back the same way. Empty seats are skipped.
+- A hop starts only when both its holder and the next holder are the driver or able. Otherwise the token waits, blocked by whichever of them isn't able (`TokenBlocked`).
+- Hop duration is `trip_hop_ms_<line_id>`, scaled by `trip_hop_pct_hajja` out of a `hajja`'s seat and by `trip_hop_pct_chatty_row` out of a row holding an able `chatty` passenger.
+- A `change` token to a non-payer member of a group is redirected to the group's payer in one hop of `trip_group_redirect_hop_ms`.
+- Delivery: `exact` settles and raises reputation; `short` lowers the balance and costs `rep_short_change`, but isn't a mistake; `over` is a mistake; change to a passenger who isn't owed is a `not_owed` mistake. `honest` passengers send any excess back as a `return` token; anyone else keeps it (`overpaid_piasters`).
+- When a passenger gets off, every token they hold or that is heading to them is handed on: a fare goes to the driver, anything else into the tray. At the end of the trip, money still moving settles the same way, and dropped money is lost.
 
 ### 7.8 Scoring
 
-| Rule | Value |
-| --- | --- |
-| Fight at station | reputation −30, `fights++` |
-| False accusation | reputation −20, `fights++` |
-| Missed stop (asleep) | reputation −15 |
-| Liar caught | reputation +10 |
-| Exact change | reputation +3 (cap 100) |
-| Fail | reputation ≤ 0 → `TripFailed` |
-| Stars | 1 = finished; 2 = finished and `fights == 0`; 3 = 2 and `mistakes == 0` |
-| Earnings | `sum(fares of passengers whose fare arrived) − overpaid_piasters + tips`, converted to `JENEHAT` 1:1 per pound (rounded down) and capped by `max_earnings_jenehat` |
+The penalties and gains are tunables (defaults in §14.3). The exact rules are [RULES.md](../packages/trip_engine/RULES.md) §9 to §11.
 
-All numeric values above are defaults and are overridden by Remote Config keys (§14.3).
+| Rule | Effect |
+| --- | --- |
+| Fight at the stop (still owed change) | reputation −`rep_fight`, `fights++`, an `unreturned` mistake |
+| False accusation | reputation −`rep_false_accusation`, `fights++` |
+| Missed stop (asleep or waking at the stop) | reputation −`rep_missed_stop` |
+| Short change, patience run out, change request declined | reputation −`rep_short_change`, −`rep_impatient`, −`rep_change_request_declined` |
+| Liar caught, exact change | reputation +`rep_liar_caught`, +`rep_exact_change` (cap 100) |
+| Fail | reputation ≤ 0, or any fight in a `no_fights_required` trip → `TripFailed` |
+| Stars | 0 unless finished; 1 = finished; 2 = and `fights == 0`; 3 = and no mistakes |
+| Earnings | `fares_collected − overpaid_piasters + tips`, floored at 0, converted to `JENEHAT` per whole pound and capped by `max_earnings_jenehat`; 0 unless finished |
 
 ### 7.9 Difficulty parameters
 
-Per line, from Remote Config: `trip_hop_ms_<line_id>` (1300 / 1100 / 900 ms), `trip_bubble_min_ms_<line_id>` (4500 / 4000 / 3500 ms), `trip_hints_enabled_<line_id>` (true for `line_hay`). Values from the UX doc «الصعوبة والمساعدة حسب الخط».
+Per line, from Remote Config (§14.3): `trip_hop_ms_<line_id>` (1300 / 1100 / 900 ms), `trip_bubble_min_ms_<line_id>` (4500 / 4000 / 3500 ms) and `trip_hints_mode_<line_id>` (`always` for `line_hay`, `first_time` for `line_gamaa`, `off` for the rest). Values from the UX doc «الصعوبة والمساعدة حسب الخط». Only the hop length reaches the engine; bubbles and hints are presentation, read by M02, and are not part of the replay tuple.
 
 ### 7.10 Determinism, replay & parity with the solver
 
 - All randomness comes from a seeded PRNG (`xorshift32`, seed in `TripDefinition` or from the daily challenge).
 - The engine records the command log with logic-step timestamps. `(definition, seed, params, log)` replays to the same `TripResult`.
-- **Parity contract with the backend solver:** `fixtures/parity/*.json` contains `{definition, seed, params, command_log, expected_result}`. Both `packages/trip_engine` (Dart test) and `tools/solver` (pytest) must reproduce `expected_result` exactly. CI fails on any mismatch. See backend §10.
+- **Parity contract with the backend solver:** `fixtures/parity/*.json` contains `{definition, seed, params, command_log, expected_result}`. Both `packages/trip_engine` (Dart test) and `tools/solver` (pytest) must reproduce `expected_result` exactly. CI fails on any mismatch. See backend §10. Until B05 creates `tools/solver`, every fixture must pass the Dart suite and the content-kit check of its definition (constitution III); B05 must reproduce every existing fixture before it merges. The fixtures and the `tool/fixtures.dart` check, update and show commands are in M01's [replay-and-fixtures.md](../specs/004-m01-trip-engine/contracts/replay-and-fixtures.md).
+- **The replay record** `{definition, seed, params, command_log, t_ms}` is the same tuple plus the clock it reached. It is the trip's checkpoint (§10).
 
 ---
 
@@ -400,7 +436,7 @@ Global rules: back button top-right; Android system back on the trip route opens
 ## 10. State Management
 
 - Riverpod providers per feature; `AsyncNotifier` for anything backed by DB/API.
-- `TripController` owns one `TripEngine` instance, exposes `TripViewState` (a render-friendly projection), and forwards commands. It persists a checkpoint every station so a killed app can resume the trip (**NEEDS CLARIFICATION**: resume vs restart policy).
+- `TripController` owns one `TripEngine` instance, exposes `TripViewState` (a render-friendly projection), and forwards commands. It saves the trip's replay record (`TripEngine.replayRecord`) on every accepted command and every pause, and the replay record is the checkpoint: a killed app rebuilds the trip exactly where it was left with `TripEngine.rebuild`, paused, and fuel is untouched ([M01 research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244)).
 - Cross-feature state (wallet, fuel, entitlements, progression) lives in `core/economy` and `core/sync` providers, backed by drift streams.
 
 ---
@@ -477,9 +513,18 @@ Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholder
 | --- | --- |
 | `trip_hop_ms_<line_id>` | 1300 / 1100 / 900 |
 | `trip_bubble_min_ms_<line_id>` | 4500 / 4000 / 3500 |
-| `trip_hints_enabled_<line_id>` | true only for `line_hay` |
+| `trip_hints_mode_<line_id>` (`off`, `first_time`, `always`) | `always` for `line_hay`, `first_time` for `line_gamaa`, `off` for the rest |
 | `trip_undo_window_ms` | 1000 |
 | `rep_fight`, `rep_false_accusation`, `rep_missed_stop`, `rep_liar_caught`, `rep_exact_change`, `rep_revive_to` | 30, 20, 15, 10, 3, 40 |
+| `rep_short_change`, `rep_impatient`, `rep_change_request_declined` | 5, 5, 5 |
+| `trip_station_warning_ms` | 8000 |
+| `trip_hop_pct_hajja`, `trip_hop_pct_chatty_row`, `trip_group_redirect_hop_ms` | 200, 150, 600 |
+| `trip_wake_ms`, `trip_sleeper_awake_ms`, `trip_headphones_attentive_ms` | 1000, 15000, 15000 |
+| `trip_patience_ms`, `trip_patience_pct_hurry`, `trip_patience_drain_pct_traffic` | 20000, 50, 150 |
+| `trip_bump_collect_ms` | 3000 |
+| `trip_break_min_piasters`, `trip_break_delay_ms` | 1000, 1500 |
+| `trip_tip_piasters_regular_customer` | 200 |
+| `booster_ledger_peek_ms`, `booster_traffic_jam_ms`, `booster_traffic_jam_max_per_trip` | 10000, 10000, 3 (the last two at most 60000 and 5) |
 | `fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes` | 5, 7, 20 |
 | `ads_interstitial_every_n_trips`, `ads_interstitial_grace_trips`, `ads_fuel_refill_daily_cap` | 3, 10, 3 |
 | `pre_trip_card_mode` | `always` |
@@ -641,7 +686,7 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 1. **Resolved in M03:** Android `minSdk` 24 and `targetSdk` 36; iOS 15.0. See [research R1](../specs/001-m03-app-shell/research.md#r1-minimum-platform-versions-resolves-mobile-241).
 2. **Resolved in M03:** the reference low-end Android device is a Samsung Galaxy A06 (4 GB RAM, Helio G85). See [research R14](../specs/001-m03-app-shell/research.md#r14-reference-device-and-cold-start-method-resolves-mobile-242-owner-decision-2026-10-18).
 3. AdMob mediation networks for Egypt and the Gulf.
-4. Trip resume policy after the app is killed mid-trip: resume from last station checkpoint or restart (fuel refunded?).
+4. **Resolved in M01:** a trip killed mid-way resumes exactly where it was left, rebuilt from its replay record, and fuel is untouched. See [research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244).
 5. Does replaying a completed trip for stars cost fuel? (Product doc implies yes; confirm.)
 6. Rive runtime choice and licensing for production (verify current Flutter runtime and terms at kickoff).
 

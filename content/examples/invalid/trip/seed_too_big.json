@@ -61,6 +61,7 @@
     "bag_fare_piasters": 0,
     "child_free_age": 6,
     "max_break_requests": 2,
+    "no_fights_required": false,
     "student_discount_pct": 0
   },
   "seats": [

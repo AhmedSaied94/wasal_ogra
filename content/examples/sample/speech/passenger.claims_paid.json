@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "أنا دافع يا أسطى!"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "والله دفعت من بدري"
+      }
+    }
+  ],
+  "speech_key": "passenger.claims_paid"
+}

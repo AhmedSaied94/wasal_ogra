@@ -19,8 +19,8 @@
       "seat_id": "A_m",
       "skin": "effendi_suit",
       "speech_keys": {
-        "change": "passenger.wants_change",
-        "pay": "passenger.pays"
+        "pays": "passenger.pays",
+        "wants_change": "passenger.wants_change"
       }
     },
     {
@@ -41,6 +41,7 @@
     "bag_fare_piasters": 0,
     "child_free_age": 6,
     "max_break_requests": 2,
+    "no_fights_required": true,
     "student_discount_pct": 0
   },
   "seats": [

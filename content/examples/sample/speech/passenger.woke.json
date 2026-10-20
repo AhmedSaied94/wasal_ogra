@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "هه؟ وصلنا؟"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "صحيت أهو، إحنا فين؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.woke"
+}

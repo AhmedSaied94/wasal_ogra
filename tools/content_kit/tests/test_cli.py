@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.paths import EXAMPLES, FIXTURES, REPO_ROOT
+from tests.paths import ENGINE, EXAMPLES, FIXTURES, REPO_ROOT
 from wassal_content.cli import main
 
 
@@ -27,13 +27,19 @@ def test_codegen_check_names_a_hand_edited_file(
 ) -> None:
     (tmp_path / ".fvmrc").write_text("{}\n")
     shutil.copytree(FIXTURES / "codegen" / "schemas", tmp_path / "content" / "schemas")
+    shutil.copytree(ENGINE, tmp_path / "content" / "engine")
     monkeypatch.chdir(tmp_path)
     assert main(["codegen"]) == 0
     edited = tmp_path / "packages" / "content_models" / "lib" / "src" / "generated" / "other.dart"
     edited.write_text(edited.read_text() + "// edited\n")
+    package = tmp_path / "tools" / "content_kit" / "src" / "wassal_content"
+    capabilities = package / "engine" / "capabilities.json"
+    capabilities.write_text(capabilities.read_text() + "\n")
     capsys.readouterr()
     assert main(["codegen", "--check"]) == 1
-    assert str(edited) in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert str(edited) in out
+    assert str(capabilities) in out
 
 
 @pytest.mark.usefixtures("at_repo")

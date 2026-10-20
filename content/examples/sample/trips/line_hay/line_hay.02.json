@@ -6,10 +6,11 @@
       "seconds": 10
     },
     {
-      "at_seconds": 60,
+      "at_seconds": 70,
       "event_id": "payment_dispute",
       "passenger_ids": [
-        "p3"
+        "p3",
+        "p4"
       ]
     }
   ],
@@ -35,7 +36,7 @@
       "seat_id": "A_r",
       "skin": "young_cap",
       "speech_keys": {
-        "pay": "passenger.pays"
+        "pays_group": "passenger.pays"
       }
     },
     {
@@ -63,8 +64,19 @@
       "seat_id": "A_l",
       "skin": "hajja_black",
       "speech_keys": {
-        "stop": "passenger.stop_near"
+        "stop_near": "passenger.stop_near"
       }
+    },
+    {
+      "archetype": "regular",
+      "board_station_id": "forn",
+      "dest_station_id": "mahatta",
+      "passenger_id": "p4",
+      "payment": [
+        1000
+      ],
+      "seat_id": "A_r",
+      "skin": "worker_blue"
     }
   ],
   "rev": 1,
@@ -72,6 +84,7 @@
     "bag_fare_piasters": 0,
     "child_free_age": 6,
     "max_break_requests": 2,
+    "no_fights_required": false,
     "student_discount_pct": 0
   },
   "seats": [

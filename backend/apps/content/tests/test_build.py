@@ -15,6 +15,7 @@ from django.core.management import CommandError, call_command
 from django.db import connection, transaction
 from django.utils import timezone
 from pytest_django import DjangoCaptureOnCommitCallbacks, Settings
+from wassal_content.engine import capabilities
 from wassal_content.findings import STAGES, Finding
 from wassal_content.rules import size
 
@@ -24,6 +25,7 @@ from apps.content.models import (
     ContentChannel,
     ContentPack,
     SpeechLine,
+    SpeechPool,
     Station,
     TaskTemplate,
     Trip,
@@ -319,6 +321,59 @@ def test_the_size_warning_does_not_block(
     assert results(pack)["size"] == "warning"
     [warning] = findings(pack, "V-S1")
     assert (warning["severity"], warning["entity"], warning["id"]) == ("warning", "pack", "core")
+
+
+# -- the engine's rules and speech (specs/004 content-contract §5) --------------------------------
+
+
+def no_fights(trips: list[dict[str, Any]]) -> dict[str, bool]:
+    return {trip["trip_id"]: trip["rules"]["no_fights_required"] for trip in trips}
+
+
+def test_the_snapshot_and_the_pack_carry_no_fights_required(sample_reviewed: User) -> None:
+    Trip.objects.filter(line__line_id="line_hay", number=1).update(no_fights_required=True)
+    expected = {
+        "line_gamaa.01": False,
+        "line_gamaa.02": False,
+        "line_hay.01": True,
+        "line_hay.02": False,
+        "line_hay.03": True,
+    }
+
+    parts = snapshot_module.snapshot("1.0").tree.parts
+    pack = built(sample_reviewed)
+
+    assert no_fights(parts["trips"]) == expected
+    assert pack.status == Status.VALIDATED
+    assert no_fights(exporter.stored_pack(pack)["trips"]) == expected
+
+
+def test_one_reviewed_line_per_engine_slot_builds_to_validated(engine_pools: User) -> None:
+    keys = {slot.default_key for slot in capabilities().speech_slots.values()}
+    assert set(SpeechPool.objects.values_list("speech_key", flat=True)) == keys
+
+    pack = built(engine_pools)
+
+    assert pack.status == Status.VALIDATED
+    assert pack.validation_report["findings"] == []
+
+
+def test_a_missing_engine_pool_stays_draft_with_v_t10(engine_pools: User) -> None:
+    slot = list(capabilities().speech_slots.values())[-1]
+    SpeechPool.objects.filter(speech_key=slot.default_key).delete()
+
+    pack = built(engine_pools)
+
+    assert pack.status == Status.DRAFT
+    assert results(pack)["content_rules"] == "failed"
+    [missing] = pack.validation_report["findings"]
+    assert (missing["code"], missing["entity"], missing["id"], missing["path"]) == (
+        "V-T10",
+        "pack",
+        "core",
+        "$.speech_pools",
+    )
+    assert slot.default_key in missing["message"]
 
 
 # -- rev (US3-6, FR-023) --------------------------------------------------------------------------

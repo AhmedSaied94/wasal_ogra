@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "خد الباقي اللي عليّا يا أسطى"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "حقك، كمّلتلك {amount}"
+      }
+    }
+  ],
+  "speech_key": "passenger.pays_rest"
+}
