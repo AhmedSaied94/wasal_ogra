@@ -329,7 +329,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
 - [ ] Step 2: The engine and its schemas
   - [ ] `003-b04-content-pipeline`. PR 1 (schemas and generated models, user story 1) merged in #3,
     2026-10-19, so M01 can be specified. PR 2 (the admin, validation, pack builds, publishing,
-    promotion, the manifest and staging's own backups) is implemented and awaits its PR. Resolved backend §22.3 (no CDN
+    promotion, the manifest and staging's own backups) is open as #4. Resolved backend §22.3 (no CDN
     for the MVP, research R5). B04 is ticked once B05 has supplied the solver stage and the live
     checks pass (T107).
   - [ ] `004-m01-trip-engine`

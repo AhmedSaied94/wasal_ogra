@@ -1216,7 +1216,7 @@ As built:
   a `packs` volume at `/var/lib/wassal/packs`, which the image creates owned by `app`, and the
   check turns that error into the same `SystemExit`.
 
-  PR 2 is not opened yet: committing and pushing wait for the owner's go-ahead.
+  PR 2 is open as #4.
 - [ ] T107 After B05 (owner and agent): walk quickstart "After B05" items 1–7 on the hosts, record
   the results in `docs/owner-actions.md`, and tick B04 in `docs/delivery-plan.md` Progress once
   they pass.
