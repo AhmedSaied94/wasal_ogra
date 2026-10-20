@@ -31,8 +31,8 @@ time, on the staging VM. The routine keeps the free accounts and their guarantee
 - Sign in to the OCI console, and check that both instances run. Oracle may suspend a tenancy left
   idle for 30 days.
 - Sign in to Healthchecks.io. It deletes accounts with no login for a year.
-- In the B2 console, check that the caps are still USD 0 and storage, both environments together, is
-  well under 10 GB. If anything in the console changed, run
+- In each B2 account (production's and staging's), check that the caps are still USD 0 and storage
+  is well under 10 GB. If anything in the console changed, run
   `uv run tools/b2_setup.py [--env staging] --daily-bucket <daily> --weekly-bucket <weekly> --check`
   from `backend/`, once per environment.
 - Check that no service shows a charge.
@@ -249,11 +249,11 @@ Run each scenario on the VM named in the Host column of the
   - Healthchecks.io has 6 checks, `host-monitor-prod` (the old `host-monitor`) and
     `host-monitor-staging` among them.
   - Once the merge has deployed staging: on the staging VM, create `/etc/wassal/host-monitor.env`
-    with `host-monitor-staging`'s URL and the thresholds, with `BACKUP_STORAGE_ALERT_BYTES=2000000000`
-    (B04: staging checks its own backups), and test it
+    with `host-monitor-staging`'s URL and the thresholds, with `BACKUP_STORAGE_ALERT_BYTES=8000000000`
+    (B04: staging checks its own backups, in its own B2 account), and test it
     ([monitoring-setup.md](runbooks/monitoring-setup.md#healthchecksio-dead-mans-switches)).
   - Once `v0.1.0` has deployed production: the same on the prod VM, with `host-monitor-prod`'s URL
-    and `BACKUP_STORAGE_ALERT_BYTES=6000000000` (the two VMs split the 8 GB alert since B04).
+    and `BACKUP_STORAGE_ALERT_BYTES=8000000000`.
   - UptimeRobot: one monitor, on `https://api.193-122-74-125.sslip.io/healthz`, and none for
     staging. Save a dated copy of its terms.
 - [ ] **T070 Monitoring.** Once T106 is done, walk scenarios 16–18 on the prod VM:
@@ -311,10 +311,8 @@ and its `CONTENT_*` values. So the staging VM gets both first.
 - [x] **T105 Security review.** Claude ran it on 2026-10-19: no CRITICAL or HIGH findings. The
   MEDIUM ones (zip entries, the floor file's lock) and three recommendations (the audit log's
   database trigger, no caching of `/packs/` 404s, an unknown schema major on promotion) are fixed.
-- [ ] **Decide the B2 storage split.** Staging's backup buckets go in production's B2 account, and
-  share its free 10 GB. The runbooks split the 8 GB alert as `6000000000` on the prod VM and
-  `2000000000` on the staging VM. Keep that, or tell Claude your split, or say you'll use a
-  separate B2 account for staging (then each VM keeps `8000000000`).
+- [x] **The B2 storage alert** (decided 2026-10-20). Staging's backups use a second B2 account, so
+  each environment has its own free 10 GB and each VM keeps `BACKUP_STORAGE_ALERT_BYTES=8000000000`.
 - [ ] **Staging VM: host scripts and edge.** From this branch, follow
   [deploy-and-rollback.md "Updating the edge or the host scripts"](runbooks/deploy-and-rollback.md#updating-the-edge-or-the-host-scripts)
   on the staging VM: `rsync` `backend/docker/`, then `sudo ./wassal-docker/host/provision.sh`.
@@ -359,13 +357,14 @@ Then merge PR 2. The merge deploys the staging VM.
 - [ ] **Staging backups** (FR-039c, quickstart "After B05" item 2, which doesn't need B05):
   1. Healthchecks.io: create `backup-staging`, period 1 day, grace 2 h
      ([monitoring-setup.md](runbooks/monitoring-setup.md#healthchecksio-dead-mans-switches)).
-  2. B2: run `uv run tools/b2_setup.py --env staging --daily-bucket wassal-staging-backup-daily --weekly-bucket wassal-staging-backup-weekly`
+  2. B2, in staging's own account (its MFA, USD 0 caps and admin key first): run
+     `uv run tools/b2_setup.py --env staging --daily-bucket wassal-staging-backup-daily --weekly-bucket wassal-staging-backup-weekly`
      from `backend/` ([monitoring-setup.md "Backblaze B2"](runbooks/monitoring-setup.md#backblaze-b2-backups)
      step 8). It creates both buckets with Object Lock and their retention, and a write-only key
      on `staging/`.
   3. On the staging VM, create `/etc/wassal/staging-backup.env` (mode `0400`) from its output, with
      `backup-staging`'s ping URL.
-  4. Set `BACKUP_STORAGE_ALERT_BYTES` in each VM's `host-monitor.env` to your split (above).
+  4. Check that each VM's `host-monitor.env` has `BACKUP_STORAGE_ALERT_BYTES=8000000000`.
   5. Run one backup at once:
      `sudo systemctl start wassal-backup@staging && journalctl -u wassal-backup@staging -n 20`.
      `backup-staging` turns green, and a `staging/YYYY/MM/DD/…` pair is in the daily bucket.

@@ -40,10 +40,9 @@ A host monitor's missed ping also covers a VM that Oracle stopped (break-glass.m
 stopped by Oracle"). For the staging VM, it is the only alert for that.
 
 Each VM's `/etc/wassal/host-monitor.env` holds its own ping URL and the thresholds. Each VM backs
-up its own environment, so each checks its own backup storage. Both environments' buckets are in
-one B2 account and share its free 10 GB, so the two VMs split the 8 GB alert: `6000000000` on the
-prod VM, as below, and `2000000000` on the staging VM, whose database is small. Change the split if
-`last-backup.json` on either VM shows it is off:
+up its own environment, so each checks its own backup storage. Each environment's buckets are in
+a B2 account of their own (production's and staging's), each with its own free 10 GB, so both VMs
+use the same 8 GB alert:
 
 ```text
 HC_PING_HOST_MONITOR_URL=https://hc-ping.com/<uuid of host-monitor-prod or host-monitor-staging>
@@ -51,7 +50,7 @@ DISK_ALERT_PERCENT=80
 CERT_ALERT_DAYS=14
 QUEUE_BACKLOG_THRESHOLD=100
 QUEUE_BACKLOG_MINUTES=10
-BACKUP_STORAGE_ALERT_BYTES=6000000000
+BACKUP_STORAGE_ALERT_BYTES=8000000000
 ```
 
 Each host monitor reads its environment from `/etc/wassal/host.env` and checks its own VM:
@@ -132,7 +131,8 @@ no IP address, cookies or headers.
 The nightly backup, on the prod VM, stores production's dumps in B2. The monthly drill, on the
 staging VM, reads them back (research R9). Since B04, the staging VM also backs up its own
 database, where authors work, into its own pair of buckets with its own write-only key (B04
-research R8). Do steps 1–7 once, before the first production deploy (quickstart step 8), and
+research R8), in a **second B2 account**, so each environment has its own free 10 GB. Do steps
+1–7 once, in production's account, before the first production deploy (quickstart step 8), and
 step 8 when B04 merges.
 
 1. Create the account and **turn on MFA** first: the terms require it.
@@ -172,9 +172,11 @@ step 8 when B04 merges.
    The endpoint and region lines come from B2's answer, so they match the account.
 7. On each VM, re-run `sudo ./wassal-docker/host/provision.sh` (or `sudo systemctl daemon-reload`).
    The backup and drill timers stay skipped until their env files exist.
-8. **Staging's backups.** Run the setup again with `--env staging` and staging's bucket names
-   (`wassal-staging-backup-daily` and `wassal-staging-backup-weekly`, with a suffix if B2 says a
-   name is taken):
+8. **Staging's backups, in staging's own B2 account.** Repeat steps 1–5 in that account: MFA, its
+   region (record it in research R9 "Data location" too), the USD 0 caps, Event Notifications
+   off, and its own admin key, kept in your password manager only. Then run the setup with that
+   account's admin key, `--env staging` and staging's bucket names (`wassal-staging-backup-daily`
+   and `wassal-staging-backup-weekly`, with a suffix if B2 says a name is taken):
 
    ```bash
    uv run tools/b2_setup.py --env staging --daily-bucket wassal-staging-backup-daily --weekly-bucket wassal-staging-backup-weekly
@@ -187,7 +189,8 @@ step 8 when B04 merges.
    - Paste the `backup-staging` ping URL in place of the placeholder.
    - Never reuse production's backup key or the drill key here.
 
-   The caps from step 3 already cover the new buckets.
+   The `B2_S3_ENDPOINT` and `B2_REGION` lines come from staging's account, so they can differ from
+   production's.
 
 After the first production deploy, test both (quickstart scenarios 19 and 21). On the prod VM:
 
@@ -229,8 +232,8 @@ reminder in your calendar.
 - Sign in to the **OCI console**. Oracle may suspend tenancies left idle for 30 days. Check that
   both instances are running.
 - Sign in to **Healthchecks.io**. It deletes accounts with no login for a year.
-- In the **B2** console, check that the caps are still USD 0 and storage, both environments'
-  together, is well under 10 GB. If anything changed, run
+- In **each B2 account** (production's and staging's), check that the caps are still USD 0 and
+  storage is well under 10 GB. If anything changed, run
   `uv run tools/b2_setup.py [--env staging] --daily-bucket <daily> --weekly-bucket <weekly> --check`
   for each environment.
 - Check that no service shows a charge (SC-013).

@@ -220,8 +220,12 @@ US4-5, SC-005) without a broken image ever being built.
     volumes, networks, depends_on, profiles, restart, logging, mem_limit, stop_grace_period,
     working_dir). Anything else, such as `privileged`, `network_mode`, `cap_add` or `devices`, is refused;
   - ports bound to `127.0.0.1`, and the default network only;
-  - plain named volumes, tmpfs, and exactly two binds: `/var/lib/wassal/<env>/initdb` read-only
-    for postgres and `/var/lib/wassal/<env>/backup` for backup.
+  - plain named volumes, tmpfs, and exactly three binds: `/var/lib/wassal/<env>/initdb` read-only
+    for postgres, `/var/lib/wassal/<env>/backup` for backup, and (since B04)
+    `/var/lib/wassal/packs` for the worker, at the same path inside it.
+
+  A test renders the real `compose.yml` with each sizing file and runs it through this check, so a
+  new mount can't reach a host before the check allows it.
 
   A refused stack exits 4 with one `stack: …` line per problem, before the init scripts are synced
   or anything runs. The rendered config holds the environment's secrets, so it only goes to the
@@ -363,7 +367,7 @@ that host's checks:
 | Disk | both | `/` or the Docker data root ≥ `DISK_ALERT_PERCENT` (80) |
 | Certificates | both | The certificate served for this host's `API_HOST` (from its `edge.env`) expires in < `CERT_ALERT_DAYS` (14), or the one served for its `ADMIN_HOST` has already expired, or either can't be read. Both are read with `openssl s_client` against the site's bind address (`PUBLIC_BIND_IP`, `ADMIN_BIND_IP`) with SNI. |
 | Queue backlog | both | `LLEN` of any of the 4 queues of this host's environment (`wassal-<env>-valkey-1`, database 1) > `QUEUE_BACKLOG_THRESHOLD` (100) for ≥ `QUEUE_BACKLOG_MINUTES` (10), tracked in `/var/lib/wassal/host-monitor/backlog.json` |
-| Backup storage | both (staging since B04) | The latest dump's `size_bytes` (from `/var/lib/wassal/<env>/backup/last-backup.json`, this host's own) × 22 (14 daily + 8 weekly kept) ≥ `BACKUP_STORAGE_ALERT_BYTES` (8 GB by default, 80% of B2's free 10 GB, research R9; split between the two hosts when they share one B2 account). No file yet (no backup so far) passes. |
+| Backup storage | both (staging since B04) | The latest dump's `size_bytes` (from `/var/lib/wassal/<env>/backup/last-backup.json`, this host's own) × 22 (14 daily + 8 weekly kept) ≥ `BACKUP_STORAGE_ALERT_BYTES` (8 GB by default, 80% of B2's free 10 GB, research R9; each environment's backups are in a B2 account of its own). No file yet (no backup so far) passes. |
 
 - The admin certificate comes from the host's local CA (`tls internal`). Caddy issues it for 12
   hours and renews it itself (measured with Caddy 2.11.7), so a 14-day threshold would always fail.

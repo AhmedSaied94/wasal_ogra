@@ -1124,9 +1124,8 @@ As built:
   write-only key, `wassal-staging-backup`, on `staging/` (staging is never drilled). It also gained
   `--restore-key`, a list/read key on one environment's buckets and prefix that B2 expires after
   24 h. A staging restore needs it, and the B2 console can't make a key for two buckets.
-- The two hosts' monitors split the 8 GB storage alert (6 GB prod, 2 GB staging), because both
-  environments' buckets share one B2 account's free 10 GB. The owner confirms the split before
-  merge (owner-actions.md).
+- Staging's buckets are in a second B2 account (the owner's choice, 2026-10-20), so each
+  environment has its own free 10 GB and both monitors keep the 8 GB storage alert.
 - Tests: `test_promotion.py`, `test_rebuild_floor.py`; 371 host tests (staging's timer and env
   file, the state-directory table, staging backing itself up and refusing `backup prod`, the
   staging monitor's storage check); 10 more in `tests/test_b2_setup.py`.
@@ -1224,7 +1223,7 @@ As built:
 
 As built (Phase 9):
 - T099–T101 also touched the docs that B04's staging backups made stale:
-  - `docs/runbooks/monitoring-setup.md`: the `backup-staging` check, B2 step 8, the storage split;
+  - `docs/runbooks/monitoring-setup.md`: the `backup-staging` check, B2 step 8 (staging's own account);
   - `docs/runbooks/provision-host.md` and `docs/runbooks/README.md`: staging's timers and files;
   - B01's `contracts/operations.md` and `contracts/environment.md`, annotated "since B04".
 - `restore.md` gained "Restore staging" (a 24-hour read key from `b2_setup.py --restore-key`,

@@ -227,7 +227,8 @@ touched.
    uv run tools/b2_setup.py --env staging --daily-bucket <daily> --weekly-bucket <weekly> --restore-key
    ```
 
-   It asks for the admin key and prints a block for `/run/wassal-staging-restore.env`. The key
+   It asks for the admin key of **staging's** B2 account and prints a block for
+   `/run/wassal-staging-restore.env`. The key
    can only list and read `staging/` in those two buckets, and B2 expires it after 24 h.
 2. **On the staging VM** (`ssh ubuntu@10.67.0.1`), put the block in `/run`, so a reboot removes it:
 

@@ -104,7 +104,11 @@ if args[0] == "compose":
             return {"image": image, "networks": networks, "restart": "unless-stopped", **extra}
         loopback = [{"host_ip": "127.0.0.1", "target": 8000, "published": "1"}]
         services = {name: service(app, ports=loopback) for name in ("api", "admin")}
-        services |= {name: service(app) for name in ("worker", "beat", "migrate")}
+        services |= {name: service(app) for name in ("beat", "migrate")}
+        packs_dir = values.get("CONTENT_PACKS_HOST_DIR", f"{os.environ['WASSAL_STATE_DIR']}/packs")
+        services["worker"] = service(app, volumes=[
+            {"type": "bind", "source": packs_dir, "target": "/var/lib/wassal/packs"},
+        ])
         backup_dir = values.get("BACKUP_STATE_DIR")
         services["backup"] = service(app, volumes=[
             {"type": "bind", "source": backup_dir, "target": "/var/lib/wassal/backup"},
@@ -706,3 +710,76 @@ def test_another_environments_backup_directory_is_refused(host: Host) -> None:
 
     assert result.code == 4
     assert f"backup: the bind mount of {prod_dir} isn't allowed" in result.stderr
+
+
+def test_a_packs_directory_elsewhere_is_refused(host: Host) -> None:
+    bind = {"type": "bind", "source": "/", "target": "/var/lib/wassal/packs"}
+
+    result = host.run(
+        "staging", f"staging {NEW}", STUB_STACK_PATCH=json.dumps({"worker": {"volumes": [bind]}})
+    )
+
+    assert result.code == 4
+    assert "worker: the bind mount of / isn't allowed" in result.stderr
+
+
+# -- the real stack definition -------------------------------------------------------------------
+
+DOCKER_DIR = DEPLOY.parent.parent.parent
+
+
+def stack_policy() -> str:
+    """The policy program embedded in bin/deploy, exactly as deploy runs it."""
+    text = DEPLOY.read_text()
+    start = text.index("read -r -d '' STACK_POLICY <<'PY' || true\n")
+    body = text[text.index("\n", start) + 1 :]
+    return body[: body.index("\nPY\n")]
+
+
+def has_compose() -> bool:
+    docker = shutil.which("docker")
+    if docker is None:
+        return False
+    version = subprocess.run(  # noqa: S603 - fixed program and arguments
+        [docker, "compose", "version"], capture_output=True, check=False
+    )
+    return version.returncode == 0
+
+
+@pytest.mark.skipif(not has_compose(), reason="needs the docker compose CLI (no daemon)")
+@pytest.mark.parametrize("env", ["staging", "prod"])
+def test_the_real_stack_passes_the_policy(tmp_path: Path, env: str) -> None:
+    """compose.yml as a release ships it, rendered with that environment's sizing file.
+
+    The stub above stands in for this render in the other cases. This case keeps the two in step:
+    B04's worker mount was refused on the first staging deploy because only the stub was checked.
+    """
+    secrets = {}
+    for name in ("APP_ENV_FILE", "DB_ENV_FILE", "BACKUP_ENV_FILE"):
+        secrets[name] = str(tmp_path / f"{name.lower()}.env")
+        Path(secrets[name]).write_text("")
+    tag = "sha-" + "d" * 40
+    environ = {"PATH": os.environ["PATH"], "HOME": str(tmp_path), "RELEASE_TAG": tag, **secrets}
+    rendered = subprocess.run(  # noqa: S603 - fixed program and arguments
+        [
+            *("docker", "compose", "-p", f"wassal-{env}"),
+            *("-f", str(DOCKER_DIR / "compose.yml")),
+            *("--env-file", str(DOCKER_DIR / "env" / f"{env}.env")),
+            *("--profile", "ops", "config", "--format", "json"),
+        ],
+        capture_output=True,
+        text=True,
+        env=environ,
+        check=True,
+    )
+
+    arguments = [f"{REPO}:{tag}", f"/var/lib/wassal/{env}", "/var/lib/wassal/packs"]
+    result = subprocess.run(  # noqa: S603 - the policy from bin/deploy, fixed arguments
+        [sys.executable, "-I", "-c", stack_policy(), *arguments],
+        input=rendered.stdout,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr

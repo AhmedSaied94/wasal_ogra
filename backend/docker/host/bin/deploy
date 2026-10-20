@@ -149,12 +149,13 @@ copy_stack() {
 # The stack definition comes out of the image, and root runs it: check it before anything starts.
 # A commit on master, or a write to the image registry, must not be able to give a container the
 # host (privileged mode, host namespaces, a bind of /). Only the known services and images, ports on
-# 127.0.0.1, plain named volumes and the two host directories below are allowed (security review).
+# 127.0.0.1, plain named volumes and the three host directories below are allowed (security review):
+# postgres's init scripts, the backup's own directory, and the worker's packs directory (B04).
 # The rendered config holds the environment's secrets, so it only ever goes to the checker's stdin.
 read -r -d '' STACK_POLICY <<'PY' || true
 import json, re, sys
 
-image, state = sys.argv[1], sys.argv[2]
+image, state, packs = sys.argv[1], sys.argv[2], sys.argv[3]
 APP = {"api", "admin", "worker", "beat", "migrate", "backup"}
 OTHER = {
     "postgres": r"postgres:[0-9][A-Za-z0-9._-]*",
@@ -168,6 +169,7 @@ KEYS = {
 BINDS = {
     ("postgres", f"{state}/initdb", "/docker-entrypoint-initdb.d", True),
     ("backup", f"{state}/backup", "/var/lib/wassal/backup", False),
+    ("worker", packs, "/var/lib/wassal/packs", False),
 }
 try:
     config = json.load(sys.stdin)
@@ -215,7 +217,7 @@ PY
 
 check_stack() {
   compose "$TAG" --profile ops config --format json 2>/dev/null |
-    python3 -I -c "$STACK_POLICY" "$IMAGE_REPO:$TAG" "$ENV_STATE" >&2
+    python3 -I -c "$STACK_POLICY" "$IMAGE_REPO:$TAG" "$ENV_STATE" "$STATE_DIR/packs" >&2
 }
 
 # Postgres mounts its init scripts from a fixed path per environment (POSTGRES_INITDB_DIR in the

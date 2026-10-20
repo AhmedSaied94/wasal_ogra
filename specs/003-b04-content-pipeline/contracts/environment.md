@@ -52,8 +52,9 @@ The timer is `wassal-backup@staging.timer`, at the same 03:00 Cairo time. It is 
 and each run is skipped until `/etc/wassal/staging-backup.env` exists, as production's is. A late
 or failed backup is the `backup-staging` Healthchecks.io check's alert (period 1 day, grace 2 h),
 which the job pings itself, as `backup-prod` does for production. The staging host monitor checks
-its own backup storage, as production's does (B01 FR-038), with `BACKUP_STORAGE_ALERT_BYTES` split
-between the two hosts.
+its own backup storage, as production's does (B01 FR-038), with the same
+`BACKUP_STORAGE_ALERT_BYTES=8000000000`: staging's buckets are in a B2 account of their own, with
+its own free 10 GB.
 
 The key and its env block come from `backend/tools/b2_setup.py --env staging`. A staging restore
 gets a read key that expires after 24 h from `--restore-key` (docs/runbooks/restore.md).
