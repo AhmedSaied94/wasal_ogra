@@ -2,8 +2,10 @@
 
 Production is backed up every night at 03:00 Cairo time, on the prod VM, to two Backblaze B2
 buckets. On the 1st of each month at 05:00, a drill **on the staging VM** restores production's
-newest backup into a throwaway database and checks it. This runbook covers a real restore into
-production, the full rebuild of either VM, and reading the drill's results.
+newest backup into a throwaway database and checks it. Since B04, staging, where authors work, is
+backed up the same way into its own two buckets (B04 research R8). This runbook covers a real
+restore into production, a restore of staging, the full rebuild of either VM, and reading the
+drill's results.
 
 The recovery targets (backend §15, FR-041): at most **24 h of data lost** and **4 h to serve again**.
 Background: research R9; contracts: `specs/002-b01-backend-skeleton/contracts/operations.md`
@@ -13,7 +15,7 @@ Background: research R9; contracts: `specs/002-b01-backend-skeleton/contracts/op
 
 | Where | Key | What |
 | --- | --- | --- |
-| Daily bucket (kept 14 days) | `prod/YYYY/MM/DD/prod-YYYYMMDDTHHMMSSZ.dump` | `pg_dump` custom format |
+| Daily bucket (kept 14 days) | `prod/YYYY/MM/DD/prod-YYYYMMDDTHHMMSSZ.dump` (staging's: `staging/…/staging-….dump`) | `pg_dump` custom format |
 | Daily bucket | `prod/YYYY/MM/DD/prod-YYYYMMDDTHHMMSSZ.json` | Its metadata. It is uploaded last, so a dump without it is incomplete. |
 | Weekly bucket (kept 8 weeks) | The same pair | Taken on Sundays |
 
@@ -25,8 +27,11 @@ compromised prod VM can upload a newer version under an existing name or hide a 
 delete or change a locked version. If the newest backup looks wrong, the original is still listed by
 version (step 2).
 
-The keys are split between the VMs: the prod VM holds the backup key, which can only write, and the
-staging VM holds the drill key, which can only list and read. Staging isn't backed up.
+The keys are split between the VMs: the prod VM holds production's backup key, which can only
+write, and the staging VM holds the drill key, which can only list and read production's backups.
+The staging VM also holds staging's own backup key, which can only write under `staging/`. No key
+can read staging's backups: a staging restore creates one that expires after a day ("Restore
+staging" below).
 
 ## Before you start
 
@@ -186,6 +191,18 @@ sudo systemctl start wassal-backup@prod.service
 sudo systemctl start wassal-backup@prod.timer
 ```
 
+Then bring the pack files back in line with the restored records (B04). The worker writes any
+pack or release file the database has and the disk lacks, never overwrites one, and raises
+`core.floor.json` to the highest stored version:
+
+```bash
+sudo docker exec wassal-prod-worker-1 python manage.py content_files sync --verify
+```
+
+It ends with `files in sync`. Packs promoted after the backup keep their files, and the floor file
+never goes down, so staging never reuses their numbers. Promote them again if they should serve
+(content-publishing.md section 2).
+
 To check that fresh backup at once, run the drill on the staging VM once the backup has finished:
 `sudo systemctl start wassal-restore-drill@prod`.
 
@@ -197,6 +214,73 @@ sudo docker exec "$PG" psql -U postgres -c "DROP DATABASE wassal_before_<stamp>"
 sudo docker exec "$PG" rm -f /tmp/restore.dump /tmp/restore.list
 sudo rm -r /var/lib/wassal/restore
 ```
+
+## Restore staging
+
+Staging's database holds the authors' work: drafts, speech lines and their reviews, pack records
+and the content audit log. Restore it when that work is lost or wrong. Production is never
+touched.
+
+1. **A read key.** On your machine, from `backend/`, with staging's bucket names:
+
+   ```bash
+   uv run tools/b2_setup.py --env staging --daily-bucket <daily> --weekly-bucket <weekly> --restore-key
+   ```
+
+   It asks for the admin key and prints a block for `/run/wassal-staging-restore.env`. The key
+   can only list and read `staging/` in those two buckets, and B2 expires it after 24 h.
+2. **On the staging VM** (`ssh ubuntu@10.67.0.1`), put the block in `/run`, so a reboot removes it:
+
+   ```bash
+   sudo install -m 0400 -o root -g root /dev/null /run/wassal-staging-restore.env
+   sudoedit /run/wassal-staging-restore.env
+   ```
+
+3. **Set the shell variables** for staging:
+
+   ```bash
+   TAG="$(cat /var/lib/wassal/staging/release)"
+   STACK="/var/lib/wassal/staging/deploy/$TAG"
+   IMAGE="ghcr.io/ahmedsaied94/wassal-backend:$TAG"
+   PG=wassal-staging-postgres-1
+   DRILL_ENV=/run/wassal-staging-restore.env
+   dc() { sudo RELEASE_TAG="$TAG" docker compose -p wassal-staging -f "$STACK/compose.yml" --env-file "$STACK/env/staging.env" "$@"; }
+   ```
+
+4. **Follow "Restore into production" steps 1–5** with these variables. Use staging's names
+   wherever they say prod:
+   - `wassal-backup@staging.timer` and `wassal-backup@staging.service`;
+   - `--env-file /etc/wassal/staging.env` in the fetch;
+   - `Prefix="staging/"` if you list versions by hand;
+   - `https://staging-api.141-147-129-92.sslip.io/healthz` from outside.
+
+   A replaced staging backup (step 3's `sha256` check fails) means someone used staging's backup
+   key. Delete `wassal-staging-backup` in the B2 console, run the `--env staging` setup's key step
+   again, and rebuild the staging VM.
+5. **The pack files.** In the worker, write any pack or release file the restored records have and
+   the disk lacks:
+
+   ```bash
+   sudo docker exec wassal-staging-worker-1 python manage.py content_files sync --verify
+   ```
+
+   It ends with `files in sync`. Files of packs published after the backup stay, and are never
+   overwritten. The next build still gets a number above every one of them: staging numbers each
+   build above production's floor file (content-publishing.md "A build fails with
+   `version_floor_unavailable`").
+6. **Clean up.** `sudo rm /run/wassal-staging-restore.env`, then delete `wassal-staging-restore` in
+   the B2 console. Remove the moved-aside database and `/var/lib/wassal/restore` as in step 5's
+   last block, once you are sure.
+
+**If no staging backup is usable**, rebuild staging's content from the repository instead (B04
+research R7, R8):
+
+1. Import `content/source` in staging's admin (Content packs → "Import zip", from a zip of that
+   folder), or with `content_import` in the admin container.
+2. Speech-line reviews aren't in `content/source`: select every pool → "Mark reviewed" once
+   you've checked them.
+3. Build. The new pack is numbered above production's floor file, so above every pack production
+   holds, gaps included.
 
 ## Full rebuild on a new host (within 4 h)
 
@@ -227,27 +311,31 @@ uses that admin (private-network.md).
    `wassal` database you move aside in step 4 is the empty one. Staff accounts come back with the
    data.
 4. **Check the rest.** The uptime monitor is green, `heartbeat-prod` and `host-monitor-prod` ping
-   again, and `sudo systemctl list-timers 'wassal-*'` shows the backup and host monitor timers.
+   again, `sudo systemctl list-timers 'wassal-*'` shows the backup and host monitor timers, and
+   `content_files sync --verify` (end of step 5) wrote the pack files back.
 
 The prod VM's time plus the restore must stay within 4 h (SC-009). If it doesn't, write down which
 step was slow and why.
 
 ### The staging VM
 
-Staging isn't backed up, so a rebuilt staging starts with an empty database.
+Staging's database comes back from its own backups (since B04).
 
 1. **Provision.** Follow provision-host.md steps 1–8 with the staging values, on a new VM:
    - Re-attach the reserved public IP `141.147.129.92`.
    - Put back the env files from your password manager: `staging.env`, `staging-db.env`,
-     `edge.env`, `host-monitor.env` and `prod-drill.env`. Check `PUBLIC_BIND_IP` in `edge.env`.
+     `edge.env`, `host-monitor.env`, `staging-backup.env` and `prod-drill.env`. Check
+     `PUBLIC_BIND_IP` in `edge.env`.
    - Re-add your device's staging tunnel, the staff peers and `deploy-staging`. Then replace the
      `staging` Environment's secrets.
 2. **Deploy.** In Actions → `backend`, open the newest `master` run and re-run its `deploy-staging`
    job.
-3. **Staff accounts.** Create them again in staging, yours with `--superuser`
-   (staff-accounts.md).
-4. **Check the rest.** `heartbeat-staging` and `host-monitor-staging` ping again,
-   `sudo systemctl list-timers 'wassal-*'` shows the drill and host monitor timers, and an
+3. **Restore.** Follow "Restore staging" above. The `wassal` database you move aside is the empty
+   one. Staff accounts and authored content come back with the data; the pack files come back
+   from step 5 there. If no backup is usable, use its last part, and create the staff accounts
+   again, yours with `--superuser` (staff-accounts.md).
+4. **Check the rest.** `heartbeat-staging`, `backup-staging` and `host-monitor-staging` ping again,
+   `sudo systemctl list-timers 'wassal-*'` shows the backup, drill and host monitor timers, and an
    on-demand drill passes: `sudo systemctl start wassal-restore-drill@prod`.
 
 The staging VM's time on its own must stay within 4 h (SC-009).

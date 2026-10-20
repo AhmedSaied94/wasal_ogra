@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "axes",
     "apps.common",
     "apps.accounts",
+    "apps.content",
 ]
 
 # The request id comes first, so every line, the access line included, carries it (FR-036).
@@ -167,6 +168,18 @@ SPECTACULAR_SETTINGS = {
     # The three readiness checks share one choice set; name it once.
     "ENUM_NAME_OVERRIDES": {"CheckResultEnum": "apps.common.api.serializers.CHECK_RESULTS"},
 }
+
+# -- Content pipeline (B04, specs/003-b04-content-pipeline/contracts/environment.md) ---------------
+
+_content = env.content(default_packs_dir=BASE_DIR / "var" / "packs")
+CONTENT_ROLE = _content.role
+CONTENT_PACKS_DIR = _content.packs_dir
+CONTENT_PACKS_PUBLIC_URL = _content.public_url
+CONTENT_VERSION_FLOOR_URL = _content.floor_url
+CONTENT_PROMOTION_SOURCE_URL = _content.promotion_url
+CONTENT_SOLVER_STAGE = _content.solver_stage
+CONTENT_MANIFEST_CACHE_SECONDS = _content.manifest_cache_seconds
+CONTENT_HTTP_TIMEOUT_SECONDS = _content.http_timeout_seconds
 
 # -- Background tasks (FR-006, FR-007) -------------------------------------------------------------
 

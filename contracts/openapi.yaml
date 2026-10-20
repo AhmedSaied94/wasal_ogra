@@ -53,6 +53,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: A check failed
+  /v1/content/manifest:
+    get:
+      operationId: content_manifest
+      description: 'The content pack this app should have: the current one, or for
+        an app below its minimum version the newest pack that app can read.'
+      summary: Content manifest
+      parameters:
+      - in: header
+        name: X-Client-Version
+        schema:
+          type: string
+        description: MAJOR.MINOR.PATCH, with any +BUILD suffix ignored.
+      tags:
+      - content
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentManifest'
+          description: ''
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The database is down
 components:
   schemas:
     CheckResultEnum:
@@ -63,6 +104,49 @@ components:
       description: |-
         * `pass` - pass
         * `fail` - fail
+    ContentManifest:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        packs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentManifestPack'
+          maxItems: 5
+          minItems: 0
+      required:
+      - packs
+      - version
+    ContentManifestPack:
+      type: object
+      properties:
+        pack_id:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{1,31}$
+        version:
+          type: integer
+          minimum: 1
+        url:
+          type: string
+          pattern: ^https?://
+        sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        size:
+          type: integer
+          minimum: 1
+        min_client_version:
+          type: string
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+      required:
+      - min_client_version
+      - pack_id
+      - sha256
+      - size
+      - url
+      - version
     Error:
       type: object
       properties:

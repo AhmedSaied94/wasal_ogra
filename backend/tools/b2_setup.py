@@ -1,21 +1,28 @@
-"""One-time Backblaze B2 setup for the backups (research R9, FR-039a).
+"""One-time Backblaze B2 setup for the backups (research R9, FR-039a; B04 research R8).
 
-Run on the operator's machine, never on the host, from `backend/`:
+Run on the operator's machine, never on the host, from `backend/`, once per environment:
 
-    uv run tools/b2_setup.py --daily-bucket <name> --weekly-bucket <name> [--check]
+    uv run tools/b2_setup.py [--env prod|staging] --daily-bucket <name> --weekly-bucket <name> \
+        [--check]
 
 It asks for the admin key (typed in, never stored or printed) and, through the B2 native API v4:
 
 1. creates both buckets private and encrypted (SSE-B2), with Object Lock on and their lifecycle
    rule;
 2. sets governance default retention, 14 and 56 days;
-3. creates the backup key (`writeFiles`) and the drill key (`listBuckets`, `listFiles`,
-   `readFiles`), both on the two buckets and the `prod/` prefix only;
+3. creates the environment's backup key (`writeFiles`) and, for `prod` only, the drill key
+   (`listBuckets`, `listFiles`, `readFiles`), each on the two buckets and the `<env>/` prefix only.
+   Staging backs itself up but is never drilled, so it has no read key;
 4. signs in with each new key and checks the rights B2 reports;
-5. prints the `prod-backup.env` and `prod-drill.env` lines once.
+5. prints the `<env>-backup.env` lines, and `prod-drill.env`'s for `prod`, once.
 
 `--check` repeats steps 2 and 4 read-only, from the bucket and key listings, after any console
 change.
+
+`--restore-key` creates only a read key (`listBuckets`, `listFiles`, `readFiles`) on the
+environment's two buckets and prefix that expires after 24 hours, and prints a temporary env file
+for `restore_drill fetch` (docs/runbooks/restore.md). Staging has no read key of its own, so a
+staging restore needs one; the B2 console can't make a key for two buckets.
 
 The call sequence is provisional until the live spike (tasks.md T005) records it in research R9.
 """
@@ -25,6 +32,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from dataclasses import dataclass
 from getpass import getpass
 from typing import Any
 from urllib.parse import urlsplit
@@ -35,15 +43,33 @@ import requests
 API_VERSION = "v4"
 AUTHORIZE_URL = f"https://api.backblazeb2.com/b2api/{API_VERSION}/b2_authorize_account"
 TIMEOUT_S = 30
-PREFIX = "prod/"
+ENVS = ("prod", "staging")
 RETENTION_DAYS = {"daily": 14, "weekly": 56}
 HIDDEN_DAYS_BEFORE_DELETE = 1
 # Encryption at rest by B2 (SSE-B2). It guards the stored dumps, not a leaked read key.
 ENCRYPTION = {"mode": "SSE-B2", "algorithm": "AES256"}
-KEYS = {
-    "backup": ("wassal-prod-backup", ("writeFiles",)),
-    "drill": ("wassal-prod-drill", ("listBuckets", "listFiles", "readFiles")),
-}
+Key = tuple[str, tuple[str, ...]]  # (key name, capabilities)
+RESTORE_KEY_SECONDS = 24 * 3600
+BACKUP_CAPABILITIES: tuple[str, ...] = ("writeFiles",)
+DRILL_CAPABILITIES: tuple[str, ...] = ("listBuckets", "listFiles", "readFiles")
+
+
+@dataclass(frozen=True)
+class Target:
+    """One environment's backups: its object prefix and its keys, by role."""
+
+    env: str
+
+    @property
+    def prefix(self) -> str:
+        return f"{self.env}/"
+
+    @property
+    def keys(self) -> dict[str, Key]:
+        keys: dict[str, Key] = {"backup": (f"wassal-{self.env}-backup", BACKUP_CAPABILITIES)}
+        if self.env == "prod":  # the staging host drills production's backups only
+            keys["drill"] = ("wassal-prod-drill", DRILL_CAPABILITIES)
+        return keys
 
 
 class SetupError(Exception):
@@ -109,10 +135,10 @@ def region_of(s3_url: str) -> str:
 # -- setup -----------------------------------------------------------------------------------------
 
 
-def setup(admin: B2, session: requests.Session, buckets: dict[str, str]) -> str:
+def setup(admin: B2, session: requests.Session, target: Target, buckets: dict[str, str]) -> str:
     created: list[str] = []
     try:
-        return _setup(admin, session, buckets, created)
+        return _setup(admin, session, target, buckets, created)
     except SetupError as exc:
         if not created:
             raise
@@ -124,7 +150,11 @@ def setup(admin: B2, session: requests.Session, buckets: dict[str, str]) -> str:
 
 
 def _setup(
-    admin: B2, session: requests.Session, buckets: dict[str, str], created: list[str]
+    admin: B2,
+    session: requests.Session,
+    target: Target,
+    buckets: dict[str, str],
+    created: list[str],
 ) -> str:
     bucket_ids = {}
     for kind, name in buckets.items():
@@ -146,32 +176,51 @@ def _setup(
         )
     ids = [bucket_ids["daily"], bucket_ids["weekly"]]
     created_keys = {}
-    for role, (key_name, capabilities) in KEYS.items():
+    for role, (key_name, capabilities) in target.keys.items():
         created_keys[role] = admin.call(
             "b2_create_key",
             keyName=key_name,
             capabilities=list(capabilities),
             bucketIds=ids,
-            namePrefix=PREFIX,
+            namePrefix=target.prefix,
         )
         created.append(f"key {key_name}")
     problems = []
     for role, key in created_keys.items():
         signed_in = B2(session, key["applicationKeyId"], key["applicationKey"])
-        problems += key_problems(role, signed_in.allowed, ids, buckets_field="buckets")
+        problems += key_problems(target, role, signed_in.allowed, ids, buckets_field="buckets")
     if problems:
         raise SetupError(
             "\n".join(problems)
             + "\nDelete the new keys in the B2 console, then run the setup again."
         )
-    return env_lines(admin.s3_url, buckets, created_keys)
+    return env_lines(target, admin.s3_url, buckets, created_keys)
 
 
 def key_problems(
-    role: str, rights: dict[str, Any], bucket_ids: Sequence[str], *, buckets_field: str
+    target: Target,
+    role: str,
+    rights: dict[str, Any],
+    bucket_ids: Sequence[str],
+    *,
+    buckets_field: str,
 ) -> list[str]:
     """What differs between a key's reported rights and its intended ones."""
-    key_name, capabilities = KEYS[role]
+    key_name, capabilities = target.keys[role]
+    return rights_problems(
+        key_name, capabilities, target.prefix, rights, bucket_ids, buckets_field=buckets_field
+    )
+
+
+def rights_problems(
+    key_name: str,
+    capabilities: Sequence[str],
+    prefix: str,
+    rights: dict[str, Any],
+    bucket_ids: Sequence[str],
+    *,
+    buckets_field: str,
+) -> list[str]:
     if buckets_field == "buckets":
         reported_buckets = {bucket["id"] for bucket in rights.get("buckets") or []}
     else:
@@ -181,29 +230,29 @@ def key_problems(
         problems.append(f"{key_name}: capabilities differ from {list(capabilities)}")
     if reported_buckets != set(bucket_ids):
         problems.append(f"{key_name}: buckets differ from the two backup buckets")
-    if rights.get("namePrefix") != PREFIX:
-        problems.append(f"{key_name}: name prefix differs from {PREFIX!r}")
+    if rights.get("namePrefix") != prefix:
+        problems.append(f"{key_name}: name prefix differs from {prefix!r}")
     return problems
 
 
-def env_lines(s3_url: str, buckets: dict[str, str], keys: dict[str, dict[str, Any]]) -> str:
-    shared = [
-        f"B2_S3_ENDPOINT={s3_url}",
-        f"B2_REGION={region_of(s3_url)}",
-        f"B2_DAILY_BUCKET={buckets['daily']}",
-        f"B2_WEEKLY_BUCKET={buckets['weekly']}",
-        f"BACKUP_PREFIX={PREFIX.rstrip('/')}",
+def env_lines(
+    target: Target, s3_url: str, buckets: dict[str, str], keys: dict[str, dict[str, Any]]
+) -> str:
+    env = target.env
+    shared = shared_lines(target, s3_url, buckets)
+    backup = keys["backup"]
+    lines = [
+        f"# /etc/wassal/{env}-backup.env (mode 0400)",
+        *shared,
+        f"B2_BACKUP_KEY_ID={backup['applicationKeyId']}",
+        f"B2_BACKUP_APP_KEY={backup['applicationKey']}",
+        "BACKUP_WEEKLY_WEEKDAY=6",
+        f"HC_PING_BACKUP_URL=<the backup-{env} ping URL>",
+        "",
     ]
-    backup, drill = keys["backup"], keys["drill"]
-    return "\n".join(
-        [
-            "# /etc/wassal/prod-backup.env (mode 0400)",
-            *shared,
-            f"B2_BACKUP_KEY_ID={backup['applicationKeyId']}",
-            f"B2_BACKUP_APP_KEY={backup['applicationKey']}",
-            "BACKUP_WEEKLY_WEEKDAY=6",
-            "HC_PING_BACKUP_URL=<the backup-prod ping URL>",
-            "",
+    if "drill" in keys:
+        drill = keys["drill"]
+        lines += [
             "# /etc/wassal/prod-drill.env (mode 0400)",
             *shared,
             f"B2_DRILL_KEY_ID={drill['applicationKeyId']}",
@@ -212,13 +261,62 @@ def env_lines(s3_url: str, buckets: dict[str, str], keys: dict[str, dict[str, An
             "HC_PING_DRILL_URL=<the restore-drill-prod ping URL>",
             "",
         ]
+    return "\n".join(lines)
+
+
+def shared_lines(target: Target, s3_url: str, buckets: dict[str, str]) -> list[str]:
+    return [
+        f"B2_S3_ENDPOINT={s3_url}",
+        f"B2_REGION={region_of(s3_url)}",
+        f"B2_DAILY_BUCKET={buckets['daily']}",
+        f"B2_WEEKLY_BUCKET={buckets['weekly']}",
+        f"BACKUP_PREFIX={target.env}",
+    ]
+
+
+# -- --restore-key ---------------------------------------------------------------------------------
+
+
+def restore_key(
+    admin: B2, session: requests.Session, target: Target, buckets: dict[str, str]
+) -> str:
+    """A read key on the environment's buckets and prefix that B2 expires after a day."""
+    ids = []
+    for name in buckets.values():
+        found = admin.call("b2_list_buckets", bucketName=name)["buckets"]
+        if not found:
+            raise SetupError(f"{name}: bucket not found")
+        ids.append(found[0]["bucketId"])
+    key_name = f"wassal-{target.env}-restore"
+    key = admin.call(
+        "b2_create_key",
+        keyName=key_name,
+        capabilities=list(DRILL_CAPABILITIES),
+        bucketIds=ids,
+        namePrefix=target.prefix,
+        validDurationInSeconds=RESTORE_KEY_SECONDS,
+    )
+    signed_in = B2(session, key["applicationKeyId"], key["applicationKey"])
+    problems = rights_problems(
+        key_name, DRILL_CAPABILITIES, target.prefix, signed_in.allowed, ids, buckets_field="buckets"
+    )
+    if problems:
+        raise SetupError("\n".join(problems) + f"\nDelete {key_name} in the B2 console.")
+    return "\n".join(
+        [
+            f"# /run/wassal-{target.env}-restore.env (mode 0400); the key expires in 24 h",
+            *shared_lines(target, admin.s3_url, buckets),
+            f"B2_DRILL_KEY_ID={key['applicationKeyId']}",
+            f"B2_DRILL_APP_KEY={key['applicationKey']}",
+            "",
+        ]
     )
 
 
 # -- --check ---------------------------------------------------------------------------------------
 
 
-def check(admin: B2, buckets: dict[str, str]) -> list[str]:
+def check(admin: B2, target: Target, buckets: dict[str, str]) -> list[str]:
     problems = []
     bucket_ids = []
     for kind, name in buckets.items():
@@ -244,12 +342,12 @@ def check(admin: B2, buckets: dict[str, str]) -> list[str]:
     if problems:
         return problems
     listed = list_keys(admin)
-    for role, (key_name, _) in KEYS.items():
+    for role, (key_name, _) in target.keys.items():
         matching = [key for key in listed if key.get("keyName") == key_name]
         if len(matching) != 1:
             problems.append(f"{key_name}: expected one key with that name, found {len(matching)}")
             continue
-        problems += key_problems(role, matching[0], bucket_ids, buckets_field="bucketIds")
+        problems += key_problems(target, role, matching[0], bucket_ids, buckets_field="bucketIds")
     return problems
 
 
@@ -272,10 +370,16 @@ def list_keys(admin: B2) -> list[dict[str, Any]]:
 
 def main(argv: Sequence[str] | None = None, *, session: requests.Session | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
+    parser.add_argument("--env", choices=ENVS, default="prod", help="whose backups (default prod)")
     parser.add_argument("--daily-bucket", required=True)
     parser.add_argument("--weekly-bucket", required=True)
-    parser.add_argument("--check", action="store_true", help="read-only: verify an existing setup")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="read-only: verify an existing setup")
+    mode.add_argument(
+        "--restore-key", action="store_true", help="a read key that expires in 24 h, for a restore"
+    )
     args = parser.parse_args(argv)
+    target = Target(args.env)
     buckets = {"daily": args.daily_bucket, "weekly": args.weekly_bucket}
     http = session or requests.Session()
 
@@ -283,12 +387,24 @@ def main(argv: Sequence[str] | None = None, *, session: requests.Session | None 
     try:
         admin = B2(http, key_id, getpass("B2 admin application key (not echoed): "))
         if args.check:
-            problems = check(admin, buckets)
+            problems = check(admin, target, buckets)
             if problems:
                 raise SetupError("\n".join(problems))
-            print("ok: both buckets and both keys are as research R9 requires", file=sys.stderr)
+            print(
+                f"ok: both buckets and {target.env}'s keys are as research R9 requires",
+                file=sys.stderr,
+            )
             return 0
-        lines = setup(admin, http, buckets)
+        if args.restore_key:
+            lines = restore_key(admin, http, target, buckets)
+            print(
+                f"Paste these into /run/wassal-{target.env}-restore.env on the {target.env} VM "
+                "(restore.md). Delete the key in the B2 console once the restore is done.",
+                file=sys.stderr,
+            )
+            print(lines)
+            return 0
+        lines = setup(admin, http, target, buckets)
     except SetupError as exc:
         print(f"b2_setup: {exc}", file=sys.stderr)
         return 1

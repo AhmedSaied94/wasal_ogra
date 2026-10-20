@@ -97,8 +97,8 @@ A trip has 1 to 4 `TripStation`s (ux-spec «الألوان»), ordered by the li
 | `dest_station` | FK `Station` | Must be one of the trip's stations |
 | `pays_at_seconds` | smallint ≥ 0, null | — |
 | `payment` | int[] (PostgreSQL array) | 1 to 10 values, each a §3.2 denomination |
-| `group_id` | varchar, null | `^g[0-9]{1,2}$` |
-| `group_size` | smallint 2–12, null | Set exactly when `group_id` is set. Members of a group agree on size, and the member count equals it (build check). |
+| `group_id` | varchar, empty when none | `^g[0-9]{1,2}$` |
+| `group_size` | smallint 2–12, null | Set exactly when `group_id` is set. Members of a group agree on size, and at most that many members are listed (build check, V-T5). |
 | `speech_keys` | jsonb, default `{}` | A map from role slug to `speech_key`. Each key must exist in a `SpeechPool` (build check). |
 | `order` | smallint | Order in the trip |
 
@@ -108,7 +108,7 @@ A trip has 1 to 4 `TripStation`s (ux-spec «الألوان»), ordered by the li
 | `event_id` | enum | Glossary closed set |
 | `at_seconds` | smallint ≥ 0 | — |
 | `passenger_ids` | varchar[] | Each one a passenger of the trip |
-| `station_id` | varchar, null | A station of the trip |
+| `station_id` | varchar, empty when none | A station of the trip |
 | `amount_piasters` | int, null | A multiple of 50 |
 | `seconds` | smallint, null | — |
 | `order` | smallint | — |
@@ -194,7 +194,7 @@ foreign key, so the content tables restore without the staff table (R8).
 | Field | Type | Rules |
 | --- | --- | --- |
 | `pack_id` | varchar | `core` |
-| `version` | int ≥ 1 | Unique together with `pack_id` |
+| `version` | int ≥ 1, null while queued | Unique together with `pack_id`. A built pack gets it when its build runs (R7); a promoted one has it from the start. |
 | `origin` | enum `built`, `promoted` | `built` on `source`, `promoted` on `target` |
 | `status` | enum `draft`, `validated`, `published`, `retired` | Transitions below |
 | `build_state` | enum `queued`, `running`, `finished`, `failed` | For `built` packs only |
@@ -210,6 +210,7 @@ foreign key, so the content tables restore without the staff table (R8).
 | `built_by`, `published_by`, `promoted_by` | varchar | Staff username, or empty |
 | `built_at`, `published_at`, `promoted_at` | timestamptz, null | — |
 | `release_sha256` | char(64), empty on drafts | Hash of the release record, which is the promotion code (R6) |
+| `release_file` | bytea, empty until the first publish attempt | The release record's bytes, made once, so a retried publish and `content_files sync` write exactly the same file |
 | `failure_reason` | text | Last failed build or publish reason (short, no secrets) |
 
 **State transitions** (any other change is refused in `save()` and in the services):
@@ -260,8 +261,9 @@ Rows exist only for the last 5 published versions.
 | `pack_id`, `version`, `sha256` | — | The pack acted on |
 | `details` | jsonb | The validation report, or for a promotion the release record. Old and new values for a minimum-version change. The failure reason if it failed. |
 
-Append-only: `save()` refuses updates, `delete()` refuses always, and the admin has no add, change
-or delete permission for any role, superuser included.
+Append-only: `save()` refuses updates, `delete()` refuses always, a database trigger (migration
+`0005_audit_append_only`) refuses any `UPDATE` or `DELETE` that bypasses the model, and the admin
+has no add, change or delete permission for any role, superuser included.
 
 ## Framework tables used
 
@@ -297,13 +299,13 @@ or delete permission for any role, superuser included.
 Mode `0755` for the directory, owned by uid 10001 (the image's `app` user). Files are `0644`. The
 floor file is the only one that is ever rewritten (contracts/pack-delivery.md "The floor file"). The
 edge mounts the directory read-only at `/srv/packs`. Only the worker mounts it read-write. On dev it
-is `backend/var/packs/` (gitignored), served by the API under `DEBUG`.
+is the `packs` volume at the same path, served by the API under `DEBUG`.
 
 ## Invariants
 
 | Name | Checked by | Statement |
 | --- | --- | --- |
 | `content.published_packs_intact` | The restore drill (B01 registry), and the daily `sync_files --verify` | For every `published` or `retired` pack, `sha256(file) == sha256` and `len(file) == size` |
-| One current pack | DB constraint + tests | `ContentChannel.current` is `published`, and has the highest `version` of all published packs for that `pack_id` |
+| One current pack | DB check at commit (migration 0002) + tests | `ContentChannel.current` is `published`, and has the highest `version` of all published packs for that `pack_id`. With nothing published it is empty. |
 | Index matches pack | Tests | Index rows of version *v* equal what parsing pack *v*'s file gives |
 | Versions never reused | Tests (R7) | No two `ContentPack` rows share `(pack_id, version)` in one environment. Staging never builds a version that production's pack files already have. |

@@ -249,7 +249,8 @@ jobs:
       - id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: backend
+          # The repository root, which holds tools/content_kit (B04 research R13).
+          context: .
           file: backend/docker/Dockerfile
           platforms: linux/${{ matrix.arch }}
           build-args: RELEASE=${{ github.sha }}
@@ -331,6 +332,13 @@ jobs:
               echo
             done
           done
+      - name: The content manifest before any publish, and a missing pack file
+        run: |
+          body="$(curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$API_PORT/v1/content/manifest")"
+          echo "$body"
+          [ "$body" = '{"version":0,"packs":[]}' ]
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 "http://127.0.0.1:$API_PORT/packs/core-1.json.gz")"
+          [ "$status" = 404 ]
       - name: Edge assertions (production Caddyfile, host networking)
         run: docker/edge/smoke.sh
       - if: failure()

@@ -38,7 +38,7 @@ A Python **solver/simulator** (`tools/solver`) mirrors the mobile trip engine. I
 | --- | --- |
 | Language/Version | Python 3.13, managed with `uv` |
 | Primary dependencies | Django 5.2 LTS, Django REST Framework, `djangorestframework-simplejwt`, `drf-spectacular` (OpenAPI), `django-environ`, `psycopg` 3, `redis`, Celery 5 + `django-celery-beat`, `jsonschema`, `uuid-utils` (UUIDv7), `google-auth` + `google-api-python-client` (Play Developer API, ID tokens), Apple `app-store-server-library`, `PyJWT` + `cryptography` (Apple ID tokens, AdMob SSV signatures), `firebase-admin` (FCM), `django-storages` (S3-compatible object storage), `django-otp` (admin 2FA), `sentry-sdk`, `gunicorn` |
-| Storage | PostgreSQL 17 (primary), Redis 7 or Valkey (cache, throttling, Celery broker, locks), S3-compatible object storage (content packs, backups) |
+| Storage | PostgreSQL 17 (primary), Redis 7 or Valkey (cache, throttling, Celery broker, locks), the host's disk for content packs, served by its edge (B04 research R5), and Backblaze B2 for backups |
 | Testing | `pytest`, `pytest-django`, `factory_boy`, `hypothesis` (ledger and engine invariants), `schemathesis` (OpenAPI contract fuzzing), recorded store webhook payloads, `locust` (load) |
 | Target platform | Linux containers on **two Oracle Cloud Always Free `VM.Standard.A1.Flex` (ARM64) instances, one per environment, each 1 OCPU / 6 GB** (together the whole 2026 Always Free allowance of 2 OCPU / 12 GB): production with a 100 GB boot volume, staging with 47 GB. Both are in the tenancy's home region **`me-jeddah-1`**, each with its own reserved public IP and behind its own Caddy. The account stays Always Free: no paid fallback (B01 research R1). Latency baseline from Egypt (fixed and mobile ISP, `time_connect` to `/healthz`): recorded here after the first deploy (`docs/runbooks/provision-host.md`). |
 | Project type | Web service: REST API + Django admin (content authoring, live ops) + Celery workers |
@@ -130,24 +130,24 @@ flowchart LR
     BEAT["beat<br/>Celery beat"]
     PG[("PostgreSQL 17")]
     RD[("Valkey")]
+    PACKS[("Pack files<br/>/var/lib/wassal/packs")]
     CADDY --> API
     CADDY --> ADMIN
+    CADDY -->|"serves /packs/"| PACKS
     API --> PG
     API --> RD
     WORKER --> PG
     WORKER --> RD
+    WORKER -->|"writes packs"| PACKS
     BEAT --> RD
   end
-  OBJ[("Object storage<br/>packs")]
   B2[("Backblaze B2<br/>backups")]
   GP["Google Play Developer API<br/>+ RTDN via Pub/Sub"]
   AS["App Store Server API<br/>+ Notifications V2"]
   ADMOB["AdMob SSV"]
   FCM["Firebase Cloud Messaging"]
   SENTRY["Sentry"]
-  APP -->|"HTTPS /v1"| CADDY
-  APP -->|"download packs"| OBJ
-  WORKER -->|"publish packs"| OBJ
+  APP -->|"HTTPS /v1, /packs/"| CADDY
   PG -.->|"nightly backup job"| B2
   API <--> GP
   API <--> AS
@@ -161,10 +161,10 @@ flowchart LR
 
 | Service | Image | Notes |
 | --- | --- | --- |
-| `caddy` | `caddy:2.11` (official image), a separate Compose project `wassal-edge` on the host network | Automatic HTTPS (Let's Encrypt) for the API hostnames on the public address; HSTS; request size limit 512 KB; one edge per host, serving only that host's environment. The admin hostname binds only the host's WireGuard address (`10.66.0.1` on prod, `10.67.0.1` on staging), with that edge's own internal CA. Hostnames are configuration: `sslip.io` names for each host's reserved IP until a domain is registered. |
+| `caddy` | `caddy:2.11` (official image), a separate Compose project `wassal-edge` on the host network | Automatic HTTPS (Let's Encrypt) for the API hostnames on the public address; HSTS; request size limit 512 KB; one edge per host, serving only that host's environment. It also serves the host's pack files under `/packs/`, read-only from `/var/lib/wassal/packs`, with immutable caching (B04 research R5). The admin hostname binds only the host's WireGuard address (`10.66.0.1` on prod, `10.67.0.1` on staging), with that edge's own internal CA. Hostnames are configuration: `sslip.io` names for each host's reserved IP until a domain is registered. |
 | `api` | `wassal-backend` | `gunicorn` with `gthread` workers; `/healthz`, `/readyz` |
 | `admin` | `wassal-backend` | Same code, `ADMIN_ONLY=1` URL conf; staff login with 2FA; reachable only over WireGuard |
-| `worker` | `wassal-backend` | Celery queues: `default`, `purchases`, `content`, `push` |
+| `worker` | `wassal-backend` | Celery queues: `default`, `purchases`, `content`, `push`. The only service that mounts `/var/lib/wassal/packs`, where it writes pack files (B04). |
 | `beat` | `wassal-backend` | Schedules in §11.2 |
 | `postgres` | `postgres:17` | Data volume on block storage; nightly backups (§15) |
 | `valkey` | `valkey/valkey:8.1` | Cache, throttling and the Celery broker. Append-only file (`everysec`) so queued tasks survive a restart; `noeviction`. |
@@ -325,7 +325,7 @@ Accounts are never merged, so currency can never be duplicated.
 
 ```json
 { "version": 7, "packs": [
-  { "pack_id": "core", "version": 7, "url": "https://cdn.<domain>/packs/core-7.json.gz", "sha256": "…", "size": 412233, "min_client_version": "1.2.0" } ] }
+  { "pack_id": "core", "version": 7, "url": "https://<api-host>/packs/core-7.json.gz", "sha256": "…", "size": 412233, "min_client_version": "1.2.0" } ] }
 ```
 
 **`POST /v1/sync`** — see §7.3.
@@ -433,7 +433,7 @@ Processing rules:
 | `trip_start` | `trip_id`, `content_version`, `fuel_mode` (`fuel` \| `unlimited` \| `challenge`) | trip exists in that pack; line, vehicle and previous trip unlocked; fuel reconciliation (§7.5) | fuel −1 unless `unlimited` window active |
 | `trip_result` | `trip_start_txn`, `TripResult` (mobile §7.2) | matching accepted `trip_start`; `0 ≤ stars ≤ 3`; `earnings_jenehat ≤ trip.max_earnings_jenehat`; `duration_ms ≥ 0.85 × last station time`; one result per start | JENEHAT +; `TripProgress` best; `TripRun` row; task/league counters |
 | `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}, `ref` (trip start txn) | caps from §3.4 (per trip / per game day) | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded for caps only |
-| `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `upgrade`}, `sku_id`, `variant?`, `price` | price equals catalog price in the client's `content_version`; prerequisites (chapter, line); not owned; balance | JENEHAT −; `Ownership` + |
+| `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `chapter`, `upgrade`}, `sku_id`, `variant?`, `price` | price equals catalog price in the client's `content_version`; prerequisites (chapter, line); not owned; balance | JENEHAT −; `Ownership` + |
 | `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price` | catalog price; **authoritative balance check** | BONAT −; inventory / fuel / unlimited window / ownership |
 | `use_booster` | `booster_id`, `ref` | inventory count > 0 | inventory −1 |
 | `claim_daily_reward` | `day_index` | server game date; not yet claimed today; streak rules | grants per streak table |
@@ -528,18 +528,20 @@ Other rewarded placements are client-applied and arrive as `ad_reward` sync ops 
 
 ```mermaid
 flowchart LR
-  A["Author in Django admin<br/>(or import JSON from content/source)"] --> B["JSON Schema validation"]
-  B --> C["Solver checks (§10)<br/>solvable · difficulty band · reachability"]
-  C --> D["Build pack<br/>canonical JSON → gzip → sha256"]
-  D --> E["Upload to object storage<br/>immutable key core-<v>.json.gz"]
-  E --> F["Publish: bump content version<br/>manifest returns new pack"]
-  F --> G["App downloads, verifies, swaps<br/>(mobile §14.1)"]
+  A["Author in staging's admin<br/>(or import content/source)"] --> B["Build: snapshot, version, rev<br/>canonical JSON → gzip → sha256"]
+  B --> C["Validate: schema · references · content rules<br/>review · solver (§10) · size"]
+  C --> D["Publish on staging<br/>core-&lt;v&gt;.json.gz + release record<br/>written once to the packs directory"]
+  D --> E["Test on staging<br/>copy the promotion code"]
+  E --> F["Promote on production<br/>fetch, check the hash, re-validate,<br/>store, raise the floor file"]
+  F --> G["Manifest offers it<br/>app downloads, verifies, swaps<br/>(mobile §14.1)"]
 ```
 
-- Packs are **immutable**; publishing always creates a new version. Rollback = re-publish a previous version as a new version number.
+- Packs are **immutable**; publishing always creates a new version. Rollback builds an earlier pack's content as a new version number, which is then published like any other.
+- **Two environments, one source of numbers.** Only staging builds and publishes (`CONTENT_ROLE=source`). Production only promotes (`target`): it fetches the exact files staging published, anchored by the **promotion code** `core-<v>:<sha256 of the release record>`, checks them again against its own schemas, and serves them from its own edge. Staging numbers each build above production's floor file (`core.floor.json`), so no version is ever reused (B04 contracts/pack-delivery.md).
+- **The release record** (`core-<v>.release.json`) is written next to each pack: its sha256, size, schema version, minimum app version, stage results and warnings, with no staff names.
 - `trip_id` is stable forever. A trip whose rules change keeps its id and gets a new `rev`; players keep their stars.
-- Catalog prices for JENEHAT/BONAT items are part of the pack, so `spend_*` ops validate against the pack version the client declares (§7.4). The server keeps the last 5 pack versions loaded for validation.
-- Publishing requires a staff user with the `content.publish` permission and a green validation report.
+- Catalog prices for JENEHAT/BONAT items are part of the pack, so `spend_*` ops validate against the pack version the client declares (§7.4). The server keeps the last 5 published versions indexed for validation (`PackTripIndex`, `PackPriceIndex`, read through `apps.content.services.lookups`).
+- Publishing requires a staff user with `content.publish_pack`, a `validated` pack whose solver stage passed, and a version above the current one. Promoting requires `content.promote_pack`. Every publish, promotion, rollback and minimum-version change is in the append-only `ContentAuditRecord`.
 
 ### 9.2 Schemas (`content/schemas/`, JSON Schema 2020-12)
 
@@ -554,7 +556,7 @@ Fourteen schema files, one per pack part plus the shared definitions. Every `$id
 | `vehicle.schema.json` | A vehicle and its seat layout (its price is in the catalog) |
 | `chapter.schema.json`, `room.schema.json`, `item.schema.json`, `family_request.schema.json` | Story and apartment: chapters with their comic scenes, rooms, items with 1–3 variants, the family's side requests |
 | `speech_pool.schema.json` | `speech_key` → Arabic lines with `{amount}`, `{station}` placeholders |
-| `catalog.schema.json` | JENEHAT/BONAT prices for every SKU (no real-money prices) |
+| `catalog.schema.json` | Prices for every SKU: items, vehicles and chapters in JENEHAT; boosters, fuel, revives and unlimited fuel in BONAT (no real-money prices) |
 | `daily_reward.schema.json`, `task.schema.json` | The 7-day reward streak and task templates |
 | `manifest.schema.json` | `/v1/content/manifest` response |
 
@@ -702,8 +704,12 @@ Refresh-token rotation and blacklist use simplejwt's token blacklist tables.
 
 | Model | Fields |
 | --- | --- |
-| Authoring: `Line`, `Station`, `Vehicle`, `SeatLayout`, `Trip`, `TripPassenger`, `TripEvent`, `Chapter`, `Room`, `Item`, `SpeechPool`, `SpeechLine`, `CatalogPrice`, `DailyRewardDay`, `TaskTemplate` | Mirrors the schemas in §9.2; edited in admin |
-| `ContentPack` | `version` (int, unique), `status` (`draft`, `validated`, `published`, `retired`), `sha256`, `url`, `size`, `min_client_version`, `validation_report` (JSON), `published_by`, `published_at` |
+| Authoring: `Line`, `Station`, `Vehicle`, `Seat`, `Trip`, `TripStation`, `TripPassenger`, `TripEvent`, `Chapter`, `Scene`, `SceneLine`, `Room`, `Item`, `ItemVariant`, `FamilyRequest`, `SpeechPool`, `SpeechLine`, `CatalogPrice`, `DailyRewardDay`, `TaskTemplate` | Mirrors the schemas in §9.2; edited in staging's admin. Identifiers a published pack contained can't be renamed or deleted. |
+| `ContentChannel` | `pack_id` (`core`), `last_assigned_version`, `imported_version`, `current` (FK `ContentPack`). A database check keeps `current` the highest published pack. |
+| `ContentPack` | `pack_id`, `version` (unique per `pack_id`), `origin` (`built`, `promoted`), `status` (`draft`, `validated`, `published`, `retired`), `build_state`, `schema_version`, `sha256`, `size`, `file` (the gzip bytes), `validation_report` (JSON), `release_sha256`, `release_file`, `min_client_version`, `rollback_of`, who and when it was built, published and promoted. Immutable once validated, except `min_client_version`. The URL is built per response, never stored. |
+| `PublishedIdentifier` | `kind`, `identifier`, `first_version`: every identifier a published pack contained, which is then permanent |
+| `PackTripIndex`, `PackPriceIndex` | Trip definitions and catalog prices of the last 5 published versions, for `spend_*` and trip-result validation |
+| `ContentAuditRecord` | `action` (`publish`, `promote`, `rollback`, `min_client_version_change`), `outcome`, `actor`, `at`, the pack, `details`. Append-only. |
 
 ### purchases & liveops
 
@@ -760,7 +766,7 @@ erDiagram
 | Input | DRF serializers with strict schemas; batch and body size limits; `command_log` ≤ 64 KB |
 | Rate limiting | §6.5 throttles; Caddy connection limits |
 | Admin | Separate hostname, reachable only over its VM's WireGuard (the admin hostname binds `10.66.0.1` on prod, `10.67.0.1` on staging); staff-only, 2FA (`django-otp`, TOTP) on every view, lockout after 5 failed sign-ins for 15 min (`django-axes`); audit log of content publishes and wallet adjustments |
-| Secrets | Env files on each environment's host (`/etc/wassal/*.env`, mode 0400; OCI Vault later): Django secret, JWT key, Google service account, Apple `.p8` key, Firebase service account, Sentry DSN, Healthchecks ping URLs, and the Backblaze B2 application keys (write-only backup key on the production host, read-only drill key on the staging host) in their own files that the API and worker never see. The B2 admin key never goes on either host. |
+| Secrets | Env files on each environment's host (`/etc/wassal/*.env`, mode 0400; OCI Vault later): Django secret, JWT key, Google service account, Apple `.p8` key, Firebase service account, Sentry DSN, Healthchecks ping URLs, and the Backblaze B2 application keys (each host's own write-only backup key, and the read-only drill key on the staging host) in their own files that the API and worker never see. The B2 admin key never goes on either host. |
 | Anti-cheat | Server-authoritative BONAT; bounds on JENEHAT and progress (§7.4); replay verification for competitive surfaces; `PlayerFlag` review queue; flagged players excluded from leagues |
 | Device attestation | **NEEDS CLARIFICATION** (phase 3): Play Integrity / App Attest tokens on daily challenge and league submissions |
 
@@ -799,11 +805,11 @@ erDiagram
 | --- | --- |
 | Hosts | Two Oracle Cloud Always Free `VM.Standard.A1.Flex` (ARM64) instances in `me-jeddah-1`, one per environment, each 1 OCPU / 6 GB with its own reserved public IP: production (100 GB boot volume) and staging (47 GB). Together they use all of the A1 allowance and 147 GB of the 200 GB block storage, which leaves room for the 47 GB break-glass rescue boot volume. Ubuntu LTS, Docker + Compose; images built for `linux/arm64`. Each host has its own edge, WireGuard network (prod `10.66.0.0/24`, staging `10.67.0.0/24`), peer registry, deploy key and host monitor, and is provisioned, patched, monitored and recovered on its own; the RTO applies per host. Only 80/443 TCP and WireGuard (UDP 51820) are open; SSH listens on the host's WireGuard address only. Why two hosts, and what it costs: §23. Runbooks: `docs/runbooks/`. |
 | Scale path | Starts from two 1 OCPU / 6 GB hosts, which are all of Always Free, so production has one core: 1) a bigger (paid) production VM → 2) move Postgres to its own VM or managed service → 3) multiple `api` replicas behind a load balancer. Code stays stateless to allow this. Any paid step needs the owner's decision (B01 FR-042b). |
-| Object storage | Content packs: OCI Object Storage via S3-compatible API, `packs/` (public read, long cache), B04. Backups: **Backblaze B2**, separate from packs (never reuse its keys): two private buckets (daily 14 days, weekly 56 days) with governance-mode Object Lock and lifecycle rules, a write-only host key, a read-only drill key, USD 0 caps. The B2 account region is recorded in B01 research R9 "Data location". |
-| CDN | **NEEDS CLARIFICATION:** Cloudflare (free) in front of `cdn.<domain>` for packs |
-| Backups | Nightly `pg_dump` (custom format) on the production host at 03:00 Cairo time, in one exported snapshot with exact row counts, to B2: 14 daily + 8 weekly. An automated restore drill on the 1st of each month runs on the staging host: it fetches production's newest backup with the read-only drill key, restores it into a throwaway database with no outside route, checks the restore, migrations, row counts and registered invariants, and leaves nothing behind. WAL archiving for point-in-time recovery in phase 2. Runbook: `docs/runbooks/restore.md`. |
+| Object storage | Content packs are self-hosted: each host's worker writes them to `/var/lib/wassal/packs`, and its edge serves them under `/packs/` with immutable caching (B04 research R5). Backups: **Backblaze B2**: production's two private buckets (daily 14 days, weekly 56 days), and staging's own pair (`wassal-staging-backup-daily`, `wassal-staging-backup-weekly`), each with governance-mode Object Lock and lifecycle rules, a write-only host key per environment, a read-only drill key, USD 0 caps. The B2 account region is recorded in B01 research R9 "Data location". |
+| CDN | None for the MVP: pack files are immutable and served with a one-year cache by the edge. The scale path is Cloudflare (free) in front of `cdn.<domain>`, which only changes `CONTENT_PACKS_PUBLIC_URL` and the edge's site list (B04 research R5). |
+| Backups | Nightly `pg_dump` (custom format) on the production host at 03:00 Cairo time, in one exported snapshot with exact row counts, to B2: 14 daily + 8 weekly. An automated restore drill on the 1st of each month runs on the staging host: it fetches production's newest backup with the read-only drill key, restores it into a throwaway database with no outside route, checks the restore, migrations, row counts and registered invariants, and leaves nothing behind. Staging, where authors work, runs the same nightly job into its own B2 buckets with its own write-only key, so authored content loses at most 24 hours (B04 research R8). WAL archiving for point-in-time recovery in phase 2. Runbook: `docs/runbooks/restore.md`. |
 | Targets | Availability 99.5% monthly; RPO 24 h (MVP) → 15 min (phase 2); RTO 4 h |
-| Observability | Sentry, US region (organization `saied-store-div`, project `wassal-backend`), free Developer plan (errors + traces at a low sample rate; IPs, cookies, headers, bodies and local variables scrubbed); structured JSON logs with a request id; `pg_stat_statements`; UptimeRobot on `/healthz`; Healthchecks.io dead-man's switches for the heartbeat task, the backup, the drill and each host's monitor; each host monitor (every 5 min) checks its host's disk, certificate expiry and queue backlog, and on production the backup storage. Setup: `docs/runbooks/monitoring-setup.md`. |
+| Observability | Sentry, US region (organization `saied-store-div`, project `wassal-backend`), free Developer plan (errors + traces at a low sample rate; IPs, cookies, headers, bodies and local variables scrubbed); structured JSON logs with a request id; `pg_stat_statements`; UptimeRobot on `/healthz`; Healthchecks.io dead-man's switches for the heartbeat task, the backup, the drill and each host's monitor; each host monitor (every 5 min) checks its host's disk, certificate expiry, queue backlog and its own backup storage. Setup: `docs/runbooks/monitoring-setup.md`. |
 | CI (GitHub Actions) | `backend.yml`: `ruff`, `mypy --strict` (django-stubs), `pytest` with real PostgreSQL and Valkey and an 80% coverage gate, the OpenAPI drift check and `schemathesis`, the host-script and edge smoke tests, then an `linux/arm64` image pushed to GHCR as `sha-<commit>`. `secrets.yml`: gitleaks. Schema and parity checks arrive with their features. |
 | CD | A merge to `master` deploys staging; a `vX.Y.Z` tag on a `master` commit re-tags that image and deploys prod. Each goes over its host's WireGuard to that host's own forced-command SSH key, limited to its environment (`deploy@10.67.0.1` for staging, `deploy@10.66.0.1` for prod), which runs the host's `deploy` script: lock → pull → migrate → restart `api`, `admin`, `worker`, `beat` → verify `/readyz` and the release in `/healthz`, restoring the previous release if verification fails. Rollback is a deploy of an older tag. Migrations follow expand/contract so the previous release keeps working during deploy. Runbook: `docs/runbooks/deploy-and-rollback.md`. |
 | Maintenance mode | `LiveSetting` flag returns 503 `maintenance` on writes; reads and offline play continue |
@@ -925,7 +931,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 
 1. ~~OCI free-tier capacity in the chosen region, or the paid fallback provider.~~ **Resolved (B01):** two Always Free A1 VMs in `me-jeddah-1`, one per environment, each 1 OCPU / 6 GB (together the whole allowance), with no paid fallback. The owner chose this on 2026-10-19 over one shared 2 OCPU / 12 GB VM. See `specs/002-b01-backend-skeleton/research.md` R1.
 2. Game-day timezone for daily reset and daily challenge (proposed `Africa/Cairo` for all regions in MVP).
-3. CDN in front of content packs.
+3. ~~CDN in front of content packs.~~ **Resolved (B04):** no CDN for the MVP; each host's edge serves its own immutable pack files, and Cloudflare in front of `cdn.<domain>` later is a configuration change. See `specs/003-b04-content-pipeline/research.md` R5.
 4. iOS purchase payload: StoreKit 2 JWS vs app receipt in the chosen Flutter plugin version.
 5. Refund handling for already-spent BONAT (negative balance proposal in §8.2).
 6. Re-install on the same device without a linked provider creates a new player — acceptable for MVP?

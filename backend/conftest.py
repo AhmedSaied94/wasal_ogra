@@ -1,10 +1,19 @@
 """Shared pytest fixtures. Tests run against the real PostgreSQL and Valkey (constitution XIII)."""
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.core.cache import cache
 from pytest_django import Settings
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _packs_dir_exists() -> None:
+    """A worker started by a test checks CONTENT_PACKS_DIR (B04). Tests that write packs get
+    their own directory from the content `packs_dir` fixture."""
+    Path(settings.CONTENT_PACKS_DIR).mkdir(parents=True, exist_ok=True)
 
 
 @pytest.fixture(autouse=True)

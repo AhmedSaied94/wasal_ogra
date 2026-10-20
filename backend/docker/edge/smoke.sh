@@ -110,8 +110,18 @@ done
 pass "the Caddyfile doesn't load with WASSAL_ENV empty or unknown"
 
 echo "== start the prod host's edge"
+# Pack fixtures (contracts/pack-delivery.md "Public files"): two names the edge serves, and three
+# it must not, even though they exist.
+PACKS="$WORK/packs"
+mkdir -p "$PACKS"
+printf '{"pack_id":"core","version":1}' | gzip -n >"$PACKS/core-1.json.gz"
+printf '{"max_version":1,"pack_id":"core"}' >"$PACKS/core.floor.json"
+cp "$PACKS/core.floor.json" "$PACKS/core.floor.json.bak"
+echo hidden >"$PACKS/.hidden"
+echo text >"$PACKS/x.txt"
+chmod -R a+rX "$PACKS"
 docker run -d --name "$NAME" --network host "${EDGE_ENV[@]}" --tmpfs /run/caddy \
-  -v "$HERE/Caddyfile:/etc/caddy/Caddyfile:ro" "$IMAGE" >/dev/null
+  -v "$HERE/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$PACKS:/srv/packs:ro" "$IMAGE" >/dev/null
 for _ in $(seq 60); do
   if [ "$(fetch "$API" "$PUBLIC_IP" "https://$API/healthz" || true)" = 200 ]; then
     break
@@ -183,5 +193,48 @@ docker exec "$NAME" tail -n 1 /var/log/caddy/access.log |
   python3 -c 'import json, sys; assert "request" in json.loads(sys.stdin.read())' ||
   fail "the access log has no JSON request line"
 pass "JSON access log"
+
+echo "== pack files"
+status="$(fetch "$API" "$PUBLIC_IP" "https://$API/packs/core-1.json.gz")"
+expect_status "$status" 200 "/packs/core-1.json.gz"
+[ "$(header Content-Type)" = application/gzip ] || fail "/packs/core-1.json.gz: Content-Type"
+[ "$(header Cache-Control)" = "public, max-age=31536000, immutable" ] ||
+  fail "/packs/core-1.json.gz: Cache-Control"
+[ -z "$(header Content-Encoding)" ] || fail "/packs/core-1.json.gz: Content-Encoding is set"
+cmp -s "$BODY" "$PACKS/core-1.json.gz" || fail "/packs/core-1.json.gz: not the file's bytes"
+expect_security_headers "/packs/core-1.json.gz"
+pass "/packs/core-1.json.gz → 200, gzip, immutable, no Content-Encoding"
+
+status="$(fetch "$API" "$PUBLIC_IP" "https://$API/packs/core.floor.json")"
+expect_status "$status" 200 "/packs/core.floor.json"
+[[ "$(header Content-Type)" == application/json* ]] || fail "/packs/core.floor.json: Content-Type"
+[ "$(header Cache-Control)" = no-store ] || fail "/packs/core.floor.json: Cache-Control"
+pass "/packs/core.floor.json → 200, JSON, no-store"
+
+for path in /packs/ /packs/x.txt /packs/core.floor.json.bak /packs/.hidden /packs/core-2.json.gz; do
+  status="$(fetch "$API" "$PUBLIC_IP" "https://$API$path")"
+  expect_status "$status" 404 "$path"
+  [ "$(header Cache-Control)" = no-store ] || fail "$path: a 404 that may be cached"
+done
+pass "/packs/, x.txt, core.floor.json.bak, .hidden and an unwritten pack → 404, not cached"
+
+echo "== the admin's upload limit"
+# Django reads an upload once its CSRF check passes, as on the import page, and the edge cuts the
+# body at 8 MiB as it is read.
+JAR="$WORK/cookies"
+fetch "$ADMIN" "$ADMIN_IP" "https://$ADMIN/admin/login/" --cookie-jar "$JAR" >/dev/null
+token="$(awk '$6 == "csrftoken" {print $7}' "$JAR")"
+[ -n "$token" ] || fail "the admin login page set no CSRF cookie"
+upload() {
+  fetch "$ADMIN" "$ADMIN_IP" "https://$ADMIN/admin/login/" --cookie "$JAR" \
+    -H "X-CSRFToken: $token" -H "Referer: https://$ADMIN/admin/login/" -F "file=@$1"
+}
+head -c $((6 * 1024 * 1024)) /dev/zero >"$WORK/six-mib"
+head -c $((9 * 1024 * 1024)) /dev/zero >"$WORK/nine-mib"
+six="$(upload "$WORK/six-mib")"
+{ [ "$six" != 413 ] && [ "$six" -lt 500 ]; } || fail "6 MiB admin upload: status $six"
+status="$(upload "$WORK/nine-mib")"
+expect_status "$status" 413 "9 MiB admin upload"
+pass "a 6 MiB admin upload passes the edge (status $six), a 9 MiB one gets 413"
 
 echo "edge smoke: all assertions passed"

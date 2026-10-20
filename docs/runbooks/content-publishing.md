@@ -1,0 +1,138 @@
+# Publish content
+
+Authors write content in **staging's** admin. Staging builds, validates and publishes packs, and
+that is where they are tested. Production never builds: it **promotes** a pack staging published,
+fetching the exact files and checking them again. Then the accepted content goes back into the
+repository as `content/source`.
+
+Contracts: `specs/003-b04-content-pipeline/contracts/` (`admin.md`, `pack-delivery.md`,
+`content-source.md`, `api.md`). Background: research R5–R8 there.
+
+| | Staging (`CONTENT_ROLE=source`) | Production (`CONTENT_ROLE=target`) |
+| --- | --- | --- |
+| Authoring, import, build | Yes, in its admin | Read-only |
+| Publish | Yes | No |
+| Promote | No | Yes, from a promotion code |
+| Minimum app version | Yes | Yes |
+| Pack files | `/var/lib/wassal/packs`, served at `https://staging-api.<host>/packs/` | `/var/lib/wassal/packs`, served at `https://api.<host>/packs/`, plus `core.floor.json` |
+
+Everyone needs a staff account (staff-accounts.md) and the environment's private network
+(private-network.md). Authors get the `content_author` group, publishers `content_publisher`:
+
+```bash
+ADMIN="sudo docker exec -it wassal-staging-admin-1 python manage.py"
+$ADMIN create_staff <name> --group content_author
+```
+
+## 1. Author, build and publish on staging
+
+1. **Write or import.** Edit content in the admin, or import a zip of a `content/source` layout
+   (Content packs → "Import zip"). An import is all or nothing: one problem refuses the whole zip and
+   lists every file, path and problem.
+2. **Review the speech lines.** Speech pools → select the pools → "Mark reviewed". A build stays
+   `draft` with `V-V1` for every unreviewed line. Reviews never travel in an export, so imported
+   lines always need one.
+3. **Build.** Content packs → "Build a new pack". The page refreshes until the build is
+   `finished`. A green report makes the pack `validated`. Otherwise it stays `draft`, and the report
+   lists each finding by stage, errors first, with a link to the object to fix.
+4. **Publish.** Open the validated pack → "Publish" → confirm. Within a minute the pack is current
+   and `GET /v1/content/manifest` offers it. Publishing needs the solver stage `passed`, which
+   needs B05: until then staging refuses every publish (FR-022).
+5. **Test** the pack on staging with a staging build of the app.
+
+A published pack never changes. Its files are written once, and its record keeps only its minimum
+app version mutable.
+
+## 2. Promote to production
+
+1. On staging's page of the tested pack, copy the **promotion code** (`core-<v>:<64 hex>`).
+2. In production's admin: Content packs → "Promote from staging" → paste the code → "Promote".
+3. Production fetches the release record and the pack from staging's public URL, checks the record
+   against the code, the pack against the record, runs the schema, reference and content-rule
+   stages again, stores both files and raises its floor file. Only then does the manifest switch.
+   The result is on the pack's page, and in Content audit records.
+
+A failed promotion changes nothing that apps see. Read its reason in the audit record:
+
+| Reason | Meaning | Do |
+| --- | --- | --- |
+| `release_unreachable` | Staging's `core-<v>.release.json` didn't answer `200` after the retries | Check staging serves `/packs/`, then promote again |
+| `release_mismatch` | The record isn't the one the code names: a mistyped code, or a different file | Copy the code again from the pack's page. If it still fails, staging's file differs from its record: run `content_files sync --verify` there |
+| `release_not_passed` | A stage other than a `size` warning didn't pass, or the solver didn't run | Build and publish a pack that passed every stage |
+| `pack_unreachable`, `pack_mismatch` | The pack file is missing, or isn't the one the record names | As for the record |
+| `pack_invalid` | Production's own checks refused the pack. The findings are in the audit record. | Fix it on staging, publish a new version, promote that |
+| `storage_error` | Production couldn't write or confirm its files, or the commit failed | Check `/var/lib/wassal/packs` (space, owner `10001`, mode `0755`), then promote again. A retry is safe. |
+
+## 3. Bring the content back into the repository
+
+The repository's `content/source/` holds only packs promoted to production.
+
+1. In staging's admin, open the promoted pack → "Export content". It downloads the `content/source`
+   layout of exactly that pack.
+2. In a branch, replace `content/source/` with the zip's contents, check it, and open a PR:
+
+```bash
+cd tools/content_kit
+uv run wassal-content validate-source ../../content/source
+uv run wassal-content schema-diff --base origin/master
+```
+
+Once `content/source/pack.json` exists, a breaking schema change needs a major bump in
+`content/schemas/schema-set.json`, and CI enforces it.
+
+## 4. Roll back
+
+A rollback never re-serves an old version. It builds an earlier pack's content as a **new**
+version, which you then publish and promote like any other.
+
+1. On staging, open the published or retired pack to go back to → "Roll back to this" → confirm.
+2. The build appears as a new draft with `rollback_of` set. Trips that differ from the current pack
+   get a new `rev`.
+3. Publish it, test it, then promote it to production (sections 1 and 2).
+
+## 5. The minimum app version (kill switch)
+
+An app below a pack's minimum is offered the newest pack it can read instead, or none.
+
+1. Open the pack on the environment to change → "Change minimum app version".
+2. Enter `MAJOR.MINOR.PATCH`. Values below the floor of the pack's schema major are refused.
+3. The manifest changes within a minute, and the change is in the audit log with its old and new
+   values. Do it on production for players, on staging to test first.
+
+## When something goes wrong
+
+### A build fails with `version_floor_unavailable`
+
+Staging numbers each build above production's floor file, which it reads from
+`CONTENT_VERSION_FLOOR_URL`. It refuses to build when it can't, so it never reuses a number.
+
+1. Check that production serves it: `curl -s https://api.<host>/packs/core.floor.json` gives
+   `{"max_version":N,"pack_id":"core"}`.
+2. If production answers `404`, the file is missing: on the prod VM run
+   `sudo docker exec wassal-prod-worker-1 python manage.py content_files sync`. The worker also
+   creates it when it starts.
+3. If production is down, wait for it. Nothing is assigned until a build succeeds.
+
+### A publish fails with `file_conflict`
+
+A file with the pack's name already exists with different bytes. The publish wrote nothing, and
+the existing file is untouched. This shouldn't happen: version numbers are never reused.
+
+1. Don't delete the file. Note the version and look at it:
+   `sudo ls -l /var/lib/wassal/packs/core-<v>.*`.
+2. Run `sudo docker exec wassal-staging-worker-1 python manage.py content_files sync --verify`. It
+   reports each file that doesn't match its record.
+3. If a restored database is behind the files, build again: the new build gets a version above
+   both.
+
+### Files and records disagree
+
+`content_files sync --verify` runs every night and reports to Sentry. To run it by hand, in the
+worker, which is the only container that mounts the packs:
+
+```bash
+sudo docker exec wassal-<env>-worker-1 python manage.py content_files sync --verify
+```
+
+It writes missing files from the database and never overwrites one. On production it also raises
+`core.floor.json` to the highest stored version.

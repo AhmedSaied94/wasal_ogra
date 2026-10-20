@@ -1,8 +1,9 @@
 """The host backup script and its units (FR-039, contracts/operations.md "Backup job").
 
 `bin/backup` runs under bash with stub `docker` and `flock` first on `PATH`. The stubs log every
-call with the environment compose would interpolate. Backups run on the prod host only, the one
-whose `host.env` says `WASSAL_ENV=prod` (contracts/operations.md "Host identity").
+call with the environment compose would interpolate. Each host backs up its own environment only,
+the one its `host.env` names (contracts/operations.md "Host identity"): production on the prod host,
+and staging on the staging host since B04 (research R8).
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ BASH = shutil.which("bash") or "/bin/bash"
 HOST = Path(__file__).resolve().parent.parent
 BACKUP = HOST / "bin" / "backup"
 TAG = "v1.2.3"
+STAGING_TAG = "sha-" + "a" * 40
 HOST_ENV = {
     "prod": "WASSAL_ENV=prod\nWG_ADDRESS=10.66.0.1\n",
     "staging": "WASSAL_ENV=staging\nWG_ADDRESS=10.67.0.1\n",
@@ -209,24 +211,61 @@ def test_the_backup_env_file_is_required(host: Host) -> None:
 # -- host identity ---------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("env", ["prod", "staging"])
-def test_the_staging_host_never_backs_up(host: Host, env: str) -> None:
-    # Even with a release and a backup env file left from the one-host design.
+def test_the_staging_host_backs_up_staging(host: Host) -> None:
+    """With staging's own release, env file and directory (B04 FR-039c)."""
     (host.etc / "host.env").write_text(HOST_ENV["staging"])
     (host.etc / "staging-backup.env").write_text("B2_REGION=eu-central-003\n")
-    host.serve(env, TAG)
+    stack = host.serve("staging", STAGING_TAG)
 
-    code, stderr, calls = host.run(env)
+    code, stderr, calls = host.run("staging")
+
+    assert code == 0, stderr
+    [lock, compose] = calls
+    assert lock["cmd"] == "flock"
+    assert compose["args"][:7] == [
+        "compose",
+        "-p",
+        "wassal-staging",
+        "-f",
+        str(stack / "compose.yml"),
+        "--env-file",
+        str(stack / "env" / "staging.env"),
+    ]
+    assert compose["env"] == {
+        "RELEASE_TAG": STAGING_TAG,
+        "BACKUP_ENV_FILE": str(host.etc / "staging-backup.env"),
+        "BACKUP_STATE_DIR": str(host.state / "staging" / "backup"),
+    }
+    assert stat.S_IMODE((host.state / "staging" / "backup").stat().st_mode) == 0o750
+
+
+def test_the_staging_host_backs_up_staging_only(host: Host) -> None:
+    # Even with a release and a backup env file left from the one-host design.
+    (host.etc / "host.env").write_text(HOST_ENV["staging"])
+    host.serve("prod", TAG)
+
+    code, stderr, calls = host.run("prod")
 
     assert code == 2
-    assert "the prod host only" in stderr
+    assert "this host serves staging" in stderr
     assert calls == []
-    assert not (host.state / env / "backup").exists()
+    assert not (host.state / "prod" / "backup").exists()
+
+
+def test_the_staging_backup_env_file_is_required(host: Host) -> None:
+    (host.etc / "host.env").write_text(HOST_ENV["staging"])
+    host.serve("staging", STAGING_TAG)
+
+    code, stderr, calls = host.run("staging")
+
+    assert code == 2
+    assert "staging-backup.env is missing" in stderr
+    assert calls == []
 
 
 def test_the_prod_host_backs_up_prod_only(host: Host) -> None:
     (host.etc / "staging-backup.env").write_text("B2_REGION=eu-central-003\n")
-    host.serve("staging", "sha-" + "a" * 40)
+    host.serve("staging", STAGING_TAG)
 
     code, stderr, calls = host.run("staging")
 

@@ -21,6 +21,7 @@ dependencies = [
     "whitenoise==6.12.0",
     "requests==2.34.2",
     "boto3==1.43.114",
+    "wassal-content",
 ]
 
 [dependency-groups]
@@ -42,6 +43,12 @@ dev = [
 
 [tool.uv]
 package = false
+
+# The content toolkit lives in the repository (research R13). It installs non-editable, so the image
+# carries it in /opt/venv; after changing tools/content_kit, run
+# `uv sync --reinstall-package wassal-content` here.
+[tool.uv.sources]
+wassal-content = { path = "../tools/content_kit" }
 
 [tool.ruff]
 target-version = "py313"

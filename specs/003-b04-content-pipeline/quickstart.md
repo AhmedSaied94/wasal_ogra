@@ -111,10 +111,11 @@ curl -s localhost:8000/v1/content/manifest            # {"version":0,"packs":[]}
    older one. The audit log has the change (US4-11). Set it back.
 4. **Rollback.** On an earlier pack, "Roll back to this" → a new version with the earlier content
    builds. Publish it, and the manifest offers it (US4-5, SC-008).
-5. **Storage failures change nothing.** Make the packs directory read-only (`chmod a-w
-   backend/var/packs`) and publish → the publish fails, the manifest still offers the previous
-   pack, and a failed audit record exists. Restore the permission and retry → it succeeds
-   (US4-2, SC-010).
+5. **Storage failures change nothing.** Make the packs directory read-only (`docker compose -f
+   docker/compose.yml -f docker/compose.dev.yml exec -u root worker chmod a-w
+   /var/lib/wassal/packs`) and publish → the publish fails, the manifest still offers the previous
+   pack, and a failed audit record exists. Restore the permission (`chmod 0755`) and retry → it
+   succeeds (US4-2, SC-010).
 
 ## 5. Promotion (US5)
 

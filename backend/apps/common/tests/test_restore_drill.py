@@ -233,7 +233,7 @@ def test_a_good_backup_passes_every_check(
         "restore": "pass",
         "migrations": "pass",
         "row_counts": "pass",
-        "invariants": {},
+        "invariants": {"content.published_packs_intact": "pass"},
     }
     assert result["outcome"] == "pass"
     assert result["failure"] is None
@@ -266,6 +266,7 @@ def test_invariants_run_against_the_restored_database(
 
     assert seen == [[("alice",)]]
     assert result["checks"]["invariants"] == {
+        "content.published_packs_intact": "pass",
         "test.users_restored": "pass",
         "test.always_fails": "fail",
     }

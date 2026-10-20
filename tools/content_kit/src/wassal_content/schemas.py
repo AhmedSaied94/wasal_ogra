@@ -146,10 +146,10 @@ class SchemaSet:
         findings: list[Finding] = []
         for error in self.validator_for(part).iter_errors(document):
             for path, message in _describe(error):
-                entity, identifier = _locate(part, document, path)
+                entity, identifier, inner = _locate(part, document, path)
                 findings.append(
                     Finding(
-                        path=_json_path(path),
+                        path=_json_path(inner),
                         code="V-SC",
                         message=message,
                         entity=entity,
@@ -183,20 +183,30 @@ def _json_path(path: list[str | int]) -> str:
     return text
 
 
-def _locate(part: str, document: Any, path: list[str | int]) -> tuple[str, str]:
-    """The entity and identifier a path points into, for reports."""
+def _locate(part: str, document: Any, path: list[str | int]) -> tuple[str, str, list[str | int]]:
+    """The entity and identifier a path points into, and the path inside that entity.
+
+    In a pack, an element of a part array is its own entity, and so is a catalog price, named
+    `<sku_kind>:<sku_id>`, so a report names records the way the admin shows them.
+    """
     if part == "pack" and len(path) >= 2 and isinstance(document, dict):
-        array, index = path[0], path[1]
-        element_part = PACK_ARRAYS.get(str(array))
-        items = document.get(str(array))
-        if (
-            element_part
-            and isinstance(index, int)
-            and isinstance(items, list)
-            and index < len(items)
-        ):
-            return element_part, _identifier(element_part, items[index])
-    return part, _identifier(part, document)
+        element_part = PACK_ARRAYS.get(str(path[0]))
+        element = _element(document.get(str(path[0])), path[1])
+        if element_part and element is not None:
+            return element_part, _identifier(element_part, element), path[2:]
+        if path[0] == "catalog" and len(path) >= 3 and path[1] == "prices":
+            catalog = document.get("catalog")
+            price = _element(catalog.get("prices") if isinstance(catalog, dict) else None, path[2])
+            if isinstance(price, dict):
+                name = f"{price.get('sku_kind', '')}:{price.get('sku_id', '')}"
+                return "catalog_price", name, path[3:]
+    return part, _identifier(part, document), path
+
+
+def _element(items: Any, index: str | int) -> Any:
+    if isinstance(items, list) and isinstance(index, int) and index < len(items):
+        return items[index]
+    return None
 
 
 def _identifier(part: str, document: Any) -> str:

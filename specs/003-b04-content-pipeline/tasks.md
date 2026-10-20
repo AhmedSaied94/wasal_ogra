@@ -386,7 +386,7 @@ data-model.md).
 
 ### Tests (write first)
 
-- [ ] T040 [P] Write `tools/content_kit/tests/test_rules.py`:
+- [X] T040 [P] Write `tools/content_kit/tests/test_rules.py`:
   - one deliberately broken copy of the sample pack per rule code in contracts/content-schemas.md
     (`V-T1` to `V-T7`, `V-L1`, `V-L2`, `V-C1`, `V-C2`, `V-R1`, `V-R2`, `V-K1`, `V-D1`, `V-U1`,
     `V-M1`, `V-X1`, `V-X2`), each with its expected code, entity, id and path;
@@ -396,7 +396,7 @@ data-model.md).
   - `V-X2` covers `{amout}`, an unbalanced `{amount`, `{target}` in a speech line, and `{amount}`
     in an item name;
   - the sample pack has no findings (SC-005).
-- [ ] T041 [P] Add to `backend/tests/test_settings_guards.py`, using B01's subprocess pattern
+- [X] T041 [P] Add to `backend/tests/test_settings_guards.py`, using B01's subprocess pattern
   (contracts/environment.md). Each of these refuses to start, naming the variable:
   - `CONTENT_ROLE=source` with `WASSAL_ENV=prod`, and `target` with `staging`;
   - `CONTENT_SOLVER_STAGE=stand_in` on staging or prod;
@@ -405,7 +405,7 @@ data-model.md).
   - `CONTENT_PROMOTION_SOURCE_URL` empty on prod, or set on staging;
   - `CONTENT_VERSION_FLOOR_URL` set on prod;
   - `CONTENT_MANIFEST_CACHE_SECONDS=61`.
-- [ ] T042 [P] Write `backend/apps/content/tests/test_models.py`:
+- [X] T042 [P] Write `backend/apps/content/tests/test_models.py`:
   - **Permanence** (FR-016): with a `PublishedIdentifier` row present, renaming or deleting the
     identifier is refused, through `save()`, the instance's `delete()`, `QuerySet.delete()`, and a
     nested row (station, seat, variant). An identifier with no row can be renamed.
@@ -419,7 +419,7 @@ data-model.md).
 
 ### Implementation
 
-- [ ] T043 Implement `tools/content_kit/src/wassal_content/rules/references.py`,
+- [X] T043 Implement `tools/content_kit/src/wassal_content/rules/references.py`,
   `rules/content_rules.py` and `rules/size.py`, plus `tools/content_kit/src/wassal_content/validate.py`:
   - `validate_pack(pack: dict, *, file_size: int | None) -> Report`. It runs the stages `schema`,
     `references`, `content_rules` and `size`, each with `passed`, `warning` or `failed`, and
@@ -428,7 +428,7 @@ data-model.md).
   - Rule texts and severities are exactly those of contracts/content-schemas.md "Rules beyond
     shape".
   - The placeholder sets per text kind come from R14.
-- [ ] T044 Move the backend image's build context to the repository root (research R13):
+- [X] T044 Move the backend image's build context to the repository root (research R13):
   - **`/.dockerignore`:** at the root, deny everything, then allow `backend/`,
     `tools/content_kit/` and `content/schemas/`, and repeat every exclusion of
     `backend/.dockerignore` with `**/` patterns (secrets, caches, `staticfiles`, `.venv`).
@@ -441,12 +441,16 @@ data-model.md).
     backend/docker/Dockerfile`.
   - **`.github/workflows/backend.yml`:** the `image` and `smoke` jobs build with `context: .` and
     `file: backend/docker/Dockerfile`.
-- [ ] T045 Add `wassal-content` to `backend/pyproject.toml` (`dependencies` plus `[tool.uv.sources]
+
+  As built, `content/schemas/` stays out of the context: the image reads the package's own schema
+  copy (contracts/environment.md "Repository files read at runtime"), and `tools/content_kit/tests`
+  is excluded too.
+- [X] T045 Add `wassal-content` to `backend/pyproject.toml` (`dependencies` plus `[tool.uv.sources]
   wassal-content = { path = "../tools/content_kit" }`). Then run `uv lock`, and confirm `uv run mypy
   .` stays green.
-- [ ] T046 Make `wassal-content validate-source` (in `tools/content_kit/src/wassal_content/cli.py`)
+- [X] T046 Make `wassal-content validate-source` (in `tools/content_kit/src/wassal_content/cli.py`)
   run `validate_pack` stages 1–3 on the assembled pack. The CI step from T036 picks this up.
-- [ ] T047 Add the content settings to `backend/config/env.py` and
+- [X] T047 Add the content settings to `backend/config/env.py` and
   `backend/config/settings/base.py`:
   - `apps.content` in `INSTALLED_APPS`;
   - every variable in contracts/environment.md "Application variables", with its rules;
@@ -457,7 +461,16 @@ data-model.md).
     and is writable.
 
   Make T041 pass.
-- [ ] T048 [P] Create `backend/apps/content/{__init__.py,apps.py}` (`label = "content"`, with
+
+  As built:
+  - The staging and production values go in each host's `/etc/wassal/<env>.env`, beside
+    `API_HOST`, because `docker/env/<env>.env` only feeds compose interpolation and names no
+    hostnames. Setting them is an owner action (T104).
+  - `dev.py` needs nothing: the packs directory defaults to `backend/var/packs`, and the dev
+    worker creates it.
+  - The worker check is a `worker_init` receiver. It stops the worker with `SystemExit`, because
+    Celery logs and ignores any `Exception` a receiver raises.
+- [X] T048 [P] Create `backend/apps/content/{__init__.py,apps.py}` (`label = "content"`, with
   `ready()` importing `signals` and `invariants`) and the models package
   `backend/apps/content/models/__init__.py`. Then create `backend/apps/content/models/lines.py`
   with:
@@ -473,7 +486,7 @@ data-model.md).
     `name_*`, `order` unique per line.
   - **`Vehicle`**: `vehicle_id` unique (glossary), `name_*`, `starter` bool, `order` unique.
   - **`Seat`**: `vehicle` (FK, CASCADE), `seat_id` `^(front|[A-D])_(r|m|l)$` unique per vehicle.
-- [ ] T049 [P] Create `backend/apps/content/models/trips.py` per data-model "Trip":
+- [X] T049 [P] Create `backend/apps/content/models/trips.py` per data-model "Trip":
   - **`Trip`**:
     - `line` (PROTECT) and `number` smallint 1–99, unique together; the `trip_id` property is
       `f"{line_id}.{number:02d}"`;
@@ -493,7 +506,7 @@ data-model.md).
     `speech_keys` jsonb default `{}`; `order`.
   - **`TripEvent`**: `event_id` choices, `at_seconds` ≥ 0, `passenger_ids` varchar[],
     `station_id` (null), `amount_piasters` (null, a multiple of 50), `seconds` (null), `order`.
-- [ ] T050 [P] Create `backend/apps/content/models/story.py` per data-model:
+- [X] T050 [P] Create `backend/apps/content/models/story.py` per data-model:
   - **`Chapter`**:
     - `chapter_id` unique (glossary), `order` unique, `title_*`;
     - `goal_kind` `complete_line`, `own_vehicle`, `purchase` or `complete_room`, with a
@@ -510,7 +523,7 @@ data-model.md).
     at most 3 per item (checked in `clean()`).
   - **`FamilyRequest`**: `request_id` `^req_[a-z0-9_]{1,40}$` unique, `room`, `item`, `variant`
     (null), `text_*`, `reward_bonat` > 0.
-- [ ] T051 [P] Create `backend/apps/content/models/speech_economy.py`:
+- [X] T051 [P] Create `backend/apps/content/models/speech_economy.py`:
   - **`SpeechPool`**: `speech_key` `^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$` unique, maxLength 64;
     `author_notes`.
   - **`SpeechLine`**: `pool` (CASCADE), `order` unique per pool, `text_ar_eg`, `text_ar`,
@@ -523,7 +536,7 @@ data-model.md).
     that at least one is > 0.
   - **`TaskTemplate`**: `task_id` `^task_[a-z0-9_]{1,40}$` unique, `metric` slug, `target` ≥ 1,
     `text_*`, `reward_jenehat`, `reward_bonat`, `active`.
-- [ ] T052 [P] Create `backend/apps/content/models/packs.py` per data-model "Packs and their
+- [X] T052 [P] Create `backend/apps/content/models/packs.py` per data-model "Packs and their
   records":
   - **`ContentChannel`**: `pack_id` unique, `last_assigned_version` ≥ 0, `current` (FK `ContentPack`,
     null).
@@ -545,33 +558,38 @@ data-model.md).
   - **`PackTripIndex`** and **`PackPriceIndex`**, with the fields and unique keys of data-model.
   - **`ContentAuditRecord`**: `action`, `outcome`, `actor`, `at`, `pack_id`, `version`, `sha256`,
     `details` jsonb. Append-only: `save()` refuses updates, and `delete()` always refuses.
-- [ ] T053 Create `backend/apps/content/signals.py`: a `pre_delete` receiver for every model that
+- [X] T053 Create `backend/apps/content/signals.py`: a `pre_delete` receiver for every model that
   has a permanent identifier, which refuses deletion of identifiers present in
   `PublishedIdentifier`. Then run `uv run manage.py makemigrations content`, which creates
   `backend/apps/content/migrations/0001_initial.py`.
-- [ ] T054 Write the data migrations in `backend/apps/content/migrations/`:
-  - `0002_groups.py`: the `content_author` group (add, change and delete on every authoring model,
+
+  As built, `0002_current_pack_check.py` follows it. It holds the "one current pack" database
+  check: deferred constraint triggers on the channel and pack tables. Each check runs at commit and
+  requires `current` to be the highest published pack, or empty when nothing is published. The
+  data migrations below are therefore `0003` and `0004`.
+- [X] T054 Write the data migrations in `backend/apps/content/migrations/`:
+  - `0003_groups.py`: the `content_author` group (add, change and delete on every authoring model,
     plus `import_content`, `export_content`, `build_pack` and `review_speech`) and
     `content_publisher`
     (`publish_pack`, `rollback_pack`, `promote_pack` and `change_min_client_version`);
-  - `0003_channel_and_schedules.py`: the `ContentChannel(pack_id="core")` row, and the beat
+  - `0004_channel_and_schedules.py`: the `ContentChannel(pack_id="core")` row, and the beat
     `PeriodicTask`s `content.sweep_stuck_builds` (every 10 minutes, queue `content`) and
     `content.sync_files` (daily at 02:00 UTC, kwargs `{"verify": true}`, queue `content`).
 
   Make T042 pass.
-- [ ] T055 [P] Implement the shared services:
+- [X] T055 [P] Implement the shared services:
   - `backend/apps/content/services/permissions.py`: `require(actor, perm)`, which raises
     `PermissionDenied` naming the permission, and also refuses an inactive or non-staff actor; and
     `role()` and `require_role(...)` from `CONTENT_ROLE`;
   - `services/audit.py`: `record(action, outcome, actor, pack=None, details=None)`;
   - `services/permanence.py`: `record_published(pack_dict, version)`, and the guard helpers
     `signals.py` uses.
-- [ ] T056 [P] Add `backend/apps/content/invariants.py`. It registers
+- [X] T056 [P] Add `backend/apps/content/invariants.py`. It registers
   `content.published_packs_intact` with `apps.common.services.invariants.register`: for every
   `published` or `retired` row, the SHA-256 of `file` equals `sha256` and its length equals
   `size`. Add a test in `backend/apps/content/tests/test_invariants.py` covering a passing database
   and a tampered row.
-- [ ] T057 Add the test fixtures in `backend/apps/content/tests/conftest.py`:
+- [X] T057 Add the test fixtures in `backend/apps/content/tests/conftest.py`:
   - `packs_dir` (a `tmp_path` directory, with `CONTENT_PACKS_DIR` overridden);
   - `pack_server` (a `http.server.ThreadingHTTPServer` on 127.0.0.1 serving a temporary directory,
     with switches to answer `500`, delay past the timeout, or drop the connection);
@@ -584,6 +602,12 @@ data-model.md).
     (`content_author`, `is_active=False`).
 
   `pack_server` serves whatever the test puts in its directory, including `core.floor.json`.
+
+  As built:
+  - `sample_imported` and `sample_reviewed` arrive with the importer (T064) and the review
+    service (T063).
+  - `apps/content/tests/factories.py` builds single rows and packs. Its packs keep the channel on
+    the highest published pack, because Django's test teardown runs the deferred checks.
 
 **Checkpoint**: migrations apply, and T040–T042 and T056 are green.
 
@@ -600,7 +624,7 @@ matches. Import the sample into an empty database, export it again, and the file
 
 ### Tests for User Story 2 (write first)
 
-- [ ] T058 [P] [US2] Write `backend/apps/content/tests/test_admin_authoring.py`:
+- [X] T058 [P] [US2] Write `backend/apps/content/tests/test_admin_authoring.py`:
   - **Form errors** (US2-1): saving a trip with a fare of 475, with a passenger whose
     `dest_station` isn't a trip station, or with a seat from another vehicle shows each error on
     its field, and no row is saved.
@@ -611,7 +635,7 @@ matches. Import the sample into an empty database, export it again, and the file
     version (FR-016).
   - **CSP:** B01's admin CSP test still passes with the content pages loaded, with no inline
     script.
-- [ ] T059 [P] [US2] Write `backend/apps/content/tests/test_import_export.py`:
+- [X] T059 [P] [US2] Write `backend/apps/content/tests/test_import_export.py`:
   - **Round trip** (US2-4): sample import, then export current content, then `diff`, is identical
     apart from `pack.json` `version: 0`.
   - **All or nothing** (US2-3): one invalid file refuses the whole import, the report names the
@@ -629,13 +653,13 @@ matches. Import the sample into an empty database, export it again, and the file
   - **Export of a published pack** reads its stored file.
   - **Commands:** `content_import` and `content_export` behave the same way, and without `--actor`
     each stops before reading or writing anything (contracts/admin.md "Management commands").
-- [ ] T060 [P] [US2] Write `backend/apps/content/tests/test_history.py` (FR-018): an admin save,
+- [X] T060 [P] [US2] Write `backend/apps/content/tests/test_history.py` (FR-018): an admin save,
   an inline change, a bulk "mark reviewed" and an import each leave `django_admin_log` entries
   naming the user and the changed objects.
 
 ### Implementation for User Story 2
 
-- [ ] T061 [US2] Implement `backend/apps/content/widgets.py` (`ArabicTextInput` and
+- [X] T061 [US2] Implement `backend/apps/content/widgets.py` (`ArabicTextInput` and
   `ArabicTextarea` with `attrs={"dir": "rtl", "lang": "ar"}`) and `backend/apps/content/forms.py`.
   The forms carry:
   - per-kind validation for line unlock fields, chapter goal fields, and catalog currency by
@@ -644,7 +668,7 @@ matches. Import the sample into an empty database, export it again, and the file
     `at_seconds`; passenger seats in the trip's vehicle; destination and boarding stations among
     the trip's stations;
   - a comma-separated `panel_art` field for 3–5 slugs.
-- [ ] T062 [US2] Implement `backend/apps/content/services/snapshot.py`: `snapshot_pack_parts() ->
+- [X] T062 [US2] Implement `backend/apps/content/services/snapshot.py`: `snapshot_pack_parts() ->
   dict`. It reads every authoring table in one `REPEATABLE READ` transaction and returns the
   `Pack` parts:
   - `trip_id` built from line and number;
@@ -655,10 +679,10 @@ matches. Import the sample into an empty database, export it again, and the file
   - arrays sorted by identifier.
 
   Also return `snapshot_at`.
-- [ ] T063 [US2] Implement `backend/apps/content/services/review.py`: `review_lines(lines, actor)`,
+- [X] T063 [US2] Implement `backend/apps/content/services/review.py`: `review_lines(lines, actor)`,
   which requires `content.review_speech` and sets `reviewed_by` to the username and `reviewed_at`
   to now.
-- [ ] T064 [US2] Implement `backend/apps/content/services/importer.py`: `import_zip(file, actor)`
+- [X] T064 [US2] Implement `backend/apps/content/services/importer.py`: `import_zip(file, actor)`
   and `import_dir(path, actor)`.
   - Apply the zip safety limits of contracts/content-source.md "Import rules".
   - Read through `wassal_content.source.read_layout`, then `validate_pack` stages 1–3.
@@ -667,12 +691,12 @@ matches. Import the sample into an empty database, export it again, and the file
   - Refuse the whole import on any finding or permanence conflict.
   - Write `LogEntry` rows (`ADDITION` or `CHANGE`) for the changed objects.
   - Require `import_content` and `CONTENT_ROLE=source`.
-- [ ] T065 [US2] Implement `backend/apps/content/services/exporter.py`:
+- [X] T065 [US2] Implement `backend/apps/content/services/exporter.py`:
   - `export_current() -> bytes`, a zip with `pack.json` `version: 0` built from
     `snapshot_pack_parts`;
   - `export_pack(pack) -> bytes`, which decompresses the stored `file` with a 32 MiB cap and runs
     `write_layout`.
-- [ ] T066 [US2] Implement `backend/apps/content/admin.py` for the authoring models, per
+- [X] T066 [US2] Implement `backend/apps/content/admin.py` for the authoring models, per
   contracts/admin.md "Authoring pages":
   - inlines (Line → Station, Vehicle → Seat, Trip → TripStation/TripPassenger/TripEvent, Scene →
     SceneLine, Item → ItemVariant, SpeechPool → SpeechLine);
@@ -683,16 +707,29 @@ matches. Import the sample into an empty database, export it again, and the file
   - the extra URLs "Import zip" (an upload form; `import_content`, `source`) and "Export current
     content" (`export_content`, `source`), through `get_urls`, each calling its service, which
     makes the same checks.
-- [ ] T067 [US2] Add `backend/apps/content/management/commands/content_import.py` (`<dir-or-zip>
+- [X] T067 [US2] Add `backend/apps/content/management/commands/content_import.py` (`<dir-or-zip>
   --actor <username>`) and `content_export.py` (`<dir> [--version N] --actor <username>`), both
   calling the same services with the actor resolved from its username. `--actor` is required, and
   an unknown username stops the command. The checks are those of contracts/admin.md "Management
   commands": the current content needs `export_content` and `source`, and a published pack any
   active staff member.
-- [ ] T068 [US2] Add a repeatable `--group <name>` option to `backend/apps/accounts/management/commands/create_staff.py`,
+- [X] T068 [US2] Add a repeatable `--group <name>` option to `backend/apps/accounts/management/commands/create_staff.py`,
   refusing unknown groups, with a test in `backend/apps/accounts/tests/test_create_staff.py`.
 
 **Checkpoint**: quickstart §2 passes, and T058–T060 are green.
+
+As built:
+- `ContentChannel.imported_version` keeps the highest imported `pack.json` version, input B of
+  research R7's version numbering.
+- An import validates the pack at version `max(pack.json version, 1)`, as `validate-source` does,
+  because an export of unpublished content says `version: 0`.
+- A zip of the layout's folder (`sample/pack.json`, …) is accepted, so a folder zipped by hand
+  imports.
+- Unchanged entities are skipped, so re-importing the same content writes nothing and logs
+  nothing.
+- `SpeechLine` also has its own changelist with "Mark reviewed". The pool changelist's action
+  reviews every line of the selected pools.
+- `content_export` and `content_build` replace Django's own `--version` with the pack version.
 
 ---
 
@@ -707,7 +744,7 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
 
 ### Tests for User Story 3 (write first)
 
-- [ ] T069 [P] [US3] Write `backend/apps/content/tests/test_build.py`:
+- [X] T069 [P] [US3] Write `backend/apps/content/tests/test_build.py`:
   - **Green build** (US3-1): `sample_reviewed` builds to `validated`, with a version, size and
     `sha256`.
   - **Unreviewed import:** `sample_imported` builds to `draft`, with one `V-V1` per speech line.
@@ -727,7 +764,7 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
   - **Stuck builds:** a build `running` for over 30 minutes is marked `failed` by the sweeper.
   - **Re-runs:** running the build task twice for the same pack gives the same result.
   - **Size:** the size warning doesn't block (`V-S1`).
-- [ ] T070 [P] [US3] Write `backend/apps/content/tests/test_versioning.py`:
+- [X] T070 [P] [US3] Write `backend/apps/content/tests/test_versioning.py`:
   - two concurrent builds, in separate threads and connections, get distinct consecutive versions;
   - an imported `content/source/pack.json` version raises the next version;
   - **the floor file** (contracts/pack-delivery.md "Version numbers"), served by `pack_server`:
@@ -746,14 +783,14 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
 
 ### Implementation for User Story 3
 
-- [ ] T071 [US3] Implement `backend/apps/content/services/stages.py`:
+- [X] T071 [US3] Implement `backend/apps/content/services/stages.py`:
   - `review_stage(parts) -> StageResult` (`V-V1` for every unreviewed `SpeechLine` in the
     snapshot);
   - `SolverStage` (a protocol with `run(pack: dict) -> StageResult`), plus `NoSolver`
     (`not_available`) and `StandInSolver` (passes every trip);
   - `load_solver_stage()`, which resolves `CONTENT_SOLVER_STAGE` (`none`, `stand_in` or a dotted
     path).
-- [ ] T072 [US3] Implement `backend/apps/content/services/versioning.py`:
+- [X] T072 [US3] Implement `backend/apps/content/services/versioning.py`:
   - `read_floor() -> int`: when `CONTENT_VERSION_FLOOR_URL` is set, `GET
     <floor-url>core.floor.json` with `requests`, `CONTENT_HTTP_TIMEOUT_SECONDS`, 3 retries on
     connection errors and `5xx`, streamed with a 1 KiB cap, and parsed with `wassal_content`'s
@@ -762,7 +799,7 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
   - `next_version(channel) -> int`: it calls `read_floor()` **before** taking the lock, then under
     `select_for_update()` on `ContentChannel` assigns `max(last_assigned_version, imported
     content/source version, floor) + 1`.
-- [ ] T073 [US3] Implement `backend/apps/content/services/build.py`:
+- [X] T073 [US3] Implement `backend/apps/content/services/build.py`:
   - `request_build(actor) -> ContentPack`: requires `build_pack` and `CONTENT_ROLE=source`, and
     creates a `draft` with `build_state=queued`;
   - `run_build(pack_id)`:
@@ -776,17 +813,17 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
        `min_client_version` defaulting to the current pack's (or `1.0.0`);
     8. `validated` if every stage passed or warned, otherwise `draft`;
     9. `finished`, or `failed` with `failure_reason`.
-- [ ] T074 [US3] Implement `backend/apps/content/tasks.py`:
+- [X] T074 [US3] Implement `backend/apps/content/tasks.py`:
   - `build_pack` (`bind=True`, `acks_late=True`, `reject_on_worker_lost=True`, queue `content`,
     autoretry only on `OperationalError`, `max_retries=3`);
   - `sweep_stuck_builds`, which marks `running` builds older than 30 minutes as `failed`.
-- [ ] T075 [US3] Extend `backend/apps/content/admin.py` with the `ContentPack` admin:
+- [X] T075 [US3] Extend `backend/apps/content/admin.py` with the `ContentPack` admin:
   - the changelist columns of contracts/admin.md;
   - a "Build a new pack" button calling `request_build`;
   - a detail page with the validation report grouped by stage, errors first, with links to the
     authoring objects;
   - everything read-only.
-- [ ] T076 [US3] Add `backend/apps/content/management/commands/content_build.py`: `--actor
+- [X] T076 [US3] Add `backend/apps/content/management/commands/content_build.py`: `--actor
   <username> [--dry-run] [--version N]` builds synchronously.
   - `--actor` is required, and an unknown username stops the command.
   - It makes `request_build`'s checks (`build_pack`, an active staff actor, `CONTENT_ROLE=source`)
@@ -795,6 +832,25 @@ golden checksums. A broken reference stays `draft`, with `V-T4` naming its path.
     saving, even when there are findings.
 
 **Checkpoint**: quickstart §3 passes, and T069–T070 are green.
+
+As built:
+- `ContentPack.version` is empty while a build is queued. The build assigns it after the snapshot
+  and saves it at once, so a job redelivered after a worker loss keeps its number.
+- A pack is `validated` when every stage passed or warned. The solver may also be
+  `not_available`: such a pack is validated but can't be published (contracts/admin.md).
+- `rev` is compared without `rev` itself: a trip equal to the current pack's keeps its `rev`, a
+  changed one gets the current `rev` + 1, a new one keeps its authored `rev`. The authored `rev`
+  never changes.
+- A rollback build uses the stored pack's parts and skips the review stage.
+- `content_build --version N` is accepted only with `--dry-run`. A real build that stays `draft`
+  or fails exits with an error, after printing the findings.
+- An unexpected error fails the build with "internal error, see the logs", never its details.
+- Reports are stored as `jsonb`, which reorders keys, so the admin and the command list stages in
+  `STAGES` order. Findings are stored grouped by stage, errors first.
+- While a build is queued or running, its admin page reloads every 5 seconds with a meta refresh
+  (no script, so the admin CSP is unchanged).
+- The admin is now a package: `admin/authoring.py`, `admin/packs.py`, `admin/reports.py` and
+  `admin/common.py`.
 
 ---
 
@@ -810,7 +866,7 @@ read-only packs directory makes the publish fail, and the previous pack stays of
 
 ### Tests for User Story 4 (write first)
 
-- [ ] T077 [P] [US4] Write `backend/apps/content/tests/test_publish.py`:
+- [X] T077 [P] [US4] Write `backend/apps/content/tests/test_publish.py`:
   - **Happy path:** `core-<v>.json.gz` and `core-<v>.release.json` are written create-only, read
     back and hash-checked. `status` becomes `published`, `ContentChannel.current` is set,
     `PublishedIdentifier` and the index rows are written, the 6th newest is retired (its index
@@ -828,7 +884,7 @@ read-only packs directory makes the publish fail, and the previous pack stays of
   - **No floor file on staging:** a publish under `CONTENT_ROLE=source` never writes
     `core.floor.json`.
   - **Immutability:** a published pack's record can't change except `min_client_version` (US4-3).
-- [ ] T078 [P] [US4] Write `backend/apps/content/tests/test_manifest.py`, covering
+- [X] T078 [P] [US4] Write `backend/apps/content/tests/test_manifest.py`, covering
   contracts/api.md:
   - every row of the response table;
   - `X-Client-Version` given as `1.4.0+57`, missing, and `abc`;
@@ -839,18 +895,18 @@ read-only packs directory makes the publish fail, and the previous pack stays of
   - `POST` gives `405`;
   - the database down gives `503`, and the cache down still answers;
   - URLs built from `CONTENT_PACKS_PUBLIC_URL`.
-- [ ] T079 [P] [US4] Write `backend/apps/content/tests/test_rollback_minversion.py`:
+- [X] T079 [P] [US4] Write `backend/apps/content/tests/test_rollback_minversion.py`:
   - **Rollback** builds the earlier pack's content as a new version with `rollback_of` set,
     re-validates it, and bumps `rev` for trips that differ from the current pack (US4-5, FR-028).
   - **Minimum version:** raising and lowering are audited with old and new values, and are visible
     in the manifest. Values below `min_client_version_by_major` are refused, and so are values that
     don't match the format (US4-11, FR-032).
-- [ ] T080 [P] [US4] Write `backend/apps/content/tests/test_lookups.py` (FR-035):
+- [X] T080 [P] [US4] Write `backend/apps/content/tests/test_lookups.py` (FR-035):
   - `catalog_price(version, sku_kind, sku_id)` and `trip_definition(version, trip_id)` return the
     values from that pack for the last 5 versions;
   - a retired version returns `None`;
   - the index rows equal what parsing the pack file gives.
-- [ ] T081 [P] [US4] Extend `backend/docker/edge/smoke.sh` and the dev edge check
+- [X] T081 [P] [US4] Extend `backend/docker/edge/smoke.sh` and the dev edge check
   (contracts/pack-delivery.md "Public files"):
   - `GET /packs/core-1.json.gz` from a fixture file answers `200` with `Content-Type:
     application/gzip`, `Cache-Control: public, max-age=31536000, immutable` and no
@@ -862,7 +918,7 @@ read-only packs directory makes the publish fail, and the previous pack stays of
 
 ### Implementation for User Story 4
 
-- [ ] T082 [US4] Implement `backend/apps/content/services/files.py`:
+- [X] T082 [US4] Implement `backend/apps/content/services/files.py`:
   - `pack_file_name(v)` and `release_file_name(v)`;
   - `write_create_only(path, data)` (`os.open` with `O_CREAT|O_EXCL|O_WRONLY`, mode `0o644`,
     `fsync` the file and the directory; an existing file with equal bytes is fine, different bytes
@@ -881,26 +937,26 @@ read-only packs directory makes the publish fail, and the previous pack stays of
   - `sync_files(verify: bool)`, which recreates missing files from the database, logs
     `FileConflict` and mismatches at error level, and on `target` calls `write_floor` with the
     highest stored version.
-- [ ] T083 [US4] Implement `backend/apps/content/services/release.py`: `release_record(pack) ->
+- [X] T083 [US4] Implement `backend/apps/content/services/release.py`: `release_record(pack) ->
   bytes` (canonical JSON with the fields of contracts/pack-delivery.md "Release record") and
   `promotion_code(pack) -> str` (`core-<v>:<sha256>`).
-- [ ] T084 [US4] Implement `backend/apps/content/services/lookups.py`:
+- [X] T084 [US4] Implement `backend/apps/content/services/lookups.py`:
   - `index_pack(pack, pack_dict)`, which writes the `PackTripIndex` and `PackPriceIndex` rows, with
     `last_station_at_s` the last station's `at_seconds`;
   - `retire_beyond_five(pack_id)`;
   - `catalog_price(...)` and `trip_definition(...)`.
-- [ ] T085 [US4] Implement `backend/apps/content/services/publish.py`: `publish(pack, actor)`,
+- [X] T085 [US4] Implement `backend/apps/content/services/publish.py`: `publish(pack, actor)`,
   following contracts/pack-delivery.md "Publish on staging" steps 1–5:
   1. check permissions and role, and that the solver stage passed and the version is higher;
   2. write the files create-only;
   3. read them back and compare;
   4. commit in one transaction, with `on_commit` clearing the manifest cache;
   5. on failure, write a `failed` audit record and set `failure_reason`.
-- [ ] T086 [US4] Implement `backend/apps/content/services/rollback.py`: `request_rollback(pack,
+- [X] T086 [US4] Implement `backend/apps/content/services/rollback.py`: `request_rollback(pack,
   actor)` (requires `rollback_pack` and `source`; queues a build whose snapshot is the stored file's
   pack parts instead of the authoring tables; sets `rollback_of`) and `audit` entries on queue and
   on publish.
-- [ ] T087 [US4] Implement `backend/apps/content/services/manifest.py`:
+- [X] T087 [US4] Implement `backend/apps/content/services/manifest.py`:
   - `parse_client_version(header) -> tuple[int, int, int] | None`;
   - `select_pack(version_tuple)`, per the api.md rules;
   - `manifest_payload()`, cached in Valkey under `content:manifest:<offered-version>` for
@@ -908,23 +964,23 @@ read-only packs directory makes the publish fail, and the previous pack stays of
   - `invalidate()`;
   - `change_min_client_version(pack, value, actor)`, which checks the floor from `schema-set.json`,
     writes the audit record and invalidates.
-- [ ] T088 [US4] Implement `backend/apps/content/api/serializers.py` (`ContentManifestPack`,
+- [X] T088 [US4] Implement `backend/apps/content/api/serializers.py` (`ContentManifestPack`,
   `ContentManifest`) and `backend/apps/content/api/views.py` (`ManifestView`:
   `authentication_classes = []`, `permission_classes = [AllowAny]`, B01's default throttle,
   `extend_schema`). Register `v1/content/manifest` in `backend/config/urls.py`. Add a `/packs/`
   route that serves `CONTENT_PACKS_DIR` through `django.views.static.serve` only when
   `settings.DEBUG`.
-- [ ] T089 [US4] Add the tasks `publish_pack` and `sync_files(verify)` to
+- [X] T089 [US4] Add the tasks `publish_pack` and `sync_files(verify)` to
   `backend/apps/content/tasks.py`, and `backend/apps/content/management/commands/content_files.py`
   (`sync [--verify]`). It takes no `--actor`: it changes no content, makes nothing current, and
   writes only already-published files and the floor file (contracts/admin.md "Management
   commands"). Extend the `ContentPack` admin with the actions "Publish", "Roll back to
   this", "Change minimum app version" (a form), "Download pack file" and "Export content", plus the
   promotion code on published packs (`source`) and the read-only `ContentAuditRecord` admin.
-- [ ] T090 [US4] Regenerate `contracts/openapi.yaml` (`uv run manage.py spectacular --file
+- [X] T090 [US4] Regenerate `contracts/openapi.yaml` (`uv run manage.py spectacular --file
   ../contracts/openapi.yaml --validate --fail-on-warn`). Then confirm that B01's `schemathesis`
   suite covers `/v1/content/manifest`.
-- [ ] T091 [US4] Update the edge:
+- [X] T091 [US4] Update the edge:
   - `backend/docker/edge/Caddyfile`: the `(api)` snippet gains, before `reverse_proxy`, `@packs
     path_regexp ^/packs/core-[0-9]+\.(json\.gz|release\.json)$`, `handle @packs { root * /srv;
     header Cache-Control "public, max-age=31536000, immutable"; file_server }`, then `@floor path
@@ -935,7 +991,7 @@ read-only packs directory makes the publish fail, and the previous pack stays of
   - `backend/docker/edge/compose.yml`: a `/var/lib/wassal/packs:/srv/packs:ro` volume.
 
   Make T081 pass.
-- [ ] T092 [US4] Mount the packs directory:
+- [X] T092 [US4] Mount the packs directory:
   - `backend/docker/compose.yml`: the `worker` mounts `${CONTENT_PACKS_HOST_DIR:-/var/lib/wassal/packs}:/var/lib/wassal/packs`.
     The `api`, `admin` and `beat` services don't.
   - `backend/docker/compose.dev.yml`: `worker` and `api` mount `../var/packs:/app/var/packs`.
@@ -943,6 +999,33 @@ read-only packs directory makes the publish fail, and the previous pack stays of
     `/v1/content/manifest` answers `{"version":0,"packs":[]}` and that a missing pack gives `404`.
 
 **Checkpoint**: quickstart §4 passes, and T077–T081 are green.
+
+As built:
+- `ContentPack.release_file` keeps the release record's bytes, so `content_files sync` can rewrite
+  a lost record exactly. A publish makes the record once and saves it before writing files, so a
+  retry after a failure writes the same bytes and never conflicts. `published_at` is the record's.
+- Create-only writes go to a hidden temporary file, synced, then hard-linked to the name. The link
+  fails if the name exists, so a crash never leaves a partial file under a pack's name.
+- A refused or failed publish returns the pack with `failure_reason` set and a failed audit
+  record, instead of raising. Reasons are `file_conflict: …`, `storage_error: …`, or the refusal.
+- The manifest cache key is `content:manifest:<generation>:<stated app version>`. Invalidating
+  bumps the generation, which retires every cached answer at once. A Valkey error falls back to
+  the database.
+- Rollback builds need `rollback_pack` instead of `build_pack`, and skip the review stage: their
+  content was reviewed when first published.
+- The edge sets each pack file's `Content-Type` itself (one matcher per name), so it never depends
+  on the image's MIME table. The admin's 8 MiB limit applies as Django reads the body, as on the
+  import page; the smoke posts with a valid CSRF cookie so Django reads it.
+- In dev, packs live on the `packs` volume at the hosts' path, `/var/lib/wassal/packs`: the image
+  creates that directory owned by `app`, so the new volume starts writable for the worker.
+  `backend/var/packs` would sit inside the `/app` bind mount, which the container's user can't
+  write to (found by the T106 smoke). Under `DEBUG` the API serves `/packs/` with the edge's names
+  only.
+- The admin is a package (`admin/packs.py` holds the pack pages). Publish and rollback ask for
+  confirmation on their own page.
+- Tests: `test_publish.py`, `test_manifest.py`, `test_rollback_minversion.py`, `test_lookups.py`,
+  plus `test_files.py` (create-only writes, the floor file, sync) and the pack actions in
+  `test_admin_packs.py`.
 
 ---
 
@@ -957,7 +1040,7 @@ happy path and every failure case, using a local server as staging.
 
 ### Tests for User Story 5 (write first)
 
-- [ ] T093 [P] [US5] Write `backend/apps/content/tests/test_promotion.py`, with `CONTENT_ROLE=target`
+- [X] T093 [P] [US5] Write `backend/apps/content/tests/test_promotion.py`, with `CONTENT_ROLE=target`
   and `pack_server` as staging:
   - **Happy path** (US5-1): the pack is promoted byte-identically, with `origin=promoted`,
     `status=published`, `current` set, index rows written and an audit record `promote/succeeded`.
@@ -983,7 +1066,7 @@ happy path and every failure case, using a local server as staging.
       and `content_files sync` raises a file that is behind the database.
   - **Production's admin** offers no authoring, import or build (US5-5).
   - **On `source`**, promotion is refused.
-- [ ] T094 [P] [US5] Write `backend/apps/content/tests/test_rebuild_floor.py` (US5-6, SC-013):
+- [X] T094 [P] [US5] Write `backend/apps/content/tests/test_rebuild_floor.py` (US5-6, SC-013):
   - an empty staging database and an imported `content/source` `pack.json` of version 12, with
     `pack_server` holding production's `core-12.json.gz` and `core-14.json.gz` (13 is a gap) and a
     floor file of 14. The next build gets 15;
@@ -992,7 +1075,7 @@ happy path and every failure case, using a local server as staging.
 
 ### Implementation for User Story 5
 
-- [ ] T095 [US5] Implement `backend/apps/content/services/promote.py`: `promote(code, actor)`,
+- [X] T095 [US5] Implement `backend/apps/content/services/promote.py`: `promote(code, actor)`,
   following contracts/pack-delivery.md "Promotion on production" steps 1–6, with the failure codes
   listed there:
   - fetches use `requests`, with `CONTENT_HTTP_TIMEOUT_SECONDS`, streaming with byte caps, and 3
@@ -1001,22 +1084,52 @@ happy path and every failure case, using a local server as staging.
     and read-back. Then `write_floor(version)`, before one commit for `current`, the index,
     retiring and audit;
   - `on_commit` invalidates the manifest cache.
-- [ ] T096 [US5] Add the `promote_pack` task (`bind=True`, `acks_late`, retries only for network
+- [X] T096 [US5] Add the `promote_pack` task (`bind=True`, `acks_late`, retries only for network
   errors) to `backend/apps/content/tasks.py`. Add the "Promote from staging" changelist form to
   `backend/apps/content/admin.py`, shown only under `CONTENT_ROLE=target` with `promote_pack`, with
   one field validated as `^core-[0-9]+:[0-9a-f]{64}$`.
-- [ ] T097 [US5] Staging backups (research R8, FR-039c):
+- [X] T097 [US5] Staging backups (research R8, FR-039c):
   - `backend/docker/host/provision.sh` enables `wassal-backup@staging.timer` on the staging host
     once `/etc/wassal/staging-backup.env` exists, and creates `/var/lib/wassal/staging/backup`.
   - The staging host monitor (`backend/docker/host/bin/host-monitor`) checks backup age as
     production's does.
   - Add tests to `backend/docker/host/tests/test_provision_identity.py` and
     `backend/docker/host/tests/test_host_monitor.py`.
-- [ ] T098 [US5] Create the packs directory: `backend/docker/host/provision.sh` creates
+- [X] T098 [US5] Create the packs directory: `backend/docker/host/provision.sh` creates
   `/var/lib/wassal/packs` on both hosts (owner `10001:10001`, mode `0755`), with a test in
   `backend/docker/host/tests/test_provision_identity.py`.
 
 **Checkpoint**: quickstart §5 passes, and T093–T094 and the host tests are green.
+
+As built:
+- A promotion runs on the worker, which holds the packs directory: the admin form checks the code
+  and queues `promote_pack`. Every failure is one of the contract's codes in a failed audit
+  record, with up to 50 findings for `pack_invalid`, and changes nothing apps see.
+- Fetches are capped (release record 64 KiB, pack 16 MiB, decompressed 32 MiB). The URL is always
+  `CONTENT_PROMOTION_SOURCE_URL` plus a name built from the code's version, so the pasted code
+  never chooses a host.
+- A schema major production doesn't know is `pack_invalid`, not an error.
+- The promoted pack's page shows staging's stage results from the release record.
+- **T097, as production does it.** `wassal-backup@staging.timer` is always enabled on the staging
+  host, and `ConditionPathExists=/etc/wassal/staging-backup.env` skips each run until the file
+  exists, exactly like production's timer. Production's host monitor has no backup-age check: a
+  late or failed backup is its Healthchecks.io check's alert (`backup-prod`, which `backup_db`
+  pings). So staging got the `backup-staging` check (an owner action), and its host monitor now
+  runs the backup-storage check on its own `last-backup.json`. `bin/backup` accepts the host's
+  own environment on both hosts.
+- `provision.sh` lists each host's state directories in `host_dirs` (printable with
+  `--render-dirs <env>`): `/var/lib/wassal/<env>/backup` (`10001:10001`, `0750`, as `bin/backup`
+  already set it) and `/var/lib/wassal/packs` (`10001:10001`, `0755`, T098).
+- `backend/tools/b2_setup.py` gained `--env staging`, which creates staging's buckets and only a
+  write-only key, `wassal-staging-backup`, on `staging/` (staging is never drilled). It also gained
+  `--restore-key`, a list/read key on one environment's buckets and prefix that B2 expires after
+  24 h. A staging restore needs it, and the B2 console can't make a key for two buckets.
+- The two hosts' monitors split the 8 GB storage alert (6 GB prod, 2 GB staging), because both
+  environments' buckets share one B2 account's free 10 GB. The owner confirms the split before
+  merge (owner-actions.md).
+- Tests: `test_promotion.py`, `test_rebuild_floor.py`; 371 host tests (staging's timer and env
+  file, the state-directory table, staging backing itself up and refusing `backup prod`, the
+  staging monitor's storage check); 10 more in `tests/test_b2_setup.py`.
 
 ---
 
@@ -1024,7 +1137,7 @@ happy path and every failure case, using a local server as staging.
 
 **Purpose**: Docs, runbooks, owner actions, review, and the final validation of PR 2.
 
-- [ ] T099 [P] Update `docs/architecture-backend.md`:
+- [X] T099 [P] Update `docs/architecture-backend.md`:
   - §4: the diagram's `OBJ` node and its row become "packs served by each host's edge from
     `/var/lib/wassal/packs`";
   - §7.4: `spend_jenehat` `sku_kind` gains `chapter`;
@@ -1034,9 +1147,9 @@ happy path and every failure case, using a local server as staging.
   - §15: the object storage row (packs self-hosted, B2 now also holds staging backups), the CDN
     row resolved, and the backups row for staging;
   - §22.3: struck through and resolved, pointing to research R5.
-- [ ] T100 [P] Update `docs/architecture-mobile.md` §14.1: the manifest selection for old apps, and
+- [X] T100 [P] Update `docs/architecture-mobile.md` §14.1: the manifest selection for old apps, and
   that an app bundles a pack production has promoted (research "Handed to later features").
-- [ ] T101 [P] Write `docs/runbooks/content-publishing.md`:
+- [X] T101 [P] Write `docs/runbooks/content-publishing.md`:
   - author, then build, publish on staging and test;
   - copy the promotion code and promote on production;
   - export and open the `content/source` PR;
@@ -1046,13 +1159,13 @@ happy path and every failure case, using a local server as staging.
 
   Update `docs/runbooks/deploy-and-rollback.md` (the edge update for the `/packs/` route) and
   `docs/runbooks/restore.md` (restoring staging from its own buckets, then `content_files sync`).
-- [ ] T102 [P] Create `content/source/README.md`, which says that only promoted packs land here,
+- [X] T102 [P] Create `content/source/README.md`, which says that only promoted packs land here,
   how to export them, and that its `pack.json` switches on the schema-diff check (FR-040, R3).
-- [ ] T103 Update `CLAUDE.md` with the backend content commands (`content_import`,
+- [X] T103 Update `CLAUDE.md` with the backend content commands (`content_import`,
   `content_export`, `content_build --dry-run`, `content_files sync --verify`) and the new
   environment variables. Update `docs/delivery-plan.md`: the step 2 resolve line, which settles
   §22.3, and the Progress entry.
-- [ ] T104 Add a "003 B04 content pipeline" section to `docs/owner-actions.md`, and a row in its
+- [X] T104 Add a "003 B04 content pipeline" section to `docs/owner-actions.md`, and a row in its
   "Open now" table:
   - **Before merge:** the security review (T105).
   - **After merge:**
@@ -1063,7 +1176,7 @@ happy path and every failure case, using a local server as staging.
     - give the `content_author` and `content_publisher` groups;
     - add authors' devices to staging's private network.
   - **After B05:** quickstart "After B05" items 3–7.
-- [ ] T105 Run a security review of the PR 2 diff with the `security-reviewer` agent, and fix every
+- [X] T105 Run a security review of the PR 2 diff with the `security-reviewer` agent, and fix every
   CRITICAL and HIGH finding. In scope:
   - zip import (zip slip, zip bombs, entry limits);
   - file writes and the packs directory's permissions;
@@ -1071,7 +1184,7 @@ happy path and every failure case, using a local server as staging.
   - permission checks in services;
   - the audit log being append-only;
   - the public files carrying no personal data.
-- [ ] T106 Run the full checks:
+- [X] T106 Run the full checks:
   - `uv run pytest --cov --cov-fail-under=80` in `tools/content_kit/` and in `backend/`;
   - `fvm dart test` with the coverage gate in `packages/content_models/`;
   - `uv run ruff check`, `ruff format --check` and `mypy` in both Python projects;
@@ -1080,10 +1193,58 @@ happy path and every failure case, using a local server as staging.
   - quickstart §§2–5.
 
   Fix anything red, then open **PR 2**.
+
+  As built (2026-10-19): every check passes:
+  - backend: 1022 tests, 95.20% coverage;
+  - `content_kit`: 393 tests, 96.24%;
+  - `packages/content_models`: 34 tests, 100%;
+  - ruff and mypy in both Python projects;
+  - `codegen --check` and `golden`;
+  - no missing migrations, and the regenerated OpenAPI file is identical to the committed one.
+
+  Quickstart §§2–4 were walked on the dev stack from the command line and through the dev edge:
+  - import, review, build and publish;
+  - the manifest, including for an app below the minimum;
+  - the pack's sha256 and its immutable header;
+  - a `no-store` 404.
+
+  §5 is the promotion suite. The admin-only steps (entering a trip by hand, right-to-left input,
+  the 15-minute timing) need a browser with TOTP, and are left for the owner's review of PR 2.
+
+  The smoke found that dev's packs directory sat inside the `/app` bind mount, which the image's
+  user can't write to, and that the worker's `mkdir` error there was only logged. The fix: dev uses
+  a `packs` volume at `/var/lib/wassal/packs`, which the image creates owned by `app`, and the
+  check turns that error into the same `SystemExit`.
+
+  PR 2 is not opened yet: committing and pushing wait for the owner's go-ahead.
 - [ ] T107 After B05 (owner and agent): walk quickstart "After B05" items 1–7 on the hosts, record
   the results in `docs/owner-actions.md`, and tick B04 in `docs/delivery-plan.md` Progress once
   they pass.
 
+
+As built (Phase 9):
+- T099–T101 also touched the docs that B04's staging backups made stale:
+  - `docs/runbooks/monitoring-setup.md`: the `backup-staging` check, B2 step 8, the storage split;
+  - `docs/runbooks/provision-host.md` and `docs/runbooks/README.md`: staging's timers and files;
+  - B01's `contracts/operations.md` and `contracts/environment.md`, annotated "since B04".
+- `restore.md` gained "Restore staging" (a 24-hour read key from `b2_setup.py --restore-key`,
+  then production's steps with staging's names, then `content_files sync --verify`) and the
+  fallback from `content/source`. Production's restore and rebuild now end with
+  `content_files sync --verify` too.
+- T102: `content/source/README.md` already existed from PR 1, with the required content.
+- T104: staging's host steps and `CONTENT_*` values are **before merge**, because the merge
+  deploys staging and a B04 release won't start without them. Production's come before the tag.
+- T105: the `security-reviewer` agent found no CRITICAL or HIGH issues. It fixed two MEDIUM ones:
+  - unreadable or duplicate zip entries are refused;
+  - the floor file is written under a lock.
+
+  Its three recommendations are done:
+  - a database trigger keeps the audit log append-only (migration `0005_audit_append_only`);
+  - `/packs/` 404s carry `no-store`;
+  - an unknown schema major is `pack_invalid` on promotion.
+
+  Left as LOW: the manifest cache's key count, `Accept-Encoding` on pack downloads, and staff
+  downloading drafts.
 ---
 
 ## Dependencies & Execution Order
