@@ -3,12 +3,13 @@
 import copy
 import json
 import shutil
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from tests.paths import FIXTURES, REPO_ROOT, SCHEMAS
+from tests.paths import ENGINE, FIXTURES, REPO_ROOT, SCHEMAS
 from wassal_content.codegen import (
     CodegenError,
     Outputs,
@@ -77,6 +78,7 @@ def test_member_names() -> None:
 def fake_repo(tmp_path: Path) -> Path:
     (tmp_path / ".fvmrc").write_text("{}\n")
     shutil.copytree(FIXTURE_SCHEMAS, tmp_path / "content" / "schemas")
+    shutil.copytree(ENGINE, tmp_path / "content" / "engine")
     return tmp_path
 
 
@@ -128,6 +130,79 @@ def test_a_changed_schema_without_regenerating_is_caught(fake_repo: Path) -> Non
     path.write_text(json.dumps(schema))
     differing = {p.name for p in check_outputs(outputs_for(fake_repo))}
     assert {"_generated.py", "other.schema.json", "other.dart"} <= differing
+
+
+def _capabilities(repo: Path) -> tuple[Path, Path]:
+    """The capabilities file of `repo`, and its packaged copy."""
+    package = repo / "tools" / "content_kit" / "src" / "wassal_content"
+    return (
+        repo / "content" / "engine" / "capabilities.json",
+        package / "engine" / "capabilities.json",
+    )
+
+
+def test_the_packaged_capabilities_equal_the_repositorys() -> None:
+    packaged = resources.files("wassal_content").joinpath("engine", "capabilities.json")
+    assert packaged.read_bytes() == (ENGINE / "capabilities.json").read_bytes()
+
+
+def test_the_capabilities_file_is_copied_byte_for_byte(fake_repo: Path) -> None:
+    source, copied = _capabilities(fake_repo)
+    # The file is hand-aligned: a copy that re-serialized it would lose the layout.
+    source.write_bytes(source.read_bytes().replace(b'"bump":', b'"bump"   :', 1) + b"\n")
+    assert write_outputs(outputs_for(fake_repo)).count(copied) == 1
+    assert copied.read_bytes() == source.read_bytes()
+
+
+def test_a_hand_edited_capabilities_copy_is_caught_and_undone(fake_repo: Path) -> None:
+    outputs = outputs_for(fake_repo)
+    write_outputs(outputs)
+    _, copied = _capabilities(fake_repo)
+    copied.write_bytes(copied.read_bytes().replace(b'"max": 60', b'"max": 90', 1))
+    assert check_outputs(outputs) == [copied]
+    write_outputs(outputs)
+    assert check_outputs(outputs) == []
+
+
+def test_a_changed_capabilities_file_without_regenerating_is_caught(fake_repo: Path) -> None:
+    write_outputs(outputs_for(fake_repo))
+    source, copied = _capabilities(fake_repo)
+    source.write_bytes(source.read_bytes().replace(b'"hajja", ', b"", 1))
+    assert check_outputs(outputs_for(fake_repo)) == [copied]
+
+
+def test_a_stale_file_beside_the_capabilities_copy_is_removed(fake_repo: Path) -> None:
+    outputs = outputs_for(fake_repo)
+    write_outputs(outputs)
+    _, copied = _capabilities(fake_repo)
+    stale = copied.parent / "old.json"
+    stale.write_text("{}\n")
+    assert check_outputs(outputs) == [stale]
+    write_outputs(outputs)
+    assert not stale.exists()
+
+
+def test_a_missing_capabilities_file_is_refused(fake_repo: Path) -> None:
+    source, _ = _capabilities(fake_repo)
+    source.unlink()
+    with pytest.raises(CodegenError, match=r"capabilities\.json is missing"):
+        outputs_for(fake_repo)
+
+
+@pytest.mark.parametrize(
+    ("text", "match"),
+    [
+        ('{"version": 1.5}', "only integers"),
+        ('{"version": 1, "archetypes": [], "events": {}}', "speech_slots"),
+    ],
+    ids=["not strict JSON", "wrong shape"],
+)
+def test_a_malformed_capabilities_file_is_refused(fake_repo: Path, text: str, match: str) -> None:
+    source, _ = _capabilities(fake_repo)
+    source.write_text(text)
+    with pytest.raises(CodegenError, match=match) as caught:
+        outputs_for(fake_repo)
+    assert "capabilities.json" in str(caught.value)
 
 
 def test_outputs_type_is_plain_data() -> None:

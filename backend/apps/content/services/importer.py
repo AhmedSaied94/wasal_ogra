@@ -514,6 +514,7 @@ class _Applier:
         trip.bag_fare_piasters = rules["bag_fare_piasters"]
         trip.child_free_age = rules["child_free_age"]
         trip.max_break_requests = rules["max_break_requests"]
+        trip.no_fights_required = rules["no_fights_required"]
         for key in snapshot.DENOMINATIONS:
             setattr(trip, f"tray_{key}", part["initial_tray"].get(key, 0))
         trip.save()

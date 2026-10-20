@@ -131,15 +131,17 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - ~~backend §22.3 (a CDN in front of content packs) in B04~~ **resolved in B04:** no CDN for the
     MVP; each host's edge serves its own immutable pack files, and Cloudflare later is configuration
     (research R5);
-  - mobile §24.4 (resume or restart when the app is killed mid-trip) in M01. This decides whether
-    the engine needs snapshot and restore.
+  - ~~mobile §24.4 (resume or restart when the app is killed mid-trip) in M01~~ **resolved in M01:**
+    the trip resumes exactly, rebuilt from its replay record, so the engine needs no snapshot
+    format and fuel is untouched (research R10).
 - **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
   features"): in B04, keep content packs and their CDN separate from the Backblaze B2 backup
   buckets, and never reuse the backup keys.
-- **Handed over from M03** (research, "Handed to later features"): in M01, settle the tunable
+- ~~**Handed over from M03** (research, "Handed to later features"): in M01, settle the tunable
   `trip_hints_enabled_line_gamaa`. The ux-spec's "first time per passenger type" hint mode needs an
-  enum, not the boolean M03 ships. If the key changes, update mobile §14.3 and the backend's copy in
-  the same PR.
+  enum, not the boolean M03 ships.~~ **Settled in M01** (research R12): the five keys became
+  `trip_hints_mode_<line_id>` (`off`, `first_time`, `always`), with `first_time` for `line_gamaa`.
+  Mobile §14.3 is updated; the backend's copy arrives with B10 (research R19).
 - **Done when:**
   - `trip.schema.json` and the generated models are on `master`.
   - Replaying `(definition, seed, params, command_log)` gives an identical `TripResult`.
@@ -182,6 +184,9 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 - **Resolve:**
   - mobile §24.6: choose the Rive runtime and confirm its licensing;
   - mobile §24.4: design the UI side of the resume policy.
+- **Handed over from M01** (research R9): `Revive` is refused with `command_limit` once a trip has
+  1,200 accepted commands, while `Abandon` is always accepted. Hide the revive offer at the cap
+  (`TripState.commandsAccepted`), so no ad or booster is spent on a refused revive.
 - **Done when:**
   - A trip from the bundled pack plays from start to finish with no network.
   - The minimum sizes pass in RTL goldens.
@@ -244,6 +249,10 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - backend §22.10 (BONAT pack amounts) in B10;
   - in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets the
     ad content rating).
+- **Handed over from M01** (research R19): in B10, create `liveops.LiveSetting` with every key in
+  `apps/mobile/assets/config/tunables.json`, including M01's 20 new keys and
+  `trip_hints_mode_<line_id>`. This ends M01's approved exception to constitution VIII (Complexity
+  Tracking in `specs/004-m01-trip-engine/plan.md`).
 - **Done when:**
   - Every placement in Glossary §3.4 works, with its caps enforced on the device and on the server.
   - No ad call is ever made while a trip is running.
@@ -332,7 +341,10 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     promotion, the manifest and staging's own backups) is open as #4. Resolved backend §22.3 (no CDN
     for the MVP, research R5). B04 is ticked once B05 has supplied the solver stage and the live
     checks pass (T107).
-  - [ ] `004-m01-trip-engine`
+  - [ ] `004-m01-trip-engine`. Built on 2026-10-20, PR not opened yet. Resolved mobile §24.4 (resume
+    exactly from the replay record, research R10) and M03's hints hand-over
+    (`trip_hints_mode_<line_id>`, research R12). Hands B10 the backend copy of its 20 tunables
+    (research R19).
 - [ ] Step 3: Parity
   - [ ] `005-b05-solver-parity`
 - [ ] Step 4: Content and the local economy

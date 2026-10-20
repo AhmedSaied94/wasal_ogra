@@ -379,12 +379,13 @@ class TripKind(StrEnum):
 
 
 class TripRules(ContentModel):
-    """The fare rules of one trip."""
+    """The rules of one trip: fares, break requests, and whether a fight fails it."""
 
     student_discount_pct: StrictInt
     bag_fare_piasters: StrictInt
     child_free_age: StrictInt
     max_break_requests: StrictInt
+    no_fights_required: StrictBool
 
 
 class TripStation(ContentModel):

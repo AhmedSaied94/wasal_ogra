@@ -21,8 +21,9 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from pytest_django import Settings
 
 from apps.accounts.models import User
-from apps.content.models import ContentChannel, SpeechLine
+from apps.content.models import ContentChannel, SpeechLine, SpeechPool
 from apps.content.services import importer, review
+from apps.content.tests import factories as make
 
 SAMPLE = django_settings.BASE_DIR.parent / "content" / "examples" / "sample"
 PASSWORD = "a-long-enough-password-1"
@@ -151,6 +152,16 @@ def sample_reviewed(sample_imported: User) -> User:
     """The sample with every speech line reviewed by `author1`, ready to build green."""
     review.review_lines(SpeechLine.objects.order_by("pool", "order"), sample_imported)
     return sample_imported
+
+
+@pytest.fixture
+def engine_pools(sample_reviewed: User) -> User:
+    """The reviewed sample with its speech swapped for `make.engine_speech_pools()`, reviewed: the
+    least speech a pack builds green with (V-T10)."""
+    SpeechPool.objects.all().delete()
+    make.engine_speech_pools()
+    review.review_lines(SpeechLine.objects.order_by("pool", "order"), sample_reviewed)
+    return sample_reviewed
 
 
 # -- the admin ------------------------------------------------------------------------------------

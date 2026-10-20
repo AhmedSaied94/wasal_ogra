@@ -18,6 +18,13 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wassal_content"]
+# Package data, read through importlib.resources: the schema copy and the engine's capabilities
+# file, both written by `wassal-content codegen`. Listed so the wheel ships them even if a
+# selection or ignore rule changes.
+artifacts = [
+    "src/wassal_content/schemas/*.json",
+    "src/wassal_content/engine/capabilities.json",
+]
 
 [dependency-groups]
 dev = [

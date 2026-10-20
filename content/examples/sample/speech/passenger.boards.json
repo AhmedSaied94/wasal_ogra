@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "السلام عليكم"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "صباح الخير يا أسطى"
+      }
+    }
+  ],
+  "speech_key": "passenger.boards"
+}

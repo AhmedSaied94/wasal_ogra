@@ -213,6 +213,7 @@ class TripAdmin(ContentModelAdmin):
                     "bag_fare_piasters",
                     "child_free_age",
                     "max_break_requests",
+                    "no_fights_required",
                 )
             },
         ),

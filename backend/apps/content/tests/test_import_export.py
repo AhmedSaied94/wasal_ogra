@@ -61,20 +61,20 @@ def codes(refused: importer.ImportRefused) -> list[str]:
 def test_the_sample_round_trips_byte_for_byte(author: User) -> None:
     result = importer.import_zip(zipped(sample_files()), author)
 
-    assert len(result.added) == 41
+    assert len(result.added) == 61
     assert unzipped(exporter.export_current(author)) == sample_files()
 
 
 def test_importing_the_same_content_again_changes_nothing(sample_imported: User) -> None:
     result = importer.import_dir(SAMPLE, sample_imported)
 
-    assert (result.added, result.changed, result.unchanged) == ([], [], 41)
+    assert (result.added, result.changed, result.unchanged) == ([], [], 61)
 
 
 def test_a_zip_of_the_layout_folder_is_accepted(author: User) -> None:
     wrapped = {f"sample/{name}": data for name, data in sample_files().items()}
 
-    assert len(importer.import_zip(zipped(wrapped), author).added) == 41
+    assert len(importer.import_zip(zipped(wrapped), author).added) == 61
 
 
 # -- all or nothing (US2-3) -----------------------------------------------------------------------
@@ -380,13 +380,32 @@ def test_a_published_pack_exports_from_its_stored_file(
 def test_content_import_imports_a_directory_or_a_zip(author: User, tmp_path: Path) -> None:
     out = io.StringIO()
     call_command("content_import", str(SAMPLE), "--actor", "author1", stdout=out)
-    assert "41 added" in out.getvalue()
+    assert "61 added" in out.getvalue()
 
     archive = tmp_path / "sample.zip"
     archive.write_bytes(zipped(sample_files()))
     out = io.StringIO()
     call_command("content_import", str(archive), "--actor", "author1", stdout=out)
-    assert "41 unchanged" in out.getvalue()
+    assert "61 unchanged" in out.getvalue()
+
+
+@pytest.mark.parametrize(("trip_id", "required"), [("line_hay.01", True), ("line_hay.03", False)])
+def test_the_commands_keep_no_fights_required(
+    sample_imported: User, tmp_path: Path, trip_id: str, required: bool
+) -> None:
+    name = f"trips/line_hay/{trip_id}.json"
+    assert json.loads(sample_files()[name])["rules"]["no_fights_required"] is not required
+    files = edited(sample_files(), name, lambda t: t["rules"].update(no_fights_required=required))
+    archive = tmp_path / "edited.zip"
+    archive.write_bytes(zipped(files))
+
+    call_command("content_import", str(archive), "--actor", "author1", stdout=io.StringIO())
+    call_command("content_export", str(tmp_path / "out"), "--actor", "author1")
+
+    trip = Trip.objects.get(line__line_id="line_hay", number=int(trip_id.rsplit(".", 1)[1]))
+    assert trip.no_fights_required is required
+    exported = json.loads((tmp_path / "out" / name).read_bytes())
+    assert exported["rules"]["no_fights_required"] is required
 
 
 def test_content_import_reports_every_problem(author: User, tmp_path: Path) -> None:

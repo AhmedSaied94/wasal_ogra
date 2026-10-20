@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "ماشي، خلّيها"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "يعني مفيش فكة خالص؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.change_request_declined"
+}

@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "لسه ليّا {amount} يا أسطى"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "الباقي ناقص {amount}"
+      }
+    }
+  ],
+  "speech_key": "passenger.short_change"
+}

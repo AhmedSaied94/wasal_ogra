@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "تسلم يا أسطى"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "متشكرين يا ريّس"
+      }
+    }
+  ],
+  "speech_key": "passenger.thanks"
+}

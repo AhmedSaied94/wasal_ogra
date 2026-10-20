@@ -34,6 +34,7 @@
   "task/zero_target.json": "$.target",
   "trip/fare_475.json": "$.stations[0].fare_piasters",
   "trip/five_stations.json": "$.stations",
+  "trip/no_fights_required_missing.json": "$.rules.no_fights_required",
   "trip/no_trip_id.json": "$.trip_id",
   "trip/null_board_station.json": "$.passengers[0].board_station_id",
   "trip/payment_300.json": "$.passengers[1].payment[0]",

@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "خلّي {amount} عشانك"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "والباقي حلاوتك يا أسطى"
+      }
+    }
+  ],
+  "speech_key": "passenger.tip"
+}

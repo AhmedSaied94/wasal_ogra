@@ -173,13 +173,14 @@
       "additionalProperties": false
     },
     "TripRules": {
-      "description": "The fare rules of one trip.",
+      "description": "The rules of one trip: fares, break requests, and whether a fight fails it.",
       "type": "object",
       "required": [
         "student_discount_pct",
         "bag_fare_piasters",
         "child_free_age",
-        "max_break_requests"
+        "max_break_requests",
+        "no_fights_required"
       ],
       "properties": {
         "student_discount_pct": {
@@ -199,6 +200,9 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 2
+        },
+        "no_fights_required": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

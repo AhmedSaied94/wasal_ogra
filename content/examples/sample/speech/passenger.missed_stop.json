@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "يا نهار! فاتتني {station}"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "مش كان المفروض أنزل في {station}؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.missed_stop"
+}

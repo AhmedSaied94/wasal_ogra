@@ -120,6 +120,21 @@ def test_a_valid_trip_saves(author_client: Client, world: dict[str, Any]) -> Non
     assert trip.passengers.get().dest_station == world["stations"][1]
 
 
+@pytest.mark.parametrize("required", [True, False])
+def test_the_rules_show_and_save_no_fights_required(
+    author_client: Client, world: dict[str, Any], required: bool
+) -> None:
+    page = author_client.get(TRIP_ADD)
+    assert "no_fights_required" in dict(page.context["adminform"].fieldsets)["Rules"]["fields"]
+    assert 'name="no_fights_required"' in page.content.decode()
+    checkbox = {"no_fights_required": "on"} if required else {}
+
+    response = author_client.post(TRIP_ADD, {**trip_post(world), **checkbox})
+
+    assert response.status_code == 302, response.context and response.context["errors"]
+    assert Trip.objects.get().no_fights_required is required
+
+
 def test_a_fare_of_475_is_an_error_on_its_field(
     author_client: Client, world: dict[str, Any]
 ) -> None:

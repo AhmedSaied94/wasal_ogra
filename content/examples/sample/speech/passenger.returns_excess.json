@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "إديتني زيادة يا أسطى، خد {amount}"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "الحلال حلال، دول {amount} زيادة"
+      }
+    }
+  ],
+  "speech_key": "passenger.returns_excess"
+}

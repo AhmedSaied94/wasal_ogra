@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "archetypes": [
+    "regular", "honest", "hajja", "sleeper", "hurry", "big_note", "student",
+    "headphones", "false_claimer", "group_payer", "chatty", "regular_customer"
+  ],
+  "events": {
+    "bump":            {},
+    "traffic":         { "seconds": { "use": "required", "min": 1, "max": 60 } },
+    "open_road":       { "seconds": { "use": "required", "min": 1, "max": 60 } },
+    "fare_increase":   { "amount_piasters": { "use": "required", "min": 50 },
+                         "passenger_ids":   { "use": "optional", "min_items": 1, "max_items": 6 } },
+    "drop_me_here":    { "passenger_ids":   { "use": "required", "min_items": 1, "max_items": 1 },
+                         "seconds":         { "use": "optional", "min": 1, "max": 60 } },
+    "payment_dispute": { "passenger_ids":   { "use": "required", "min_items": 2, "max_items": 2,
+                                              "no_group_members": true } },
+    "change_request":  { "passenger_ids":   { "use": "required", "min_items": 1, "max_items": 1 },
+                         "amount_piasters": { "use": "required", "one_of": [1000, 2000, 5000, 10000, 20000] } },
+    "roadside_pickup": { "passenger_ids":   { "use": "required", "min_items": 1, "max_items": 6 } }
+  },
+  "speech_slots": [
+    { "slot": "pays",                    "placeholders": ["amount"] },
+    { "slot": "pays_group",              "placeholders": ["amount"] },
+    { "slot": "pays_old_fare",           "placeholders": ["amount"] },
+    { "slot": "pays_rest",               "placeholders": ["amount"] },
+    { "slot": "wants_change",            "placeholders": ["amount"] },
+    { "slot": "impatient",               "placeholders": [] },
+    { "slot": "thanks",                  "placeholders": [] },
+    { "slot": "short_change",            "placeholders": ["amount"] },
+    { "slot": "returns_excess",          "placeholders": ["amount"] },
+    { "slot": "stop_near",               "placeholders": ["station"] },
+    { "slot": "fight",                   "placeholders": ["amount"] },
+    { "slot": "missed_stop",             "placeholders": ["station"] },
+    { "slot": "claims_paid",             "placeholders": [] },
+    { "slot": "caught",                  "placeholders": [] },
+    { "slot": "accused",                 "placeholders": [] },
+    { "slot": "woke",                    "placeholders": [] },
+    { "slot": "attentive",               "placeholders": [] },
+    { "slot": "drop_me_here",            "placeholders": [] },
+    { "slot": "dispute",                 "placeholders": [] },
+    { "slot": "change_request",          "placeholders": ["amount"] },
+    { "slot": "change_request_declined", "placeholders": [] },
+    { "slot": "boards",                  "placeholders": [] },
+    { "slot": "tip",                     "placeholders": ["amount"] }
+  ]
+}

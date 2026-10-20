@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "معاك فكة {amount} يا أسطى؟"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "ممكن تفكّلي {amount}؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.change_request"
+}

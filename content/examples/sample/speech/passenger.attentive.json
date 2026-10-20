@@ -1,0 +1,15 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "أيوه يا أسطى؟ معاك"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "بتكلمني أنا؟"
+      }
+    }
+  ],
+  "speech_key": "passenger.attentive"
+}

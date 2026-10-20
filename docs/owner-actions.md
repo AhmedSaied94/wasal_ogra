@@ -19,6 +19,7 @@ left, in what order, and where to look.
 | [001 M03 app shell](#001-m03-app-shell) | none | 2 device checks | Merged in #1 |
 | [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3. PR 2 open as #4. |
+| [004 M01 trip engine](#004-m01-trip-engine) | none | none | Built 2026-10-20 on `004-m01-trip-engine`. PR not opened yet. |
 
 ## Every month
 
@@ -402,6 +403,27 @@ items 3–7 (T107). Then tick B04 in the
 - Dev packs now live on the `packs` Docker volume. The T106 smoke left a `smoke-author` staff user,
   the imported sample and published pack 2 in the dev database. `docker compose … down -v` wipes
   them with everything else.
+
+## 004 M01 trip engine
+
+Built and tested on 2026-10-20, on branch `004-m01-trip-engine`
+([tasks.md](../specs/004-m01-trip-engine/tasks.md),
+[quickstart](../specs/004-m01-trip-engine/quickstart.md)). It is a pure-Dart package with its
+fixtures, so it needs no account, console, secret, device or live host.
+
+### Before merge
+
+Nothing is left for you.
+
+- [x] **T117 The constitution VIII exception.** Approved on 2026-10-20 and recorded in
+  [plan.md](../specs/004-m01-trip-engine/plan.md) "Complexity Tracking": the backend's copy of the
+  20 new tunables waits for B10's `LiveSetting`. B10's "Handed over from M01" item in
+  [delivery-plan.md](delivery-plan.md) ends it.
+
+### After merge
+
+Nothing. The replay budget (SC-004) is measured on the CI runner, not on a device. Tick M01 in the
+[delivery plan's Progress list](delivery-plan.md#progress) when the PR merges.
 
 ## Known for later features
 

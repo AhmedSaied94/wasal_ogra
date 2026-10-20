@@ -1,8 +1,10 @@
-"""`wassal-content codegen`: the server models, the app models and the packaged schema copy.
+"""`wassal-content codegen`: the server models, the app models and the packaged copies.
 
-Every output is generated in memory from `content/schemas/`. Writing replaces the managed files
-and removes stale ones; checking compares byte for byte and lists every difference, which is how
-CI catches a schema changed without regenerating, or a generated file edited by hand (FR-007).
+Every output is generated in memory from `content/schemas/`, plus the packaged copy of the
+engine's capabilities file, `content/engine/capabilities.json` (specs/004 research R13), which is
+copied byte for byte once it parses. Writing replaces the managed files and removes stale ones;
+checking compares byte for byte and lists every difference, which is how CI catches a schema
+changed without regenerating, or a generated file edited by hand (FR-007).
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from typing import Any
 from wassal_content.codegen.dart import emit_dart
 from wassal_content.codegen.ir import CodegenError, Model, build_model
 from wassal_content.codegen.python import emit_python
+from wassal_content.engine import CAPABILITIES_FILE, CapabilitiesError, parse_capabilities
 from wassal_content.loader import ContentLoadError, load_json_bytes
 
 __all__ = [
@@ -23,6 +26,7 @@ __all__ = [
     "build_from_dir",
     "check_outputs",
     "outputs_for",
+    "read_capabilities",
     "write_outputs",
 ]
 
@@ -70,15 +74,30 @@ def _load(path: Path, data: bytes) -> Any:
         raise CodegenError(f"{path}: {error}") from None
 
 
+def read_capabilities(path: Path) -> bytes:
+    """The capabilities file's bytes, once they parse: the copy must be usable as well as equal."""
+    if not path.is_file():
+        raise CodegenError(f"{path} is missing")
+    data = path.read_bytes()
+    try:
+        parse_capabilities(data)
+    except CapabilitiesError as error:
+        raise CodegenError(f"{path}: {error}") from None
+    return data
+
+
 def outputs_for(repo_root: Path) -> Outputs:
     """Every file codegen owns in the repository."""
     model, copies = build_from_dir(repo_root / "content" / "schemas")
+    capabilities = read_capabilities(repo_root / "content" / "engine" / CAPABILITIES_FILE)
     package = repo_root / "tools" / "content_kit" / "src" / "wassal_content"
     dart_dir = repo_root / "packages" / "content_models" / "lib" / "src" / "generated"
     files: dict[Path, bytes] = {package / "models" / "_generated.py": emit_python(model)}
     files.update({package / "schemas" / name: data for name, data in copies.items()})
+    files[package / "engine" / CAPABILITIES_FILE] = capabilities
     files.update({dart_dir / name: data for name, data in emit_dart(model).items()})
-    return Outputs(files=files, managed={package / "schemas": "*.json", dart_dir: "*.dart"})
+    managed = {package / "schemas": "*.json", package / "engine": "*.json", dart_dir: "*.dart"}
+    return Outputs(files=files, managed=managed)
 
 
 def _stale(outputs: Outputs) -> list[Path]:
