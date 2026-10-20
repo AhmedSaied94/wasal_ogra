@@ -31,7 +31,7 @@ Python is pinned by `backend/.python-version` and managed with uv (never pip). R
 | Migrate | `uv run manage.py migrate` |
 | Lint and format check | `uv run ruff check . && uv run ruff format --check .` |
 | Type check | `uv run mypy .` |
-| Tests + coverage gate | `uv run pytest --cov --cov-fail-under=80` |
+| Tests + coverage gate (on 4 workers, as CI; at most 7) | `uv run pytest -n 4 --cov --cov-fail-under=80` |
 | Missing-migration check | `uv run manage.py makemigrations --check --dry-run` |
 | Regenerate the API contract | `uv run manage.py spectacular --file ../contracts/openapi.yaml --validate --fail-on-warn` |
 | Create a staff user / issue TOTP | `uv run manage.py create_staff <name> [--group content_author]` / `uv run manage.py staff_totp <name>` |

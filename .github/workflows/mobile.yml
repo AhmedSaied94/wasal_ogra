@@ -56,13 +56,14 @@ jobs:
             exit 0
           fi
           if git diff --name-only "$base" HEAD \
-              | grep -qE '^(apps/mobile/|packages/|content/|\.fvmrc$|\.github/workflows/mobile\.yml$)'; then
+              | grep -qE '^(apps/mobile/|packages/|content/|fixtures/|\.fvmrc$|\.github/workflows/mobile\.yml$)'; then
             echo "mobile=true" >> "$GITHUB_OUTPUT"
           else
             echo "mobile=false" >> "$GITHUB_OUTPUT"
           fi
 
-  check:
+  # The app: format, analyze, tests and goldens, and the coverage gate.
+  app:
     needs: changes
     if: needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
@@ -82,26 +83,6 @@ jobs:
       - run: flutter test --coverage
       - name: Coverage gate
         run: dart run tool/check_coverage.dart --min 80
-      # packages/content_models runs here, not in its own job: `check` is the
-      # required check, so branch protection stays as it is
-      # (specs/003-b04-content-pipeline/contracts/ci-checks.md).
-      - name: content_models dependencies and build
-        working-directory: packages/content_models
-        run: |
-          dart pub get
-          dart run build_runner build -d
-      - name: content_models format check
-        working-directory: packages/content_models
-        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
-      - name: content_models analyze
-        working-directory: packages/content_models
-        run: dart analyze --fatal-infos
-      - name: content_models tests and coverage gate
-        working-directory: packages/content_models
-        run: |
-          dart test --coverage=coverage
-          dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info
-          dart run ../../apps/mobile/tool/check_coverage.dart --min 80 --lcov coverage/lcov.info
       - name: Upload golden failures
         if: failure()
         uses: actions/upload-artifact@v7
@@ -109,6 +90,56 @@ jobs:
           name: golden-failures
           path: apps/mobile/test/**/failures/
           if-no-files-found: ignore
+
+  # The pure-Dart packages, in parallel with the app: packages/content_models
+  # (specs/003-b04-content-pipeline/contracts/ci-checks.md), then
+  # packages/trip_engine, which needs its generated parts
+  # (specs/004-m01-trip-engine/contracts/ci-checks.md). The engine's tests
+  # replay every fixture in fixtures/parity/ (constitution III), and its gate
+  # is 90% (constitution XIII).
+  packages:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/content_models
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+          pub-cache: true
+      - name: content_models dependencies and build
+        run: |
+          dart pub get
+          dart run build_runner build -d
+      - name: content_models format check
+        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+      - name: content_models analyze
+        run: dart analyze --fatal-infos
+      - name: content_models tests and coverage gate
+        run: |
+          dart test --coverage=coverage
+          dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info
+          dart run ../../apps/mobile/tool/check_coverage.dart --min 80 --lcov coverage/lcov.info
+      - name: trip_engine dependencies
+        working-directory: packages/trip_engine
+        run: dart pub get
+      - name: trip_engine format check
+        working-directory: packages/trip_engine
+        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+      - name: trip_engine analyze
+        working-directory: packages/trip_engine
+        run: dart analyze --fatal-infos
+      - name: trip_engine tests and coverage gate
+        working-directory: packages/trip_engine
+        run: |
+          dart test --coverage=coverage
+          dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info
+          dart run ../../apps/mobile/tool/check_coverage.dart --min 90 --lcov coverage/lcov.info
 
   build-android:
     needs: changes
@@ -121,6 +152,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      # Caches the Gradle distribution, the Android dependencies and Gradle's
+      # build cache (android/gradle.properties turns it on). Only master runs
+      # write the cache; pull requests read it.
+      - uses: gradle/actions/setup-gradle@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
@@ -134,6 +169,28 @@ jobs:
           name: app-dev-debug
           path: apps/mobile/build/app/outputs/flutter-apk/app-dev-debug.apk
           retention-days: 7
+
+  # One status for the whole workflow, as backend.yml's `backend` job: it
+  # passes when every job above passed or was skipped by `changes`.
+  check:
+    needs: [changes, app, packages, build-android]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Every needed job passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" = failure ] || [ "$result" = cancelled ]; then
+              exit 1
+            fi
+          done
 
   update-goldens:
     if: github.event_name == 'workflow_dispatch' && inputs.update_goldens

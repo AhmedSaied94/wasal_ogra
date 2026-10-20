@@ -20,6 +20,23 @@ os.environ["DATABASE_URL"] = os.environ.get(
 )
 os.environ["CACHE_URL"] = os.environ.get("TEST_CACHE_URL", "redis://127.0.0.1:6379/2")
 os.environ["CELERY_BROKER_URL"] = os.environ.get("TEST_BROKER_URL", "redis://127.0.0.1:6379/3")
+
+
+def _worker_url(url: str, worker: int) -> str:
+    """`url`'s Valkey database moved up two per pytest-xdist worker: every test clears the cache
+    and the broker test flushes its database, so workers can't share them. Valkey has 16."""
+    base, _, database = url.rpartition("/")
+    return f"{base}/{int(database) + 2 * worker}"
+
+
+# pytest-xdist names its workers gw0, gw1, ... A serial run has no worker and keeps the URLs.
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER", "")
+if _xdist_worker:
+    _worker = int(_xdist_worker.removeprefix("gw"))
+    if _worker > 6:
+        raise RuntimeError("tests run on at most 7 pytest-xdist workers: Valkey has 16 databases")
+    for _name in ("CACHE_URL", "CELERY_BROKER_URL"):
+        os.environ[_name] = _worker_url(os.environ[_name], _worker)
 os.environ.setdefault("SECRET_KEY", "test-only-not-a-real-secret-key-" * 2)
 os.environ.setdefault("API_HOST", "testserver")
 os.environ.setdefault("ADMIN_HOST", "testserver")
