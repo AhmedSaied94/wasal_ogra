@@ -14,12 +14,17 @@
 #   ./provision.sh --identity [--env <env>] [--public-ip <ip>] [--root <dir>]
 #                                          the host-identity step alone, with every path under
 #                                          <dir> (the tests)
+#   ./provision.sh --render-dirs <staging|prod>
+#                                          print that host's state directories, one
+#                                          "<mode> <owner> <path>" per line, and change nothing
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OPT=/opt/wassal
 ETC=/etc/wassal
 STATE=/var/lib/wassal
+# The image's `app` user and its group (docker/Dockerfile).
+APP_UID=10001
 WG_CONF=/etc/wireguard/wg0.conf
 FINALIZED_MARKER="$STATE/ssh-finalized"
 # Rendered rules that aren't loaded yet. It outlives a run that dies before the reload.
@@ -98,13 +103,25 @@ wg_address_for() {
   esac
 }
 
-# The timers that run on each environment's host: the backups on prod, the drill of prod's
-# backups on staging, and the host monitor on both.
+# The timers that run on each environment's host: the host's own backups on both (staging's since
+# B04, research R8), the drill of prod's backups on staging, and the host monitor on both. A backup
+# or drill is skipped until its env file exists (the units' ConditionPathExists).
 host_timers() {
   case "$1" in
     prod) echo wassal-backup@prod.timer wassal-host-monitor.timer ;;
-    staging) echo wassal-restore-drill@prod.timer wassal-host-monitor.timer ;;
+    staging) echo wassal-backup@staging.timer wassal-restore-drill@prod.timer wassal-host-monitor.timer ;;
   esac
+}
+
+# The state directories of each environment's host, as "<mode> <owner> <path>". Root owns the
+# environment's own directory, which holds the stack definitions that root runs. The image's app
+# user owns the two that containers write: the backup's own directory (bin/backup gives it the same
+# owner and mode) and the packs directory, which the worker publishes into and the edge serves
+# read-only at /srv/packs (B04 contracts/environment.md).
+host_dirs() {
+  printf '0755 root:root %s\n' "$STATE" "$STATE/$1" "$STATE/host-monitor"
+  printf '0750 %s %s\n' "$APP_UID:$APP_UID" "$STATE/$1/backup"
+  printf '0755 %s %s\n' "$APP_UID:$APP_UID" "$STATE/packs"
 }
 
 # host_identity <--env or ""> <--public-ip or "">: sets WASSAL_ENV, WG_ADDRESS and WG_NET from
@@ -214,6 +231,12 @@ identity_mode() {
   warn_leftovers
 }
 
+# --render-dirs <env>: the state directories a run of that environment's host creates.
+dirs_mode() {
+  [ $# -eq 2 ] && wg_address_for "$2" >/dev/null || die "usage: provision.sh --render-dirs staging|prod"
+  host_dirs "$2"
+}
+
 # -- Host steps ----------------------------------------------------------------------------------
 
 check_platform() {
@@ -284,7 +307,10 @@ SUDOERS
 
   install -d -m 0755 -o root -g root "$OPT" "$OPT/bin" "$OPT/edge"
   install -d -m 0700 -o root -g root "$ETC"
-  install -d -m 0755 -o root -g root "$STATE" "$STATE/$WASSAL_ENV" "$STATE/host-monitor"
+  local mode owner path
+  while read -r mode owner path; do
+    install -d -m "$mode" -o "${owner%:*}" -g "${owner#*:}" "$path"
+  done <<< "$(host_dirs "$WASSAL_ENV")"
   install -d -m 0755 -o root -g root /var/log/caddy
 }
 
@@ -467,5 +493,6 @@ main() {
 case "${1:-}" in
   --render-firewall) render_mode "$@" ;;
   --identity) identity_mode "$@" ;;
+  --render-dirs) dirs_mode "$@" ;;
   *) main "$@" ;;
 esac

@@ -65,6 +65,10 @@ class Report:
         else:
             self.stages[stage] = "passed"
 
+    def skip_stage(self, stage: str) -> None:
+        """Record a stage that couldn't run, which blocks the pack like a failure."""
+        self.stages[stage] = "not_available"
+
     def to_dict(self) -> dict[str, object]:
         return {
             "stages": {stage: {"result": result} for stage, result in self.stages.items()},

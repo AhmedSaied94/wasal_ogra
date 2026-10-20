@@ -128,7 +128,9 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 - **Order inside B04:** make the schemas and model codegen B04's first user story. Merge that slice
   in its own PR as soon as it is green, so M01 can start while the admin and the pack build continue.
 - **Resolve:**
-  - backend §22.3 (a CDN in front of content packs) in B04;
+  - ~~backend §22.3 (a CDN in front of content packs) in B04~~ **resolved in B04:** no CDN for the
+    MVP; each host's edge serves its own immutable pack files, and Cloudflare later is configuration
+    (research R5);
   - mobile §24.4 (resume or restart when the app is killed mid-trip) in M01. This decides whether
     the engine needs snapshot and restore.
 - **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
@@ -318,13 +320,18 @@ Each phase starts when the gate before it is met, not on a date (product-spec «
 
 Tick a spec when its PR merges, and tick the step when all of its specs have merged.
 
-- [ ] Step 1: Foundations
+- [x] Step 1: Foundations
   - [x] `001-m03-app-shell` (merged in #1, 2026-10-18). Resolved mobile §24.1 (Android `minSdk 24`,
     iOS 15.0) and §24.2 (Galaxy A06). Still to do on a real device: the manual quickstart
     scenarios (T091) and the A06 cold-start and white-frame checks (T092).
-  - [ ] `002-b01-backend-skeleton`
+  - [x] `002-b01-backend-skeleton` (merged in #2, 2026-10-19). Staging and production run on
+    separate VMs (constitution v1.1.0). Staging deploys from `master`.
 - [ ] Step 2: The engine and its schemas
-  - [ ] `003-b04-content-pipeline`
+  - [ ] `003-b04-content-pipeline`. PR 1 (schemas and generated models, user story 1) merged in #3,
+    2026-10-19, so M01 can be specified. PR 2 (the admin, validation, pack builds, publishing,
+    promotion, the manifest and staging's own backups) is open as #4. Resolved backend §22.3 (no CDN
+    for the MVP, research R5). B04 is ticked once B05 has supplied the solver stage and the live
+    checks pass (T107).
   - [ ] `004-m01-trip-engine`
 - [ ] Step 3: Parity
   - [ ] `005-b05-solver-parity`

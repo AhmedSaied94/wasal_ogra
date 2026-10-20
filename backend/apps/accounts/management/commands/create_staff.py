@@ -1,4 +1,5 @@
-"""`create_staff <username> [--superuser] [--deactivate]` (data-model "Lifecycle", research R5).
+"""`create_staff <username> [--superuser] [--group <name>]... [--deactivate]` (data-model
+"Lifecycle", research R5; B04 contracts/admin.md "Roles" adds `--group`).
 
 The password is read twice from the terminal and never echoed or logged. The new account has no
 TOTP device, so it can't sign in until `staff_totp` issues one.
@@ -10,6 +11,7 @@ import getpass
 from typing import Any
 
 from django.contrib.auth import password_validation
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
@@ -24,6 +26,13 @@ class Command(BaseCommand):
         parser.add_argument("username")
         parser.add_argument("--superuser", action="store_true", help="Grant every permission.")
         parser.add_argument(
+            "--group",
+            action="append",
+            default=[],
+            metavar="NAME",
+            help="Add the user to this group, such as content_author. Repeat for several.",
+        )
+        parser.add_argument(
             "--deactivate", action="store_true", help="Deactivate an existing staff user instead."
         )
 
@@ -34,6 +43,10 @@ class Command(BaseCommand):
             return
         if User.objects.filter(username=username).exists():
             raise CommandError(f"User {username!r} already exists.")
+        groups = list(Group.objects.filter(name__in=options["group"]))
+        unknown = sorted(set(options["group"]) - {group.name for group in groups})
+        if unknown:
+            raise CommandError(f"Unknown group(s): {', '.join(unknown)}.")
 
         user = User(username=username, is_staff=True, is_superuser=options["superuser"])
         try:
@@ -52,7 +65,11 @@ class Command(BaseCommand):
         user.set_password(password)
         with transaction.atomic():
             user.save()
-        self.stdout.write(f"Created staff user {username}. Issue its TOTP device with staff_totp.")
+            user.groups.set(groups)
+        joined = f" in {', '.join(sorted(g.name for g in groups))}" if groups else ""
+        self.stdout.write(
+            f"Created staff user {username}{joined}. Issue its TOTP device with staff_totp."
+        )
 
     def _deactivate(self, username: str) -> None:
         updated = User.objects.filter(username=username, is_staff=True).update(is_active=False)

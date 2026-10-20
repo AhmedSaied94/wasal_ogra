@@ -57,6 +57,10 @@ services:
     command: >-
       celery -A config worker -Q default,purchases,content,push
       --concurrency 2 --without-gossip --without-mingle
+    # Only the worker writes pack files (contracts/pack-delivery.md). The API, admin and beat
+    # don't mount them, and the edge reads them read-only.
+    volumes:
+      - ${CONTENT_PACKS_HOST_DIR:-/var/lib/wassal/packs}:/var/lib/wassal/packs
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME --timeout 5"]
       interval: 30s

@@ -8,8 +8,9 @@ name: wassal-dev
 # The containers reach the database and cache by service name, not 127.0.0.1 as in backend/.env.
 x-dev-app: &dev-app
   build:
-    context: ..
-    dockerfile: docker/Dockerfile
+    # The repository root, which holds tools/content_kit (B04 research R13).
+    context: ../..
+    dockerfile: backend/docker/Dockerfile
   image: wassal-backend:dev
   volumes:
     - ..:/app
@@ -19,6 +20,9 @@ x-dev-app: &dev-app
     DATABASE_URL: postgres://wassal:${WASSAL_DB_PASSWORD:-change-me-db}@postgres:5432/wassal
     CACHE_URL: redis://valkey:6379/0
     CELERY_BROKER_URL: redis://valkey:6379/1
+    # The hosts' path, on the `packs` volume below. backend/var/packs, the default, is inside the
+    # /app mount, which the image's app user can't write to.
+    CONTENT_PACKS_DIR: /var/lib/wassal/packs
 
 x-after-migrate: &after-migrate
   migrate:
@@ -42,6 +46,10 @@ services:
   api:
     <<: *dev-app
     command: gunicorn -c config/gunicorn.conf.py --reload config.wsgi
+    # It serves /packs/ under DEBUG, read-only, as the hosts' edge does.
+    volumes:
+      - ..:/app
+      - packs:/var/lib/wassal/packs:ro
     depends_on: *after-migrate
 
   admin:
@@ -51,6 +59,10 @@ services:
 
   worker:
     <<: *dev-app
+    # The `packs` volume replaces compose.yml's host directory.
+    volumes: !override
+      - ..:/app
+      - packs:/var/lib/wassal/packs
     depends_on: *after-migrate
 
   beat:
@@ -62,6 +74,7 @@ services:
     profiles: [edge]
     volumes:
       - ./edge/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - packs:/srv/packs:ro
       - edgedata:/data
     ports:
       - "127.0.0.1:8443:8443"
@@ -75,3 +88,4 @@ services:
 
 volumes:
   edgedata:
+  packs:

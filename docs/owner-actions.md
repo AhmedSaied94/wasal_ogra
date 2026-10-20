@@ -17,7 +17,8 @@ left, in what order, and where to look.
 | Feature | Before merge | After merge | State |
 | --- | --- | --- | --- |
 | [001 M03 app shell](#001-m03-app-shell) | none | 2 device checks | Merged in #1 |
-| [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Built and tested, not committed. Moving to one VM per environment (Phase 10). |
+| [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
+| [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3. PR 2 open as #4. |
 
 ## Every month
 
@@ -30,8 +31,10 @@ time, on the staging VM. The routine keeps the free accounts and their guarantee
 - Sign in to the OCI console, and check that both instances run. Oracle may suspend a tenancy left
   idle for 30 days.
 - Sign in to Healthchecks.io. It deletes accounts with no login for a year.
-- In the B2 console, check that the caps are still USD 0 and storage is well under 10 GB. If anything
-  in the console changed, run `uv run tools/b2_setup.py --daily-bucket <daily> --weekly-bucket <weekly> --check` from `backend/`.
+- In the B2 console, check that the caps are still USD 0 and storage, both environments together, is
+  well under 10 GB. If anything in the console changed, run
+  `uv run tools/b2_setup.py [--env staging] --daily-bucket <daily> --weekly-bucket <weekly> --check`
+  from `backend/`, once per environment.
 - Check that no service shows a charge.
 
 ## 001 M03 app shell
@@ -143,8 +146,8 @@ staging VM first, then the prod VM.
      - `sudo cat /etc/wassal/host.env` says `WASSAL_ENV=staging` and `WG_ADDRESS=10.67.0.1`;
      - `ip -4 -o addr show wg0` shows `10.67.0.1/24`;
      - `systemctl list-timers 'wassal-*'` lists only `wassal-restore-drill@prod.timer` and
-       `wassal-host-monitor.timer`, and `systemctl is-enabled wassal-backup@prod.timer` says
-       `disabled`;
+       `wassal-host-monitor.timer` (plus `wassal-backup@staging.timer` once B04's host scripts are
+       on the VM), and `systemctl is-enabled wassal-backup@prod.timer` says `disabled`;
      - `sudo iptables -S INPUT` shows a single rule set: one `-j REJECT`, at the end, and the
        project's rules on `10.67.0.x`. The old script's `netfilter-persistent reload` had appended
        a second set, which the full restore replaces;
@@ -246,11 +249,11 @@ Run each scenario on the VM named in the Host column of the
   - Healthchecks.io has 6 checks, `host-monitor-prod` (the old `host-monitor`) and
     `host-monitor-staging` among them.
   - Once the merge has deployed staging: on the staging VM, create `/etc/wassal/host-monitor.env`
-    with `host-monitor-staging`'s URL and the thresholds, without `BACKUP_STORAGE_ALERT_BYTES`,
-    and test it
+    with `host-monitor-staging`'s URL and the thresholds, with `BACKUP_STORAGE_ALERT_BYTES=2000000000`
+    (B04: staging checks its own backups), and test it
     ([monitoring-setup.md](runbooks/monitoring-setup.md#healthchecksio-dead-mans-switches)).
   - Once `v0.1.0` has deployed production: the same on the prod VM, with `host-monitor-prod`'s URL
-    and `BACKUP_STORAGE_ALERT_BYTES=8000000000`.
+    and `BACKUP_STORAGE_ALERT_BYTES=6000000000` (the two VMs split the 8 GB alert since B04).
   - UptimeRobot: one monitor, on `https://api.193-122-74-125.sslip.io/healthz`, and none for
     staging. Save a dated copy of its terms.
 - [ ] **T070 Monitoring.** Once T106 is done, walk scenarios 16–18 on the prod VM:
@@ -287,6 +290,119 @@ These are leftovers from Claude's test runs:
 
 - `docker exec wassal-dev-postgres-1 rm /tmp/restore-e2e.dump /tmp/restore-e2e.list`
 - `docker image rm wassal-backend:drill-e2e ghcr.io/ahmedsaied94/wassal-backend:v0.0.99`
+
+## 003 B04 content pipeline
+
+PR 1 (schemas and generated models) merged in #3 on 2026-10-19. PR 2 (the admin, validation, pack
+builds, publishing, promotion and staging backups) was built and tested on 2026-10-19, on branch
+`003-b04-content-pipeline`
+([tasks.md](../specs/003-b04-content-pipeline/tasks.md),
+[quickstart](../specs/003-b04-content-pipeline/quickstart.md),
+[content-publishing.md](runbooks/content-publishing.md)).
+
+Until B05 ships the solver, staging can author, import, build and validate, but refuses every
+publish (FR-022). So nothing reaches production before B05.
+
+### Before merge, in this order
+
+The merge deploys the staging VM, and a B04 release refuses to start without its packs directory
+and its `CONTENT_*` values. So the staging VM gets both first.
+
+- [x] **T105 Security review.** Claude ran it on 2026-10-19: no CRITICAL or HIGH findings. The
+  MEDIUM ones (zip entries, the floor file's lock) and three recommendations (the audit log's
+  database trigger, no caching of `/packs/` 404s, an unknown schema major on promotion) are fixed.
+- [ ] **Decide the B2 storage split.** Staging's backup buckets go in production's B2 account, and
+  share its free 10 GB. The runbooks split the 8 GB alert as `6000000000` on the prod VM and
+  `2000000000` on the staging VM. Keep that, or tell Claude your split, or say you'll use a
+  separate B2 account for staging (then each VM keeps `8000000000`).
+- [ ] **Staging VM: host scripts and edge.** From this branch, follow
+  [deploy-and-rollback.md "Updating the edge or the host scripts"](runbooks/deploy-and-rollback.md#updating-the-edge-or-the-host-scripts)
+  on the staging VM: `rsync` `backend/docker/`, then `sudo ./wassal-docker/host/provision.sh`.
+  Confirm:
+  - `stat -c '%u %a' /var/lib/wassal/packs` says `10001 755`;
+  - `systemctl list-timers 'wassal-*'` now also lists `wassal-backup@staging.timer`. Its runs are
+    skipped until `staging-backup.env` exists;
+  - `curl -sI https://staging-api.141-147-129-92.sslip.io/packs/core-1.json.gz` answers `404` with
+    `cache-control: no-store`.
+- [x] **Staging's `CONTENT_*` values** (done 2026-10-20). Add to `/etc/wassal/staging.env`
+  ([contracts/environment.md](../specs/003-b04-content-pipeline/contracts/environment.md)):
+
+  ```text
+  CONTENT_ROLE=source
+  CONTENT_PACKS_DIR=/var/lib/wassal/packs
+  CONTENT_PACKS_PUBLIC_URL=https://staging-api.141-147-129-92.sslip.io/packs/
+  CONTENT_VERSION_FLOOR_URL=https://api.193-122-74-125.sslip.io/packs/
+  ```
+
+  `CONTENT_SOLVER_STAGE` stays unset (`none`) until B05.
+
+Then merge PR 2. The merge deploys the staging VM.
+
+### After merge
+
+- [ ] **Staging serves B04.** `curl -s https://staging-api.141-147-129-92.sslip.io/v1/content/manifest`
+  gives `{"version":0,"packs":[]}`. Staging's builds also need production's floor file, so they
+  fail with `version_floor_unavailable` until the prod VM runs B04 (next item).
+- [ ] **Prod VM, before the tag that includes B04.** The same two steps as on staging:
+  - the host scripts and the edge, then confirm `/var/lib/wassal/packs` (`10001 755`);
+  - in `/etc/wassal/prod.env` (done 2026-10-20, ahead of time):
+
+    ```text
+    CONTENT_ROLE=target
+    CONTENT_PACKS_DIR=/var/lib/wassal/packs
+    CONTENT_PACKS_PUBLIC_URL=https://api.193-122-74-125.sslip.io/packs/
+    CONTENT_PROMOTION_SOURCE_URL=https://staging-api.141-147-129-92.sslip.io/packs/
+    ```
+
+  Then tag the release. Check that `curl -s https://api.193-122-74-125.sslip.io/packs/core.floor.json`
+  gives `{"max_version":0,"pack_id":"core"}`, and that a staging build now gets past numbering.
+- [ ] **Staging backups** (FR-039c, quickstart "After B05" item 2, which doesn't need B05):
+  1. Healthchecks.io: create `backup-staging`, period 1 day, grace 2 h
+     ([monitoring-setup.md](runbooks/monitoring-setup.md#healthchecksio-dead-mans-switches)).
+  2. B2: run `uv run tools/b2_setup.py --env staging --daily-bucket wassal-staging-backup-daily --weekly-bucket wassal-staging-backup-weekly`
+     from `backend/` ([monitoring-setup.md "Backblaze B2"](runbooks/monitoring-setup.md#backblaze-b2-backups)
+     step 8). It creates both buckets with Object Lock and their retention, and a write-only key
+     on `staging/`.
+  3. On the staging VM, create `/etc/wassal/staging-backup.env` (mode `0400`) from its output, with
+     `backup-staging`'s ping URL.
+  4. Set `BACKUP_STORAGE_ALERT_BYTES` in each VM's `host-monitor.env` to your split (above).
+  5. Run one backup at once:
+     `sudo systemctl start wassal-backup@staging && journalctl -u wassal-backup@staging -n 20`.
+     `backup-staging` turns green, and a `staging/YYYY/MM/DD/…` pair is in the daily bucket.
+- [ ] **Content groups.** On staging, give authors `content_author` and publishers
+  `content_publisher`. On production, give publishers `content_publisher`. Use `create_staff
+  <name> --group <group>` for new staff, or the user's page in the admin
+  ([content-publishing.md](runbooks/content-publishing.md)).
+- [ ] **Authors' devices.** Add each author's device to staging's private network, with the admin
+  CA root ([private-network.md](runbooks/private-network.md#peers)).
+- [ ] **Import the sample content on staging** (optional). Content packs → "Import zip", with a
+  zip of `content/examples/sample`, then build. The build ends `draft` with `V-V1` until the
+  speech lines are reviewed, and stays unpublishable until B05.
+
+### After B05
+
+Walk [quickstart "After B05"](../specs/003-b04-content-pipeline/quickstart.md#after-b05-live-checks-on-the-hosts)
+items 3–7 (T107). Then tick B04 in the
+[delivery plan's Progress list](delivery-plan.md#progress).
+
+- [ ] **3. Publish on staging.** The pack's URL shows the immutable cache header from an outside
+  network, and the body's sha256 matches.
+- [ ] **4. Promote.** Production's manifest offers the same version and `sha256` within a minute.
+- [ ] **5. Export to the repository.** Unzip the export into `content/source/` in a PR. CI
+  validates it and runs the schema-diff check from then on.
+- [ ] **6. Staging recovery (once).** On a scratch staging rebuild, follow
+  [restore.md "Restore staging"](runbooks/restore.md#restore-staging), then build. The content is
+  back, and the new version is above production's.
+- [ ] **7. Cost.** After a month, OCI and B2 show USD 0, and the edge logs show `/packs/` downloads.
+
+### Local, any time
+
+- Claude recreated the dev stack on 2026-10-19 with `WASSAL_DEV_PG_PORT=5433`, a rebuilt image and
+  the edge, because a native PostgreSQL holds port 5432 on this machine. Keep exporting it, with the
+  matching port in `backend/.env`'s URLs.
+- Dev packs now live on the `packs` Docker volume. The T106 smoke left a `smoke-author` staff user,
+  the imported sample and published pack 2 in the dev database. `docker compose … down -v` wipes
+  them with everything else.
 
 ## Known for later features
 

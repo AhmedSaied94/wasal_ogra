@@ -24,13 +24,14 @@ No VM holds both B2 keys, and the B2 admin key is on neither.
 
 1. Create a **Hobbyist** account (no card). Use the email you want alerts on.
 2. Set the project time zone to `Africa/Cairo`.
-3. Create the six checks:
+3. Create the seven checks:
 
 | Check | Schedule | Grace | Ping URL goes into | Pinged by |
 | --- | --- | --- | --- | --- |
 | `heartbeat-prod` | period 5 min | 10 min | `HC_PING_HEARTBEAT_URL` in `/etc/wassal/prod.env`, prod VM | the `heartbeat` task, every 5 min, through beat, the broker and a worker (FR-006) |
 | `heartbeat-staging` | period 5 min | 10 min | `HC_PING_HEARTBEAT_URL` in `/etc/wassal/staging.env`, staging VM | the same, on staging |
 | `backup-prod` | period 1 day | 2 h | `HC_PING_BACKUP_URL` in `/etc/wassal/prod-backup.env`, prod VM | the nightly backup, 03:00 Cairo, or `/fail` with the reason |
+| `backup-staging` | period 1 day | 2 h | `HC_PING_BACKUP_URL` in `/etc/wassal/staging-backup.env`, staging VM | staging's own nightly backup, 03:00 Cairo, or `/fail` (B04 research R8) |
 | `restore-drill-prod` | period 30 days | 5 days | `HC_PING_DRILL_URL` in `/etc/wassal/prod-drill.env`, staging VM | the drill of production's backups, 05:00 Cairo on the 1st, or `/fail` |
 | `host-monitor-prod` | period 5 min | 10 min | `HC_PING_HOST_MONITOR_URL` in `/etc/wassal/host-monitor.env`, prod VM | the prod VM's `wassal-host-monitor.timer`, or `/fail` listing the failing checks |
 | `host-monitor-staging` | period 5 min | 10 min | `HC_PING_HOST_MONITOR_URL` in `/etc/wassal/host-monitor.env`, staging VM | the staging VM's `wassal-host-monitor.timer`, or `/fail` |
@@ -38,8 +39,11 @@ No VM holds both B2 keys, and the B2 admin key is on neither.
 A host monitor's missed ping also covers a VM that Oracle stopped (break-glass.md "Instance
 stopped by Oracle"). For the staging VM, it is the only alert for that.
 
-Each VM's `/etc/wassal/host-monitor.env` holds its own ping URL and the thresholds. The backup
-storage line goes on the prod VM only, where the backup runs:
+Each VM's `/etc/wassal/host-monitor.env` holds its own ping URL and the thresholds. Each VM backs
+up its own environment, so each checks its own backup storage. Both environments' buckets are in
+one B2 account and share its free 10 GB, so the two VMs split the 8 GB alert: `6000000000` on the
+prod VM, as below, and `2000000000` on the staging VM, whose database is small. Change the split if
+`last-backup.json` on either VM shows it is off:
 
 ```text
 HC_PING_HOST_MONITOR_URL=https://hc-ping.com/<uuid of host-monitor-prod or host-monitor-staging>
@@ -47,7 +51,7 @@ DISK_ALERT_PERCENT=80
 CERT_ALERT_DAYS=14
 QUEUE_BACKLOG_THRESHOLD=100
 QUEUE_BACKLOG_MINUTES=10
-BACKUP_STORAGE_ALERT_BYTES=8000000000
+BACKUP_STORAGE_ALERT_BYTES=6000000000
 ```
 
 Each host monitor reads its environment from `/etc/wassal/host.env` and checks its own VM:
@@ -57,8 +61,8 @@ Each host monitor reads its environment from `/etc/wassal/host.env` and checks i
 | Disk, `/` and the Docker data root | yes | yes, including the drill's space |
 | Certificates: `API_HOST` at `PUBLIC_BIND_IP:443` has more than 14 days left, and `ADMIN_HOST` at `ADMIN_BIND_IP:443` hasn't expired | its own, from its `edge.env` | its own, from its `edge.env` |
 | Queue backlog, in `wassal-<env>-valkey-1` | production's queues | staging's queues |
-| Backup storage (latest dump × 22 under 8 GB) | yes | no |
-| Success ping body | `ok: disk, certificates, queues, backup storage` | `ok: disk, certificates, queues` |
+| Backup storage (latest dump × 22 under `BACKUP_STORAGE_ALERT_BYTES`) | production's backups | staging's own backups |
+| Success ping body | `ok: disk, certificates, queues, backup storage` | the same |
 
 - The admin certificate comes from the VM's own CA and lasts 12 hours, so it is only checked for
   having expired, which catches a broken renewal.
@@ -126,8 +130,10 @@ no IP address, cookies or headers.
 ## Backblaze B2 (backups)
 
 The nightly backup, on the prod VM, stores production's dumps in B2. The monthly drill, on the
-staging VM, reads them back (research R9). Do this once, before the first production deploy
-(quickstart step 8).
+staging VM, reads them back (research R9). Since B04, the staging VM also backs up its own
+database, where authors work, into its own pair of buckets with its own write-only key (B04
+research R8). Do steps 1–7 once, before the first production deploy (quickstart step 8), and
+step 8 when B04 merges.
 
 1. Create the account and **turn on MFA** first: the terms require it.
 2. **Note the account's region**, shown at sign-up and in each bucket's Endpoint field
@@ -166,6 +172,22 @@ staging VM, reads them back (research R9). Do this once, before the first produc
    The endpoint and region lines come from B2's answer, so they match the account.
 7. On each VM, re-run `sudo ./wassal-docker/host/provision.sh` (or `sudo systemctl daemon-reload`).
    The backup and drill timers stay skipped until their env files exist.
+8. **Staging's backups.** Run the setup again with `--env staging` and staging's bucket names
+   (`wassal-staging-backup-daily` and `wassal-staging-backup-weekly`, with a suffix if B2 says a
+   name is taken):
+
+   ```bash
+   uv run tools/b2_setup.py --env staging --daily-bucket wassal-staging-backup-daily --weekly-bucket wassal-staging-backup-weekly
+   ```
+
+   It does what step 6 does with the `staging/` prefix, but creates only the backup key,
+   `wassal-staging-backup` (`writeFiles` only): staging's backups are never drilled, so there is no
+   read key. It prints the lines for `/etc/wassal/staging-backup.env`:
+   - Copy them into your password manager, then create the file on the staging VM with mode `0400`.
+   - Paste the `backup-staging` ping URL in place of the placeholder.
+   - Never reuse production's backup key or the drill key here.
+
+   The caps from step 3 already cover the new buckets.
 
 After the first production deploy, test both (quickstart scenarios 19 and 21). On the prod VM:
 
@@ -179,8 +201,17 @@ Then, once that backup has finished and staging has a release, on the staging VM
 sudo systemctl start wassal-restore-drill@prod && sudo tail -n 1 /var/lib/wassal/drill-results.jsonl
 ```
 
-`backup-prod` and `restore-drill-prod` turn green. `uv run tools/b2_setup.py --check` with the same
-bucket names verifies the buckets and keys at any time, without changing anything.
+`backup-prod` and `restore-drill-prod` turn green. Once `staging-backup.env` exists, test staging's
+own backup on the staging VM too:
+
+```bash
+sudo systemctl start wassal-backup@staging && journalctl -u wassal-backup@staging -n 20
+```
+
+`backup-staging` turns green, and a `staging/YYYY/MM/DD/…` pair is in the daily bucket.
+
+`uv run tools/b2_setup.py [--env staging] --check` with the same bucket names verifies an
+environment's buckets and keys at any time, without changing anything.
 
 ## GitHub (deploy failures)
 
@@ -198,6 +229,8 @@ reminder in your calendar.
 - Sign in to the **OCI console**. Oracle may suspend tenancies left idle for 30 days. Check that
   both instances are running.
 - Sign in to **Healthchecks.io**. It deletes accounts with no login for a year.
-- In the **B2** console, check that the caps are still USD 0 and storage is well under 10 GB. If
-  anything changed, run `uv run tools/b2_setup.py --daily-bucket <daily> --weekly-bucket <weekly> --check`.
+- In the **B2** console, check that the caps are still USD 0 and storage, both environments'
+  together, is well under 10 GB. If anything changed, run
+  `uv run tools/b2_setup.py [--env staging] --daily-bucket <daily> --weekly-bucket <weekly> --check`
+  for each environment.
 - Check that no service shows a charge (SC-013).

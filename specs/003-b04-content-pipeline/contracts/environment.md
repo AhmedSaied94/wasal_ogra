@@ -9,7 +9,7 @@ here is a secret.
 | Variable | dev | test | staging | prod | Rule |
 | --- | --- | --- | --- | --- | --- |
 | `CONTENT_ROLE` | `source` | `source` | `source` | `target` | Required. `target` only with `WASSAL_ENV=prod`, and `source` everywhere else (research R9). |
-| `CONTENT_PACKS_DIR` | `/app/var/packs` | a temporary directory | `/var/lib/wassal/packs` | `/var/lib/wassal/packs` | The path inside the worker (and inside the dev API). It must exist and be writable by the worker, which checks at startup. The API role doesn't need it. |
+| `CONTENT_PACKS_DIR` | `/var/lib/wassal/packs` in the containers, `backend/var/packs` on the host | a temporary directory | `/var/lib/wassal/packs` | `/var/lib/wassal/packs` | The path inside the worker (and inside the dev API). It must exist and be writable by the worker, which checks at startup. The API role doesn't need it. |
 | `CONTENT_PACKS_PUBLIC_URL` | `http://localhost:8000/packs/` | `https://packs.test.invalid/packs/` | `https://<staging API_HOST>/packs/` | `https://<API_HOST>/packs/` | Required. An absolute URL ending in `/`, and `https://` outside dev and test. Manifest URLs are built from it (research R5). |
 | `CONTENT_VERSION_FLOOR_URL` | empty | empty, or a local test server | production's `CONTENT_PACKS_PUBLIC_URL` | must be empty | `https://` when set. Staging's builds read production's `core.floor.json` here (research R7). |
 | `CONTENT_PROMOTION_SOURCE_URL` | must be empty | a local test server | must be empty | staging's `CONTENT_PACKS_PUBLIC_URL` | Required on `target`. `https://`. Where promotions fetch from (research R6). |
@@ -17,8 +17,10 @@ here is a secret.
 | `CONTENT_MANIFEST_CACHE_SECONDS` | `30` | `0` | `30` | `30` | 0–60 (FR-031) |
 | `CONTENT_HTTP_TIMEOUT_SECONDS` | `10` | `2` | `10` | `10` | 1–30, for reading the floor file and for promotion fetches |
 
-`dev`'s `CONTENT_PACKS_DIR` is `backend/var/packs/` mounted at `/app/var/packs`. It is gitignored,
-and the API serves it under `DEBUG` only.
+In `dev`, the containers keep packs on the `packs` volume at `/var/lib/wassal/packs`: the worker
+mounts it read-write, and the API (which serves it under `DEBUG` only) and the dev edge read-only.
+`backend/var/packs/` would sit inside the `/app` bind mount, which the image's `app` user can't
+write to. It stays the default for `manage.py` run on the host, and is gitignored.
 
 ## Host paths and mounts
 
@@ -46,8 +48,15 @@ These reuse B01's backup variables in staging's own files. `docker/env/staging.e
 | `BACKUP_PREFIX` | the same file | `staging` (B01's default is `prod`) |
 | `B2_S3_ENDPOINT`, `B2_REGION`, `BACKUP_WEEKLY_WEEKDAY` | the same file | As in production |
 
-The timer is `wassal-backup@staging.timer`, at the same 03:00 Cairo time. The staging host monitor
-also checks the backup age, as production's does (B01 FR-038).
+The timer is `wassal-backup@staging.timer`, at the same 03:00 Cairo time. It is always enabled,
+and each run is skipped until `/etc/wassal/staging-backup.env` exists, as production's is. A late
+or failed backup is the `backup-staging` Healthchecks.io check's alert (period 1 day, grace 2 h),
+which the job pings itself, as `backup-prod` does for production. The staging host monitor checks
+its own backup storage, as production's does (B01 FR-038), with `BACKUP_STORAGE_ALERT_BYTES` split
+between the two hosts.
+
+The key and its env block come from `backend/tools/b2_setup.py --env staging`. A staging restore
+gets a read key that expires after 24 h from `--restore-key` (docs/runbooks/restore.md).
 
 ## Repository files read at runtime
 

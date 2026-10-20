@@ -43,6 +43,17 @@ PROD_ENV = {
     "ADMIN_HOST": "admin.example.test",
     "SENTRY_DSN": "https://publickey@sentry.invalid/1",
     "HC_PING_HEARTBEAT_URL": "https://hc.invalid/ping/heartbeat",
+    # B04 (specs/003-b04-content-pipeline/contracts/environment.md): production is the target.
+    "CONTENT_ROLE": "target",
+    "CONTENT_PACKS_DIR": "/var/lib/wassal/packs",
+    "CONTENT_PACKS_PUBLIC_URL": "https://api.example.test/packs/",
+    "CONTENT_PROMOTION_SOURCE_URL": "https://api.staging.example.test/packs/",
+}
+# Staging (and dev) is a content source: no promotion source, and it reads production's floor file.
+STAGING_CONTENT = {
+    "CONTENT_ROLE": "source",
+    "CONTENT_PACKS_PUBLIC_URL": "https://api.staging.example.test/packs/",
+    "CONTENT_VERSION_FLOOR_URL": "https://api.example.test/packs/",
 }
 
 REQUIRED = ["SECRET_KEY", "DATABASE_URL", "CACHE_URL", "CELERY_BROKER_URL"]
@@ -81,9 +92,13 @@ def probe(module: str, env: dict[str, str]) -> dict[str, object]:
 
 
 def env_for(module: str, **overrides: str) -> dict[str, str]:
+    """Valid values for `module`, with `overrides` applied."""
     env = {**PROD_ENV, "WASSAL_ENV": module}
+    if module != "prod":
+        del env["CONTENT_PROMOTION_SOURCE_URL"]
+        env.update(STAGING_CONTENT)
     env.update(overrides)
-    return env
+    return {name: value for name, value in env.items() if value is not None}
 
 
 def assert_refused(result: subprocess.CompletedProcess[str], message: str) -> None:
@@ -217,3 +232,155 @@ def test_server_entry_points_default_to_prod(entry: str) -> None:
         assert_refused(result, "WASSAL_ENV is required")
     else:
         assert result.stdout.strip().splitlines()[-1] == "config.settings.prod"
+
+
+# -- Content settings (B04, contracts/environment.md) ----------------------------------------------
+
+CONTENT_PROBE = """
+import json, django
+django.setup()
+from django.conf import settings
+print(json.dumps({
+    "role": settings.CONTENT_ROLE,
+    "packs_dir": str(settings.CONTENT_PACKS_DIR),
+    "public_url": settings.CONTENT_PACKS_PUBLIC_URL,
+    "floor_url": settings.CONTENT_VERSION_FLOOR_URL,
+    "promotion_url": settings.CONTENT_PROMOTION_SOURCE_URL,
+    "solver_stage": settings.CONTENT_SOLVER_STAGE,
+    "cache_seconds": settings.CONTENT_MANIFEST_CACHE_SECONDS,
+    "timeout_seconds": settings.CONTENT_HTTP_TIMEOUT_SECONDS,
+}))
+"""
+
+
+def content_probe(module: str, env: dict[str, str]) -> dict[str, object]:
+    clean = {
+        "PATH": os.environ["PATH"],
+        "WASSAL_READ_DOTENV": "0",
+        "DJANGO_SETTINGS_MODULE": f"config.settings.{module}",
+        **env,
+    }
+    result = subprocess.run(  # noqa: S603 - fixed interpreter and arguments
+        [sys.executable, "-c", CONTENT_PROBE],
+        cwd=BACKEND_DIR,
+        env=clean,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout.strip().splitlines()[-1])  # type: ignore[no-any-return]
+
+
+@pytest.mark.parametrize(
+    ("module", "overrides", "message"),
+    [
+        ("prod", {"CONTENT_ROLE": "source"}, "CONTENT_ROLE is invalid"),
+        ("staging", {"CONTENT_ROLE": "target"}, "CONTENT_ROLE is invalid"),
+        ("prod", {"CONTENT_ROLE": "mirror"}, "CONTENT_ROLE is invalid"),
+        ("prod", {"CONTENT_ROLE": ""}, "CONTENT_ROLE is required"),
+        ("staging", {"CONTENT_SOLVER_STAGE": "stand_in"}, "CONTENT_SOLVER_STAGE is invalid"),
+        ("prod", {"CONTENT_SOLVER_STAGE": "stand_in"}, "CONTENT_SOLVER_STAGE is invalid"),
+        ("prod", {"CONTENT_SOLVER_STAGE": "not a path"}, "CONTENT_SOLVER_STAGE is invalid"),
+        (
+            "staging",
+            {"CONTENT_PACKS_PUBLIC_URL": "http://api.staging.example.test/packs/"},
+            "CONTENT_PACKS_PUBLIC_URL is invalid",
+        ),
+        ("prod", {"CONTENT_PACKS_PUBLIC_URL": ""}, "CONTENT_PACKS_PUBLIC_URL is required"),
+        (
+            "prod",
+            {"CONTENT_PACKS_PUBLIC_URL": "https://api.example.test/packs"},
+            "CONTENT_PACKS_PUBLIC_URL is invalid",
+        ),
+        (
+            "prod",
+            {"CONTENT_PACKS_PUBLIC_URL": "/packs/"},
+            "CONTENT_PACKS_PUBLIC_URL is invalid",
+        ),
+        ("prod", {"CONTENT_PACKS_DIR": ""}, "CONTENT_PACKS_DIR is required"),
+        (
+            "prod",
+            {"CONTENT_PROMOTION_SOURCE_URL": ""},
+            "CONTENT_PROMOTION_SOURCE_URL is required",
+        ),
+        (
+            "prod",
+            {"CONTENT_PROMOTION_SOURCE_URL": "http://api.staging.example.test/packs/"},
+            "CONTENT_PROMOTION_SOURCE_URL is invalid",
+        ),
+        (
+            "staging",
+            {"CONTENT_PROMOTION_SOURCE_URL": "https://api.example.test/packs/"},
+            "CONTENT_PROMOTION_SOURCE_URL must be empty",
+        ),
+        (
+            "prod",
+            {"CONTENT_VERSION_FLOOR_URL": "https://api.example.test/packs/"},
+            "CONTENT_VERSION_FLOOR_URL must be empty",
+        ),
+        (
+            "staging",
+            {"CONTENT_VERSION_FLOOR_URL": "http://api.example.test/packs/"},
+            "CONTENT_VERSION_FLOOR_URL is invalid",
+        ),
+        (
+            "prod",
+            {"CONTENT_MANIFEST_CACHE_SECONDS": "61"},
+            "CONTENT_MANIFEST_CACHE_SECONDS is invalid",
+        ),
+        ("prod", {"CONTENT_HTTP_TIMEOUT_SECONDS": "0"}, "CONTENT_HTTP_TIMEOUT_SECONDS is invalid"),
+        ("prod", {"CONTENT_HTTP_TIMEOUT_SECONDS": "31"}, "CONTENT_HTTP_TIMEOUT_SECONDS is invalid"),
+    ],
+)
+def test_content_settings_refuse_to_start(
+    module: str, overrides: dict[str, str], message: str
+) -> None:
+    result = load(module, env_for(module, **overrides))
+    assert_refused(result, message)
+
+
+def test_dev_refuses_a_promotion_source() -> None:
+    env = {
+        **PROD_ENV,
+        "WASSAL_ENV": "dev",
+        "CONTENT_ROLE": "source",
+        "CONTENT_PACKS_PUBLIC_URL": "http://localhost:8000/packs/",
+    }
+    result = load("dev", env)
+    assert_refused(result, "CONTENT_PROMOTION_SOURCE_URL must be empty")
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+def test_content_settings_on_the_hosts(module: str) -> None:
+    values = content_probe(module, env_for(module))
+    assert values["role"] == ("target" if module == "prod" else "source")
+    assert values["solver_stage"] == "none"
+    assert values["cache_seconds"] == 30
+    assert values["timeout_seconds"] == 10
+    assert values["packs_dir"] == "/var/lib/wassal/packs"
+
+
+def test_content_settings_for_tests_need_no_environment() -> None:
+    values = content_probe("test", {})
+    assert values["role"] == "source"
+    assert values["solver_stage"] == "stand_in"
+    assert values["cache_seconds"] == 0
+    assert values["timeout_seconds"] == 2
+    assert values["public_url"] == "https://packs.test.invalid/packs/"
+    assert values["floor_url"] == ""
+    assert values["promotion_url"] == ""
+
+
+def test_dev_packs_dir_defaults_inside_the_backend() -> None:
+    example: dict[str, str] = {}
+    for line in (BACKEND_DIR / ".env.example").read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            key, _, value = line.partition("=")
+            example[key] = value
+    values = content_probe("dev", example)
+    assert values["packs_dir"] == str(BACKEND_DIR / "var" / "packs")
+    assert values["public_url"] == "http://localhost:8000/packs/"
+    assert values["solver_stage"] == "stand_in"

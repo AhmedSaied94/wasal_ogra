@@ -29,8 +29,9 @@ def registry() -> Iterator[None]:
         invariants.unregister(name)
 
 
-def test_b01_registers_no_invariant() -> None:
-    assert invariants.registered() == {}
+def test_the_registered_invariants() -> None:
+    # B01 registers none. B04 adds the content one; B03 will add economy.wallet_equals_ledger.
+    assert set(invariants.registered()) == {"content.published_packs_intact"}
 
 
 def test_a_name_can_be_registered_once(registry: None) -> None:

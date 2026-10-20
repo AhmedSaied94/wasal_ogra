@@ -24,7 +24,7 @@ Each host serves exactly one environment (FR-001a), chosen once by `provision.sh
 | Admin hostname | `admin.10-66-0-1.sslip.io` | `staging-admin.10-67-0-1.sslip.io` |
 | Compose projects | `wassal-edge`, `wassal-prod` | `wassal-edge`, `wassal-staging` |
 | App upstreams (API / admin) | `127.0.0.1:8100` / `127.0.0.1:8101` | `127.0.0.1:8200` / `127.0.0.1:8201` |
-| Timers | `wassal-backup@prod.timer`, `wassal-host-monitor.timer` | `wassal-restore-drill@prod.timer` (drills production's backups), `wassal-host-monitor.timer` |
+| Timers | `wassal-backup@prod.timer`, `wassal-host-monitor.timer` | `wassal-backup@staging.timer` (staging's own backups, added by B04 research R8), `wassal-restore-drill@prod.timer` (drills production's backups), `wassal-host-monitor.timer` |
 | Deploy access | WireGuard peer `deploy-prod`, `deploy --only prod` | WireGuard peer `deploy-staging`, `deploy --only staging` |
 
 The files under `/etc/wassal/` on each host are listed in
@@ -38,7 +38,7 @@ On both hosts:
 | Interfaces | The public interface is the default route's (`enp0s6` on the staging VM; Oracle's docs say `ens3`). It carries the VCN private IP mapped to the reserved public IP. `provision.sh` takes its name from the default route, so either name works (R13). `wg0` = `<WG_ADDRESS>/24`, UDP 51820. |
 | Docker | Engine + Compose v2 from Docker's apt repository. Data root on the boot volume (R1). Every container has `restart: unless-stopped` (FR-008). |
 | Compose projects | `wassal-edge` (from `/opt/wassal/edge/`, updated by re-running `provision.sh`) and the host's own `wassal-<env>` (from the serving tag's `deploy/` copy). No host runs the other environment's project. |
-| State | For the host's environment only: `/var/lib/wassal/<env>/release`, `release.previous`, `/var/lib/wassal/<env>/deploy/<tag>/` (the compose file and sizing env of each deployed tag; the two newest are kept). Both hosts: `/var/lib/wassal/host-monitor/`. Prod host only: `/var/lib/wassal/prod/backup/last-backup.json` (the backup container's own directory). Staging host only: `/var/lib/wassal/drill-results.jsonl`, and `/var/lib/wassal/drill/` while a drill runs. |
+| State | For the host's environment only: `/var/lib/wassal/<env>/release`, `release.previous`, `/var/lib/wassal/<env>/deploy/<tag>/` (the compose file and sizing env of each deployed tag; the two newest are kept). Both hosts: `/var/lib/wassal/host-monitor/`. Both hosts, for their own environment: `/var/lib/wassal/<env>/backup/last-backup.json` (the backup container's own directory; staging's since B04), and B04's `/var/lib/wassal/packs/`. Staging host only: `/var/lib/wassal/drill-results.jsonl`, and `/var/lib/wassal/drill/` while a drill runs. |
 | Logs | Containers use the `json-file` driver with `max-size=10m`, `max-file=5` (FR-036). Caddy's access log is `/var/log/caddy/access.log` with `roll_size 50MiB` and `roll_keep_for 336h`, so client IPs are kept at most 14 days (backend §14.2). |
 
 The hosts never talk to each other. Neither can reach the other's private network or loopback
@@ -81,7 +81,7 @@ What follows from `host.env`:
 | sshd (`--finalize`) | `ListenAddress <WG_ADDRESS>`. `--finalize` requires a recent handshake from an operator peer of this host, and checks that sshd then listens on `<WG_ADDRESS>:22` only. |
 | sudoers | `deploy ALL=(root) NOPASSWD: /opt/wassal/bin/deploy --only <WASSAL_ENV>` |
 | State directories | `/var/lib/wassal/<WASSAL_ENV>/` and `/var/lib/wassal/host-monitor/` |
-| Timers | prod: `wassal-backup@prod.timer` and `wassal-host-monitor.timer`. staging: `wassal-restore-drill@prod.timer` and `wassal-host-monitor.timer`. The unit files are installed on both hosts, and any other `wassal-*` timer is disabled. |
+| Timers | prod: `wassal-backup@prod.timer` and `wassal-host-monitor.timer`. staging: `wassal-backup@staging.timer` (since B04), `wassal-restore-drill@prod.timer` and `wassal-host-monitor.timer`. The unit files are installed on both hosts, and any other `wassal-*` timer is disabled. |
 | Edge | `WASSAL_ENV` picks the upstream ports, and `ADMIN_BIND_IP` must equal `WG_ADDRESS` ([Edge](#edge-caddy-network_mode-host)) |
 | Host scripts | `deploy`, `backup`, `restore-drill`, `host-monitor` and `wg-peer` read `host.env` as data, never sourced, and refuse to act for the other environment (their sections below). A missing `host.env` is an error. |
 
@@ -243,7 +243,8 @@ US4-5, SC-005) without a broken image ever being built.
 
 ## Backup job (FR-039, FR-039a)
 
-`wassal-backup@prod.timer` runs on the prod host only, at `OnCalendar=*-*-* 03:00:00 Africa/Cairo`
+`wassal-backup@prod.timer` runs on the prod host (and, since B04 research R8, `wassal-backup@staging.timer`
+on the staging host, the same way with staging's own files), at `OnCalendar=*-*-* 03:00:00 Africa/Cairo`
 with `Persistent=true` (a missed run fires at the next boot). The service runs
 `/opt/wassal/bin/backup prod`. The script refuses (exit 2) an environment other than the host's
 `WASSAL_ENV`. It reads the serving tag from `/var/lib/wassal/prod/release`, takes the deploy lock
@@ -362,7 +363,7 @@ that host's checks:
 | Disk | both | `/` or the Docker data root ≥ `DISK_ALERT_PERCENT` (80) |
 | Certificates | both | The certificate served for this host's `API_HOST` (from its `edge.env`) expires in < `CERT_ALERT_DAYS` (14), or the one served for its `ADMIN_HOST` has already expired, or either can't be read. Both are read with `openssl s_client` against the site's bind address (`PUBLIC_BIND_IP`, `ADMIN_BIND_IP`) with SNI. |
 | Queue backlog | both | `LLEN` of any of the 4 queues of this host's environment (`wassal-<env>-valkey-1`, database 1) > `QUEUE_BACKLOG_THRESHOLD` (100) for ≥ `QUEUE_BACKLOG_MINUTES` (10), tracked in `/var/lib/wassal/host-monitor/backlog.json` |
-| Backup storage | prod | The latest dump's `size_bytes` (from `/var/lib/wassal/prod/backup/last-backup.json`) × 22 (14 daily + 8 weekly kept) ≥ `BACKUP_STORAGE_ALERT_BYTES` (8 GB, 80% of B2's free 10 GB, research R9). No file yet (no backup so far) passes. |
+| Backup storage | both (staging since B04) | The latest dump's `size_bytes` (from `/var/lib/wassal/<env>/backup/last-backup.json`, this host's own) × 22 (14 daily + 8 weekly kept) ≥ `BACKUP_STORAGE_ALERT_BYTES` (8 GB by default, 80% of B2's free 10 GB, research R9; split between the two hosts when they share one B2 account). No file yet (no backup so far) passes. |
 
 - The admin certificate comes from the host's local CA (`tls internal`). Caddy issues it for 12
   hours and renews it itself (measured with Caddy 2.11.7), so a 14-day threshold would always fail.

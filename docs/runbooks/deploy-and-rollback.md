@@ -181,3 +181,25 @@ ssh ubuntu@10.66.0.1 sudo ./wassal-docker/host/provision.sh
 Run them from the repository root, over each VM's WireGuard. (`scp -r` into an existing
 `wassal-docker` directory would nest the copy one level down.) Later runs don't need `--env`: each
 VM reads its environment from `/etc/wassal/host.env`.
+
+### The packs directory and the `/packs/` route (B04)
+
+From B04 on, each VM's worker writes pack files to `/var/lib/wassal/packs`, and its edge serves them
+under `https://<api-host>/packs/` (contracts/pack-delivery.md "Public files"). Before the first
+release that includes B04 reaches a VM:
+
+1. **Update the edge and re-run the provisioning script** there, as above. It creates
+   `/var/lib/wassal/packs` (owner `10001:10001`, mode `0755`) and reloads Caddy with the `/packs/`
+   route. Do this first: if the release starts before the directory exists, Docker creates it as
+   `root`, and the worker refuses to start because it can't write there.
+2. **Add the `CONTENT_*` values** to `/etc/wassal/<env>.env` (contracts/environment.md and
+   owner-actions.md). Without them the app refuses to start.
+3. **Deploy the release.** Then check the route:
+
+```bash
+curl -sI https://staging-api.<host>/packs/core.floor.json   # staging: 404, it has no floor file
+curl -s https://api.<host>/packs/core.floor.json            # prod: {"max_version":0,"pack_id":"core"}
+curl -s https://api.<host>/v1/content/manifest              # {"version":0,"packs":[]} before any promotion
+```
+
+Publishing and promoting are in [content-publishing.md](content-publishing.md).

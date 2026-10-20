@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# The nightly backup (FR-039, contracts/operations.md "Backup job"), run by wassal-backup@prod.timer:
+# The nightly backup (FR-039, contracts/operations.md "Backup job"), run by each host's
+# wassal-backup@<env>.timer:
 #
-#   /opt/wassal/bin/backup prod
+#   /opt/wassal/bin/backup prod       on the prod host
+#   /opt/wassal/bin/backup staging    on the staging host (B04 FR-039c, research R8)
 #
-# It runs on the prod host only: /etc/wassal/host.env must say WASSAL_ENV=prod (FR-001a). The
-# staging host drills these backups instead of taking its own.
+# Each host backs up its own environment only: the argument must be the WASSAL_ENV in
+# /etc/wassal/host.env (FR-001a). Each environment has its own env file, so its own buckets, its own
+# write-only key and its own Healthchecks.io check. The staging host also drills production's
+# backups (bin/restore-drill).
 #
 # It runs `python manage.py backup_db` in the serving release's image, with that release's own stack
 # definition and sizing file, as deploy does. The command pings Healthchecks.io itself. If this
 # script can't start it, the check's grace period raises the alert.
 #
 # Exit codes: 0 backed up; 1 the backup failed (backup_db pinged /fail); 2 bad input or setup, or
-# not the prod host; 3 a deploy held the lock.
+# another environment's host; 3 a deploy held the lock.
 set -euo pipefail
 
 # The image's `app` user (docker/Dockerfile), which owns the backup's state directory.
@@ -47,7 +51,6 @@ read_host_env() {
 if [ $# -ne 1 ] || ! [[ "$1" =~ ^(staging|prod)$ ]]; then die "usage: backup <staging|prod>"; fi
 ENV="$1"
 read_host_env
-[ "$HOST_ENV" = prod ] || die "backups run on the prod host only; this is the $HOST_ENV host"
 [ "$ENV" = "$HOST_ENV" ] || die "this host serves $HOST_ENV, not $ENV"
 ENV_STATE="$STATE_DIR/$ENV"
 BACKUP_ENV_FILE="$ETC_DIR/$ENV-backup.env"

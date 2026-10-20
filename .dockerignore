@@ -1,0 +1,27 @@
+# The backend image's build context is the repository root (specs/003-b04-content-pipeline
+# research R13), so the image can install tools/content_kit. Send only what the build needs.
+*
+!backend/
+!tools/content_kit/
+
+# Never in the image: secrets, local state and build output (B01 FR-024).
+**/.env
+**/.env.*
+!backend/.env.example
+**/*.pem
+**/*.key
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.hypothesis
+**/.coverage
+**/.coverage.*
+**/htmlcov
+**/coverage.xml
+**/celerybeat-schedule*
+backend/staticfiles
+backend/var
+tools/content_kit/tests

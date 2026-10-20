@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Host checks every 5 minutes (FR-038, contracts/operations.md "Host monitor"), run on each host by
-# wassal-host-monitor.timer with that host's /etc/wassal/host-monitor.env. The host's environment,
-# from host.env, picks its checks: disk, certificates and queues on both hosts, backup storage on
-# the prod host only. It pings the host's own Healthchecks.io check when every check passes, with
-# the checks that ran, and `/fail` with the failing checks listed otherwise. When the monitor itself
-# stops, Healthchecks alerts after its grace period.
+# wassal-host-monitor.timer with that host's /etc/wassal/host-monitor.env. Both hosts run the same
+# checks: disk, certificates, queues and backup storage. The host's environment, from host.env,
+# picks whose queues and backups they read: each host backs up its own environment (B04 research
+# R8). It pings the host's own Healthchecks.io check when every check passes, with the checks that
+# ran, and `/fail` with the failing checks listed otherwise. When the monitor itself stops,
+# Healthchecks alerts after its grace period.
 #
 # Exit codes: 0 all checks pass; 1 a check failed (pinged /fail); 2 the ping or the config failed.
 set -uo pipefail
@@ -120,9 +121,10 @@ check_queues() {
   printf '{%s}\n' "${next[*]}" >"$BACKLOG.new" && mv "$BACKLOG.new" "$BACKLOG"
 }
 
-# Prod host only: the backups are production's, and only the prod host takes them.
+# This host's own backups, which only this host takes. A backup that is late or failed is its own
+# Healthchecks.io check's alert (backup-prod, backup-staging), not this monitor's.
 check_backup_storage() {
-  local last="$STATE_DIR/prod/backup/last-backup.json" size
+  local last="$STATE_DIR/$ENV/backup/last-backup.json" size
   [ -f "$last" ] || return 0 # no backup yet
   size="$(sed -n 's/.*"size_bytes": *\([0-9][0-9]*\).*/\1/p' "$last" | sed -n 1p)"
   # The backup container writes this file, so its number is checked before any arithmetic.
@@ -136,12 +138,9 @@ check_backup_storage() {
 check_disk
 check_certificates
 check_queues
+check_backup_storage
 # The ping names the checks that ran, so a skipped one never reads as passed.
-RAN="disk, certificates, queues"
-if [ "$ENV" = prod ]; then
-  check_backup_storage
-  RAN="$RAN, backup storage"
-fi
+RAN="disk, certificates, queues, backup storage"
 
 if [ "${#FAILURES[@]}" -eq 0 ]; then
   url="$HC_PING_HOST_MONITOR_URL"

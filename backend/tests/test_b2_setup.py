@@ -390,3 +390,119 @@ def test_check_reports_a_missing_bucket(b2: FakeB2, capsys: pytest.CaptureFixtur
 
     assert not WRITES & set(names(b2))
     assert DAILY in capsys.readouterr().err
+
+
+# -- --env staging (B04 research R8) ---------------------------------------------------------------
+
+STAGING = ["--env", "staging"]
+
+
+def test_staging_gets_one_write_only_key_on_its_own_prefix(b2: FakeB2) -> None:
+    assert run(b2, *STAGING) == 0
+
+    (backup,) = bodies(b2, "b2_create_key")
+    assert backup["keyName"] == "wassal-staging-backup"
+    assert backup["capabilities"] == ["writeFiles"]
+    assert backup["bucketIds"] == [f"id-{DAILY}", f"id-{WEEKLY}"]
+    assert backup["namePrefix"] == "staging/"
+    signed_in = [body["keyId"] for body in bodies(b2, "b2_authorize_account")]
+    assert signed_in == [ADMIN_ID, "keyid-wassal-staging-backup"]
+
+
+def test_staging_buckets_are_locked_like_production(b2: FakeB2) -> None:
+    run(b2, *STAGING)
+
+    daily, weekly = bodies(b2, "b2_update_bucket")
+    assert daily["defaultRetention"]["period"]["duration"] == 14
+    assert weekly["defaultRetention"]["period"]["duration"] == 56
+    assert all(body["fileLockEnabled"] for body in bodies(b2, "b2_create_bucket"))
+
+
+def test_staging_prints_only_its_backup_env(b2: FakeB2, capsys: pytest.CaptureFixture[str]) -> None:
+    run(b2, *STAGING)
+
+    out, err = capsys.readouterr()
+    assert "# /etc/wassal/staging-backup.env (mode 0400)" in out
+    assert out.count("B2_BACKUP_APP_KEY=secret-wassal-staging-backup") == 1
+    assert "BACKUP_PREFIX=staging" in out
+    assert "HC_PING_BACKUP_URL=<the backup-staging ping URL>" in out
+    assert "DRILL" not in out
+    assert "prod" not in out
+    assert "secret-wassal-staging" not in err
+
+
+def test_staging_check_passes_after_setup(b2: FakeB2, capsys: pytest.CaptureFixture[str]) -> None:
+    run(b2, *STAGING)
+    b2.calls.clear()
+    capsys.readouterr()
+
+    assert run(b2, *STAGING, "--check") == 0
+
+    assert not WRITES & set(names(b2))
+    assert "staging's keys" in capsys.readouterr().err
+
+
+def test_staging_check_refuses_a_key_on_production_prefix(
+    b2: FakeB2, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run(b2, *STAGING)
+    b2.keys["keyid-wassal-staging-backup"]["namePrefix"] = "prod/"
+    capsys.readouterr()
+
+    assert run(b2, *STAGING, "--check") != 0
+    assert "'staging/'" in capsys.readouterr().err
+
+
+def test_an_unknown_env_is_refused(b2: FakeB2) -> None:
+    with pytest.raises(SystemExit):
+        run(b2, "--env", "dev")
+    assert b2.calls == []
+
+
+# -- --restore-key ---------------------------------------------------------------------------------
+
+
+def test_a_restore_key_reads_only_and_expires(
+    b2: FakeB2, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run(b2, *STAGING)
+    b2.calls.clear()
+    capsys.readouterr()
+
+    assert run(b2, *STAGING, "--restore-key") == 0
+
+    assert "b2_create_bucket" not in names(b2)
+    (key,) = bodies(b2, "b2_create_key")
+    assert key["keyName"] == "wassal-staging-restore"
+    assert key["capabilities"] == ["listBuckets", "listFiles", "readFiles"]
+    assert key["bucketIds"] == [f"id-{DAILY}", f"id-{WEEKLY}"]
+    assert key["namePrefix"] == "staging/"
+    assert key["validDurationInSeconds"] == 24 * 3600
+    out, err = capsys.readouterr()
+    assert "# /run/wassal-staging-restore.env" in out
+    assert "B2_DRILL_APP_KEY=secret-wassal-staging-restore" in out
+    assert "BACKUP_PREFIX=staging" in out
+    assert "secret-" not in err
+
+
+def test_a_restore_key_needs_the_buckets(b2: FakeB2, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run(b2, *STAGING, "--restore-key") != 0
+
+    assert "b2_create_key" not in names(b2)
+    assert DAILY in capsys.readouterr().err
+
+
+def test_a_restore_key_with_other_rights_fails(
+    b2: FakeB2, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run(b2, *STAGING)
+    b2.reported["keyid-wassal-staging-restore"] = {"namePrefix": None}
+    capsys.readouterr()
+
+    assert run(b2, *STAGING, "--restore-key") != 0
+    assert "Delete wassal-staging-restore" in capsys.readouterr().err
+
+
+def test_restore_key_and_check_are_exclusive(b2: FakeB2) -> None:
+    with pytest.raises(SystemExit):
+        run(b2, "--check", "--restore-key")

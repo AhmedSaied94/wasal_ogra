@@ -1,0 +1,9 @@
+{% extends "admin/change_list.html" %}
+{% comment %}Pack tools (contracts/admin.md "Pack pages"). Links and forms only: no script.{% endcomment %}
+{% block object-tools-items %}
+  {% if can_build %}<li><form method="post" action="{% url 'admin:content_contentpack_build' %}">{% csrf_token %}<button type="submit" class="button">Build a new pack</button></form></li>{% endif %}
+  {% if can_promote %}<li><a href="{% url 'admin:content_contentpack_promote' %}">Promote from staging</a></li>{% endif %}
+  {% if can_import %}<li><a href="{% url 'admin:content_contentpack_import' %}">Import zip</a></li>{% endif %}
+  {% if can_export_current %}<li><a href="{% url 'admin:content_contentpack_export_current' %}">Export current content</a></li>{% endif %}
+  {{ block.super }}
+{% endblock %}

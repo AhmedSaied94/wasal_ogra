@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
 - `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
-- `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin.
+- `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
@@ -31,13 +31,18 @@ Python is pinned by `backend/.python-version` and managed with uv (never pip). R
 | Tests + coverage gate | `uv run pytest --cov --cov-fail-under=80` |
 | Missing-migration check | `uv run manage.py makemigrations --check --dry-run` |
 | Regenerate the API contract | `uv run manage.py spectacular --file ../contracts/openapi.yaml --validate --fail-on-warn` |
-| Create a staff user / issue TOTP | `uv run manage.py create_staff <name>` / `uv run manage.py staff_totp <name>` |
+| Create a staff user / issue TOTP | `uv run manage.py create_staff <name> [--group content_author]` / `uv run manage.py staff_totp <name>` |
+| Import / export content (a `content/source` layout or zip) | `uv run manage.py content_import <dir-or-zip> --actor <staff>` / `uv run manage.py content_export <dir> [--version N] --actor <staff>` |
+| Build a pack, or only print its checksums | `uv run manage.py content_build --actor <staff>` / `uv run manage.py content_build --actor <staff> --dry-run [--version N]` |
+| Rewrite missing pack files, hash the present ones | `uv run manage.py content_files sync --verify` |
 | Deploy, roll back, restore | See `docs/runbooks/deploy-and-rollback.md` and `docs/runbooks/restore.md` |
 
 - The API is on <http://localhost:8000> (the Android emulator reaches it as `10.0.2.2:8000`), the admin on <http://localhost:8001/admin/>.
 - Tests need the stack's PostgreSQL and Valkey: they run against the real services, never mocks (constitution XIII). pytest reads only the `TEST_*` URLs from `backend/.env`.
 - If port 5432 or 6379 is taken on your machine, export `WASSAL_DEV_PG_PORT` or `WASSAL_DEV_VALKEY_PORT` before `docker compose up`, and use the same port in the URLs in `backend/.env`.
 - Every value comes from the environment (`specs/002-b01-backend-skeleton/contracts/environment.md`). Outside `dev` and `test`, a missing, empty or `change-me` secret stops the process at startup.
+- B04 adds the `CONTENT_*` variables (`specs/003-b04-content-pipeline/contracts/environment.md`): `CONTENT_ROLE` (`source` on dev and staging, `target` on prod), `CONTENT_PACKS_DIR`, `CONTENT_PACKS_PUBLIC_URL`, `CONTENT_VERSION_FLOOR_URL` (staging: production's packs URL), `CONTENT_PROMOTION_SOURCE_URL` (prod: staging's packs URL), `CONTENT_SOLVER_STAGE` (`stand_in` in dev and test only), `CONTENT_MANIFEST_CACHE_SECONDS` and `CONTENT_HTTP_TIMEOUT_SECONDS`. The settings check refuses a role or URL in the wrong environment.
+- The content commands that act for a person need `--actor <staff>` and make the admin's permission checks. Only the worker mounts the packs directory, so on a host run `content_files` in the worker container. Publishing and promoting: `docs/runbooks/content-publishing.md`.
 
 ## Mobile commands
 
@@ -175,7 +180,7 @@ These invariants cut across both sides, and you need several docs to see them:
 
 - **Mobile:** use Riverpod with `riverpod_generator`, not BLoC. Use **drift (SQLite)** for structured local data; Hive and Isar were explicitly rejected (mobile §25). Use `flutter_secure_storage` for tokens. Use `freezed` + `json_serializable`, `dio`, `go_router`. Pin Flutter with FVM (`.fvmrc`). The flavors are `dev`, `staging` and `prod`.
 - **Backend:** Python 3.13 managed with **`uv`** (not pip). Plain Django + DRF, with Django admin as the content-authoring and live-ops tool (no Wagtail, no React). PostgreSQL 17, Redis/Valkey, Celery with `django-celery-beat`, `simplejwt`, `drf-spectacular`. CI runs `ruff`, `mypy` (django-stubs), `pytest` with real Postgres/Redis, `hypothesis`, `schemathesis` and the parity tests.
-- **Deployment target:** two Oracle Cloud Always Free A1 VMs (ARM64) in `me-jeddah-1`, one per environment: production and staging, each 1 OCPU / 6 GB with its own reserved IP, running Docker Compose behind its own host-network Caddy. `provision.sh --env` fixes each VM's environment. Each VM has its own WireGuard network (`10.66.0.1` prod, `10.67.0.1` staging); its admin is reachable only over it, and so is SSH. Backups run on production; the monthly restore drill runs on staging. Backups go to Backblaze B2. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
+- **Deployment target:** two Oracle Cloud Always Free A1 VMs (ARM64) in `me-jeddah-1`, one per environment: production and staging, each 1 OCPU / 6 GB with its own reserved IP, running Docker Compose behind its own host-network Caddy. `provision.sh --env` fixes each VM's environment. Each VM has its own WireGuard network (`10.66.0.1` prod, `10.67.0.1` staging); its admin is reachable only over it, and so is SSH. Backups run on production, and on staging for its authored content (B04), each into its own Backblaze B2 buckets; the monthly restore drill runs on staging. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
 
 ## UI rules (from `docs/ux-spec.md`)
 

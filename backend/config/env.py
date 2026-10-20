@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -26,6 +27,8 @@ DB_CONNECT_TIMEOUT_S = "3"
 CACHE_TIMEOUT_S = 2
 # What DRF's SimpleRateThrottle.parse_rate accepts: "<count>/<s|m|h|d>…", for example "120/min".
 RATE_PATTERN = re.compile(r"^\d+/[smhd][a-z]*$")
+# CONTENT_SOLVER_STAGE (B04): `none`, `stand_in`, or the dotted path of B05's stage.
+SOLVER_STAGE_PATTERN = re.compile(r"^(none|stand_in|[A-Za-z_]\w*(\.[A-Za-z_]\w*)+)$")
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
@@ -96,7 +99,9 @@ class Env:
             return False
         raise ImproperlyConfigured(f"{name} is invalid")
 
-    def integer(self, name: str, default: int, *, minimum: int = 0) -> int:
+    def integer(
+        self, name: str, default: int, *, minimum: int = 0, maximum: int | None = None
+    ) -> int:
         value = self._source.get(name)
         if value is None:
             return default
@@ -104,9 +109,28 @@ class Env:
             number = int(value)
         except ValueError:
             raise ImproperlyConfigured(f"{name} is invalid") from None
-        if number < minimum:
+        if number < minimum or (maximum is not None and number > maximum):
             raise ImproperlyConfigured(f"{name} is invalid")
         return number
+
+    def choice(self, name: str, choices: tuple[str, ...], default: str = _MISSING) -> str:
+        value = self.string(name, default)
+        if value not in choices:
+            raise ImproperlyConfigured(f"{name} is invalid")
+        return value
+
+    def url(self, name: str, default: str = _MISSING, *, directory: bool = False) -> str:
+        """An absolute URL, `https://` outside dev and test. Empty stays empty when allowed."""
+        value = self.string(name, default)
+        if not value:
+            return value
+        parts = urlsplit(value)
+        schemes = ("https",) if self.strict else ("http", "https")
+        if parts.scheme not in schemes or not parts.netloc:
+            raise ImproperlyConfigured(f"{name} is invalid")
+        if directory and not parts.path.endswith("/"):
+            raise ImproperlyConfigured(f"{name} is invalid: it must end with /")
+        return value
 
     def number(self, name: str, default: float, *, minimum: float, maximum: float) -> float:
         value = self._source.get(name)
@@ -173,6 +197,40 @@ class Env:
             raise ImproperlyConfigured(f"{name} is invalid")
         return url
 
+    def content(self, default_packs_dir: Path) -> ContentConfig:
+        """The content pipeline's settings and their cross-checks (B04 contracts/environment.md)."""
+        role = self.choice("CONTENT_ROLE", ("source", "target"))
+        if (role == "target") != (self.name == "prod"):
+            raise ImproperlyConfigured("CONTENT_ROLE is invalid: target on prod, source elsewhere")
+        promotion = self.url("CONTENT_PROMOTION_SOURCE_URL", "", directory=True)
+        if role == "target" and not promotion:
+            raise ImproperlyConfigured("CONTENT_PROMOTION_SOURCE_URL is required")
+        if role == "source" and promotion and self.name != "test":
+            raise ImproperlyConfigured("CONTENT_PROMOTION_SOURCE_URL must be empty on a source")
+        floor = self.url("CONTENT_VERSION_FLOOR_URL", "", directory=True)
+        if role == "target" and floor:
+            raise ImproperlyConfigured("CONTENT_VERSION_FLOOR_URL must be empty on the target")
+        solver = self.string("CONTENT_SOLVER_STAGE", "none" if self.strict else "stand_in")
+        if not SOLVER_STAGE_PATTERN.match(solver) or (self.strict and solver == "stand_in"):
+            raise ImproperlyConfigured("CONTENT_SOLVER_STAGE is invalid")
+        packs_dir = self.string(
+            "CONTENT_PACKS_DIR", str(default_packs_dir), required_outside_dev=True
+        )
+        return ContentConfig(
+            role=role,
+            packs_dir=Path(packs_dir),
+            public_url=self.url("CONTENT_PACKS_PUBLIC_URL", directory=True),
+            floor_url=floor,
+            promotion_url=promotion,
+            solver_stage=solver,
+            manifest_cache_seconds=self.integer(
+                "CONTENT_MANIFEST_CACHE_SECONDS", 30, minimum=0, maximum=60
+            ),
+            http_timeout_seconds=self.integer(
+                "CONTENT_HTTP_TIMEOUT_SECONDS", 10, minimum=1, maximum=30
+            ),
+        )
+
     def check_environment(self) -> None:
         """`WASSAL_ENV` must name the settings module in use, and debug is off outside dev."""
         expected = self.name
@@ -180,6 +238,20 @@ class Env:
             raise ImproperlyConfigured(f"WASSAL_ENV is invalid for config.settings.{self.name}")
         if self.strict and self.boolean("DJANGO_DEBUG", default=False):
             raise ImproperlyConfigured("DJANGO_DEBUG must be false outside dev")
+
+
+@dataclass(frozen=True)
+class ContentConfig:
+    """The content pipeline's settings (B04 contracts/environment.md "Application variables")."""
+
+    role: str
+    packs_dir: Path
+    public_url: str
+    floor_url: str
+    promotion_url: str
+    solver_stage: str
+    manifest_cache_seconds: int
+    http_timeout_seconds: int
 
 
 def with_default_query(url: str, key: str, value: str) -> str:

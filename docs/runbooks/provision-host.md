@@ -27,8 +27,9 @@ The commands below use `<env>`, `<ip>` and `<wg>` for the values of the VM you'r
 | `<wg>`, the WireGuard address (`ADMIN_BIND_IP`) | `10.66.0.1` | `10.67.0.1` |
 | API hostname (`API_HOST`) | `api.193-122-74-125.sslip.io` | `staging-api.141-147-129-92.sslip.io` |
 | Admin hostname (`ADMIN_HOST`) | `admin.10-66-0-1.sslip.io` | `staging-admin.10-67-0-1.sslip.io` |
-| Env files of its own | `prod.env`, `prod-db.env`, `prod-backup.env` | `staging.env`, `staging-db.env`, `prod-drill.env` |
-| Timers | `wassal-backup@prod`, `wassal-host-monitor` | `wassal-restore-drill@prod` (drills production's backups), `wassal-host-monitor` |
+| Env files of its own | `prod.env`, `prod-db.env`, `prod-backup.env` | `staging.env`, `staging-db.env`, `staging-backup.env`, `prod-drill.env` |
+| Timers | `wassal-backup@prod`, `wassal-host-monitor` | `wassal-backup@staging` (staging's own backups, since B04), `wassal-restore-drill@prod` (drills production's backups), `wassal-host-monitor` |
+| State directories the containers write (owner `10001`) | `/var/lib/wassal/prod/backup` (`0750`), `/var/lib/wassal/packs` (`0755`) | `/var/lib/wassal/staging/backup` (`0750`), `/var/lib/wassal/packs` (`0755`) |
 | Deploy peer, GitHub Environment | `deploy-prod`, `production` | `deploy-staging`, `staging` |
 
 - Each VM has its own VCN, security list, reserved IP, WireGuard server, edge, host monitor and
@@ -125,7 +126,7 @@ Check what it did:
 ```bash
 sudo cat /etc/wassal/host.env                    # WASSAL_ENV=<env> and WG_ADDRESS=<wg>
 ip -4 -o addr show wg0                           # <wg>/24
-systemctl list-timers 'wassal-*'                 # this VM's two timers only (table above)
+systemctl list-timers 'wassal-*'                 # this VM's timers only (table above)
 sudo iptables -S INPUT | grep -c -- '-j REJECT'  # 1: a single rule set
 ```
 
@@ -179,7 +180,7 @@ Each VM holds only its own environment's files. Fill these now:
 | `edge.env` | yes | yes | `PUBLIC_BIND_IP`: the VNIC's **private** address, the `src` in `ip route get 1.1.1.1`. `ADMIN_BIND_IP=<wg>`; the script refuses any other value. `PUBLIC_TLS`: your email for Let's Encrypt. `API_HOST` and `ADMIN_HOST`: this VM's hostnames from the table. |
 | `<env>.env` | `prod.env` | `staging.env` | The application variables. `API_HOST` and `ADMIN_HOST` match `edge.env`. `SENTRY_DSN` and this environment's `HC_PING_HEARTBEAT_URL` come from monitoring-setup.md. |
 | `<env>-db.env` | `prod-db.env` | `staging-db.env` | `POSTGRES_PASSWORD` and `WASSAL_DB_PASSWORD`, different from each other and from the other VM's |
-| B2 | `prod-backup.env` | `prod-drill.env` | The lines `b2_setup.py` printed, plus the ping URL (monitoring-setup.md "Backblaze B2") |
+| B2 | `prod-backup.env` | `staging-backup.env` and `prod-drill.env` | The lines `b2_setup.py` printed, plus the ping URL (monitoring-setup.md "Backblaze B2"). `staging-backup.env` comes from its `--env staging` run (step 8 there). |
 
 `host-monitor.env` waits until this VM's environment serves. Until then it would only report a
 failure (monitoring-setup.md "Healthchecks.io").
@@ -330,7 +331,7 @@ there is still needed, remove it, and re-run the script until it prints no warni
 | `/var/lib/wassal/<other>` | `sudo rm -r /var/lib/wassal/<other>`. It holds the other environment's deploy state, which its own VM rebuilds. |
 | `/etc/wassal/<other>.env` or `<other>-db.env` | `sudo rm /etc/wassal/<file>`. The other VM has its own, with its own secrets. |
 | `prod-backup.env` on the staging VM; `prod-drill.env` on the prod VM | `sudo rm /etc/wassal/<file>`, once its lines are in your password manager. The backup key belongs on the prod VM only, the drill key on the staging VM only. |
-| `staging-backup.env` or `staging-drill.env` | `sudo rm /etc/wassal/<file>`. Staging isn't backed up. |
+| `staging-backup.env` or `staging-drill.env` on the prod VM | `sudo rm /etc/wassal/<file>`. Staging's backup key belongs on the staging VM only, and staging's backups are never drilled. |
 | Peers that don't belong to this host's network | `sudo wg-peer remove <name>` for each one listed: peers outside `<wg>`'s /24, or with the other deploy role. Add the device again on the VM it belongs to. |
 | `edge.env` still has the one-host `PROD_`/`STAGING_` variables | Rewrite it with `API_HOST` and `ADMIN_HOST` (step 4), then re-run the script. |
 | The other environment's Compose project `wassal-<other>` | See below. |

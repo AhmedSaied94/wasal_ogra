@@ -237,3 +237,15 @@ def test_schema_diff_reports_a_malformed_schema_set(
 
 def test_schema_diff_refuses_an_option_as_the_base(schema_repo: Path) -> None:
     assert main(["schema-diff", "--base", "--output=x"]) == 2
+
+
+def test_validate_source_runs_the_rules_on_the_assembled_pack(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    shutil.copytree(EXAMPLES / "sample", tmp_path / "sample")
+    room = tmp_path / "sample" / "rooms" / "salon.json"
+    data = json.loads(room.read_text())
+    data["chapter_id"] = "ch5_kitchen"
+    room.write_text(json.dumps(data, ensure_ascii=False))
+    assert main(["validate-source", str(tmp_path / "sample")]) == 1
+    assert "$.chapter_id [V-R1] room salon" in capsys.readouterr().out

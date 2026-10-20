@@ -93,7 +93,8 @@ Each host holds only its own environment's files:
 
 - **prod host:** `host.env`, `edge.env`, `prod.env`, `prod-db.env`, `prod-backup.env`,
   `host-monitor.env`, `wg-server.env` and `wg-peers.tsv` in `/etc/wassal/`, plus `wg0.conf`.
-- **staging host:** `host.env`, `edge.env`, `staging.env`, `staging-db.env`, `prod-drill.env`,
+- **staging host:** `host.env`, `edge.env`, `staging.env`, `staging-db.env`, `staging-backup.env`
+  (since B04: staging's own write-only key, B04 contracts/environment.md), `prod-drill.env`,
   `host-monitor.env`, `wg-server.env` and `wg-peers.tsv` in `/etc/wassal/`, plus `wg0.conf`.
 
 | File | Host | Holds | Read by |
@@ -102,7 +103,7 @@ Each host holds only its own environment's files:
 | `/etc/wassal/<env>.env` | that environment's: `prod.env` on prod, `staging.env` on staging | The application variables above | Compose `env_file` for `api`, `admin`, `worker`, `beat`, `migrate` |
 | `/etc/wassal/<env>-db.env` | that environment's | `POSTGRES_PASSWORD` (superuser), `WASSAL_DB_PASSWORD` (app role) | The `postgres` container and its init script |
 | `/etc/wassal/edge.env` | both | `PUBLIC_BIND_IP` (the VNIC's private IP: `10.0.0.28` on prod, `10.1.0.216` on staging), `ADMIN_BIND_IP` (the host's `WG_ADDRESS`; `provision.sh` refuses any other value), `PUBLIC_TLS` (the Let's Encrypt account email; `internal` in the CI smoke test), `API_HOST` and `ADMIN_HOST` (this host's environment's hostnames, as in `<env>.env`) | The edge Caddy container, after `host.env` |
-| `/etc/wassal/host-monitor.env` | both | `HC_PING_HOST_MONITOR_URL` (secret; this host's own check, `host-monitor-prod` or `host-monitor-staging`), `DISK_ALERT_PERCENT=80`, `CERT_ALERT_DAYS=14`, `QUEUE_BACKLOG_THRESHOLD=100`, `QUEUE_BACKLOG_MINUTES=10`. Prod host only: `BACKUP_STORAGE_ALERT_BYTES=8000000000`. | `wassal-host-monitor.service` |
+| `/etc/wassal/host-monitor.env` | both | `HC_PING_HOST_MONITOR_URL` (secret; this host's own check, `host-monitor-prod` or `host-monitor-staging`), `DISK_ALERT_PERCENT=80`, `CERT_ALERT_DAYS=14`, `QUEUE_BACKLOG_THRESHOLD=100`, `QUEUE_BACKLOG_MINUTES=10`. `BACKUP_STORAGE_ALERT_BYTES` (8 GB by default; since B04 both hosts check their own backups, so the two split it: `6000000000` on prod, `2000000000` on staging). | `wassal-host-monitor.service` |
 | `/etc/wireguard/wg0.conf` | both | This host's server private key, `Address = <WG_ADDRESS>/24` and its peers | `wg-quick@wg0` |
 | `/etc/wassal/wg-peers.tsv` | both | This host's peer registry ([data-model.md](../data-model.md#private-network-peer-fr-023a)) | `wg-peer` |
 | `/etc/wassal/wg-server.env` | both | `WG_SERVER_PUBLIC_KEY`, `WG_ENDPOINT` (`<this host's reserved public IP>:51820`: `193.122.74.125:51820` on prod, `141.147.129.92:51820` on staging), written by `provision.sh --public-ip` | `wg-peer` |

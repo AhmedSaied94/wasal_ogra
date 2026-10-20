@@ -133,6 +133,13 @@ The §9.3 example becomes `content/examples/valid/trip/line_gamaa.12.json`, with
 The validator in `wassal_content.validate` reports each finding as `{stage, code, severity, entity,
 id, path, message}`. Codes are stable, so tests can name them.
 
+- **Where a finding points.** `entity` and `id` name the record: a part element by its identifier,
+  a catalog price as `catalog_price` with id `<sku_kind>:<sku_id>`, and anything else in the pack
+  as `pack` `core`. `path` is a JSON path inside that record, such as `$.passengers[2].seat_id`.
+  Schema findings (`V-SC`) on a pack use the same form.
+- **Order of stages.** The rules assume the schema's shapes, so when the schema stage fails,
+  `references` and `content_rules` report `not_available` instead of running.
+
 | Code | Severity | Rule |
 | --- | --- | --- |
 | **References** | | |
@@ -140,18 +147,18 @@ id, path, message}`. Codes are stable, so tests can name them.
 | `V-T2` | error | Every trip station is a station of its line, in line order, with strictly increasing `at_seconds` |
 | `V-T3` | error | `seats` equals the layout of `vehicle_id` in this pack, row and column derived from `seat_id`, `reachable_by_driver` = row ∈ {front, A} |
 | `V-T4` | error | Every passenger's `seat_id` is in `seats`. `dest_station_id` is a trip station. `board_station_id`, if present, is an earlier trip station. |
-| `V-T5` | error | Group members share `group_size`, and their count equals it |
+| `V-T5` | error | `group_id` and `group_size` are set together. The members listed in a group share `group_size`, and there are at most `group_size` of them: backend §9.3 lists only the group's payer. |
 | `V-T6` | error | Every `speech_keys` value and every event `passenger_ids`/`station_id` resolves |
 | `V-T7` | error | `trip_id`s are unique, and each line's trip numbers start at 01 with no gaps |
 | `V-L1` | error | `unlock.kind` has exactly its field (`vehicle` → `vehicle_id`, `line_complete` → `line_id`, `start` → none), and the reference resolves |
 | `V-L2` | error | `difficulty_band.min ≤ max`. Station ids are unique within a line. |
 | `V-C1` | error | `goal.kind` has exactly its field, and the reference resolves. `purchase` needs a catalog price `(chapter, chapter_id)`. |
 | `V-C2` | error | `story_trip_id`, if present, is a `story` trip |
-| `V-R1` | error | Every item's `room_id` exists, `item_id` starts with `room_id + "."`, and variant ids are unique per item |
+| `V-R1` | error | Every room's `chapter_id` and every item's `room_id` exist, `item_id` starts with `room_id + "."`, and variant ids are unique per item |
 | `V-R2` | error | A family request's `item_id` is in its `room_id`, and its `variant_id` is a variant of that item |
 | `V-K1` | error | Catalog prices and purchasable products match one to one. Each item, each non-starter vehicle, each `purchase` chapter, and each BONAT SKU listed in data-model.md `CatalogPrice` has exactly one price. Nothing else has a price. |
 | `V-D1` | error | `daily_rewards` has exactly day 1 to 7. Every day and every task grants something. |
-| `V-U1` | error | Every identifier is unique within its kind |
+| `V-U1` | error | Every identifier is unique within its kind, and so are passenger, seat and scene ids within their trip, layout or chapter. Trip ids are `V-T7`'s, station ids `V-L2`'s and variant ids `V-R1`'s. |
 | **Content rules** | | |
 | `V-M1` | error | The currency follows the SKU kind: JENEHAT for item, vehicle and chapter, BONAT for the rest |
 | `V-X1` | error | Every `LocalizedText` value is trimmed and contains no `Nd` digit (R14) |

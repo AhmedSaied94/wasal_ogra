@@ -12,7 +12,7 @@ its own:
 | WireGuard address | `10.66.0.1` | `10.67.0.1` |
 | API | `api.193-122-74-125.sslip.io` | `staging-api.141-147-129-92.sslip.io` |
 | Admin | `admin.10-66-0-1.sslip.io` | `staging-admin.10-67-0-1.sslip.io` |
-| Also runs | the nightly backup | the monthly restore drill of production's backups |
+| Also runs | the nightly backup | its own nightly backup (since B04), and the monthly restore drill of production's backups |
 
 | Runbook | What it covers |
 | --- | --- |
@@ -21,7 +21,8 @@ its own:
 | [monitoring-setup.md](monitoring-setup.md) | Healthchecks.io, UptimeRobot, Sentry, Backblaze B2, the monthly routine, and which env file goes on which VM |
 | [deploy-and-rollback.md](deploy-and-rollback.md) | How releases reach each VM, rollbacks, the images to keep, the one-time GitHub setup |
 | [staff-accounts.md](staff-accounts.md) | Admin accounts and their second factor, per environment |
-| [restore.md](restore.md) | Restoring a backup into production, rebuilding either VM, the drill's results |
+| [restore.md](restore.md) | Restoring a backup into production or staging, rebuilding either VM, the drill's results |
+| [content-publishing.md](content-publishing.md) | Authoring, building and publishing on staging, promoting to production, `content/source`, rollback, the minimum app version |
 | [break-glass.md](break-glass.md) | Getting back into a VM when WireGuard or SSH doesn't work |
 
 ## First-time setup
@@ -36,10 +37,11 @@ These need only your machine and a browser, so you can do them before the VMs ex
 1. **Sentry:** [monitoring-setup.md "Sentry"](monitoring-setup.md#sentry-errors), steps 1–5. Keep
    the DSN.
 2. **Healthchecks.io:** [monitoring-setup.md "Healthchecks.io"](monitoring-setup.md#healthchecksio-dead-mans-switches),
-   steps 1–3. Keep the six ping URLs. A new check stays grey until its first ping, so it sends no
+   steps 1–3. Keep the seven ping URLs. A new check stays grey until its first ping, so it sends no
    alert yet.
 3. **Backblaze B2:** [monitoring-setup.md "Backblaze B2"](monitoring-setup.md#backblaze-b2-backups),
-   steps 1–6. It prints the backup and drill keys once. Step 7 waits for stage 2.
+   steps 1–6, then step 8 for staging's own backups. It prints the backup and drill keys once.
+   Step 7 waits for stage 2.
 4. **GitHub failure emails:** [monitoring-setup.md "GitHub"](monitoring-setup.md#github-deploy-failures).
 
 ### 2. The VMs, one at a time
@@ -55,7 +57,7 @@ costs staging, not production. Each VM gets its own values from
    address: `10.67.0.1` on staging, `10.66.0.1` on prod. Don't set up WireGuard by hand before
    this: the firewall, sshd and the admin hostname all expect that address.
 4. **Env files:** [§4](provision-host.md#4-fill-the-environment-files). Each VM gets only its own:
-   - staging: `edge.env`, `staging.env`, `staging-db.env` and `prod-drill.env`;
+   - staging: `edge.env`, `staging.env`, `staging-db.env`, `staging-backup.env` and `prod-drill.env`;
    - prod: `edge.env`, `prod.env`, `prod-db.env` and `prod-backup.env`.
 
    Put the Sentry DSN and the environment's heartbeat ping URL from stage 1 in now, so you edit each
@@ -113,7 +115,9 @@ Feature-specific checks (task IDs, scenarios to walk) are in [owner-actions.md](
 | New staff, a lost phone, a forgotten password, a lockout, someone leaving | [staff-accounts.md](staff-accounts.md) |
 | The first of the month | [monitoring-setup.md "Monthly routine"](monitoring-setup.md#monthly-routine) |
 | The drill failed | [restore.md "Reading drill-results.jsonl"](restore.md#reading-drill-resultsjsonl) |
+| Publishing or promoting content, rolling it back, or raising the minimum app version | [content-publishing.md](content-publishing.md) |
 | Data is lost or wrong, and production must go back to a backup | [restore.md "Restore into production"](restore.md#restore-into-production) |
+| Authored content on staging is lost or wrong | [restore.md "Restore staging"](restore.md#restore-staging) |
 | A VM or its disk is gone | [restore.md "Full rebuild on a new host"](restore.md#full-rebuild-on-a-new-host-within-4-h) |
 | WireGuard or SSH doesn't let you into a VM | [break-glass.md](break-glass.md) |
 | Oracle stopped an instance | [break-glass.md "Instance stopped by Oracle"](break-glass.md#instance-stopped-by-oracle) |

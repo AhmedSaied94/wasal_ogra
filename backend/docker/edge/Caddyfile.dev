@@ -36,6 +36,51 @@ https://localhost:8443 {
 		max_size 512KiB
 	}
 	import errors
+	# Pack files (contracts/pack-delivery.md "Public files"), before the proxy. Only the pack, its
+	# release record and the floor file are served; anything else under /packs/ is a 404, with no
+	# listing. Each name sets its own type, so it never depends on the image's MIME table.
+	# Each matcher also needs the file to exist, so a pack not yet written is the plain 404 below,
+	# never a 404 with the immutable cache header.
+	@pack {
+		path_regexp ^/packs/core-[0-9]+\.json\.gz$
+		file {
+			root /srv
+		}
+	}
+	handle @pack {
+		root * /srv
+		header Content-Type application/gzip
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	@release {
+		path_regexp ^/packs/core-[0-9]+\.release\.json$
+		file {
+			root /srv
+		}
+	}
+	handle @release {
+		root * /srv
+		header Content-Type application/json
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	@floor {
+		path /packs/core.floor.json
+		file {
+			root /srv
+		}
+	}
+	handle @floor {
+		root * /srv
+		header Content-Type application/json
+		header Cache-Control no-store
+		file_server
+	}
+	handle_path /packs/* {
+		header Cache-Control no-store
+		respond 404
+	}
 	reverse_proxy api:8000 {
 		request_buffers 1MB
 	}
@@ -45,6 +90,9 @@ https://localhost:8444 {
 	tls internal
 	import headers
 	import errors
+	request_body {
+		max_size 8MiB
+	}
 	header Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-QE3U2xYF7B4J2ro1/9oxiKhaWCGW39gB7ocQ/xlD0bE='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 	reverse_proxy admin:8000
 }

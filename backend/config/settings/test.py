@@ -5,6 +5,8 @@ point the tests at a superuser database URL, so pytest-django can create its tes
 """
 
 import os
+import tempfile
+from pathlib import Path
 
 from config.env import read_dotenv
 
@@ -21,6 +23,14 @@ os.environ["CELERY_BROKER_URL"] = os.environ.get("TEST_BROKER_URL", "redis://127
 os.environ.setdefault("SECRET_KEY", "test-only-not-a-real-secret-key-" * 2)
 os.environ.setdefault("API_HOST", "testserver")
 os.environ.setdefault("ADMIN_HOST", "testserver")
+# B04: tests are a content source with fast timeouts and no manifest cache. The packs_dir fixture
+# points each test that writes packs at its own directory.
+os.environ.setdefault("CONTENT_ROLE", "source")
+os.environ.setdefault("CONTENT_PACKS_DIR", str(Path(tempfile.gettempdir()) / "wassal-test-packs"))
+os.environ.setdefault("CONTENT_PACKS_PUBLIC_URL", "https://packs.test.invalid/packs/")
+os.environ.setdefault("CONTENT_SOLVER_STAGE", "stand_in")
+os.environ.setdefault("CONTENT_MANIFEST_CACHE_SECONDS", "0")
+os.environ.setdefault("CONTENT_HTTP_TIMEOUT_SECONDS", "2")
 
 from .base import *  # noqa: E402, F403
 from .base import STORAGES  # noqa: E402

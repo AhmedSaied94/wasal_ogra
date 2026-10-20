@@ -462,7 +462,8 @@ A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying 
 ### 14.1 Content packs
 
 - A pack is a versioned, gzipped JSON bundle (trips, lines, vehicles, items, chapters, speech pools, catalog prices) defined by the schemas in `content/schemas/`. Format and publishing: backend §9.
-- The app ships with the latest pack in `assets/content/`. On bootstrap, if `content_version` is newer, it downloads the pack listed in `GET /v1/content/manifest` and swaps atomically at the next Home visit (never during a trip).
+- The app ships with the latest pack **production has promoted** in `assets/content/` (never a staging-only pack, whose version production may never serve). On bootstrap, if `content_version` is newer, it downloads the pack listed in `GET /v1/content/manifest` and swaps atomically at the next Home visit (never during a trip).
+- **Which pack the manifest offers.** The app sends `X-Client-Version` (`MAJOR.MINOR.PATCH`, any `+BUILD` ignored). An app at or above the current pack's `min_client_version` gets the current pack. An older app gets the newest published or retired pack whose minimum it meets, or `{"version": 0, "packs": []}` when there is none: it then keeps the pack it has, and B10's force update takes over. Pack URLs come only from the manifest, which builds them per response (backend §9, B04 contracts/api.md).
 - **Verify before reading.** The manifest's `sha256` is the SHA-256 of the gzip file as served. The app checks the downloaded bytes against it (and against `size`) before it decompresses or parses anything, and decompresses with a size cap. A mismatch discards the file and keeps the current pack.
 - `packages/content_models` holds the freezed models that `wassal-content codegen` generates from the JSON Schemas, so client and server never drift. Its `canonicalJson` gives the same canonical form as the backend (keys in UTF-16 code-unit order, no whitespace, integers only).
 

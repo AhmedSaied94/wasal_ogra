@@ -1,0 +1,171 @@
+"""Fixtures for the content tests (tasks.md T057)."""
+
+from __future__ import annotations
+
+import importlib
+import threading
+import time
+from collections.abc import Iterator
+from dataclasses import dataclass, field
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+
+import pytest
+from django.conf import settings as django_settings
+from django.contrib.auth.models import Group, Permission
+from django.test import Client
+from django_otp.oath import TOTP
+from django_otp.plugins.otp_totp.models import TOTPDevice
+from pytest_django import Settings
+
+from apps.accounts.models import User
+from apps.content.models import ContentChannel, SpeechLine
+from apps.content.services import importer, review
+
+SAMPLE = django_settings.BASE_DIR.parent / "content" / "examples" / "sample"
+PASSWORD = "a-long-enough-password-1"
+
+GROUPS: dict[str, list[str]] = importlib.import_module("apps.content.migrations.0003_groups").GROUPS
+
+
+@pytest.fixture
+def packs_dir(tmp_path: Path, settings: Settings) -> Path:
+    path = tmp_path / "packs"
+    path.mkdir()
+    settings.CONTENT_PACKS_DIR = path
+    return path
+
+
+@pytest.fixture
+def channel(db: None) -> ContentChannel:
+    """The `core` channel. Migration 0004 creates it; a transactional test's flush removes it."""
+    return ContentChannel.objects.get_or_create(pack_id="core")[0]
+
+
+# -- a pack server ------------------------------------------------------------------------------
+
+
+@dataclass
+class PackServer:
+    """Serves `root` at `url`. Set `mode` to answer `500`, stall for `delay` seconds, or drop the
+    connection. `requests` records each path asked for."""
+
+    root: Path
+    url: str = ""
+    mode: str = "serve"  # serve | error | slow | drop
+    delay: float = 3.0
+    requests: list[str] = field(default_factory=list)
+
+
+class _Handler(SimpleHTTPRequestHandler):
+    server_state: PackServer
+
+    def do_GET(self) -> None:
+        self.server_state.requests.append(self.path)
+        mode = self.server_state.mode
+        if mode == "error":
+            self.send_error(500)
+        elif mode == "drop":
+            self.close_connection = True
+            self.connection.close()
+        else:
+            if mode == "slow":
+                time.sleep(self.server_state.delay)
+            super().do_GET()
+
+    def log_message(self, format: str, *args: Any) -> None:
+        pass
+
+
+@pytest.fixture
+def pack_server(tmp_path: Path) -> Iterator[PackServer]:
+    root = tmp_path / "served"
+    (root / "packs").mkdir(parents=True)
+    state = PackServer(root=root / "packs")
+    handler = type("Handler", (_Handler,), {"server_state": state})
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(handler, directory=str(root)))
+    server.daemon_threads = True
+    state.url = f"http://127.0.0.1:{server.server_address[1]}/packs/"
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield state
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+# -- users ----------------------------------------------------------------------------------------
+
+
+def _group(name: str) -> Group:
+    """The group as migration 0003 makes it. A transactional test's flush removes groups."""
+    group, created = Group.objects.get_or_create(name=name)
+    if created:
+        group.permissions.set(
+            Permission.objects.filter(content_type__app_label="content", codename__in=GROUPS[name])
+        )
+    return group
+
+
+def _staff(username: str, *groups: str, is_active: bool = True) -> User:
+    user = User.objects.create_user(username, is_staff=True, is_active=is_active)
+    user.groups.set([_group(name) for name in groups])
+    return user
+
+
+@pytest.fixture
+def author(db: None) -> User:
+    return _staff("author1", "content_author")
+
+
+@pytest.fixture
+def publisher(db: None) -> User:
+    return _staff("publisher1", "content_publisher")
+
+
+@pytest.fixture
+def plain_staff(db: None) -> User:
+    return _staff("staff1")
+
+
+@pytest.fixture
+def inactive_author(db: None) -> User:
+    return _staff("former1", "content_author", is_active=False)
+
+
+# -- the sample content ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def sample_imported(author: User) -> User:
+    """`content/examples/sample`, imported as `author1`. Its speech lines are unreviewed."""
+    importer.import_dir(SAMPLE, author)
+    return author
+
+
+@pytest.fixture
+def sample_reviewed(sample_imported: User) -> User:
+    """The sample with every speech line reviewed by `author1`, ready to build green."""
+    review.review_lines(SpeechLine.objects.order_by("pool", "order"), sample_imported)
+    return sample_imported
+
+
+# -- the admin ------------------------------------------------------------------------------------
+
+
+def admin_client(user: User) -> Client:
+    """A client signed in to the admin as `user`, with password and TOTP code (B01)."""
+    user.set_password(PASSWORD)
+    user.save()
+    device = TOTPDevice.objects.create(user=user, name="default", confirmed=True)
+    token = TOTP(device.bin_key, device.step, device.t0, device.digits, device.drift).token()
+    client = Client()
+    response = client.post(
+        "/admin/login/",
+        {"username": user.username, "password": PASSWORD, "otp_token": str(token).zfill(6)},
+    )
+    assert response.status_code == 302, response.content[:500]
+    return client

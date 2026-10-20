@@ -3,12 +3,14 @@ identity").
 
 `provision.sh --identity --root <dir>` runs the host-identity step alone, with every path under
 `<dir>`: it checks `--env` against `host.env`, `wg0.conf` and `edge.env`, names what the one-host
-design left behind, and records `host.env` on the first run. The rest of a run needs root and the
-real host.
+design left behind, and records `host.env` on the first run. `provision.sh --render-dirs <env>`
+prints the state directories a run creates, with their owner and mode. The rest of a run needs root
+and the real host.
 """
 
 from __future__ import annotations
 
+import re
 import shutil
 import stat
 import subprocess
@@ -18,14 +20,21 @@ from pathlib import Path
 import pytest
 
 BASH = shutil.which("bash") or "/bin/bash"
-PROVISION = Path(__file__).resolve().parent.parent / "provision.sh"
+HOST_DIR = Path(__file__).resolve().parent.parent
+PROVISION = HOST_DIR / "provision.sh"
+DOCKERFILE = HOST_DIR.parent / "Dockerfile"
 PUBLIC_IP = "203.0.113.10"
 WG_ADDRESS = {"prod": "10.66.0.1", "staging": "10.67.0.1"}
 OTHER = {"prod": "staging", "staging": "prod"}
 TIMERS = {
     "prod": "wassal-backup@prod.timer wassal-host-monitor.timer",
-    "staging": "wassal-restore-drill@prod.timer wassal-host-monitor.timer",
+    # Its own backups since B04 (research R8), and the drill of production's.
+    "staging": (
+        "wassal-backup@staging.timer wassal-restore-drill@prod.timer wassal-host-monitor.timer"
+    ),
 }
+# The image's app user and its group (docker/Dockerfile).
+APP_USER = "10001:10001"
 PEERS_HEADER = "name\trole\taddress\tpublic_key\tadded_at\tremoved_at\n"
 
 
@@ -94,6 +103,33 @@ def warnings(result: subprocess.CompletedProcess[str]) -> list[str]:
     return [line for line in result.stdout.splitlines() if "WARNING" in line]
 
 
+def render_dirs(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 - fixed script and arguments
+        [BASH, str(PROVISION), "--render-dirs", *args],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+
+def state_dirs(env: str) -> dict[str, tuple[str, str]]:
+    """The state directories of the env's host: {path: (mode, owner)}."""
+    result = render_dirs(env)
+    assert result.returncode == 0, result.stderr
+    return {
+        path: (mode, owner)
+        for mode, owner, path in (line.split(" ") for line in result.stdout.splitlines())
+    }
+
+
+def backup_condition(env: str) -> str:
+    """The env file the backup unit's instance for env waits for."""
+    service = (HOST_DIR / "systemd" / "wassal-backup@.service").read_text()
+    [condition] = [line for line in service.splitlines() if line.startswith("ConditionPathExists=")]
+    return condition.removeprefix("ConditionPathExists=").replace("%i", env)
+
+
 # -- First run -------------------------------------------------------------------------------------
 
 
@@ -114,6 +150,20 @@ def test_the_run_names_the_hosts_timers(host: Host, env: str) -> None:
 
     assert f"timers {TIMERS[env]}" in result.stdout
     assert f"{env} host, WireGuard {WG_ADDRESS[env]}" in result.stdout
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_each_host_backs_up_its_own_environment_only(host: Host, env: str) -> None:
+    timers = host.provision(env).stdout.split(" timers ", 1)[1].split()
+
+    assert [t for t in timers if t.startswith("wassal-backup@")] == [f"wassal-backup@{env}.timer"]
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_the_backup_waits_for_the_hosts_own_env_file(env: str) -> None:
+    """The timer is on from the start, as production's is, and every run is skipped, not failed,
+    until the operator adds that environment's backup env file (monitoring-setup.md)."""
+    assert backup_condition(env) == f"/etc/wassal/{env}-backup.env"
 
 
 @pytest.mark.parametrize(
@@ -298,7 +348,14 @@ def test_wireguard_config_of_the_hosts_address_is_kept(host: Host, env: str) -> 
 def test_staging_host_names_leftovers_and_keeps_them(host: Host) -> None:
     (host.state / "prod").mkdir(parents=True)
     (host.state / "staging").mkdir(parents=True)
-    for name in ("prod.env", "prod-db.env", "prod-backup.env", "staging.env", "prod-drill.env"):
+    for name in (
+        "prod.env",
+        "prod-db.env",
+        "prod-backup.env",
+        "staging.env",
+        "staging-backup.env",
+        "prod-drill.env",
+    ):
         host.write(host.etc / name, "X=1\n")
     host.write(
         host.etc / "wg-peers.tsv",
@@ -324,7 +381,8 @@ def test_staging_host_names_leftovers_and_keeps_them(host: Host) -> None:
     assert "laptop" in named
     assert "old-ci" in named
     assert "PROD_" in named
-    for name in ("staging.env", "prod-drill.env"):
+    # Staging takes its own backups since B04 (research R8).
+    for name in ("staging.env", "staging-backup.env", "prod-drill.env"):
         assert str(host.etc / name) not in named
     assert str(host.state / "staging") not in named
     assert "phone" not in named
@@ -336,7 +394,14 @@ def test_staging_host_names_leftovers_and_keeps_them(host: Host) -> None:
 
 def test_prod_host_names_leftovers(host: Host) -> None:
     (host.state / "staging").mkdir(parents=True)
-    for name in ("staging.env", "staging-db.env", "prod-drill.env", "prod.env", "prod-backup.env"):
+    for name in (
+        "staging.env",
+        "staging-db.env",
+        "staging-backup.env",
+        "prod-drill.env",
+        "prod.env",
+        "prod-backup.env",
+    ):
         host.write(host.etc / name, "X=1\n")
     host.write(
         host.etc / "wg-peers.tsv",
@@ -348,7 +413,7 @@ def test_prod_host_names_leftovers(host: Host) -> None:
     result = host.provision("prod")
 
     named = "\n".join(warnings(result))
-    for name in ("staging.env", "staging-db.env", "prod-drill.env"):
+    for name in ("staging.env", "staging-db.env", "staging-backup.env", "prod-drill.env"):
         assert str(host.etc / name) in named
     assert str(host.state / "staging") in named
     assert "staging-runner" in named
@@ -362,3 +427,33 @@ def test_prod_host_names_leftovers(host: Host) -> None:
 @pytest.mark.parametrize("env", ["prod", "staging"])
 def test_a_clean_host_has_no_warnings(host: Host, env: str) -> None:
     assert not warnings(host.provision(env))
+
+
+# -- State directories -----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_the_hosts_state_directories(env: str) -> None:
+    assert state_dirs(env) == {
+        "/var/lib/wassal": ("0755", "root:root"),
+        # It holds the stack definitions that root runs, so it stays root's.
+        f"/var/lib/wassal/{env}": ("0755", "root:root"),
+        "/var/lib/wassal/host-monitor": ("0755", "root:root"),
+        # The backup container's own directory, as bin/backup makes it (B04 research R8 on staging).
+        f"/var/lib/wassal/{env}/backup": ("0750", APP_USER),
+        # The worker publishes into it and the edge serves it read-only (B04).
+        "/var/lib/wassal/packs": ("0755", APP_USER),
+    }
+
+
+def test_the_app_user_is_the_images() -> None:
+    assert re.search(r"useradd [^\n]*--uid 10001 --user-group", DOCKERFILE.read_text())
+
+
+@pytest.mark.parametrize("args", [[], ["dev"], ["prod", "staging"], ["../prod"]])
+def test_render_dirs_needs_one_environment(args: list[str]) -> None:
+    result = render_dirs(*args)
+
+    assert result.returncode == 1
+    assert "--render-dirs staging|prod" in result.stderr
+    assert result.stdout == ""

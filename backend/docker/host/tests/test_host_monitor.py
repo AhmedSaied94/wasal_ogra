@@ -118,7 +118,12 @@ class Host:
     def as_staging(self) -> Host:
         (self.etc / "host.env").write_text(HOST_ENV["staging"])
         (self.etc / "edge.env").write_text(EDGE_ENV["staging"])
+        (self.state / "staging" / "backup").mkdir(parents=True)
         return self
+
+    def last_backup(self, env: str) -> Path:
+        """The metadata of the env's latest backup, which its backup container writes."""
+        return self.state / env / "backup" / "last-backup.json"
 
     def read_backlog(self) -> dict[str, int]:
         return json.loads((self.state / "host-monitor" / "backlog.json").read_text())  # type: ignore[no-any-return]
@@ -205,17 +210,18 @@ def test_all_checks_pass_with_one_ping(host: Host) -> None:
     assert result.ping["body"].strip() == "ok: disk, certificates, queues, backup storage"
 
 
-def test_staging_runs_its_checks_without_backup_storage(host: Host) -> None:
+def test_staging_checks_its_own_backup_storage(host: Host) -> None:
+    """Staging takes its own backups since B04 (research R8). Production's metadata, left by the
+    one-host design, is never read."""
     host.as_staging()
-    last = host.state / "prod" / "backup" / "last-backup.json"
-    last.write_text(json.dumps({"size_bytes": 900_000_000_000, "sha256": "x"}))
+    host.last_backup("prod").write_text(json.dumps({"size_bytes": 900_000_000_000, "sha256": "x"}))
 
     result = host.run()
 
     assert result.code == 0, result.stderr
     assert not result.failed
     # The body names the checks that ran, so a skipped one never reads as passed.
-    assert result.ping["body"].strip() == "ok: disk, certificates, queues"
+    assert result.ping["body"].strip() == "ok: disk, certificates, queues, backup storage"
 
 
 def test_disk_at_the_threshold_fails(host: Host) -> None:
@@ -372,8 +378,11 @@ def test_an_unreachable_cache_fails(host: Host, env: str) -> None:
     assert f"queues: can't read the {env} cache" in result.ping["body"]
 
 
-def test_backup_storage_near_the_free_tier_fails(host: Host) -> None:
-    last = host.state / "prod" / "backup" / "last-backup.json"
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_backup_storage_near_the_free_tier_fails(host: Host, env: str) -> None:
+    if env == "staging":
+        host.as_staging()
+    last = host.last_backup(env)
     last.write_text(json.dumps({"size_bytes": 300_000_000, "sha256": "x"}))
     assert not host.run().failed
 
@@ -384,10 +393,12 @@ def test_backup_storage_near_the_free_tier_fails(host: Host) -> None:
     assert "backup-storage:" in result.ping["body"]
 
 
+@pytest.mark.parametrize("env", ["prod", "staging"])
 @pytest.mark.parametrize("size", ['"12"', "0099", "99999999999999", "-5"])
-def test_a_size_that_isnt_a_plain_number_fails(host: Host, size: str) -> None:
-    last = host.state / "prod" / "backup" / "last-backup.json"
-    last.write_text('{"size_bytes": ' + size + ', "sha256": "x"}')
+def test_a_size_that_isnt_a_plain_number_fails(host: Host, size: str, env: str) -> None:
+    if env == "staging":
+        host.as_staging()
+    host.last_backup(env).write_text('{"size_bytes": ' + size + ', "sha256": "x"}')
 
     result = host.run()
 

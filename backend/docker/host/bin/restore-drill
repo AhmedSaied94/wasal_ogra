@@ -60,7 +60,8 @@ read_host_env() {
   HOST_ENV="$env"
 }
 
-# The argument names the environment whose backups are drilled. Only production is backed up.
+# The argument names the environment whose backups are drilled. Only production's are; staging's
+# own backups (B04 research R8) are restored by hand, with restore.md.
 if [ $# -ne 1 ] || [ "$1" != prod ]; then usage_error "usage: restore-drill prod"; fi
 ENV="$1"
 DRILL_ENV_FILE="$ETC_DIR/$ENV-drill.env"
