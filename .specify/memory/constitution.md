@@ -48,6 +48,12 @@ between Dart and Python.
   `{definition, seed, params, command_log, expected_result}`.
 - Every parity fixture MUST pass in both the Dart suite (`packages/trip_engine`) and pytest
   (`tools/solver`). CI MUST fail on any mismatch, and a change with failing parity MUST NOT merge.
+  - Fixtures may exist before `tools/solver` does, since the delivery plan has M01 write the first
+    ones and B05 build the mirror. Until the feature that creates `tools/solver` merges, every
+    fixture MUST pass the Dart suite, and its `definition` MUST pass the content-kit checks (the
+    trip schema and the engine's content rules). CI MUST fail on any Dart mismatch.
+  - The feature that creates `tools/solver` MUST reproduce every existing fixture before it merges.
+    From then on, both suites are required.
 - A change that is not meant to affect outcomes MUST still pass the existing fixtures unchanged.
 
 **Rationale:** The solver validates content and verifies competitive results. If it disagrees with
@@ -378,4 +384,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-19
+**Version**: 1.1.1 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-20
