@@ -6,3 +6,4 @@ library;
 
 export 'src/canonical_json.dart';
 export 'src/generated/models.dart';
+export 'src/strict_json.dart';

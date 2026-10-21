@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
-- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders.
+- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders. Since **M04** (`specs/006-m04-content-loader/`) it loads content packs: the one bundled in the build, newer ones it downloads in the background, and the switch to them at launch or on arrival at Home.
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `packages/trip_engine/`: the pure-Dart rules engine from **M01** (`specs/004-m01-trip-engine/`): every trip rule, the 13 commands, replay and rebuild, and the fixture tool. Its living rules reference is `packages/trip_engine/RULES.md`.
@@ -67,8 +67,11 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 
 - Every build needs `--flavor dev|staging|prod`; the app refuses to start without one.
 - Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
+- The app depends on `packages/content_models`, whose generated parts are gitignored too. After a fresh checkout, build it first (see "Content commands").
+- A dev build calls the local stack over plain HTTP, which only the dev flavor allows (constitution 1.2.0). On a phone or an emulator, run `adb reverse tcp:8000 tcp:8000` and the default `http://localhost:8000` works. `--dart-define=WASSAL_DEV_API_BASE=<url>` points a dev build elsewhere.
+- Staging and prod builds bundle the pack production promoted last, so they fail at `checkBundledPack` until `apps/mobile/assets/content/release/` holds one. Committing it is a step of `docs/runbooks/content-publishing.md` §3.
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
-- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks and the tunables registry.
+- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks, the tunables registry, no Flutter or plugin import in a `domain/` folder, plain HTTP only in the dev source set, and bundled packs that agree with their records.
 
 ### Trip engine commands
 
@@ -103,6 +106,8 @@ The schemas in `content/schemas/` are the only definition of content. `tools/con
 | Validate a content layout | `uv run wassal-content validate-source ../../content/examples/sample` |
 | Breaking schema changes | `uv run wassal-content schema-diff --base origin/master` |
 | Sample pack checksums | `uv run wassal-content golden` (check) / `golden --update` (rewrite, then review) |
+| Bundle the sample into dev builds / check it (CI) | `uv run wassal-content bundle dev --out ../../apps/mobile/assets/content/dev` / `bundle dev --check --out …` |
+| Bundle production's promoted pack into staging and prod / check it offline (CI) | `uv run wassal-content bundle release --packs-url https://api.193-122-74-125.sslip.io/packs/ --out ../../apps/mobile/assets/content/release` / `bundle release --check --out …` |
 | Lint, types, tests | `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest --cov --cov-fail-under=80` |
 | App models: build (in `packages/content_models`) | `fvm dart pub get && fvm dart run build_runner build -d` |
 | App models: analyze and test | `fvm dart analyze --fatal-infos && fvm dart test --coverage=coverage` |
@@ -160,7 +165,7 @@ The two architecture docs are paired, so read both:
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
 - To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
-- **The constitution** (`.specify/memory/constitution.md`, v1.1.1, ratified 2026-10-18, amended 2026-10-20) overrides conflicting guidance, including this file.
+- **The constitution** (`.specify/memory/constitution.md`, v1.2.0, ratified 2026-10-18, amended 2026-10-21) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
   - Any other deviation goes in the plan's Complexity Tracking and needs the owner's approval.

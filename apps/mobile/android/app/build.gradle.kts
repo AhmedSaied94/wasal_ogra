@@ -70,3 +70,23 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Staging and prod bundle only a pack production promoted, so they refuse to build until one is
+// committed. Dev bundles the sample instead (specs/006-m04-content-loader/contracts/bundling.md).
+val checkBundledPack by tasks.registering {
+    val record = rootProject.file("../assets/content/release/bundled.json")
+    doLast {
+        if (!record.exists()) {
+            throw GradleException(
+                "No promoted pack is bundled. Run wassal-content bundle release " +
+                    "(docs/runbooks/content-publishing.md §3).",
+            )
+        }
+    }
+}
+
+tasks.configureEach {
+    if (Regex("pre(Staging|Prod)(Debug|Profile|Release)Build").matches(name)) {
+        dependsOn(checkBundledPack)
+    }
+}

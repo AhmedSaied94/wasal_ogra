@@ -12,6 +12,7 @@ import 'package:wassal/core/config/override_config_source.dart';
 import 'package:wassal/core/config/tunable.dart';
 import 'package:wassal/core/glossary/ids.dart';
 
+import '../../helpers/content.dart';
 import '../../helpers/memory_settings_store.dart';
 
 // Reading tunables: overrides first, then the bundled defaults (FR-034,
@@ -30,6 +31,9 @@ ProviderContainer containerWith({
       flavorProvider.overrideWithValue(flavor),
       settingsStoreProvider.overrideWith((ref) => MemorySettingsStore()),
       assetReaderProvider.overrideWithValue((path) async => assets[path]),
+      // Startup also loads content; flutter test doesn't bundle its
+      // flavor-scoped assets.
+      ...contentTestOverrides(),
     ],
   );
   addTearDown(container.dispose);
@@ -134,6 +138,7 @@ void main() {
       overrides: [
         flavorProvider.overrideWithValue(Flavor.dev),
         settingsStoreProvider.overrideWith((ref) => MemorySettingsStore()),
+        ...contentTestOverrides(),
       ],
     );
     addTearDown(container.dispose);

@@ -80,6 +80,36 @@ uv run wassal-content schema-diff --base origin/master
 Once `content/source/pack.json` exists, a breaking schema change needs a major bump in
 `content/schemas/schema-set.json`, and CI enforces it.
 
+3. Bundle the pack into the staging and prod builds (M04,
+   `specs/006-m04-content-loader/contracts/bundling.md`). Still in `tools/content_kit`:
+
+```bash
+uv run wassal-content bundle release \
+  --packs-url https://api.193-122-74-125.sslip.io/packs/ \
+  --out ../../apps/mobile/assets/content/release
+```
+
+It rebuilds the pack from `content/source/`, fetches production's release record
+(`core-<v>.release.json`, over HTTPS, without following a redirect), and refuses unless the record
+names the same pack, version, size and sha256, and every stage passed (`size` and `solver` may
+warn). It then writes three files: `core-<v>.json.gz`, the record's copy `core-<v>.release.json`,
+and `bundled.json`, and removes the README that stood in for them.
+
+Commit the export and those three files in the same PR, and nothing else. Until they are committed,
+`checkBundledPack` stops every staging and prod build with "No promoted pack is bundled".
+
+CI then checks the whole chain, offline, from the committed record copy:
+
+- the export validates and re-solves (B04, B05);
+- `bundle release --check` rebuilds the pack and finds the same bytes as the bundled file, a record
+  copy that agrees with it, and no other file;
+- `test/repo/bundled_pack_test.dart` finds the release version equal to
+  `content/source/pack.json`'s, sizes and sha256s that agree, and a `min_client_version` the pubspec
+  version meets.
+
+A pack promoted after the app's release only reaches players by download; bundle it in the next
+app release.
+
 ## 4. Roll back
 
 A rollback never re-serves an old version. It builds an earlier pack's content as a **new**

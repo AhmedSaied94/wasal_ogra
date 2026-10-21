@@ -11,8 +11,9 @@ vehicles, chapters, rooms, items, speech pools, the catalog, daily rewards, task
   cd tools/content_kit && uv run wassal-content codegen
   ```
 
-- **Hand-written:** `lib/content_models.dart` (exports) and `lib/src/canonical_json.dart` (the
-  canonical JSON form, research R4).
+- **Hand-written:** `lib/content_models.dart` (exports), `lib/src/canonical_json.dart` (the
+  canonical JSON form, research R4) and `lib/src/strict_json.dart` (`decodeContentJson`, the strict
+  reader the app uses for packs and the manifest; `specs/006-m04-content-loader/research.md` R3).
 - **Build:** `dart pub get && dart run build_runner build -d` writes the `.freezed.dart` and
   `.g.dart` parts, which are gitignored.
 - **Test:** `dart test` round-trips every file in `content/examples/valid/` through the models and

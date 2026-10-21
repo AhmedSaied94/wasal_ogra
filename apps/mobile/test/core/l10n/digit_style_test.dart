@@ -8,6 +8,8 @@ import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 
+import '../../helpers/content.dart';
+
 // The digit preference: device-only, persisted, defaulting to Arabic-Indic
 // (FR-025 – FR-027, data-model DigitStyle).
 
@@ -91,7 +93,10 @@ void main() {
 
   test('startup opens the store before the app reads it', () async {
     final container = ProviderContainer(
-      overrides: [flavorProvider.overrideWithValue(Flavor.dev)],
+      overrides: [
+        flavorProvider.overrideWithValue(Flavor.dev),
+        ...contentTestOverrides(),
+      ],
     );
     addTearDown(container.dispose);
     await container.read(appStartupProvider.future);

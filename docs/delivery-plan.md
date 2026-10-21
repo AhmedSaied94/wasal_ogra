@@ -5,7 +5,7 @@
 | Scope | Phase 1, the MVP (Egypt, Android): 26 features in 12 steps |
 | Order from | Joint MVP sequence in `docs/architecture-backend.md` §21; feature tables in backend §20 and mobile §23 |
 | Rules | [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) |
-| Updated | 2026-10-18 |
+| Updated | 2026-10-21 |
 
 This plan sets the order we build the game in and the Spec Kit routine every feature goes through.
 Tick features off in [Progress](#progress) as they merge.
@@ -111,7 +111,9 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   Register the real domain and switch to it before the first closed test, whether that is the step 7
   option or step 12. B09's account-deletion page needs the real domain too. The switch is
   configuration: the hostnames in `/etc/wassal/edge.env` and each environment's `API_HOST` and
-  `ADMIN_HOST` (B01 FR-042a).
+  `ADMIN_HOST` (B01 FR-042a). Since M04 it is also an app release: edit the staging and prod API
+  addresses in `apps/mobile/lib/core/network/api_environment.dart`. A build that has shipped keeps
+  calling its old host until the next app release.
 - **Done when:**
   - The app launches in RTL with the theme tokens and both digit settings, and its goldens run in CI.
   - The API answers `/healthz` behind Caddy on the ARM64 Compose stack.
@@ -170,6 +172,17 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   the answer.
 - **Handed over from M03** (research R1): in M05, use drift with the native-assets `sqlite3` 3.x
   package. Don't add `sqlite3_flutter_libs`, which is end-of-life.
+- **Handed over from M04** (research "Handed to later features"):
+  - M02 reads trips and speech pools through `contentSourceProvider`, and records the active content
+    version when a trip starts, so the result declares the version it was played with.
+  - M02: `lib/core/glossary/ids.dart`'s `LineId` and `VehicleId` share their names with the enums
+    `content_models` generates. A file that imports both needs an import prefix, or M02 retires the
+    glossary copies.
+  - M05 reads catalog prices through the content source, and declares the active version in ledger
+    operations. `state.json` may move into the `content_cache` table. Progress may name a trip the
+    active pack doesn't have (after a fallback to the bundled pack): readers skip it rather than fail.
+  - M06 calls `ContentUpdater.check(force: true)` when bootstrap reports a newer `content.version`,
+    and adds the player token through the shared HTTP factory once B02 makes the manifest require it.
 - **Done when:**
   - The app loads the bundled pack and verifies its sha256.
   - The wallet, `ledger_ops` and fuel regeneration all work offline.
@@ -328,6 +341,42 @@ Each phase starts when the gate before it is met, not on a date (product-spec «
 | --- | --- | --- |
 | 2: content and revenue, plus KSA and UAE | Egypt beta: D1 retention ≥ 35% and D7 ≥ 13% | M16 garage; B12 + M17 subscription and starter pack; content packs for `line_souq`, `micro_new` and ch5 (built through B04) |
 | 3: public launch and iOS | Gulf purchases cover the cost of acquiring players | B13 + M18 leagues; B14 + M19 seasonal events and season pass; B15 + M20 referral and share clips; Apple purchases and Sign in with Apple (B06 extension, backend §22.4); device attestation (backend §22.7); `line_masyaf`, `line_safar`, ch6–7 |
+| 4: season 2 | Public launch: D30 retention ≥ 6% | No feature IDs yet. New saving goals after the wedding; line packs for other Arab countries (السرفيس, الكيا, الطاكسي الكبير); new seasonal lines; the backend's scale path step 2 if DAU requires it (backend §19) |
+
+### Known gaps for later phases
+
+No feature owns these yet, and the feature tables of the architecture docs (backend §20, mobile
+§23) don't list them. Each needs a feature ID before its phase starts.
+
+1. **Engine support for the later passenger types.** M01 refuses `money_changer`, `bags_lady` and
+   `dodger` (`line_souq`, phase 2), and `mother_kids`, `big_family` and `traveler` (`line_masyaf`
+   and `line_safar`, phase 3), until a feature adds their line (M01 spec FR-004). `line_safar`'s
+   rest stop (استراحة الطريق) probably needs a new event too. Each type needs `RULES.md`, both
+   engines, parity fixtures, `capabilities.json`, tunables, speech slots and its character.
+2. **The garage's server side and schemas** (phase 2). M16 has no backend partner, and the catalog
+   has no `upgrade` or `cosmetic` kind. Upgrades change play, so they become engine inputs that the
+   replay and B03's result check must know about. Cosmetics cost BONAT, which only the server grants
+   (constitution IV).
+3. **Seasonal content** (phase 3). The schemas have no part for seasons (dates, the trips or
+   modifiers that apply, rewards), and some seasons need new rules, such as Ramadan's countdown to
+   maghrib. B14 and M19 own events, but this reaches into B04's pipeline.
+4. **Phase 4 content.** Season 2 needs rooms and chapters that `RoomId`, `ChapterId` and the item id
+   pattern don't allow yet. A new line needs a new `line_id` and its per-line tunables. Line packs
+   for other countries need local currencies (the glossary, the engine and `Denomination` all assume
+   Egyptian piasters) and a second pack beside `core`, which M04 doesn't read.
+
+Every later content change also shares one constraint: art ships in the app, not in packs. Content
+that needs new art waits for an app release, and its pack's minimum app version must be that
+release.
+
+### Planning phases 2 and 3
+
+When the closed test starts (after step 7 or step 12), extend this plan with phase 2 and phase 3
+sections in the same format as the MVP: steps, spec numbers, what to resolve, and when each step is
+done. In the same PR, give each gap above a feature ID, and add those features to both architecture
+docs: the feature tables (backend §20, mobile §23) and the phasing tables (backend §19, mobile §22).
+It waits until then because the closed test and the beta will change prices, difficulty and
+priorities.
 
 ## Progress
 
@@ -349,15 +398,18 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     exactly from the replay record, research R10) and M03's hints hand-over
     (`trip_hints_mode_<line_id>`, research R12). Hands B10 the backend copy of its 20 tunables
     (research R19).
-- [ ] Step 3: Parity
-  - [ ] `005-b05-solver-parity`. Built on 2026-10-21, open as #6. Decided in its clarifications: a score
+- [x] Step 3: Parity
+  - [x] `005-b05-solver-parity` (merged in #6, 2026-10-21). Decided in its clarifications: a score
     outside the line's band is a warning, not an error; the mirror covers state and results, not
     events or speech; only the 600 ms player gates a trip (slower players are in the balancing
     report); a 50-trip pack's solver stage fits in 30 minutes on staging. Gives B04 its real
     solver stage (B04's T107 follows its owner step 4), and B08 `solve`, the score and
     `replay_untrusted`.
 - [ ] Step 4: Content and the local economy
-  - [ ] `006-m04-content-loader`
+  - [ ] `006-m04-content-loader`. Built on 2026-10-21. Decided in its clarifications: the app
+    becomes 1.0.0 (`1.0.0+2`); downloads are in M04, not M06; staging and prod bundle only the newest
+    pack in `content/source/`, and dev bundles the sample. Constitution 1.2.0 (amended 2026-10-21)
+    allows plain HTTP in dev builds only, to the developer's own machine.
   - [ ] `007-m05-local-economy`
 - [ ] Step 5: The first playable trip
   - [ ] `008-m02-trip-screen`
@@ -386,3 +438,5 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
   - [ ] `025-m14-settings-account`
 - [ ] Step 12: Measurement
   - [ ] `026-m15-analytics-config`
+- [ ] Phases 2 and 3 planned in this file, with feature IDs for the known gaps
+  ([Planning phases 2 and 3](#planning-phases-2-and-3))

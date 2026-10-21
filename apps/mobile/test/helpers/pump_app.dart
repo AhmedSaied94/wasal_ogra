@@ -11,13 +11,18 @@ import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/routing/router.dart';
 
+import 'content.dart';
 import 'memory_settings_store.dart';
 import 'surfaces.dart';
 
 /// Pumps the whole app the way `bootstrap()` does, with test overrides.
+///
+/// [content] replaces the content loader's seams, which default to the
+/// sample pack's bundled assets ([contentTestOverrides]).
 Future<ProviderContainer> pumpWassalApp(
   WidgetTester tester, {
   List<Override> overrides = const [],
+  List<Override>? content,
   String? initialLocation,
   double textScale = 1.0,
   Surface surface = Surface.reference,
@@ -39,6 +44,7 @@ Future<ProviderContainer> pumpWassalApp(
               settingsStore ??
               MemorySettingsStore({DigitStyleNotifier.key: digits.wire}),
         ),
+        ...content ?? contentTestOverrides(),
         ...overrides,
       ],
       child: const WassalApp(),

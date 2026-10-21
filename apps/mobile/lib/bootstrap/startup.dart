@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart' show WidgetRef;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/core/config/config_providers.dart';
+import 'package:wassal/core/content/content_controller.dart';
+import 'package:wassal/core/content/pack_store.dart';
+import 'package:wassal/core/platform/app_info.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/preferences/shared_prefs_settings_store.dart';
 
@@ -13,12 +16,14 @@ Future<SettingsStore> settingsStore(Ref ref) =>
     SharedPrefsSettingsStore.create();
 
 /// Everything that must be ready before the boot screen hands over to
-/// الموقف, so reads after boot are synchronous.
+/// الموقف, so reads after boot are synchronous. That includes a checked
+/// content pack (specs/006-m04-content-loader, FR-008).
 @Riverpod(keepAlive: true)
 Future<void> appStartup(Ref ref) async {
   await Future.wait([
     ref.watch(settingsStoreProvider.future),
     ref.watch(tunableLayersProvider.future),
+    ref.watch(activeContentProvider.future),
   ]);
 }
 
@@ -28,5 +33,8 @@ void retryAppStartup(WidgetRef ref) {
   ref
     ..invalidate(settingsStoreProvider)
     ..invalidate(tunableLayersProvider)
+    ..invalidate(packStoreProvider)
+    ..invalidate(appInfoProvider)
+    ..invalidate(activeContentProvider)
     ..invalidate(appStartupProvider);
 }
