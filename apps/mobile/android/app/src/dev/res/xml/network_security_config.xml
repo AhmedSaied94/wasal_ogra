@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dev builds only: plain HTTP to the developer's machine, for the local
+     B01 stack (constitution 1.2.0, specs/006-m04-content-loader/research.md
+     R12). Staging and prod have no network security config, so Android's
+     default refuses cleartext; test/repo/cleartext_config_test.dart keeps it
+     that way. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain>localhost</domain>
+        <domain>127.0.0.1</domain>
+        <domain>10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

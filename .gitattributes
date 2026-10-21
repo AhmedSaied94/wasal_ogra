@@ -1,2 +1,5 @@
 # The fixture tool compares parity fixtures byte for byte (contracts/replay-and-fixtures.md).
 fixtures/parity/*.json text eol=lf
+# The bundled packs and their records are compared byte for byte
+# (specs/006-m04-content-loader/contracts/bundling.md).
+apps/mobile/assets/content/** -text

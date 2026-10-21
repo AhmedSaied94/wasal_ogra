@@ -20,7 +20,8 @@ left, in what order, and where to look.
 | [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
-| [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Built 2026-10-21 on `005-b05-solver-parity`. Open as #6. |
+| [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
+| [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Built 2026-10-21 on `006-m04-content-loader`. Open as #7. |
 
 ## Every month
 
@@ -464,6 +465,61 @@ Run these over each VM's WireGuard. Then tick B05 in the
   the real stage, and pack 6 published. `docker compose … down -v` wipes them.
 - The dev `.env` keeps `CONTENT_SOLVER_STAGE=stand_in`, so builds queued from the dev admin skip
   the solver. Set it to `solver`, or leave it unset, to try the real stage locally.
+
+## 006 M04 content loader
+
+Built and tested on 2026-10-21, on branch `006-m04-content-loader`
+([tasks.md](../specs/006-m04-content-loader/tasks.md),
+[quickstart](../specs/006-m04-content-loader/quickstart.md)). The app now loads content packs: the
+one bundled in the build, and newer ones it downloads from the manifest. The app version is
+`1.0.0+2`.
+
+### Before merge
+
+- [ ] **Quickstart scenarios 2 and 3 on a phone or an emulator (T064).** No device was attached
+  when Claude built M04, so only the automated scenarios (1, 4 and 5) have run. With a dev build
+  (`fvm flutter run --flavor dev` in `apps/mobile`):
+  - **2, offline:** turn on airplane mode, clear the app's storage and open it. The boot screen
+    hands over to الموقف, and `flutter logs` shows `content: active v1 (bundled) in <ms> ms`.
+  - **3, a new pack from the local stack:** start the stack, run `adb reverse tcp:8000 tcp:8000`,
+    and publish version 2 of the sample from the dev admin, as
+    [the quickstart](../specs/006-m04-content-loader/quickstart.md#3-a-new-pack-arrives-from-the-local-stack-us2)
+    says. Clear the app's storage, open it, and go from الموقف to الخطوط and back: the logs show
+    `content: active v2 (stored)`. Reopening within 15 minutes makes no request.
+- [x] **T066 The constitution amendment to 1.2.0** (plain HTTP in the dev flavor only, to
+  `localhost`, `127.0.0.1` and `10.0.2.2`). Approved on 2026-10-21. The Sync Impact Report comment at
+  the top of `.specify/memory/constitution.md` comes out before the commit.
+
+### After merge
+
+Then tick M04 in the [delivery plan's Progress list](delivery-plan.md#progress).
+
+- [ ] **1. T062, timing on the Galaxy A06 (SC-002, SC-003).** Run quickstart scenario 6 in profile
+  mode:
+
+  ```bash
+  cd apps/mobile
+  fvm flutter drive --profile --flavor dev \
+    --driver=test_driver/integration_test.dart \
+    --target=integration_test/content_load_perf_test.dart
+  ```
+
+  The MVP-size pack decodes in ≤ 500 ms and the 2 MiB pack in ≤ 1.5 s. Then measure the cold start
+  with `tool/perf/cold_start.sh com.wassalogra.app.dev 10`: the median stays ≤ 3,000 ms. Put the two
+  decode medians and the cold-start median in a follow-up issue, and tick this item.
+- [ ] **2. After production's first promotion: bundle it.** Follow
+  [the runbook's §3](runbooks/content-publishing.md#3-bring-the-content-back-into-the-repository):
+  export the pack into `content/source/`, run `bundle release`, and commit the export and the three
+  asset files in one PR. Until then every staging and prod build stops at `checkBundledPack`, which
+  is expected. Once it merges, make the first staging build.
+- [ ] **3. After the next staging publish: the live update (SC-006).** With that staging build
+  installed, publish a newer pack on staging. Reopen the app (or wait 15 minutes and bring it back
+  to the foreground), then leave Home and come back. The staging app has downloaded the pack and
+  switched to it at Home. On a debug build, `adb logcat | grep wassal.content` shows no failure
+  event.
+
+With the first real MVP pack, measure the cold start again on a prod build (item 1's command,
+with `--flavor prod` and the prod package name).
 
 ## Known for later features
 

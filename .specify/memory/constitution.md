@@ -271,7 +271,11 @@ hand-testing the whole game.
 
 **Security & privacy.**
 
-- HTTPS only, with TLS and HSTS. The client MUST NOT call plain HTTP endpoints.
+- HTTPS only, with TLS and HSTS. The client MUST NOT call plain HTTP endpoints, with one exception:
+  the `dev` flavor MAY call the developer's own machine (`localhost`, `127.0.0.1` and the Android
+  emulator's `10.0.2.2`) over plain HTTP, to reach the local development stack. Staging and
+  production builds MUST refuse plain HTTP, both in the app's own URL check and in the platform's
+  network configuration, and a test MUST keep it that way. Dev builds are never distributed.
 - Secrets MUST NOT appear in source code, in committed config, or in committed `.env` files. They
   come from host-mounted env files or a secret manager.
 - Tokens are stored only in `flutter_secure_storage`, never in SharedPreferences.
@@ -384,4 +388,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.1.1 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-20
+**Version**: 1.2.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-21

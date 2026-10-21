@@ -168,11 +168,12 @@ wassal/
 │       │   │   ├── routing/        # go_router config (§9)
 │       │   │   ├── theme/          # tokens from UX doc «النظام البصري»
 │       │   │   ├── l10n/           # ARB files, digit formatting
-│       │   │   ├── network/        # dio client, auth interceptor, API DTOs
+│       │   │   ├── network/        # dio client, API base per flavor (M04); auth interceptor, API DTOs
 │       │   │   ├── storage/        # drift database, DAOs
 │       │   │   ├── sync/           # sync queue + reconciler (§12)
 │       │   │   ├── economy/        # wallet, ledger, fuel (§13)
-│       │   │   ├── content/        # pack loader, manifest, cache (§14)
+│       │   │   ├── content/        # pack decoder, store, updater, switch at Home (§14.1)
+│       │   │   │   └── domain/     # ContentSource: how features read content (no Flutter imports)
 │       │   │   ├── config/         # Remote Config wrapper + defaults
 │       │   │   ├── ads/            # AdsGateway (§15)
 │       │   │   ├── iap/            # PurchaseGateway (§15)
@@ -195,7 +196,7 @@ wassal/
 │       │       ├── events/         # seasonal events + season pass (public launch)
 │       │       └── settings/       # settings, account, referral, welcome back
 │       ├── assets/
-│       │   ├── content/            # bundled initial content pack (JSON)
+│       │   ├── content/            # bundled pack: dev/ (the sample), release/ (content/source)
 │       │   ├── rive/               # *.riv characters, UI animations
 │       │   ├── audio/
 │       │   └── fonts/
@@ -456,7 +457,7 @@ Global rules: back button top-right; Android system back on the trip route opens
 | `story_state` | `chapter_id`, `status`, scenes unlocked, family requests status |
 | `daily_state` | login streak, tasks, challenge attempts |
 | `entitlements_cache` | `remove_ads`, `subscription_until`, `season_pass` keys |
-| `content_cache` | installed pack versions and paths |
+| `content_cache` | installed pack versions and paths. Until M05 it is not a drift table but `state.json` in `<app support>/content/`, next to the stored packs (M04, `specs/006-m04-content-loader/data-model.md`) |
 | `sync_queue` | pending API operations |
 
 Offline policy:
@@ -498,7 +499,11 @@ A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying 
 ### 14.1 Content packs
 
 - A pack is a versioned, gzipped JSON bundle (trips, lines, vehicles, items, chapters, speech pools, catalog prices) defined by the schemas in `content/schemas/`. Format and publishing: backend §9.
-- The app ships with the latest pack **production has promoted** in `assets/content/` (never a staging-only pack, whose version production may never serve). On bootstrap, if `content_version` is newer, it downloads the pack listed in `GET /v1/content/manifest` and swaps atomically at the next Home visit (never during a trip).
+- **What each build bundles.** Staging and prod ship the latest pack **production has promoted**, built from `content/source/` into `assets/content/release/` (never a staging-only pack, whose version production may never serve); Gradle's `checkBundledPack` stops their build until one is committed. Dev ships the sample (`content/examples/sample`, version 1) in `assets/content/dev/`.
+- **When the app checks.** Until M06's sync takes it over, the app asks `GET /v1/content/manifest` itself: at launch, on resume and when the connection returns, at most once every 15 minutes. A newer pack downloads in the background and is stored as ready.
+- **When it switches.** Only at launch or on arrival at Home, never during a trip. At launch it uses the newest pack that passes its checks, bundled or stored.
+- **Caps.** The manifest is read up to 64 KiB, a download up to 16 MiB, and a pack decompresses up to 32 MiB.
+- The loader, the store and the update rules: `specs/006-m04-content-loader/contracts/` (`loading.md`, `updates.md`, `bundling.md`, `content-source.md`).
 - **Which pack the manifest offers.** The app sends `X-Client-Version` (`MAJOR.MINOR.PATCH`, any `+BUILD` ignored). An app at or above the current pack's `min_client_version` gets the current pack. An older app gets the newest published or retired pack whose minimum it meets, or `{"version": 0, "packs": []}` when there is none: it then keeps the pack it has, and B10's force update takes over. Pack URLs come only from the manifest, which builds them per response (backend §9, B04 contracts/api.md).
 - **Verify before reading.** The manifest's `sha256` is the SHA-256 of the gzip file as served. The app checks the downloaded bytes against it (and against `size`) before it decompresses or parses anything, and decompresses with a size cap. A mismatch discards the file and keeps the current pack.
 - `packages/content_models` holds the freezed models that `wassal-content codegen` generates from the JSON Schemas, so client and server never drift. Its `canonicalJson` gives the same canonical form as the backend (keys in UTF-16 code-unit order, no whitespace, integers only).

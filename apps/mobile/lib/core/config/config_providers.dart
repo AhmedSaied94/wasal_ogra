@@ -24,9 +24,26 @@ typedef AssetReader = Future<String?> Function(String path);
 AssetReader assetReader(Ref ref) => _readBundledAsset;
 
 Future<String?> _readBundledAsset(String path) async {
-  final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-  if (!manifest.listAssets().contains(path)) return null;
+  if (!await _isBundled(path)) return null;
   return rootBundle.loadString(path);
+}
+
+/// Reads a bundled binary asset, or null when this variant does not bundle
+/// it (the content pack, specs/006-m04-content-loader/contracts/bundling.md).
+typedef AssetBytesReader = Future<Uint8List?> Function(String path);
+
+@Riverpod(keepAlive: true)
+AssetBytesReader assetBytesReader(Ref ref) => _readBundledBytes;
+
+Future<Uint8List?> _readBundledBytes(String path) async {
+  if (!await _isBundled(path)) return null;
+  final data = await rootBundle.load(path);
+  return Uint8List.sublistView(data);
+}
+
+Future<bool> _isBundled(String path) async {
+  final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+  return manifest.listAssets().contains(path);
 }
 
 /// The raw layers, loaded once during startup.

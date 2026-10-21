@@ -7,6 +7,7 @@
 | `validate-source <dir>` | Validate a `content/source` layout as files, then as a whole pack |
 | `schema-diff --base <ref>` | Refuse a breaking schema change without a major-version bump |
 | `golden [--update]` | Check (or rewrite) the sample pack's golden checksums |
+| `bundle {dev,release} --out DIR [--check]` | Write (or check) the pack an app flavor bundles |
 
 Exit codes: 0 clean, 1 findings or differences, 2 usage errors. The repository root is the
 nearest directory above the working directory that holds `.fvmrc`.
@@ -19,6 +20,16 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path, PurePath
 
+from wassal_content.bundle import (
+    DEV_KEPT,
+    RELEASE_KEPT,
+    BundleError,
+    check_bundle,
+    check_release,
+    dev_bundle,
+    release_bundle,
+    write_bundle,
+)
 from wassal_content.codegen import CodegenError, check_outputs, outputs_for, write_outputs
 from wassal_content.findings import Finding
 from wassal_content.golden import golden_bytes
@@ -33,6 +44,7 @@ __all__ = ["main"]
 OK, FINDINGS, USAGE = 0, 1, 2
 _GOLDEN = Path("content/examples/sample.golden.json")
 _SAMPLE = Path("content/examples/sample")
+_SOURCE = Path("content/source")
 
 
 class UsageError(Exception):
@@ -162,6 +174,46 @@ def _golden(args: argparse.Namespace) -> int:
     return OK
 
 
+def _bundle(args: argparse.Namespace) -> int:
+    root = find_repo_root(Path.cwd())
+    out = Path(args.out)
+    source = (
+        Path(args.source) if args.source else root / (_SAMPLE if args.mode == "dev" else _SOURCE)
+    )
+    try:
+        if args.check:
+            problems = (
+                check_bundle(out, dev_bundle(source, root / _GOLDEN), keep=DEV_KEPT)
+                if args.mode == "dev"
+                else check_release(source, out)
+            )
+        elif args.mode == "dev":
+            files, keep = dev_bundle(source, root / _GOLDEN), DEV_KEPT
+        elif not args.packs_url:
+            raise UsageError("bundle release needs --packs-url, production's packs URL")
+        else:
+            files, keep = release_bundle(source, args.packs_url), RELEASE_KEPT
+    except BundleError as error:
+        print(f"wassal-content bundle: {error}")
+        return FINDINGS
+    if args.check:
+        for problem in problems:
+            print(problem)
+        if problems:
+            print(
+                f"run `uv run wassal-content bundle {args.mode} --out {out}` and commit the result"
+            )
+            return FINDINGS
+        print(f"bundle: {out} matches a fresh build")
+        return OK
+    written, removed = write_bundle(out, files, keep=keep)
+    for path in removed:
+        print(f"removed {path}")
+    for path in written:
+        print(f"wrote {path}")
+    return OK
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="wassal-content", description=__doc__.split("\n")[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -181,6 +233,15 @@ def _parser() -> argparse.ArgumentParser:
     golden = commands.add_parser("golden", help="check the sample pack's golden checksums")
     golden.add_argument("--update", action="store_true", help="rewrite the golden file")
     golden.set_defaults(run=_golden)
+    bundle = commands.add_parser("bundle", help="write or check the pack an app flavor bundles")
+    bundle.add_argument("mode", choices=["dev", "release"])
+    bundle.add_argument("--out", required=True, help="the app's asset directory for the mode")
+    bundle.add_argument("--check", action="store_true", help="only report differences")
+    bundle.add_argument("--packs-url", help="release: production's packs URL, ending in /")
+    bundle.add_argument(
+        "--source", help="the layout to build; by default the sample (dev) or content/source"
+    )
+    bundle.set_defaults(run=_bundle)
     return parser
 
 

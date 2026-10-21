@@ -75,6 +75,13 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
           pub-cache: true
+      # The app imports packages/content_models, whose generated parts are
+      # gitignored (specs/006-m04-content-loader/contracts/ci-checks.md).
+      - name: content_models build
+        working-directory: packages/content_models
+        run: |
+          dart pub get
+          dart run build_runner build -d
       - run: flutter pub get
       - run: dart run build_runner build -d
       - name: Format check
@@ -161,6 +168,13 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
           pub-cache: true
+      # The app imports packages/content_models, whose generated parts are
+      # gitignored (specs/006-m04-content-loader/contracts/ci-checks.md).
+      - name: content_models build
+        working-directory: packages/content_models
+        run: |
+          dart pub get
+          dart run build_runner build -d
       - run: flutter pub get
       - run: dart run build_runner build -d
       - run: flutter build apk --flavor dev --debug
@@ -203,6 +217,13 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
           pub-cache: true
+      # The app imports packages/content_models, whose generated parts are
+      # gitignored (specs/006-m04-content-loader/contracts/ci-checks.md).
+      - name: content_models build
+        working-directory: packages/content_models
+        run: |
+          dart pub get
+          dart run build_runner build -d
       - run: flutter pub get
       - run: dart run build_runner build -d
       - run: flutter test --update-goldens test/goldens
