@@ -6,7 +6,7 @@ from celery import Task, shared_task
 from django.db import OperationalError
 
 from apps.accounts.models import User
-from apps.content.services import build, files, promote, publish
+from apps.content.services import build, files, preview, promote, publish
 
 
 @shared_task(
@@ -68,3 +68,19 @@ def promote_pack(self: Task[[str, str], None], code: str, username: str) -> None
     """Promote the pack a pasted code names. The actor's permissions are checked again here."""
     actor = User.objects.filter(username=username).first()
     promote.promote(code, actor)
+
+
+@shared_task(
+    name="content.tasks.solve_trip",
+    bind=True,
+    queue="content",
+    acks_late=True,
+    reject_on_worker_lost=True,
+    autoretry_for=(OperationalError,),
+    retry_backoff=True,
+    max_retries=3,
+)
+def solve_trip(self: Task[[str], None], run_pk: str) -> None:
+    """Solve one queued trip preview (B05). A redelivered job finds the run running or finished
+    and changes nothing."""
+    preview.run_preview(run_pk)

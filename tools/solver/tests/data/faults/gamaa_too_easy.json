@@ -1,0 +1,110 @@
+{
+  "events": [],
+  "initial_tray": {
+    "100": 4,
+    "50": 4,
+    "500": 2
+  },
+  "kind": "regular",
+  "line_id": "line_gamaa",
+  "max_earnings_jenehat": 20,
+  "passengers": [
+    {
+      "archetype": "regular",
+      "dest_station_id": "gamaa",
+      "passenger_id": "p1",
+      "payment": [
+        500,
+        100,
+        100
+      ],
+      "pays_at_seconds": 2,
+      "seat_id": "A_r",
+      "skin": "worker_blue"
+    }
+  ],
+  "rev": 1,
+  "rules": {
+    "bag_fare_piasters": 0,
+    "child_free_age": 6,
+    "max_break_requests": 2,
+    "no_fights_required": false,
+    "student_discount_pct": 0
+  },
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "front",
+      "seat_id": "front_r"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_l"
+    }
+  ],
+  "seed": 1,
+  "star_rules": {
+    "three": "no_fights_no_mistakes",
+    "two": "no_fights"
+  },
+  "stations": [
+    {
+      "at_seconds": 40,
+      "fare_piasters": 700,
+      "station_id": "gamaa"
+    }
+  ],
+  "trip_id": "line_gamaa.99",
+  "vehicle_id": "micro_old"
+}

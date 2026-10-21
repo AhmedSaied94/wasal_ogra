@@ -22,7 +22,7 @@ from wassal_content.validate import document_findings
 FIXTURE_KEYS = frozenset({"definition", "seed", "params", "command_log", "expected_result"})
 FIXTURES = sorted(PARITY.glob("*.json"))
 FIXTURE_NAME = re.compile(
-    r"^(core|archetype|event|command|booster|ending|sample|stress)__[a-z0-9_]+\.json$"
+    r"^(core|archetype|event|command|booster|ending|sample|solver|stress)__[a-z0-9_]+\.json$"
 )
 # The JSON type of each key, as Python's json module reads it.
 FIXTURE_TYPES: dict[str, type] = {

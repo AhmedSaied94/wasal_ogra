@@ -27,8 +27,9 @@ DB_CONNECT_TIMEOUT_S = "3"
 CACHE_TIMEOUT_S = 2
 # What DRF's SimpleRateThrottle.parse_rate accepts: "<count>/<s|m|h|d>…", for example "120/min".
 RATE_PATTERN = re.compile(r"^\d+/[smhd][a-z]*$")
-# CONTENT_SOLVER_STAGE (B04): `none`, `stand_in`, or the dotted path of B05's stage.
-SOLVER_STAGE_PATTERN = re.compile(r"^(none|stand_in|[A-Za-z_]\w*(\.[A-Za-z_]\w*)+)$")
+# CONTENT_SOLVER_STAGE (B04, B05): `solver` (the real stage, the default on staging and prod),
+# `none`, `stand_in` (dev and test only), or the dotted path of a stage class.
+SOLVER_STAGE_PATTERN = re.compile(r"^(solver|none|stand_in|[A-Za-z_]\w*(\.[A-Za-z_]\w*)+)$")
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
@@ -210,7 +211,7 @@ class Env:
         floor = self.url("CONTENT_VERSION_FLOOR_URL", "", directory=True)
         if role == "target" and floor:
             raise ImproperlyConfigured("CONTENT_VERSION_FLOOR_URL must be empty on the target")
-        solver = self.string("CONTENT_SOLVER_STAGE", "none" if self.strict else "stand_in")
+        solver = self.string("CONTENT_SOLVER_STAGE", "solver" if self.strict else "stand_in")
         if not SOLVER_STAGE_PATTERN.match(solver) or (self.strict and solver == "stand_in"):
             raise ImproperlyConfigured("CONTENT_SOLVER_STAGE is invalid")
         packs_dir = self.string(

@@ -282,6 +282,10 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | `022-m13-daily-loop` | M13 | Daily reward, tasks, daily challenge | M06, B08 | ux-spec «الرجوع اليومي»; product-spec «الاحتفاظ والتفاعل» |
 
 - **Resolve:** backend §22.11 (the retry cost after the free first attempt).
+- **Handed over from B05** (`specs/005-b05-solver-parity/contracts/mirror.md` §4, "What the caller
+  must do"): verify a run with `replay_untrusted` using the server's own definition and params for
+  that trip and pack version, never the client's copies; cap the request body before reading it;
+  and treat any exception other than `ReplayRefused` as an internal error.
 - **Done when:**
   - Every player gets the same challenge each game day.
   - The solver verifies results by replay.
@@ -341,12 +345,17 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     promotion, the manifest and staging's own backups) merged in #4, 2026-10-20. Resolved backend §22.3 (no CDN
     for the MVP, research R5). B04 is ticked once B05 has supplied the solver stage and the live
     checks pass (T107).
-  - [ ] `004-m01-trip-engine`. Built on 2026-10-20, open as #5. Resolved mobile §24.4 (resume
+  - [x] `004-m01-trip-engine` (merged in #5, 2026-10-20). Resolved mobile §24.4 (resume
     exactly from the replay record, research R10) and M03's hints hand-over
     (`trip_hints_mode_<line_id>`, research R12). Hands B10 the backend copy of its 20 tunables
     (research R19).
 - [ ] Step 3: Parity
-  - [ ] `005-b05-solver-parity`
+  - [ ] `005-b05-solver-parity`. Built on 2026-10-21, open as #6. Decided in its clarifications: a score
+    outside the line's band is a warning, not an error; the mirror covers state and results, not
+    events or speech; only the 600 ms player gates a trip (slower players are in the balancing
+    report); a 50-trip pack's solver stage fits in 30 minutes on staging. Gives B04 its real
+    solver stage (B04's T107 follows its owner step 4), and B08 `solve`, the score and
+    `replay_untrusted`.
 - [ ] Step 4: Content and the local economy
   - [ ] `006-m04-content-loader`
   - [ ] `007-m05-local-economy`

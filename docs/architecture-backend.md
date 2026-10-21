@@ -541,7 +541,8 @@ flowchart LR
 - **The release record** (`core-<v>.release.json`) is written next to each pack: its sha256, size, schema version, minimum app version, stage results and warnings, with no staff names.
 - `trip_id` is stable forever. A trip whose rules change keeps its id and gets a new `rev`; players keep their stars.
 - Catalog prices for JENEHAT/BONAT items are part of the pack, so `spend_*` ops validate against the pack version the client declares (§7.4). The server keeps the last 5 published versions indexed for validation (`PackTripIndex`, `PackPriceIndex`, read through `apps.content.services.lookups`).
-- Publishing requires a staff user with `content.publish_pack`, a `validated` pack whose solver stage passed, and a version above the current one. Promoting requires `content.promote_pack`. Every publish, promotion, rollback and minimum-version change is in the append-only `ContentAuditRecord`.
+- Publishing requires a staff user with `content.publish_pack`, a `validated` pack whose solver stage is `passed` or `warning`, and a version above the current one. Promoting requires `content.promote_pack`. Every publish, promotion, rollback and minimum-version change is in the append-only `ContentAuditRecord`.
+- **A solver warning blocks nothing.** A score outside the line's band (`V-Z5`, §10.4) is a `warning`: the pack still publishes and promotes, and the release record lists the warning. Every other solver finding is an error and fails the build (B05).
 
 ### 9.2 Schemas (`content/schemas/`, JSON Schema 2020-12)
 
@@ -615,17 +616,42 @@ Based on the validated prototype (three stations, odd fares):
 
 ### 10.2 Design
 
-- Package `wassal_solver` with `engine/` (rule mirror of `packages/trip_engine`: 33 ms step, `xorshift32` PRNG, integer piasters, same command and event names), `solver/`, `scoring/`, `generator/`, `cli.py`.
-- The solver models an **idealized player with reaction latency** (default 600 ms per action, configurable). It searches over decisions (which change to build, whom to send it to, when to wake/call/request a break) rather than raw taps, with pruning and a time budget per trip.
-- Difficulty score inputs: number of simultaneous owed passengers, change-making complexity (minimum coins per change), blockers on chains, required break requests, time slack between the earliest feasible delivery and each station.
-- Installed into the backend image as a path dependency and called in-process (no network hop).
+The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends only on the standard library and the content kit, so the backend calls it in-process, as a path dependency in its image, and CI runs it without a database.
+
+| Part | Holds |
+| --- | --- |
+| `engine/` | The mirror of `packages/trip_engine` (contracts/mirror.md): the 33 ms step, integer piasters, the 13 commands, replay, `replay_untrusted` and the fixture format. It has no PRNG: only speech uses it, and no state or result depends on speech |
+| `solver/` | The idealized player, the search, the result and its timeline |
+| `scoring/` | The difficulty score |
+| `report/` | The balancing report |
+| `cli.py` | `sync`, `parity`, `fixture`, `solve`, `check-source`, `report` and `bench` |
+
+- **The mirror covers state and results, not events or speech.** It reproduces every step's state and the `TripResult` exactly, which is what parity checks. It emits no `speech_key`s and no event stream; the solver reads the state instead.
+- **The idealized player.** It reacts `reaction_ms` (600) after what it reacts to, rounded up to a whole step, and taps `tap_ms` (198) apart within one decision. It gives exact change only, never uses an aid, a booster or a revive, and decides in game terms: collect a fare, give change, wake, call, request a break, answer a dispute or a change request, pick up a dropped token, or wait.
+- **The search.** Depth-first over the moments at which a decision is ready, with a visited table and two cuts: a branch stops at its first lost star, or once a loss is certain (an owed passenger whose change the tray can no longer make). The budget is `effort_budget_steps` mirror steps (1,500,000, about 30 s on the staging host), so verdicts don't depend on the host's speed. A wall-time `safety_cap_seconds` (180) guards against a bug. A found run is replayed from the start and must give 3 stars.
+- **The ends.** `found` (solved), `exhausted` and `budget_spent` (not solved, with the best run, the first loss and a timeline), `refused` (the mirror refuses the definition), `safety_cap` and `internal_error`.
+- **The score** (0–100) adds capped points for six integer inputs read from the confirmed run: the most passengers owed at once, the change pieces given, the sleepers and headphones on payers' chains, the break requests, how tight the tightest change was, and the variety of archetypes and events. Raising any input never lowers the score. The weights are in the solver's settings file, not in the score.
+- **Fingerprints.** `settings_version` hashes the settings; `solver_fingerprint` hashes the package's code and data and the content kit's capabilities; `input_key` hashes the definition (without `rev`), the params and the solver fingerprint. Any change to the solver gives a new fingerprint, so nothing stale is reused.
 
 ### 10.3 Parity contract
 
 - `fixtures/parity/<name>.json` = `{definition, seed, params, command_log, expected_result}`.
-- CI runs the same fixtures in Dart (`packages/trip_engine`) and in Python (`tools/solver`). Both must reproduce `expected_result` exactly. Any engine change without updated fixtures fails CI (principle 3).
-- Fixture sources: hand-written rule cases for every archetype and event; logs exported from the mobile `staging` debug overlay; solver-generated optimal runs.
-- Fallback if parity maintenance becomes costly: compile the Dart engine to a native CLI (`dart compile exe`) and call it from Python for replay, keeping Python only for search (see §23).
+- CI runs the same fixtures in Dart (`packages/trip_engine`) and in Python (`tools/solver`). Both must reproduce `expected_result` exactly. Any engine change without updated fixtures fails CI (principle 3). Only Dart's `tool/fixtures.dart update` rewrites an `expected_result`; Python never rewrites an existing fixture.
+- Fixture sources: hand-written rule cases for every archetype and event; the solver's 3-star runs of the sample trips (`solver__*`, written by `wassal-solver fixture`); later, logs exported from the mobile `staging` debug overlay.
+- Fallback if parity maintenance becomes costly: compile the Dart engine to a native CLI (`dart compile exe`) and call it from Python, for replay only. The search needs the mirror's state at every step, so it stays in Python (see §23).
+
+### 10.4 The solver stage and the preview (`apps/content`)
+
+- **The stage.** Each build solves every trip of the pack and stores one `SolverRun` per trip. A trip whose `input_key` already has a finished result is not solved again, so a rebuild with no trip changed takes seconds.
+  - `V-Z1`: not solved (error).
+  - `V-Z2`: refused (error).
+  - `V-Z3`: the safety cap stopped it (error).
+  - `V-Z4`: an internal error (error, logged with the trip id).
+  - `V-Z5`: solved, but the score is outside the line's band (warning; §9.1).
+
+  A `safety_cap` or `internal_error` result is never reused. The release record gains a `solver` object with each trip's verdict, score, run hash and fingerprints. `CONTENT_SOLVER_STAGE=stand_in` is allowed only in dev and test.
+- **The preview.** On staging's admin, "Run the solver" on a trip page queues `content.tasks.solve_trip` for the trip as it is now, and the "Solver preview" panel shows the verdict, the score against the line's current band, and the timeline. A preview never changes the trip, a pack or the audit log.
+- **The balancing report** (`wassal-solver report`) gives one row per trip: the verdict, the score and its inputs, the slack at each station, and how players reacting at 900 and 1,200 ms fare. Those slower players appear nowhere else.
 
 ---
 

@@ -1,7 +1,7 @@
 """Publishing on staging (contracts/pack-delivery.md "Publish on staging", FR-025-FR-027).
 
-1. Check: `publish_pack`, `CONTENT_ROLE=source`, a validated pack whose solver stage passed and
-   whose version is above the current pack's.
+1. Check: `publish_pack`, `CONTENT_ROLE=source`, a validated pack whose solver stage is `passed`
+   or `warning` (B05) and whose version is above the current pack's.
 2. Write the pack file and its release record create-only.
 3. Read both back and compare their sha256 with the record.
 4. Commit in one transaction: published, current, permanent identifiers, index rows, retiring the
@@ -45,6 +45,10 @@ Action = ContentAuditRecord.Action
 Outcome = ContentAuditRecord.Outcome
 
 
+SOLVER_PUBLISHABLE = ("passed", "warning")
+"""A difficulty outside the line's band (`V-Z5`) warns and never blocks (B05 spec FR-024)."""
+
+
 class PublishRefused(Exception):
     """A check of step 1 failed. The message is for staff."""
 
@@ -61,7 +65,7 @@ def check(pack: ContentPack, actor: User | None) -> User:
     if pack.status != Status.VALIDATED:
         raise PublishRefused(f"{pack} is {pack.status}, not validated.")
     solver = pack.validation_report.get("stages", {}).get("solver", {}).get("result")
-    if solver != "passed":
+    if solver not in SOLVER_PUBLISHABLE:
         raise PublishRefused(f"{pack}'s solver stage is {solver}, not passed.")
     current = build.current_pack()
     if current is not None and (pack.version or 0) <= (current.version or 0):

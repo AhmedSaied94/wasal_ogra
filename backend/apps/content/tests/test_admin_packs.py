@@ -115,6 +115,50 @@ def test_report_sections_put_errors_first_and_link_known_objects(sample_reviewed
     assert section["hidden"] == 0
 
 
+def test_the_pack_page_shows_the_solver_table(
+    sample_reviewed: User, plain_staff: User, settings: Settings, packs_dir: Path
+) -> None:
+    settings.CONTENT_SOLVER_STAGE = "solver"
+    built(sample_reviewed)
+    pack = built(sample_reviewed)
+
+    html = admin_client(plain_staff).get(page(pack)).content.decode()
+
+    assert "solver: passed" in html
+    assert "Solver: 0 solved, 5 reused" in html
+    table = html[html.index('<table class="solver-trips">') :]
+    table = table[: table.index("</table>")]
+    headers = ["Trip", "Verdict", "End", "Stars", "Score", "owed_at_once", "change_pieces"]
+    headers += ["blockers", "breaks", "tightness_ms", "variety", "Band", "In band", "Reused"]
+    assert all(f"<th>{name}</th>" in table for name in headers)
+    assert table.count("<tr>") == 6
+    trip = Trip.objects.get(line__line_id="line_hay", number=1)
+    assert f'<a href="/admin/content/trip/{trip.pk}/change/">line_hay.01</a>' in table
+    assert "<td>0\N{EN DASH}30</td>" in table
+
+
+def test_the_solver_section_holds_its_trips_in_input_order() -> None:
+    inputs = {"variety": 4, "breaks": 0, "owed_at_once": 2}
+    trip = {"trip_id": "line_x.01", "verdict": "solved", "score": 9, "inputs": inputs}
+    report = {
+        "stages": {"solver": {"result": "passed", "trips": [trip], "meta": {"solved": 1}}},
+        "findings": [],
+    }
+
+    [section] = report_sections(report)
+
+    assert section["meta"] == {"solved": 1}
+    [row] = section["trips"]
+    assert row["inputs"] == [2, "", "", 0, "", 4]
+    assert row["url"] is None
+
+
+def test_a_stage_without_trips_has_no_solver_table(sample_reviewed: User) -> None:
+    [section] = report_sections(_report([]))
+    assert section["trips"] == []
+    assert section["meta"] == {}
+
+
 # -- publish, rollback, minimum version, download, export (T089) ----------------------------------
 
 
@@ -258,3 +302,20 @@ def test_the_pack_pages_add_no_inline_script(live: ContentPack, publisher: User)
         parser.feed(response.content.decode())
         assert parser.handlers == [], url
         assert {csp_hash(script) for script in parser.scripts} <= allowed, url
+
+
+def test_the_solver_table_looks_up_only_the_trips_it_lists(sample_reviewed: User) -> None:
+    from apps.content.admin.reports import solver_rows
+
+    hay_01 = Trip.objects.get(line__line_id="line_hay", number=1)
+    rows = solver_rows([{"trip_id": "line_hay.01"}, {"trip_id": "line_x.01"}])
+
+    assert [row["url"] for row in rows] == [f"/admin/content/trip/{hay_01.pk}/change/", None]
+
+
+def test_the_trip_links_query_names_each_trip(sample_reviewed: User) -> None:
+    from apps.content.admin import reports
+
+    urls = reports._trip_urls(["line_hay.01", "line_gamaa.02", "not a trip id"])
+
+    assert sorted(urls) == ["line_gamaa.02", "line_hay.01"]

@@ -28,13 +28,21 @@ Written once, in canonical JSON, when a pack is published on staging.
 ```json
 {"built_at":"2026-11-02T10:00:00Z","min_client_version":"1.0.0","pack_id":"core",
  "published_at":"2026-11-02T10:05:00Z","schema_version":"1.0","sha256":"<64 hex>","size":412233,
+ "solver":{"settings_version":"<16 hex>","solver_fingerprint":"<16 hex>",
+           "trips":[{"band":[0,30],"params_fingerprint":"<16 hex>","rev":1,"run_hash":"<hex>",
+                     "score":12,"stars":3,"trip_id":"line_hay.01","verdict":"solved"}]},
  "stages":{"content_rules":"passed","references":"passed","review":"passed","schema":"passed",
            "size":"passed","solver":"passed"},
  "version":12,"warnings":[]}
 ```
 
-- A stage value is `passed`, `warning` (only for `size`), or `not_available` (only for `solver`,
-  and such a pack is never published).
+- A stage value is `passed`, `warning` (only for `size` or `solver` (B05)), or `not_available`
+  (only for `solver`, and such a pack is never published).
+- (B05) The `solver` object names the solver and its settings by their fingerprints and lists, per
+  trip, only `trip_id`, `rev`, `verdict`, `stars`, `score`, `band`, `params_fingerprint` and
+  `run_hash`: no runs, timelines, score inputs or staff names. With the dev and test stand-in it is
+  `{"stand_in": true, "trips": []}` (specs/005-b05-solver-parity/data-model.md "Release record
+  addition").
 - `warnings` lists the warning findings (`{code, entity, id, path, message}`).
 - The record holds no staff names. The **promotion code** is `core-<v>:<sha256 of the record's
   bytes>`, and staging's admin shows it on the pack's page.
@@ -42,7 +50,7 @@ Written once, in canonical JSON, when a pack is published on staging.
 ## Publish on staging (`CONTENT_ROLE=source`)
 
 1. **Check.** The publisher has `content.publish_pack`. The pack is `validated`, its solver stage
-   `passed`, and its version is above the current pack's.
+   `passed` or `warning` (B05), and its version is above the current pack's.
 2. **Write both files create-only** (`O_CREAT|O_EXCL`, then `fsync` the file and the directory).
    - If a name already exists with the same bytes, it counts as already stored.
    - If it exists with different bytes, the publish is refused and logged at error level, so it
@@ -63,7 +71,7 @@ is part of the code. Production's worker then:
 | --- | --- | --- |
 | 1 | The actor has `content.promote_pack`. The version is above production's current version. The code matches `^core-[0-9]+:[0-9a-f]{64}$`. | Refused, nothing fetched |
 | 2 | `GET <CONTENT_PROMOTION_SOURCE_URL>core-<v>.release.json` (10 s timeout, 3 retries on connection errors or `5xx`, at most 64 KiB). Its sha256 equals the code. | Failed: `release_unreachable` or `release_mismatch` |
-| 3 | Every stage is `passed` (or a `size` warning), and `solver` is `passed` | Failed: `release_not_passed` |
+| 3 | Every stage is `passed` (or a `size` or, since B05, a `solver` warning), and `solver` is `passed` or `warning` (B05) | Failed: `release_not_passed` |
 | 4 | `GET …core-<v>.json.gz` (at most 16 MiB). Its size and sha256 equal the record. | Failed: `pack_unreachable` or `pack_mismatch` |
 | 5 | Decompress (at most 32 MiB), parse strictly, and run stages 1–3 against production's schema set. `pack_id`, `version` and `schema_version` equal the record. `min_client_version` is at least the floor for its major. | Failed: `pack_invalid` (findings in the audit record) |
 | 6 | Write both files create-only and read them back. Raise the floor file to this version (below). Then commit: `origin=promoted`, `status=published`, `current`, index rows, retiring, audit. `on_commit` deletes the manifest cache. | Failed: `storage_error`. A retry is safe. |

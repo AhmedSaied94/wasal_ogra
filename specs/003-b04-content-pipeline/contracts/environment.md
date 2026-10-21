@@ -13,7 +13,7 @@ here is a secret.
 | `CONTENT_PACKS_PUBLIC_URL` | `http://localhost:8000/packs/` | `https://packs.test.invalid/packs/` | `https://<staging API_HOST>/packs/` | `https://<API_HOST>/packs/` | Required. An absolute URL ending in `/`, and `https://` outside dev and test. Manifest URLs are built from it (research R5). |
 | `CONTENT_VERSION_FLOOR_URL` | empty | empty, or a local test server | production's `CONTENT_PACKS_PUBLIC_URL` | must be empty | `https://` when set. Staging's builds read production's `core.floor.json` here (research R7). |
 | `CONTENT_PROMOTION_SOURCE_URL` | must be empty | a local test server | must be empty | staging's `CONTENT_PACKS_PUBLIC_URL` | Required on `target`. `https://`. Where promotions fetch from (research R6). |
-| `CONTENT_SOLVER_STAGE` | `stand_in` | `stand_in` | `none` | `none` | `none` (reports `not_available`), `stand_in` (passes every trip: dev and test only), or a dotted path that B05 sets. The settings check refuses `stand_in` on staging and prod (FR-022). |
+| `CONTENT_SOLVER_STAGE` | `stand_in` | `stand_in` | `solver` (B05) | `solver` (B05) | `none` (reports `not_available`), `stand_in` (passes every trip: dev and test only), `solver` (B05: the real stage, the default on staging and prod, whose env files leave it unset), or a dotted path. The settings check refuses `stand_in` on staging and prod (FR-022). |
 | `CONTENT_MANIFEST_CACHE_SECONDS` | `30` | `0` | `30` | `30` | 0–60 (FR-031) |
 | `CONTENT_HTTP_TIMEOUT_SECONDS` | `10` | `2` | `10` | `10` | 1–30, for reading the floor file and for promotion fetches |
 

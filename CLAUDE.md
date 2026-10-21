@@ -12,7 +12,8 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `packages/trip_engine/`: the pure-Dart rules engine from **M01** (`specs/004-m01-trip-engine/`): every trip rule, the 13 commands, replay and rebuild, and the fixture tool. Its living rules reference is `packages/trip_engine/RULES.md`.
-- `fixtures/parity/`: the parity fixtures from **M01**, `{definition, seed, params, command_log, expected_result}`, which the engine replays in CI and B05's Python mirror will reproduce.
+- `tools/solver/`: the Python solver from **B05** (`specs/005-b05-solver-parity/`): a mirror of the trip rules, the solver (an idealized player that must earn 3 stars), the difficulty score, the balancing report and the bench. The backend runs it as the content pipeline's solver stage and the admin's trip preview.
+- `fixtures/parity/`: the parity fixtures from **M01** and **B05**, `{definition, seed, params, command_log, expected_result}`, which both the Dart engine and the Python mirror replay in CI.
 - `content/engine/capabilities.json`: what the engine supports (archetypes, events and their parameters, speech slots, change-request notes). The content kit validates trips against it.
 - `docs/`: the source-of-truth design documents (see below).
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
@@ -44,7 +45,7 @@ Python is pinned by `backend/.python-version` and managed with uv (never pip). R
 - Tests need the stack's PostgreSQL and Valkey: they run against the real services, never mocks (constitution XIII). pytest reads only the `TEST_*` URLs from `backend/.env`.
 - If port 5432 or 6379 is taken on your machine, export `WASSAL_DEV_PG_PORT` or `WASSAL_DEV_VALKEY_PORT` before `docker compose up`, and use the same port in the URLs in `backend/.env`.
 - Every value comes from the environment (`specs/002-b01-backend-skeleton/contracts/environment.md`). Outside `dev` and `test`, a missing, empty or `change-me` secret stops the process at startup.
-- B04 adds the `CONTENT_*` variables (`specs/003-b04-content-pipeline/contracts/environment.md`): `CONTENT_ROLE` (`source` on dev and staging, `target` on prod), `CONTENT_PACKS_DIR`, `CONTENT_PACKS_PUBLIC_URL`, `CONTENT_VERSION_FLOOR_URL` (staging: production's packs URL), `CONTENT_PROMOTION_SOURCE_URL` (prod: staging's packs URL), `CONTENT_SOLVER_STAGE` (`stand_in` in dev and test only), `CONTENT_MANIFEST_CACHE_SECONDS` and `CONTENT_HTTP_TIMEOUT_SECONDS`. The settings check refuses a role or URL in the wrong environment.
+- B04 adds the `CONTENT_*` variables (`specs/003-b04-content-pipeline/contracts/environment.md`): `CONTENT_ROLE` (`source` on dev and staging, `target` on prod), `CONTENT_PACKS_DIR`, `CONTENT_PACKS_PUBLIC_URL`, `CONTENT_VERSION_FLOOR_URL` (staging: production's packs URL), `CONTENT_PROMOTION_SOURCE_URL` (prod: staging's packs URL), `CONTENT_SOLVER_STAGE` (`solver`, the real stage, by default on staging and prod; `stand_in` in dev and test only), `CONTENT_MANIFEST_CACHE_SECONDS` and `CONTENT_HTTP_TIMEOUT_SECONDS`. The settings check refuses a role or URL in the wrong environment.
 - The content commands that act for a person need `--actor <staff>` and make the admin's permission checks. Only the worker mounts the packs directory, so on a host run `content_files` in the worker container. Publishing and promoting: `docs/runbooks/content-publishing.md`.
 
 ## Mobile commands
@@ -85,7 +86,7 @@ Run these in `packages/trip_engine`, after `packages/content_models` has been bu
 | Print a fixture's event sequence | `fvm dart run tool/fixtures.dart show <file>` |
 | Regenerate the longest-trip stress fixture | `fvm dart run tool/stress_fixture.dart` |
 
-- A rule change edits `packages/trip_engine/RULES.md`, the code and the affected fixtures in the same PR (constitution III). `update` rewrites only `expected_result`; review every changed fixture before committing.
+- A rule change edits `packages/trip_engine/RULES.md`, both engines (this package and `tools/solver/src/wassal_solver/engine/`) and the affected fixtures in the same PR (constitution III). `update` rewrites only `expected_result`; review every changed fixture before committing.
 - Every fixture needs an entry in `test/fixtures/expectations/`, which pins what the fixture is about. The fixtures test fails on a fixture without one.
 - The engine takes every balancing number as `TripParams`, built from `apps/mobile/assets/config/tunables.json` with `TripParams.fromTunables`. It has no defaults of its own.
 
@@ -111,6 +112,29 @@ The schemas in `content/schemas/` are the only definition of content. `tools/con
 - Never edit a generated file by hand: `codegen --check` fails on any difference.
 - The schemas follow a restricted profile (research R3 of B04): closed objects, integers only, no `null`, no `default`, no combinators, and every object and enum named in `$defs`. `codegen` refuses anything else.
 - `content/source/` holds only exports of packs promoted to production. Until its `pack.json` exists, schemas may change freely; after that, a breaking change needs a major bump in `content/schemas/schema-set.json`.
+
+## Solver commands
+
+`tools/solver` is the uv project `wassal-solver` (Python pinned by its `.python-version`). Run everything from `tools/solver`. CI runs the same commands in the backend workflow's `solver` job.
+
+| Purpose | Command (in `tools/solver`) |
+| --- | --- |
+| First setup | `uv sync` |
+| Lint, format check, types | `uv run ruff check . && uv run ruff format --check . && uv run mypy .` |
+| Tests + both coverage gates (80%, and 90% for the mirror) | `uv run pytest -n 4 --cov --cov-fail-under=80 && uv run coverage report --include='*/wassal_solver/engine/*' --fail-under=90` |
+| Time and memory budgets (skipped under coverage) | `uv run pytest tests/perf -q` |
+| Copy the app's tunables / check the copy | `uv run wassal-solver sync` / `uv run wassal-solver sync --check` |
+| Replay every parity fixture through the mirror | `uv run wassal-solver parity` |
+| Write a solver fixture from a trip's 3-star run | `uv run wassal-solver fixture <trip.json>... [--out DIR]` |
+| Solve a trip or a layout | `uv run wassal-solver solve <trip.json \| layout> [--trip ID] [--json] [--reaction-ms N]` |
+| Re-solve every trip of a layout | `uv run wassal-solver check-source <layout> [--bands error\|warning]` |
+| Balancing report | `uv run wassal-solver report <layout \| pack.json.gz> [--csv FILE]` |
+| Bench corpus and its digest | `uv run wassal-solver bench --digest` |
+
+- The solver's settings (reaction and tap times, the effort budget, the safety cap, the score's table) are in `src/wassal_solver/data/settings.json`. Changing them changes `settings_version`.
+- Any change to the package's code or data changes `solver_fingerprint`, so the backend solves every trip again instead of reusing a stale result.
+- `fixture` never overwrites a file, and Python never rewrites an `expected_result`: only Dart's `tool/fixtures.dart update` does.
+- After a `tools/solver` change, run `uv sync --reinstall-package wassal-solver` in `backend/` (and rebuild the dev image) so the backend uses it.
 
 ## Design documents (read before planning or coding)
 
@@ -155,7 +179,7 @@ The two architecture docs are paired, so read both:
 
 ## Architecture (big picture)
 
-A monorepo laid out as described in backend §5 and mobile §5. Everything below exists except `tools/solver/`, which arrives with B05:
+A monorepo laid out as described in backend §5 and mobile §5:
 
 ```text
 apps/mobile/            Flutter app: screens + Flame trip scene + Rive characters
@@ -163,7 +187,7 @@ packages/trip_engine/   Pure-Dart gameplay engine (no Flutter imports)
 packages/content_models/ Dart models GENERATED from content/schemas
 tools/content_kit/      Python `wassal-content`: codegen, validation, canonical pack files
 backend/                Django 5.2 + DRF; apps/<name>/{models,services/,api/,tasks,admin}
-tools/solver/           Python `wassal_solver`: mirror of trip_engine + solver/generator
+tools/solver/           Python `wassal_solver`: mirror of trip_engine + solver, score, report
 contracts/openapi.yaml  Generated by drf-spectacular, committed, consumed by mobile
 content/schemas/        JSON Schema 2020-12 for packs (trip, line, item, catalog, …)
 content/examples/       valid/invalid documents, the sample pack and its golden checksums
@@ -172,7 +196,7 @@ fixtures/parity/        {definition, seed, params, command_log, expected_result}
 
 These invariants cut across both sides, and you need several docs to see them:
 
-- **One rules engine, mirrored twice.** All trip rules live in `packages/trip_engine` (exact rules in its `RULES.md`), with a Python mirror in `tools/solver`. Neither the UI nor the server re-implements them. The engine is deterministic: a 33 ms fixed step, a `xorshift32` PRNG, and integer piasters. Replaying `(definition, seed, params, command_log)` reproduces the same `TripResult`. Any rule change must ship with updated `fixtures/parity/*.json` that pass in **both** Dart and pytest, or CI fails. Until B05 creates `tools/solver`, fixtures must pass the Dart suite and the content-kit check of their definitions (constitution III), and B05 must reproduce every existing fixture before it merges.
+- **One rules engine, mirrored twice.** All trip rules live in `packages/trip_engine` (exact rules in its `RULES.md`), with a Python mirror in `tools/solver`. Neither the UI nor the server re-implements them. The engine is deterministic: a 33 ms fixed step, a `xorshift32` PRNG, and integer piasters. Replaying `(definition, seed, params, command_log)` reproduces the same `TripResult`. Any rule change must ship with updated `fixtures/parity/*.json` that pass in **both** Dart and pytest, or CI fails.
 - **Integer money only.** Trip cash is in piasters (1 EGP = 100, smallest coin 50). `JENEHAT`, `BONAT` and `FUEL` are integers. Floats are forbidden for money. **BONAT can never be converted into JENEHAT.**
 - **Server authority for value.** BONAT, purchases, entitlements and subscriptions are decided by the backend. The client is optimistic only for JENEHAT and progress, and the server checks both against bounds such as `max_earnings_jenehat` and catalog prices for the declared `content_version`.
 - **Offline-first sync** (backend §7, mobile §12). The client records ops (`trip_start`, `trip_result`, `spend_bonat`, …), each with a UUIDv7 `client_txn_id`, and sends them through `POST /v1/sync`. The server runs one transaction per batch with `SELECT … FOR UPDATE` on `Wallet`, makes ops idempotent through `ProcessedOp`, and returns a per-op accepted/rejected result. Soft anomalies are **accepted and recorded as `PlayerFlag`**, not rejected, so honest offline play is never punished.

@@ -1,0 +1,246 @@
+{
+  "command_log": [
+    [
+      627,
+      "Tap",
+      "p1"
+    ],
+    [
+      1254,
+      "PickFromTray",
+      500
+    ],
+    [
+      1452,
+      "PickFromTray",
+      100
+    ],
+    [
+      1650,
+      "SendHand",
+      "p1"
+    ],
+    [
+      25641,
+      "Tap",
+      "p3"
+    ],
+    [
+      60654,
+      "Tap",
+      "p4"
+    ],
+    [
+      61281,
+      "PickFromTray",
+      100
+    ],
+    [
+      61479,
+      "PickFromTray",
+      100
+    ],
+    [
+      61677,
+      "PickFromTray",
+      100
+    ],
+    [
+      61875,
+      "SendHand",
+      "p4"
+    ]
+  ],
+  "definition": {
+    "events": [
+      {
+        "at_seconds": 40,
+        "event_id": "traffic",
+        "seconds": 10
+      },
+      {
+        "at_seconds": 70,
+        "event_id": "payment_dispute",
+        "passenger_ids": [
+          "p3",
+          "p4"
+        ]
+      }
+    ],
+    "initial_tray": {
+      "100": 6,
+      "50": 2,
+      "500": 2
+    },
+    "kind": "regular",
+    "line_id": "line_hay",
+    "max_earnings_jenehat": 30,
+    "passengers": [
+      {
+        "archetype": "group_payer",
+        "dest_station_id": "forn",
+        "group_id": "g1",
+        "group_size": 2,
+        "passenger_id": "p1",
+        "payment": [
+          2000
+        ],
+        "pays_at_seconds": 4,
+        "seat_id": "A_r",
+        "skin": "young_cap",
+        "speech_keys": {
+          "pays_group": "passenger.pays"
+        }
+      },
+      {
+        "archetype": "regular",
+        "dest_station_id": "forn",
+        "group_id": "g1",
+        "group_size": 2,
+        "passenger_id": "p2",
+        "payment": [
+          1000
+        ],
+        "seat_id": "A_m",
+        "skin": "worker_blue"
+      },
+      {
+        "archetype": "hajja",
+        "board_station_id": "madrasa",
+        "dest_station_id": "mahatta",
+        "passenger_id": "p3",
+        "payment": [
+          500,
+          100,
+          100
+        ],
+        "seat_id": "A_l",
+        "skin": "hajja_black",
+        "speech_keys": {
+          "stop_near": "passenger.stop_near"
+        }
+      },
+      {
+        "archetype": "regular",
+        "board_station_id": "forn",
+        "dest_station_id": "mahatta",
+        "passenger_id": "p4",
+        "payment": [
+          1000
+        ],
+        "seat_id": "A_r",
+        "skin": "worker_blue"
+      }
+    ],
+    "rev": 1,
+    "rules": {
+      "bag_fare_piasters": 0,
+      "child_free_age": 6,
+      "max_break_requests": 2,
+      "no_fights_required": false,
+      "student_discount_pct": 0
+    },
+    "seats": [
+      {
+        "col": "r",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_r"
+      },
+      {
+        "col": "m",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_m"
+      },
+      {
+        "col": "l",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_l"
+      }
+    ],
+    "seed": 2654435761,
+    "star_rules": {
+      "three": "no_fights_no_mistakes",
+      "two": "no_fights"
+    },
+    "stations": [
+      {
+        "at_seconds": 25,
+        "fare_piasters": 700,
+        "station_id": "madrasa"
+      },
+      {
+        "at_seconds": 50,
+        "fare_piasters": 700,
+        "station_id": "forn"
+      },
+      {
+        "at_seconds": 80,
+        "fare_piasters": 700,
+        "station_id": "mahatta"
+      }
+    ],
+    "trip_id": "line_hay.02",
+    "vehicle_id": "tuktuk"
+  },
+  "expected_result": {
+    "boosters_used": [],
+    "caught_liars": 0,
+    "command_log_hash": "be5ee194b5b31e8feb5bbbf49e8895c8f96e88bd77c21e64509379e07c8d4edb",
+    "duration_ms": 90024,
+    "earnings_jenehat": 28,
+    "fares_collected_piasters": 2800,
+    "fights": 0,
+    "impatient": 0,
+    "lost_fares": 0,
+    "missed_stops": 0,
+    "mistakes": [],
+    "outcome": "finished",
+    "overpaid_piasters": 0,
+    "reputation": 100,
+    "reputation_lost": {},
+    "rev": 1,
+    "revived": false,
+    "star_flags": {
+      "no_fights": true,
+      "no_mistakes": true,
+      "reached": true
+    },
+    "stars": 3,
+    "tips_piasters": 0,
+    "trip_id": "line_hay.02"
+  },
+  "params": {
+    "booster_ledger_peek_ms": 10000,
+    "booster_traffic_jam_max_per_trip": 3,
+    "booster_traffic_jam_ms": 10000,
+    "rep_change_request_declined": 5,
+    "rep_exact_change": 3,
+    "rep_false_accusation": 20,
+    "rep_fight": 30,
+    "rep_impatient": 5,
+    "rep_liar_caught": 10,
+    "rep_missed_stop": 15,
+    "rep_revive_to": 40,
+    "rep_short_change": 5,
+    "trip_break_delay_ms": 1500,
+    "trip_break_min_piasters": 1000,
+    "trip_bump_collect_ms": 3000,
+    "trip_group_redirect_hop_ms": 600,
+    "trip_headphones_attentive_ms": 15000,
+    "trip_hop_ms": 1300,
+    "trip_hop_pct_chatty_row": 150,
+    "trip_hop_pct_hajja": 200,
+    "trip_patience_drain_pct_traffic": 150,
+    "trip_patience_ms": 20000,
+    "trip_patience_pct_hurry": 50,
+    "trip_sleeper_awake_ms": 15000,
+    "trip_station_warning_ms": 8000,
+    "trip_tip_piasters_regular_customer": 200,
+    "trip_undo_window_ms": 1000,
+    "trip_wake_ms": 1000
+  },
+  "seed": 2654435761
+}

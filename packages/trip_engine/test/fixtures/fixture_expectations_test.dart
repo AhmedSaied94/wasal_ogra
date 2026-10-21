@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 
 import '../support/fixture_io.dart';
 import 'expectations/core.dart';
+import 'expectations/solver.dart';
 import 'expectations/us2_misc.dart';
 import 'expectations/us3.dart';
 import 'expectations/us4.dart';
@@ -19,6 +20,7 @@ final _expectations = <String, Expectation>{
   ...us5Expectations,
   ...us6Expectations,
   ...stressExpectations,
+  ...solverExpectations,
 };
 
 void main() {

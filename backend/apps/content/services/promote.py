@@ -4,7 +4,7 @@ Production pulls the exact files staging published, anchored by the pasted promo
 
 1. `promote_pack`, `CONTENT_ROLE=target`, a well-formed code, a version above the current one.
 2. Fetch the release record; its sha256 must equal the code.
-3. Every stage passed (a `size` warning is fine), the solver included.
+3. Every stage passed, the solver included; a `size` or `solver` warning is fine (B05).
 4. Fetch the pack file; its size and sha256 must equal the record's.
 5. Decompress with a cap, parse strictly, run the schema, reference and content-rule stages
    against production's schemas, and check the identity and minimum-app-version floor.
@@ -159,13 +159,17 @@ def _fetch(version: int, release_sha256: str) -> Fetched:
     return Fetched(version, record, record_bytes, pack, pack_bytes)
 
 
+WARNING_STAGES = frozenset({"size", "solver"})
+"""The stages whose `warning` still promotes (B05 contracts/content-pipeline.md §4)."""
+
+
 def _passed(record: dict[str, Any]) -> bool:
-    """Step 3: every stage passed, or `size` warned, and the solver passed."""
+    """Step 3: every stage passed, or `size` or the solver warned, and the solver ran."""
     stages = record.get("stages")
-    if not isinstance(stages, dict) or stages.get("solver") != "passed":
+    if not isinstance(stages, dict) or stages.get("solver") not in ("passed", "warning"):
         return False
     return all(
-        result == "passed" or (stage == "size" and result == "warning")
+        result == "passed" or (stage in WARNING_STAGES and result == "warning")
         for stage, result in stages.items()
     )
 

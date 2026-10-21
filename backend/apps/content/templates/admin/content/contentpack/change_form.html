@@ -41,6 +41,28 @@
   </table>
   {% if section.hidden %}<p>{{ section.hidden }} more not shown.</p>{% endif %}
   {% endif %}
+  {% if section.meta.stand_in %}<p>Solver: stand-in, no trip was solved.</p>
+  {% elif section.meta.solver_fingerprint %}<p>Solver: {{ section.meta.solved }} solved, {{ section.meta.reused }} reused (solver {{ section.meta.solver_fingerprint }}, settings {{ section.meta.settings_version }})</p>{% endif %}
+  {% if section.trips %}
+  <table class="solver-trips">
+    <thead><tr><th>Trip</th><th>Verdict</th><th>End</th><th>Stars</th><th>Score</th>{% for name in section.input_names %}<th>{{ name }}</th>{% endfor %}<th>Band</th><th>In band</th><th>Reused</th></tr></thead>
+    <tbody>
+    {% for trip in section.trips %}
+      <tr>
+        <td>{% if trip.url %}<a href="{{ trip.url }}">{{ trip.trip_id }}</a>{% else %}{{ trip.trip_id }}{% endif %}</td>
+        <td>{{ trip.verdict }}</td>
+        <td>{{ trip.end }}</td>
+        <td>{{ trip.stars }}</td>
+        <td>{{ trip.score|default_if_none:"" }}</td>
+        {% for value in trip.inputs %}<td>{{ value }}</td>{% endfor %}
+        <td>{{ trip.band }}</td>
+        <td>{% if trip.in_band is None %}{% elif trip.in_band %}yes{% else %}no{% endif %}</td>
+        <td>{% if trip.reused %}yes{% else %}no{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
   {% endfor %}
 </fieldset>
 {% endif %}

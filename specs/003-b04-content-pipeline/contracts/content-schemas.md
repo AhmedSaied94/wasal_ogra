@@ -170,7 +170,7 @@ id, path, message}`. Codes are stable, so tests can name them.
 | Code | Severity | Rule |
 | --- | --- | --- |
 | `V-V1` | error | Every speech line is reviewed (FR-017) |
-| `V-Z1` | error/n.a. | The solver stage (B05). Until it exists it reports `not_available`, which blocks publishing on staging and promotion on production (FR-022). |
+| `V-Z1` | error/n.a. | The solver stage (B05). Until it exists it reports `not_available`, which blocks publishing on staging and promotion on production (FR-022). (B05) The real stage's codes, `V-Z1` to `V-Z5`, are in specs/005-b05-solver-parity/contracts/content-pipeline.md. |
 
 No rule converts BONAT into JENEHAT, because nothing in the schema can express it. No SKU kind
 grants JENEHAT, and a pack has no real-money field. `V-M1` and the closed `sku_kind` enum keep it

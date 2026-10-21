@@ -1,7 +1,7 @@
 """The validation report on a pack's page (contracts/admin.md "Validation report").
 
 Stages in report order, errors first within each, and a link to the authoring object a finding
-names when it still exists.
+names when it still exists. The solver stage also lists its trips (B05).
 """
 
 from __future__ import annotations
@@ -10,8 +10,9 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.urls import reverse
+from wassal_solver.settings import SCORE_INPUTS
 
 from apps.content.admin.common import MAX_LISTED_FINDINGS, TRIP_ID
 from apps.content.models import (
@@ -79,6 +80,38 @@ def authoring_url(entity: str, identifier: str) -> str | None:
     return reverse(f"admin:{meta.app_label}_{meta.model_name}_change", args=[found.pk])
 
 
+def _trip_urls(trip_ids: list[str]) -> dict[str, str]:
+    """The admin page of each trip named, in one query."""
+    named = Q(pk__in=[])
+    for trip_id in trip_ids:
+        if match := TRIP_ID.match(trip_id):
+            named |= Q(line__line_id=match[1], number=int(match[2]))
+    found = Trip.objects.select_related("line").filter(named)
+    return {
+        trip.permanent_identifier(): reverse("admin:content_trip_change", args=[trip.pk])
+        for trip in found
+    }
+
+
+def solver_rows(trips: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """`stages.solver.trips` as table rows, the inputs in SCORE_INPUTS order: `jsonb` doesn't
+    keep key order."""
+    urls = _trip_urls([str(trip.get("trip_id", "")) for trip in trips])
+    rows = []
+    for trip in trips:
+        inputs = trip.get("inputs") or {}
+        band = trip.get("band")
+        rows.append(
+            {
+                **trip,
+                "url": urls.get(str(trip.get("trip_id", ""))),
+                "inputs": [inputs.get(name, "") for name in SCORE_INPUTS],
+                "band": f"{band[0]}\N{EN DASH}{band[1]}" if band else "",
+            }
+        )
+    return rows
+
+
 def report_sections(report: Mapping[str, Any]) -> list[dict[str, Any]]:
     """One section per stage: its result, its findings (errors first), and how many are hidden.
 
@@ -104,6 +137,9 @@ def report_sections(report: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "bytes": outcome.get("bytes"),
                 "findings": shown,
                 "hidden": len(own) - len(shown),
+                "trips": solver_rows(outcome.get("trips") or []),
+                "meta": outcome.get("meta") or {},
+                "input_names": SCORE_INPUTS,
             }
         )
     return sections

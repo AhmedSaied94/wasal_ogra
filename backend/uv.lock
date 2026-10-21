@@ -1417,6 +1417,7 @@ dependencies = [
     { name = "sentry-sdk" },
     { name = "uuid-utils" },
     { name = "wassal-content" },
+    { name = "wassal-solver" },
     { name = "whitenoise" },
 ]
 
@@ -1457,6 +1458,7 @@ requires-dist = [
     { name = "sentry-sdk", specifier = "==2.72.0" },
     { name = "uuid-utils", specifier = "==1.0.0" },
     { name = "wassal-content", directory = "../tools/content_kit" },
+    { name = "wassal-solver", directory = "../tools/solver" },
     { name = "whitenoise", specifier = "==6.12.0" },
 ]
 
@@ -1503,6 +1505,27 @@ dev = [
     { name = "pytest-cov", specifier = "==7.1.0" },
     { name = "ruff", specifier = "==0.17.1" },
     { name = "types-jsonschema", specifier = "==4.26.0.20261006" },
+]
+
+[[package]]
+name = "wassal-solver"
+version = "0.1.0"
+source = { directory = "../tools/solver" }
+dependencies = [
+    { name = "wassal-content" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "wassal-content", directory = "../tools/content_kit" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = "==6.170.1" },
+    { name = "mypy", specifier = "==1.19.1" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "pytest-xdist", specifier = "==3.8.0" },
+    { name = "ruff", specifier = "==0.17.1" },
 ]
 
 [[package]]

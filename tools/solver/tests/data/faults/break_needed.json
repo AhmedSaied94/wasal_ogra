@@ -1,0 +1,64 @@
+{
+  "events": [],
+  "initial_tray": {
+    "500": 2
+  },
+  "kind": "regular",
+  "line_id": "line_hay",
+  "max_earnings_jenehat": 20,
+  "passengers": [
+    {
+      "archetype": "regular",
+      "dest_station_id": "madrasa",
+      "passenger_id": "p1",
+      "payment": [
+        1000
+      ],
+      "pays_at_seconds": 2,
+      "seat_id": "A_r",
+      "skin": "worker_blue"
+    }
+  ],
+  "rev": 1,
+  "rules": {
+    "bag_fare_piasters": 0,
+    "child_free_age": 6,
+    "max_break_requests": 1,
+    "no_fights_required": false,
+    "student_discount_pct": 0
+  },
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    }
+  ],
+  "seed": 1,
+  "star_rules": {
+    "three": "no_fights_no_mistakes",
+    "two": "no_fights"
+  },
+  "stations": [
+    {
+      "at_seconds": 30,
+      "fare_piasters": 700,
+      "station_id": "madrasa"
+    }
+  ],
+  "trip_id": "line_hay.94",
+  "vehicle_id": "tuktuk"
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from io import StringIO
 from typing import Any
@@ -24,6 +24,7 @@ from apps.content import tasks
 from apps.content.models import (
     ContentChannel,
     ContentPack,
+    SolverRun,
     SpeechLine,
     SpeechPool,
     Station,
@@ -34,6 +35,7 @@ from apps.content.models import (
 from apps.content.models.packs import BuildState, Status
 from apps.content.services import build, exporter
 from apps.content.services import snapshot as snapshot_module
+from apps.content.services.stages import SolverOutput
 from apps.content.tests.conftest import SAMPLE
 from apps.content.tests.factories import sync_channel
 
@@ -223,7 +225,7 @@ def test_the_same_content_and_version_give_the_golden_checksums(sample_imported:
 def test_a_dry_run_without_version_shows_the_next_one(sample_reviewed: User) -> None:
     out = StringIO()
     call_command("content_build", "--actor", "author1", "--dry-run", stdout=out)
-    assert out.getvalue().startswith("version 1 (dry run, nothing saved)\n")
+    assert out.getvalue().startswith("version 1 (dry run, no pack saved)\n")
 
 
 def test_two_builds_of_the_same_content_store_the_same_bytes_but_their_version(
@@ -411,19 +413,19 @@ def test_with_revs_keeps_new_trips_and_unchanged_ones() -> None:
 
 
 class FailingSolver:
-    """A stand-in for B05 that fails every pack."""
+    """A stage that fails every pack, with the protocol of B05 contracts/content-pipeline.md §1."""
 
-    def run(self, pack: Mapping[str, Any]) -> list[Finding] | None:
-        return [
-            Finding(
-                path="$",
-                code="V-Z1",
-                message="no 3-star solution",
-                stage="solver",
-                entity="trip",
-                id=pack["trips"][0]["trip_id"],
-            )
-        ]
+    def run(self, pack: Mapping[str, Any], progress: Callable[[], None]) -> SolverOutput | None:
+        progress()
+        finding = Finding(
+            path="$",
+            code="V-Z1",
+            message="no 3-star solution",
+            stage="solver",
+            entity="trip",
+            id=pack["trips"][0]["trip_id"],
+        )
+        return SolverOutput([finding], [], {})
 
 
 def test_no_solver_reports_not_available(sample_reviewed: User, settings: Settings) -> None:
@@ -438,7 +440,10 @@ def test_no_solver_reports_not_available(sample_reviewed: User, settings: Settin
 
 def test_the_stand_in_passes(sample_reviewed: User, settings: Settings) -> None:
     settings.CONTENT_SOLVER_STAGE = "stand_in"
-    assert results(built(sample_reviewed))["solver"] == "passed"
+    pack = built(sample_reviewed)
+    assert results(pack)["solver"] == "passed"
+    solver = pack.validation_report["stages"]["solver"]
+    assert (solver["trips"], solver["meta"]) == ([], {"stand_in": True})
 
 
 def test_a_failing_solver_keeps_the_pack_draft(sample_reviewed: User, settings: Settings) -> None:
@@ -544,7 +549,72 @@ def test_the_sweeper_fails_builds_running_for_over_30_minutes(sample_reviewed: U
     stuck.refresh_from_db()
     recent.refresh_from_db()
     assert stuck.build_state == BuildState.FAILED
-    assert "30 minutes" in stuck.failure_reason
+    assert stuck.failure_reason == "the build stopped: no progress for 30 minutes"
     assert recent.build_state == BuildState.RUNNING
     # A swept build that a worker then picks up changes nothing.
     assert build.run_build(str(stuck.pk)).build_state == BuildState.FAILED
+
+
+def test_a_build_the_heartbeat_keeps_fresh_is_not_swept(sample_reviewed: User) -> None:
+    pack = build.new_draft(sample_reviewed)
+    _aged(pack, 45)
+
+    build.heartbeat(pack.pk)()
+
+    assert tasks.sweep_stuck_builds.apply().get() == 0
+    pack.refresh_from_db()
+    assert pack.build_state == BuildState.RUNNING
+
+
+def test_a_build_passes_its_heartbeat_to_the_stage(
+    sample_reviewed: User, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings.CONTENT_SOLVER_STAGE = f"{__name__}.FailingSolver"
+    beats: list[str] = []
+    real = build.heartbeat
+
+    def counted(pack_pk: Any) -> Callable[[], None]:
+        beat = real(pack_pk)
+
+        def counted_beat() -> None:
+            beats.append(str(pack_pk))
+            beat()
+
+        return counted_beat
+
+    monkeypatch.setattr(build, "heartbeat", counted)
+    pack = built(sample_reviewed)
+    assert beats == [str(pack.pk)]
+
+
+def _run(status: str, minutes: int) -> SolverRun:
+    created = SolverRun.objects.create(
+        kind=SolverRun.Kind.PREVIEW if status == SolverRun.Status.QUEUED else SolverRun.Kind.BUILD,
+        status=status,
+        input_key="k" * 64,
+        trip_identifier="line_hay.01",
+        finished_at=timezone.now() if status in SolverRun.FINISHED else None,
+    )
+    SolverRun.objects.filter(pk=created.pk).update(
+        updated_at=timezone.now() - timedelta(minutes=minutes)
+    )
+    return created
+
+
+def test_the_sweeper_fails_solver_runs_with_no_progress_for_30_minutes() -> None:
+    queued = _run(SolverRun.Status.QUEUED, 31)
+    running = _run(SolverRun.Status.RUNNING, 40)
+    recent = _run(SolverRun.Status.RUNNING, 5)
+    done = _run(SolverRun.Status.DONE, 90)
+
+    assert tasks.sweep_stuck_builds.apply().get() == 2
+
+    for stopped in (queued, running):
+        stopped.refresh_from_db()
+        assert stopped.status == SolverRun.Status.FAILED
+        assert stopped.result == {"error": "stopped: no progress for 30 minutes"}
+        assert stopped.finished_at is not None
+    recent.refresh_from_db()
+    done.refresh_from_db()
+    assert recent.status == SolverRun.Status.RUNNING
+    assert done.status == SolverRun.Status.DONE

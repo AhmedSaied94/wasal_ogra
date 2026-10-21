@@ -9,7 +9,7 @@ pack looking valid: the record only becomes `validated` in the build's last save
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -24,7 +24,7 @@ from wassal_content.source import SourceTree, assemble_pack
 from wassal_content.validate import validate_pack
 
 from apps.accounts.models import User
-from apps.content.models import ContentChannel, ContentPack, PackTripIndex
+from apps.content.models import ContentChannel, ContentPack, PackTripIndex, SolverRun
 from apps.content.models.packs import BuildState, Origin, Status
 from apps.content.services import exporter, permissions, stages, versioning
 from apps.content.services.snapshot import Snapshot, snapshot
@@ -33,6 +33,21 @@ logger = logging.getLogger(__name__)
 
 PACK_ID = "core"
 STALE_AFTER_SECONDS = 30 * 60
+STOPPED = "no progress for 30 minutes"
+
+
+def no_progress() -> None:
+    """The `progress` of a build that saves nothing, such as `content_build --dry-run`."""
+
+
+def heartbeat(pack_pk: Any) -> Callable[[], None]:
+    """The `progress` of a real build: it refreshes the pack's `updated_at`, which the sweep
+    reads, after each trip the solver stage finishes (B05 contracts/content-pipeline.md §1)."""
+
+    def beat() -> None:
+        ContentPack.objects.filter(pk=pack_pk).update(updated_at=timezone.now())
+
+    return beat
 
 
 @dataclass
@@ -152,19 +167,25 @@ def with_revs(pack: dict[str, Any], current: Mapping[str, Mapping[str, Any]]) ->
 
 
 def produce(
-    parts: Snapshot, version: int, current: ContentPack | None, *, review: bool
+    parts: Snapshot,
+    version: int,
+    current: ContentPack | None,
+    *,
+    review: bool,
+    progress: Callable[[], None] = no_progress,
 ) -> BuildOutput:
-    """Assemble, compress and validate. Changes nothing in the database."""
+    """Assemble, compress and validate. Changes no pack: the solver stage only records its
+    runs, which a later build reuses."""
     pack = with_revs(assemble_pack(parts.tree, version), current_trips(current))
     canonical = canonical_bytes(pack)
     file = build_pack_file(canonical)
     report = validate_pack(pack, file_size=len(file))
     report.add_stage("review", stages.review_stage(parts) if review else [])
-    solver = stages.load_solver_stage().run(pack)
+    solver = stages.load_solver_stage().run(pack, progress)
     if solver is None:
         report.skip_stage("solver")
     else:
-        report.add_stage("solver", solver)
+        report.add_stage("solver", solver.findings)
     return BuildOutput(
         version=version,
         pack=pack,
@@ -172,7 +193,9 @@ def produce(
         sha256=sha256_hex(file),
         size=len(file),
         file=file,
-        report=report_dict(report, parts.snapshot_at, pack["schema_version"], len(file)),
+        report=report_dict(
+            report, parts.snapshot_at, pack["schema_version"], len(file), solver=solver
+        ),
         passed=is_green(report),
     )
 
@@ -191,11 +214,22 @@ def is_green(report: Report) -> bool:
     )
 
 
-def report_dict(report: Report, snapshot_at: datetime, version: str, size: int) -> dict[str, Any]:
+def report_dict(
+    report: Report,
+    snapshot_at: datetime,
+    version: str,
+    size: int,
+    *,
+    solver: stages.SolverOutput | None = None,
+) -> dict[str, Any]:
     stages_: dict[str, dict[str, Any]] = {
         stage: {"result": report.stages[stage]} for stage in STAGES if stage in report.stages
     }
     stages_["size"]["bytes"] = size
+    if solver is not None and "solver" in stages_:
+        # B05: one summary per trip in pack order, and what made them.
+        stages_["solver"]["trips"] = solver.trips
+        stages_["solver"]["meta"] = solver.meta
     # Grouped by stage, errors first within each (contracts/admin.md "Validation report").
     findings = sorted(report.findings, key=lambda f: (STAGES.index(f.stage), f.severity != "error"))
     return {
@@ -220,7 +254,13 @@ def run_build(pack_pk: str) -> ContentPack:
             # Saved at once, so a build redelivered after a worker loss keeps its number.
             pack.version = versioning.next_version()
             pack.save(update_fields=["version", "updated_at"])
-        output = produce(parts, pack.version, current_pack(), review=pack.rollback_of is None)
+        output = produce(
+            parts,
+            pack.version,
+            current_pack(),
+            review=pack.rollback_of is None,
+            progress=heartbeat(pack.pk),
+        )
     except versioning.VersionFloorUnavailable as error:
         return _fail(pack, str(error))
     except Exception:
@@ -250,11 +290,21 @@ def _fail(pack: ContentPack, reason: str) -> ContentPack:
 
 
 def sweep_stuck_builds() -> int:
-    """Mark builds still `running` after 30 minutes as failed, so none looks done (R10)."""
+    """Builds still `running` with no progress for 30 minutes become failed, so none looks done
+    (R10). The solver stage's heartbeat keeps a long build's `updated_at` fresh. Solver runs left
+    `queued` or `running` as long become failed too (B05 contracts/content-pipeline.md §5).
+    Returns how many builds and runs it failed."""
     cutoff = timezone.now() - timedelta(seconds=STALE_AFTER_SECONDS)
     stuck = ContentPack.objects.filter(build_state=BuildState.RUNNING, updated_at__lt=cutoff)
     count = 0
     for pack in stuck:
-        _fail(pack, "the build stopped: no result after 30 minutes")
+        _fail(pack, f"the build stopped: {STOPPED}")
         count += 1
+    runs = SolverRun.objects.filter(status__in=SolverRun.ACTIVE, updated_at__lt=cutoff)
+    count += runs.update(
+        status=SolverRun.Status.FAILED,
+        result={"error": f"stopped: {STOPPED}"},
+        finished_at=timezone.now(),
+        updated_at=timezone.now(),
+    )
     return count

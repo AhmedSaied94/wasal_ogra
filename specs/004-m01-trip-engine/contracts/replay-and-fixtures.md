@@ -85,6 +85,7 @@ The rules:
 | `ending` | 3, 2 and 1 stars, failed, revived and abandoned. |
 | `sample` | Each sample-pack trip, played to 3 stars. |
 | `stress` | `stress__longest_trip.json`: a full vehicle, the longest trip the bounds allow (1,500 s) and 1,200 commands (SC-004, SC-005). |
+| `solver` | (B05) `solver__<trip_id>.json`: the run the Python solver found for each sample trip, at 3 stars with no fight, mistake or booster. Written by `wassal-solver fixture`, never by hand. |
 
 **Form.** Exactly these five keys (constitution III), pretty-printed with two-space indent and keys
 sorted:

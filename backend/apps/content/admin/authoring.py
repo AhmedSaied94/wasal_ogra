@@ -14,8 +14,16 @@ from django.contrib.admin.utils import NestedObjects
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.db.models import QuerySet
-from django.http import HttpRequest
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotAllowed,
+    HttpResponseRedirect,
+)
+from django.urls import URLPattern, path, reverse
 
+from apps.content.admin import previews
 from apps.content.admin.common import TRIP_ID, is_staff, on_source
 from apps.content.forms import (
     ContentForm,
@@ -47,7 +55,7 @@ from apps.content.models import (
     TripStation,
     Vehicle,
 )
-from apps.content.services import review
+from apps.content.services import preview, review
 from apps.content.widgets import arabic_widget, is_arabic_field
 
 
@@ -195,6 +203,7 @@ class TripEventInline(ContentInline):
 
 @admin.register(Trip)
 class TripAdmin(ContentModelAdmin):
+    change_form_template = "admin/content/trip/change_form.html"
     inlines = (TripStationInline, TripPassengerInline, TripEventInline)
     list_display = ("trip_id", "kind", "vehicle", "rev", "max_earnings_jenehat")
     list_filter = ("line", "kind")
@@ -236,6 +245,54 @@ class TripAdmin(ContentModelAdmin):
         if match:
             return queryset.filter(line__line_id=match[1], number=int(match[2])), False
         return super().get_search_results(request, queryset, search_term)
+
+    # -- the solver preview (B05 contracts/content-pipeline.md §6) --------------------------------
+
+    def get_urls(self) -> list[URLPattern]:
+        solve = path(
+            "<path:object_id>/solve/",
+            self.admin_site.admin_view(self.solve_view),
+            name="content_trip_solve",
+        )
+        return [solve, *super().get_urls()]
+
+    @staticmethod
+    def can_preview(request: HttpRequest) -> bool:
+        return on_source() and request.user.has_perm("content.change_trip")
+
+    def change_view(
+        self,
+        request: HttpRequest,
+        object_id: str,
+        form_url: str = "",
+        extra_context: dict[str, Any] | None = None,
+    ) -> HttpResponse:
+        trip = self.get_object(request, object_id)
+        context: dict[str, Any] = {}
+        if trip is not None and on_source():
+            context = {
+                "can_preview": self.can_preview(request),
+                "preview": previews.preview_panel(trip),
+            }
+        return super().change_view(
+            request, object_id, form_url, {**(extra_context or {}), **context}
+        )
+
+    def solve_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
+        """POST only: queue a preview of this trip, one at a time, and show its page."""
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        if not self.can_preview(request):
+            raise PermissionDenied
+        trip = self.get_object(request, object_id)
+        if trip is None:
+            raise Http404("No such trip.")
+        _, created = preview.request_preview(trip, request.user)  # type: ignore[arg-type]
+        if created:
+            self.message_user(request, previews.RUNNING)
+        else:
+            self.message_user(request, previews.ALREADY, messages.WARNING)
+        return HttpResponseRedirect(reverse("admin:content_trip_change", args=[trip.pk]))
 
 
 # -- story ----------------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 # Parity fixtures
 
-Each file here pins one trip's exact outcome. The Dart engine (`packages/trip_engine`) must
-reproduce every one today, and the Python mirror (`tools/solver`, B05) must reproduce every one
-before it merges (constitution III).
+Each file here pins one trip's exact outcome. The Dart engine (`packages/trip_engine`) and the
+Python mirror (`tools/solver`, B05) must both reproduce every one, and CI checks both
+(constitution III).
 
 ## Form
 
@@ -33,6 +33,7 @@ A fixture has exactly five keys, pretty-printed with a two-space indent and keys
 | `ending` | 3, 2 and 1 stars, failed, revived and abandoned. |
 | `sample` | Each sample-pack trip, played to 3 stars. |
 | `stress` | `stress__longest_trip.json`: a full vehicle, the longest trip the params allow, 1,200 commands. |
+| `solver` | `solver__<trip_id>.json`: the run the solver found for each sample trip, at 3 stars with no fight, mistake or booster. |
 
 ## Work with them
 
@@ -46,6 +47,19 @@ fvm dart run tool/fixtures.dart update ../../fixtures/parity/<file>.json
 
 To add one: write `definition`, `seed`, `params` and `command_log`, run `update`, read the `show`
 output, and add the rule it pins to `test/fixtures/fixture_expectations_test.dart`.
+
+In `tools/solver`:
+
+```bash
+uv run wassal-solver parity ../../fixtures/parity          # the mirror replays every fixture
+uv run wassal-solver fixture ../../content/examples/sample/trips/*/*.json   # new solver__ files
+```
+
+`fixture` solves each trip and writes `solver__<trip_id>.json` (the id's `.` becomes `_`), with the
+bundled params for its line and the trip's own seed. It never overwrites a file. Its expectation
+goes in `packages/trip_engine/test/fixtures/expectations/solver.dart`, written by hand. Python never
+rewrites an existing `expected_result`: only Dart's `update` does, and the change is reviewed as
+above.
 
 ## Rules
 

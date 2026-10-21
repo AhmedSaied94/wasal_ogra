@@ -22,6 +22,7 @@ dependencies = [
     "requests==2.34.2",
     "boto3==1.43.114",
     "wassal-content",
+    "wassal-solver",
 ]
 
 [dependency-groups]
@@ -45,11 +46,13 @@ dev = [
 [tool.uv]
 package = false
 
-# The content toolkit lives in the repository (research R13). It installs non-editable, so the image
-# carries it in /opt/venv; after changing tools/content_kit, run
-# `uv sync --reinstall-package wassal-content` here.
+# The content toolkit and the solver live in the repository (B04 research R13, B05 research R1).
+# They install non-editable, so the image carries them in /opt/venv; after changing tools/content_kit
+# or tools/solver, run `uv sync --reinstall-package wassal-content --reinstall-package wassal-solver`
+# here.
 [tool.uv.sources]
 wassal-content = { path = "../tools/content_kit" }
+wassal-solver = { path = "../tools/solver" }
 
 [tool.ruff]
 target-version = "py313"
