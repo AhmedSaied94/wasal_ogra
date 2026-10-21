@@ -34,7 +34,6 @@ final class _Rig {
       appVersion: ClientVersion.parse('1.0.0+2'),
       clock: clock.call,
       activeVersion: () => 1,
-      readyVersion: () => ready?.version,
       acceptReady: (PackContentSource source) => ready = source,
     );
   }

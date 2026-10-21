@@ -30,7 +30,6 @@ final class ContentUpdater {
     required this._appVersion,
     required this._clock,
     required this._activeVersion,
-    required this._readyVersion,
     required this._acceptReady,
   });
 
@@ -44,7 +43,6 @@ final class ContentUpdater {
   final ClientVersion? _appVersion;
   final Clock _clock;
   final int Function() _activeVersion;
-  final int? Function() _readyVersion;
   final void Function(PackContentSource source) _acceptReady;
 
   bool _started = false;
@@ -141,7 +139,9 @@ final class ContentUpdater {
     if (cores.isEmpty) return null;
     final entry = cores.first;
     final v = entry.version;
-    final ready = _readyVersion() ?? _store.state.ready?.version ?? 0;
+    // The store lists a ready pack before the controller holds it, and a
+    // switch makes it the active version.
+    final ready = _store.state.ready?.version ?? 0;
     if (v <= _activeVersion() || v <= ready) return null;
     if (entry.size > downloadMaxBytes) {
       _record(RefusalReason.tooLarge, version: v);

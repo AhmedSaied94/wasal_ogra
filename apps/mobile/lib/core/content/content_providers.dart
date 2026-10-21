@@ -77,7 +77,6 @@ ContentUpdater contentUpdater(Ref ref) {
     ),
     clock: ref.watch(clockProvider),
     activeVersion: () => ref.read(activeContentProvider).requireValue.version,
-    readyVersion: () => controller.readyVersion,
     acceptReady: controller.acceptReady,
   );
   ref.onDispose(updater.dispose);

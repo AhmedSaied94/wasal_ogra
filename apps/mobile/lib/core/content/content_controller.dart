@@ -56,9 +56,6 @@ class ContentController extends _$ContentController {
   late PackStore _store;
   PackContentSource? _ready;
 
-  /// The version of the verified pack waiting for a switch, if any.
-  int? get readyVersion => _ready?.version;
-
   @override
   Future<ActiveContent> build() async {
     final watch = Stopwatch()..start();

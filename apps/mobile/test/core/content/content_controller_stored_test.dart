@@ -61,13 +61,13 @@ void main() {
       final decoded = decodePackFile(pack.bytes, pack.expected) as PackDecoded;
       final controller = container.read(activeContentProvider.notifier)
         ..acceptReady(decoded.source);
-      expect(controller.readyVersion, 3);
 
       await controller.switchIfReady();
       expect(seen.map((a) => (a.version, a.origin)), [
         (3, ContentOrigin.stored),
       ]);
-      expect(controller.readyVersion, isNull);
+      await controller.switchIfReady();
+      expect(seen, hasLength(1), reason: 'the ready pack is used up');
       expect(openStore(dir).state.active?.version, 3);
       expectStoreInvariants(dir, _app);
     });
