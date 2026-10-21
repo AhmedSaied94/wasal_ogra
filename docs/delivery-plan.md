@@ -406,7 +406,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     solver stage (B04's T107 follows its owner step 4), and B08 `solve`, the score and
     `replay_untrusted`.
 - [ ] Step 4: Content and the local economy
-  - [ ] `006-m04-content-loader`. Built on 2026-10-21. Decided in its clarifications: the app
+  - [ ] `006-m04-content-loader`. Built on 2026-10-21, open as #7. Decided in its clarifications: the app
     becomes 1.0.0 (`1.0.0+2`); downloads are in M04, not M06; staging and prod bundle only the newest
     pack in `content/source/`, and dev bundles the sample. Constitution 1.2.0 (amended 2026-10-21)
     allows plain HTTP in dev builds only, to the developer's own machine.

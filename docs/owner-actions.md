@@ -21,7 +21,7 @@ left, in what order, and where to look.
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
-| [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Built 2026-10-21 on `006-m04-content-loader`. |
+| [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Built 2026-10-21 on `006-m04-content-loader`. Open as #7. |
 
 ## Every month
 
