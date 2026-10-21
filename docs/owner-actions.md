@@ -20,7 +20,7 @@ left, in what order, and where to look.
 | [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
-| [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Built 2026-10-21 on `005-b05-solver-parity`. |
+| [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Built 2026-10-21 on `005-b05-solver-parity`. Open as #6. |
 
 ## Every month
 

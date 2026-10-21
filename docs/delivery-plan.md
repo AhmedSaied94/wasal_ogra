@@ -350,7 +350,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     (`trip_hints_mode_<line_id>`, research R12). Hands B10 the backend copy of its 20 tunables
     (research R19).
 - [ ] Step 3: Parity
-  - [ ] `005-b05-solver-parity`. Built on 2026-10-21. Decided in its clarifications: a score
+  - [ ] `005-b05-solver-parity`. Built on 2026-10-21, open as #6. Decided in its clarifications: a score
     outside the line's band is a warning, not an error; the mirror covers state and results, not
     events or speech; only the 600 ms player gates a trip (slower players are in the balancing
     report); a 50-trip pack's solver stage fits in 30 minutes on staging. Gives B04 its real
