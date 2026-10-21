@@ -70,7 +70,7 @@ jobs:
             exit 0
           fi
           if git diff --name-only "$base" HEAD \
-              | grep -qE '^(backend/|contracts/|content/|fixtures/|tools/content_kit/|packages/content_models/|\.dockerignore$|\.github/workflows/backend[^/]*\.yml$)'; then
+              | grep -qE '^(backend/|contracts/|content/|fixtures/|tools/content_kit/|tools/solver/|packages/content_models/|packages/trip_engine/|apps/mobile/assets/config/tunables\.json$|\.dockerignore$|\.github/workflows/backend[^/]*\.yml$)'; then
             echo "backend=true" >> "$GITHUB_OUTPUT"
           else
             echo "backend=false" >> "$GITHUB_OUTPUT"
@@ -221,6 +221,43 @@ jobs:
           fi
           uv run wassal-content schema-diff --base "$base"
 
+  # The Python mirror, parity with the Dart engine, and the solver
+  # (specs/005-b05-solver-parity/contracts/ci-checks.md).
+  solver:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: tools/solver
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          enable-cache: true
+          cache-dependency-glob: tools/solver/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy .
+      - run: uv run pytest -n 4 --cov --cov-fail-under=80
+      - name: The mirror's own coverage (90%, as the Dart engine's)
+        run: uv run coverage report --include='*/wassal_solver/engine/*' --fail-under=90
+      - name: Time and memory budgets, without coverage, which slows the mirror
+        run: uv run pytest tests/perf -q
+      - name: The packaged tunables match the app's
+        run: uv run wassal-solver sync --check
+      - name: Parity with the Dart engine
+        run: uv run wassal-solver parity ../../fixtures/parity
+      - name: The sample pack solves inside its bands
+        run: uv run wassal-solver check-source ../../content/examples/sample --bands error
+      - name: Published content still solves
+        run: uv run wassal-solver check-source ../../content/source --bands warning
+      - name: The bench corpus, and the digest every machine must match (SC-005)
+        run: uv run wassal-solver bench --digest
+
   image:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
@@ -277,7 +314,7 @@ jobs:
   # Tags sha-<commit> only after every check passed: the release workflow treats the tag's
   # existence as that proof (FR-030).
   image-manifest:
-    needs: [changes, lint, types, test, contract, content-kit, image, smoke]
+    needs: [changes, lint, types, test, contract, content-kit, solver, image, smoke]
     if: >-
       needs.changes.outputs.backend == 'true'
       && github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -349,7 +386,7 @@ jobs:
         run: $COMPOSE down -v
 
   backend:
-    needs: [changes, lint, types, test, contract, content-kit, image, image-manifest, smoke]
+    needs: [changes, lint, types, test, contract, content-kit, solver, image, image-manifest, smoke]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 15

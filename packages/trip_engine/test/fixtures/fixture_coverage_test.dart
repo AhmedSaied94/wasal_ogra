@@ -93,4 +93,19 @@ void main() {
       'line_gamaa.02',
     });
   });
+
+  test('each of the 5 sample trips has a solver fixture with 3 stars', () {
+    final solved = {
+      for (final MapEntry(:key, :value) in fixtures.entries)
+        if (key.startsWith('solver__') && value.expectedResult.stars == 3)
+          value.definition.tripId,
+    };
+    expect(solved, {
+      'line_hay.01',
+      'line_hay.02',
+      'line_hay.03',
+      'line_gamaa.01',
+      'line_gamaa.02',
+    });
+  });
 }

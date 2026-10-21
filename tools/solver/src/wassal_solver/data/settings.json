@@ -1,0 +1,17 @@
+{
+  "effort_budget_steps": 1500000,
+  "reaction_ms": 600,
+  "report_reaction_ms": [900, 1200],
+  "safety_cap_seconds": 180,
+  "score": {
+    "blockers": {"cap": 18, "free": 0, "per": 6, "unit": 1},
+    "breaks": {"cap": 16, "free": 0, "per": 8, "unit": 1},
+    "change_pieces": {"cap": 16, "free": 2, "per": 1, "unit": 1},
+    "owed_at_once": {"cap": 24, "free": 1, "per": 8, "unit": 1},
+    "slack_ref_ms": 12000,
+    "tightness_ms": {"cap": 20, "free": 0, "per": 2, "unit": 1000},
+    "variety": {"cap": 16, "free": 1, "per": 4, "unit": 1}
+  },
+  "tap_ms": 198,
+  "transposition_cap": 100000
+}

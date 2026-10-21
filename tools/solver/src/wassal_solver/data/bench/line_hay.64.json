@@ -1,0 +1,133 @@
+{
+  "events": [
+    {
+      "at_seconds": 40,
+      "event_id": "traffic",
+      "seconds": 10
+    },
+    {
+      "at_seconds": 70,
+      "event_id": "payment_dispute",
+      "passenger_ids": [
+        "p3",
+        "p4"
+      ]
+    }
+  ],
+  "initial_tray": {
+    "100": 5,
+    "50": 2
+  },
+  "kind": "regular",
+  "line_id": "line_hay",
+  "max_earnings_jenehat": 30,
+  "passengers": [
+    {
+      "archetype": "group_payer",
+      "dest_station_id": "forn",
+      "group_id": "g1",
+      "group_size": 2,
+      "passenger_id": "p1",
+      "payment": [
+        2000
+      ],
+      "pays_at_seconds": 4,
+      "seat_id": "A_r",
+      "skin": "young_cap",
+      "speech_keys": {
+        "pays_group": "passenger.pays"
+      }
+    },
+    {
+      "archetype": "regular",
+      "dest_station_id": "forn",
+      "group_id": "g1",
+      "group_size": 2,
+      "passenger_id": "p2",
+      "payment": [
+        1000
+      ],
+      "seat_id": "A_m",
+      "skin": "worker_blue"
+    },
+    {
+      "archetype": "hajja",
+      "board_station_id": "madrasa",
+      "dest_station_id": "mahatta",
+      "passenger_id": "p3",
+      "payment": [
+        500,
+        100,
+        100
+      ],
+      "seat_id": "A_l",
+      "skin": "hajja_black",
+      "speech_keys": {
+        "stop_near": "passenger.stop_near"
+      }
+    },
+    {
+      "archetype": "regular",
+      "board_station_id": "forn",
+      "dest_station_id": "mahatta",
+      "passenger_id": "p4",
+      "payment": [
+        1000
+      ],
+      "seat_id": "A_r",
+      "skin": "worker_blue"
+    }
+  ],
+  "rev": 1,
+  "rules": {
+    "bag_fare_piasters": 0,
+    "child_free_age": 6,
+    "max_break_requests": 2,
+    "no_fights_required": false,
+    "student_discount_pct": 0
+  },
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    }
+  ],
+  "seed": 1434863113,
+  "star_rules": {
+    "three": "no_fights_no_mistakes",
+    "two": "no_fights"
+  },
+  "stations": [
+    {
+      "at_seconds": 26,
+      "fare_piasters": 700,
+      "station_id": "madrasa"
+    },
+    {
+      "at_seconds": 51,
+      "fare_piasters": 700,
+      "station_id": "forn"
+    },
+    {
+      "at_seconds": 81,
+      "fare_piasters": 700,
+      "station_id": "mahatta"
+    }
+  ],
+  "trip_id": "line_hay.64",
+  "vehicle_id": "tuktuk"
+}

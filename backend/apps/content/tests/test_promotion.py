@@ -144,6 +144,11 @@ def test_a_size_warning_still_promotes(staging: Staging, publisher: User) -> Non
     assert promote.promote(code, publisher) is not None
 
 
+def test_a_solver_warning_still_promotes(staging: Staging, publisher: User) -> None:
+    code = staging.publish(3, stages={**PASSED, "solver": "warning", "size": "warning"})
+    assert promote.promote(code, publisher) is not None
+
+
 def test_the_job_promotes_with_its_actor_checked_again(staging: Staging, publisher: User) -> None:
     code = staging.publish(4)
 
@@ -205,8 +210,10 @@ def test_a_version_not_above_current_is_refused(staging: Staging, publisher: Use
     "stages",
     [
         {**PASSED, "solver": "not_available"},
+        {**PASSED, "solver": "failed"},
         {**PASSED, "references": "failed"},
         {**PASSED, "review": "warning"},
+        {**PASSED, "content_rules": "warning", "solver": "warning"},
         {k: v for k, v in PASSED.items() if k != "solver"},
     ],
 )

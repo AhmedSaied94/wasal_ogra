@@ -1,8 +1,9 @@
 # Trip Rules Reference
 
 The exact rules of a trip (M01 spec FR-063), and the living reference: the Dart engine in this
-package implements them, and B05's Python mirror (`tools/solver`) reproduces them. Every rule change
-edits this file in the same PR as the code and the fixtures in `fixtures/parity/` (constitution
+package implements them, and B05's Python mirror (`tools/solver/src/wassal_solver/engine`)
+reproduces every rule that decides the state and the result. Every rule change edits this file in
+the same PR as the Dart code, the mirror and the fixtures in `fixtures/parity/` (constitution
 III). The design reasons are in
 [research.md](../../specs/004-m01-trip-engine/research.md), and the types are in
 [data-model.md](../../specs/004-m01-trip-engine/data-model.md).
@@ -11,8 +12,10 @@ Wording: *reached* means "at the first step whose clock is ≥ the time". *Fewes
 greedy decomposition of §14.3. A passenger is *able* when they are aboard and `awake` or `attentive`.
 
 Parity fixtures pin only `expected_result`, not the events. The event orders below are rules all the
-same: the Dart tests check them, and B05 mirrors them. Where a rule was settled while M01 was built,
-the fixture (in `fixtures/parity/`) or the test (in `test/`) that pins it is named next to it.
+same, and the Dart tests alone check them, with speech (§12) and the PRNG (§13). The mirror leaves
+events, speech and the PRNG out, because no state or result depends on them (B05 spec FR-006).
+Where a rule was settled while M01 was built, the fixture (in `fixtures/parity/`) or the test (in
+`test/`) that pins it is named next to it.
 
 ## 1. Conventions
 

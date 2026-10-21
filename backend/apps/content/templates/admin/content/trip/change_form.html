@@ -1,0 +1,66 @@
+{% extends "admin/change_form.html" %}
+{% comment %}A trip's page with the solver preview (B05 contracts/content-pipeline.md §6). Amounts are integer piasters. No script.{% endcomment %}
+{% block object-tools-items %}
+  {% if can_preview %}
+  <li>
+    <form method="post" action="{% url 'admin:content_trip_solve' original.pk %}">{% csrf_token %}
+      {% if preview.active %}
+      <button type="submit" disabled>Running since {{ preview.run.created_at|time:"H:i" }}</button>
+      {% else %}
+      <button type="submit">Run the solver</button>
+      {% endif %}
+    </form>
+  </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+{% block after_field_sets %}
+{{ block.super }}
+{% if preview %}
+<fieldset class="module">
+  <h2>Solver preview</h2>
+  {% if preview.earlier %}<p><strong>This preview is for an earlier version of the trip.</strong></p>{% endif %}
+  {% if preview.active %}
+  <p>{{ preview.run.status }} since {{ preview.run.created_at|time:"H:i" }}</p>
+  {% elif preview.run.status == "failed" %}
+  <p>failed{% if preview.stop %}: {{ preview.stop }}{% endif %}</p>
+  {% if preview.findings %}
+  <table>
+    <thead><tr><th>Severity</th><th>Code</th><th>Path</th><th>Problem</th></tr></thead>
+    <tbody>
+    {% for finding in preview.findings %}
+      <tr><td>{{ finding.severity }}</td><td>{{ finding.code }}</td><td>{{ finding.path }}</td><td>{{ finding.message }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p>{{ preview.verdict }}, {{ preview.end }}, {{ preview.stars }} stars</p>
+  {% for refusal in preview.refusals %}<p>{{ refusal.code }} at {{ refusal.path }}: {{ refusal.message }}</p>{% endfor %}
+  {% if preview.score is not None %}
+  <p>Score {{ preview.score }}. Band {{ preview.band }}: {% if preview.in_band %}in band{% else %}outside the band{% endif %}.</p>
+  <table>
+    <thead><tr><th>Input</th><th>Value</th><th>Points</th></tr></thead>
+    <tbody>
+    {% for name, value, points in preview.inputs %}
+      <tr><td>{{ name }}</td><td>{{ value }}</td><td>{{ points }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if preview.first_loss %}<p>{{ preview.first_loss }}</p>{% endif %}
+  {% endif %}
+  {% if preview.timeline %}
+  <table>
+    <thead><tr><th>t</th><th>Decision</th><th>Passenger</th><th>Amount (piasters)</th><th>Pieces</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for row in preview.timeline %}
+      <tr class="timeline"><td>{{ row.t }}</td><td>{{ row.decision }}</td><td>{{ row.passenger }}</td><td>{{ row.amount }}</td><td>{{ row.pieces }}</td><td>{{ row.note }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if preview.settings_version %}<p>Settings {{ preview.settings_version }}</p>{% endif %}
+</fieldset>
+{% endif %}
+{% endblock %}

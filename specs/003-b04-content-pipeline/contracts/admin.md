@@ -121,7 +121,11 @@ actor and version.
 
 - **Stage results** are `passed`, `warning`, `failed` or `not_available`.
 - **The pack becomes `validated`** only when every result is `passed` or `warning` (FR-022). The
-  solver is the exception, which must be `passed` before a publish (contracts/pack-delivery.md).
+  solver is the exception, which must be `passed` or `warning` (B05) before a publish
+  (contracts/pack-delivery.md).
+- (B05) The real solver stage also writes `trips` (one summary per trip) and `meta` next to its
+  `result`, and the pack's page shows them as a table under the stage results
+  (specs/005-b05-solver-parity/data-model.md "Validation report additions").
 - **Messages** are English, for staff. They never contain secrets or personal data. Identifiers and
   paths are content data.
 

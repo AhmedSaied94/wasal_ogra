@@ -1,0 +1,139 @@
+{
+  "events": [
+    {
+      "at_seconds": 20,
+      "event_id": "bump"
+    }
+  ],
+  "initial_tray": {
+    "100": 3,
+    "1000": 1,
+    "50": 3
+  },
+  "kind": "regular",
+  "line_id": "line_gamaa",
+  "max_earnings_jenehat": 25,
+  "passengers": [
+    {
+      "archetype": "big_note",
+      "dest_station_id": "mostashfa",
+      "passenger_id": "p1",
+      "payment": [
+        5000
+      ],
+      "pays_at_seconds": 4,
+      "seat_id": "front_r",
+      "skin": "effendi_tie"
+    },
+    {
+      "archetype": "sleeper",
+      "dest_station_id": "kobri",
+      "passenger_id": "p2",
+      "payment": [
+        1000
+      ],
+      "seat_id": "B_m",
+      "skin": "worker_blue"
+    },
+    {
+      "archetype": "student",
+      "dest_station_id": "mostashfa",
+      "passenger_id": "p3",
+      "payment": [
+        1000
+      ],
+      "pays_at_seconds": 10,
+      "seat_id": "C_l",
+      "skin": "student_cap"
+    }
+  ],
+  "rev": 1,
+  "rules": {
+    "bag_fare_piasters": 0,
+    "child_free_age": 6,
+    "max_break_requests": 2,
+    "no_fights_required": false,
+    "student_discount_pct": 0
+  },
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "front",
+      "seat_id": "front_r"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "B",
+      "seat_id": "B_l"
+    },
+    {
+      "col": "r",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": false,
+      "row": "C",
+      "seat_id": "C_l"
+    }
+  ],
+  "seed": 1794533822,
+  "star_rules": {
+    "three": "no_fights_no_mistakes",
+    "two": "no_fights"
+  },
+  "stations": [
+    {
+      "at_seconds": 28,
+      "fare_piasters": 850,
+      "station_id": "kobri"
+    },
+    {
+      "at_seconds": 58,
+      "fare_piasters": 850,
+      "station_id": "mostashfa"
+    }
+  ],
+  "trip_id": "line_gamaa.73",
+  "vehicle_id": "micro_old"
+}

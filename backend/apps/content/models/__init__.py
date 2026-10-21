@@ -12,6 +12,7 @@ from apps.content.models.packs import (
     PackTripIndex,
     PublishedIdentifier,
 )
+from apps.content.models.solver import SolverRun
 from apps.content.models.speech_economy import (
     CatalogPrice,
     DailyRewardDay,
@@ -79,6 +80,7 @@ __all__ = [
     "Scene",
     "SceneLine",
     "Seat",
+    "SolverRun",
     "SpeechLine",
     "SpeechPool",
     "Station",

@@ -1,8 +1,9 @@
 """`content_build --actor <staff> [--dry-run] [--version N]` (contracts/admin.md).
 
 A build runs synchronously, with the admin's checks. `--dry-run` builds in memory and prints the
-checksums, even with findings, and saves nothing. `--version N` is for a dry run only (quickstart
-§3): a real build always gets the next version.
+checksums, even with findings, and saves no pack. The real solver stage still keeps the results it
+solves, so the next build reuses them (B05). `--version N` is for a dry run only (quickstart §3): a
+real build always gets the next version.
 """
 
 from __future__ import annotations
@@ -24,7 +25,9 @@ class Command(PackVersionCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
-            "--dry-run", action="store_true", help="Build in memory, print, save nothing."
+            "--dry-run",
+            action="store_true",
+            help="Build in memory and print; save no pack (solver results are kept for reuse).",
         )
         parser.add_argument("--version", type=int, help="The version a dry run builds as.")
         add_actor_argument(parser)
@@ -51,8 +54,12 @@ class Command(PackVersionCommand):
         except versioning.VersionFloorUnavailable as error:
             raise CommandError(str(error)) from None
         parts = snapshot(exporter.schema_version())
-        output = build.produce(parts, number, build.current_pack(), review=True)
-        self.stdout.write(f"version {output.version} (dry run, nothing saved)")
+        # No heartbeat: a dry run has no pack row. The solver stage still records its runs,
+        # which only a later build reuses.
+        output = build.produce(
+            parts, number, build.current_pack(), review=True, progress=build.no_progress
+        )
+        self.stdout.write(f"version {output.version} (dry run, no pack saved)")
         self._summary(output.sha256, output.canonical_sha256, output.size, output.report)
 
     def _build(self, pack: ContentPack) -> None:

@@ -230,6 +230,35 @@ def test_a_solver_stage_that_did_not_pass_is_refused(
         publish.request_publish(pack, publisher)
 
 
+def with_solver(pack: ContentPack, result: str) -> ContentPack:
+    """The pack with its solver stage's result set, as the real stage would leave it (B05)."""
+    report = pack.validation_report
+    report["stages"]["solver"]["result"] = result
+    ContentPack.objects.filter(pk=pack.pk).update(validation_report=report)
+    pack.refresh_from_db()
+    return pack
+
+
+def test_a_solver_warning_still_publishes(sample_reviewed: User, publisher: User) -> None:
+    pack = with_solver(built(sample_reviewed), "warning")
+
+    result = published(pack, publisher)
+
+    assert json.loads(bytes(result.release_file))["stages"]["solver"] == "warning"
+
+
+@pytest.mark.parametrize("result", ["failed", "not_available"])
+def test_a_solver_stage_that_failed_or_did_not_run_is_refused(
+    sample_reviewed: User, publisher: User, result: str
+) -> None:
+    pack = with_solver(built(sample_reviewed), result)
+
+    refused = publish.publish(str(pack.pk), publisher)
+
+    assert refused.status == Status.VALIDATED
+    assert f"solver stage is {result}, not passed" in refused.failure_reason
+
+
 def test_a_draft_is_refused(sample_imported: User, publisher: User) -> None:
     pack = built(sample_imported)
 
@@ -282,11 +311,13 @@ def test_the_release_record_is_canonical_and_names_no_one(
         "schema_version",
         "sha256",
         "size",
+        "solver",
         "stages",
         "version",
         "warnings",
     ]
     assert (record["version"], record["sha256"], record["size"]) == (1, pack.sha256, pack.size)
+    assert record["solver"] == {"stand_in": True, "trips": []}
     assert set(record["stages"].values()) == {"passed"}
     assert record["warnings"] == []
     for name in ("author1", "publisher1"):

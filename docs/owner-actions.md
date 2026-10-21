@@ -19,7 +19,8 @@ left, in what order, and where to look.
 | [001 M03 app shell](#001-m03-app-shell) | none | 2 device checks | Merged in #1 |
 | [002 B01 backend skeleton](#002-b01-backend-skeleton) | 10 | 8 | Merged in #2 on 2026-10-19. Live checks open. |
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
-| [004 M01 trip engine](#004-m01-trip-engine) | none | none | Built 2026-10-20 on `004-m01-trip-engine`. Open as #5. |
+| [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
+| [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Built 2026-10-21 on `005-b05-solver-parity`. |
 
 ## Every month
 
@@ -381,7 +382,8 @@ Then merge PR 2. The merge deploys the staging VM.
 
 ### After B05
 
-Walk [quickstart "After B05"](../specs/003-b04-content-pipeline/quickstart.md#after-b05-live-checks-on-the-hosts)
+These come after [B05's step 4](#after-merge-3), which publishes the first pack on staging. Walk
+[quickstart "After B05"](../specs/003-b04-content-pipeline/quickstart.md#after-b05-live-checks-on-the-hosts)
 items 3–7 (T107). Then tick B04 in the
 [delivery plan's Progress list](delivery-plan.md#progress).
 
@@ -425,7 +427,53 @@ Nothing is left for you.
 Nothing. The replay budget (SC-004) is measured on the CI runner, not on a device. Tick M01 in the
 [delivery plan's Progress list](delivery-plan.md#progress) when the PR merges.
 
+## 005 B05 solver and parity
+
+Built and tested on 2026-10-21, on branch `005-b05-solver-parity`
+([tasks.md](../specs/005-b05-solver-parity/tasks.md),
+[quickstart](../specs/005-b05-solver-parity/quickstart.md)). It adds `tools/solver`, the real
+solver stage, which is now the default on staging and production, and the admin's trip preview.
+
+### Before merge
+
+Nothing is left for you. The staging and production env files leave `CONTENT_SOLVER_STAGE` unset,
+so they get the real stage.
+
+### After merge
+
+Run these over each VM's WireGuard. Then tick B05 in the
+[delivery plan's Progress list](delivery-plan.md#progress).
+
+- [ ] **1. Production first.** Deploy production with this release before the first promotion of a
+  pack that carries a solver warning. An older production refuses such a pack.
+- [ ] **2. The bench on staging (SC-005, SC-007).** Run
+  `sudo docker exec wassal-staging-worker-1 wassal-solver bench --digest`. The last line's digest
+  equals the one in the `solver` job's log for the merge commit, and the `total:` line is under 30
+  minutes. Send Claude the total: it sets the effort budget from staging's real speed
+  (research R19).
+- [ ] **3. A preview on staging (SC-006).** In staging's admin, open `line_hay.01` and click **Run
+  the solver**. Within 60 s, a reload shows `solved`, a score in band 0–30 and the timeline.
+- [ ] **4. The first publish (SC-012).** Build the sample pack on staging. Its solver stage is
+  `passed` or `warning`, with a result for every trip on the pack's page. Publish it, then walk
+  [B04's "After B05"](#after-b05) items 3–7.
+
+### Local, any time
+
+- On 2026-10-21 Claude rebuilt the dev image and brought the stack up again, still with
+  `WASSAL_DEV_PG_PORT=5433`. The dev database now holds the current sample, packs 3–9 built with
+  the real stage, and pack 6 published. `docker compose … down -v` wipes them.
+- The dev `.env` keeps `CONTENT_SOLVER_STAGE=stand_in`, so builds queued from the dev admin skip
+  the solver. Set it to `solver`, or leave it unset, to try the real stage locally.
+
 ## Known for later features
+
+- **Solver previews (B05), when the admin gets more users or scripts.** Two things were left out on
+  purpose, because today the admin has one or two staff, behind WireGuard, and previews exist only
+  on staging:
+  - a limit on active previews per user or overall (today it is one per trip). Many previews at
+    once would delay staging's builds, which share the `content` queue;
+  - pruning old `SolverRun` rows. Each preview adds one, with the staff name, and nothing removes
+    them. Keep the newest `done` run of each `input_key`, which builds reuse.
 
 - **Register the real domain before the first closed test.** That test is the step 7 option or
   step 12. B09's account-deletion page needs the domain too. The switch is configuration only: the

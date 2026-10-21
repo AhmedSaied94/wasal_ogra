@@ -1,0 +1,340 @@
+{
+  "command_log": [
+    [
+      627,
+      "Tap",
+      "p2"
+    ],
+    [
+      1254,
+      "PickFromTray",
+      500
+    ],
+    [
+      1452,
+      "PickFromTray",
+      50
+    ],
+    [
+      1650,
+      "SendHand",
+      "p2"
+    ],
+    [
+      2277,
+      "Tap",
+      "p3"
+    ],
+    [
+      2904,
+      "PickFromTray",
+      2000
+    ],
+    [
+      3102,
+      "PickFromTray",
+      1000
+    ],
+    [
+      3300,
+      "PickFromTray",
+      500
+    ],
+    [
+      3498,
+      "PickFromTray",
+      100
+    ],
+    [
+      3696,
+      "PickFromTray",
+      50
+    ],
+    [
+      3894,
+      "SendHand",
+      "p3"
+    ],
+    [
+      4521,
+      "Tap",
+      "p4"
+    ],
+    [
+      5148,
+      "PickFromTray",
+      100
+    ],
+    [
+      5346,
+      "SendHand",
+      "p1"
+    ],
+    [
+      6171,
+      "Tap",
+      "p4"
+    ],
+    [
+      6798,
+      "RequestBreak",
+      5000
+    ],
+    [
+      8943,
+      "PickFromTray",
+      2000
+    ],
+    [
+      9141,
+      "PickFromTray",
+      2000
+    ],
+    [
+      9339,
+      "PickFromTray",
+      100
+    ],
+    [
+      9537,
+      "PickFromTray",
+      100
+    ],
+    [
+      9735,
+      "PickFromTray",
+      100
+    ],
+    [
+      9933,
+      "SendHand",
+      "p4"
+    ],
+    [
+      21186,
+      "Tap",
+      "p4"
+    ],
+    [
+      37851,
+      "Tap",
+      "p4"
+    ],
+    [
+      54516,
+      "Tap",
+      "p4"
+    ]
+  ],
+  "definition": {
+    "events": [],
+    "initial_tray": {
+      "100": 3,
+      "1000": 1,
+      "2000": 1,
+      "50": 2,
+      "500": 2
+    },
+    "kind": "regular",
+    "line_id": "line_gamaa",
+    "max_earnings_jenehat": 60,
+    "passengers": [
+      {
+        "archetype": "honest",
+        "dest_station_id": "gamaa",
+        "passenger_id": "p1",
+        "payment": [
+          1000
+        ],
+        "pays_at_seconds": 2,
+        "seat_id": "front_r",
+        "skin": "effendi_suit"
+      },
+      {
+        "archetype": "hurry",
+        "dest_station_id": "kobri",
+        "passenger_id": "p2",
+        "payment": [
+          1000
+        ],
+        "pays_at_seconds": 5,
+        "seat_id": "A_l",
+        "skin": "effendi_tie"
+      },
+      {
+        "archetype": "group_payer",
+        "dest_station_id": "kobri",
+        "group_id": "g1",
+        "group_size": 3,
+        "passenger_id": "p3",
+        "payment": [
+          5000
+        ],
+        "seat_id": "B_m",
+        "skin": "young_cap"
+      },
+      {
+        "archetype": "sleeper",
+        "dest_station_id": "mostashfa",
+        "passenger_id": "p4",
+        "payment": [
+          5000
+        ],
+        "seat_id": "C_m",
+        "skin": "worker_blue"
+      }
+    ],
+    "rev": 1,
+    "rules": {
+      "bag_fare_piasters": 0,
+      "child_free_age": 6,
+      "max_break_requests": 2,
+      "no_fights_required": false,
+      "student_discount_pct": 0
+    },
+    "seats": [
+      {
+        "col": "r",
+        "reachable_by_driver": true,
+        "row": "front",
+        "seat_id": "front_r"
+      },
+      {
+        "col": "r",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_r"
+      },
+      {
+        "col": "m",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_m"
+      },
+      {
+        "col": "l",
+        "reachable_by_driver": true,
+        "row": "A",
+        "seat_id": "A_l"
+      },
+      {
+        "col": "r",
+        "reachable_by_driver": false,
+        "row": "B",
+        "seat_id": "B_r"
+      },
+      {
+        "col": "m",
+        "reachable_by_driver": false,
+        "row": "B",
+        "seat_id": "B_m"
+      },
+      {
+        "col": "l",
+        "reachable_by_driver": false,
+        "row": "B",
+        "seat_id": "B_l"
+      },
+      {
+        "col": "r",
+        "reachable_by_driver": false,
+        "row": "C",
+        "seat_id": "C_r"
+      },
+      {
+        "col": "m",
+        "reachable_by_driver": false,
+        "row": "C",
+        "seat_id": "C_m"
+      },
+      {
+        "col": "l",
+        "reachable_by_driver": false,
+        "row": "C",
+        "seat_id": "C_l"
+      }
+    ],
+    "seed": 3141592653,
+    "star_rules": {
+      "three": "no_fights_no_mistakes",
+      "two": "no_fights"
+    },
+    "stations": [
+      {
+        "at_seconds": 38,
+        "fare_piasters": 450,
+        "station_id": "kobri"
+      },
+      {
+        "at_seconds": 70,
+        "fare_piasters": 700,
+        "station_id": "mostashfa"
+      },
+      {
+        "at_seconds": 100,
+        "fare_piasters": 900,
+        "station_id": "gamaa"
+      }
+    ],
+    "trip_id": "line_gamaa.02",
+    "vehicle_id": "micro_old"
+  },
+  "expected_result": {
+    "boosters_used": [],
+    "caught_liars": 0,
+    "command_log_hash": "cff3340e53c34ee014cf11a33195ec8caf93238a73c459e16ceb6c2d2832221b",
+    "duration_ms": 100023,
+    "earnings_jenehat": 34,
+    "fares_collected_piasters": 3400,
+    "fights": 0,
+    "impatient": 0,
+    "lost_fares": 0,
+    "missed_stops": 0,
+    "mistakes": [],
+    "outcome": "finished",
+    "overpaid_piasters": 0,
+    "reputation": 100,
+    "reputation_lost": {},
+    "rev": 1,
+    "revived": false,
+    "star_flags": {
+      "no_fights": true,
+      "no_mistakes": true,
+      "reached": true
+    },
+    "stars": 3,
+    "tips_piasters": 0,
+    "trip_id": "line_gamaa.02"
+  },
+  "params": {
+    "booster_ledger_peek_ms": 10000,
+    "booster_traffic_jam_max_per_trip": 3,
+    "booster_traffic_jam_ms": 10000,
+    "rep_change_request_declined": 5,
+    "rep_exact_change": 3,
+    "rep_false_accusation": 20,
+    "rep_fight": 30,
+    "rep_impatient": 5,
+    "rep_liar_caught": 10,
+    "rep_missed_stop": 15,
+    "rep_revive_to": 40,
+    "rep_short_change": 5,
+    "trip_break_delay_ms": 1500,
+    "trip_break_min_piasters": 1000,
+    "trip_bump_collect_ms": 3000,
+    "trip_group_redirect_hop_ms": 600,
+    "trip_headphones_attentive_ms": 15000,
+    "trip_hop_ms": 1100,
+    "trip_hop_pct_chatty_row": 150,
+    "trip_hop_pct_hajja": 200,
+    "trip_patience_drain_pct_traffic": 150,
+    "trip_patience_ms": 20000,
+    "trip_patience_pct_hurry": 50,
+    "trip_sleeper_awake_ms": 15000,
+    "trip_station_warning_ms": 8000,
+    "trip_tip_piasters_regular_customer": 200,
+    "trip_undo_window_ms": 1000,
+    "trip_wake_ms": 1000
+  },
+  "seed": 3141592653
+}

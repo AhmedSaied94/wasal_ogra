@@ -356,10 +356,17 @@ def test_dev_refuses_a_promotion_source() -> None:
 def test_content_settings_on_the_hosts(module: str) -> None:
     values = content_probe(module, env_for(module))
     assert values["role"] == ("target" if module == "prod" else "source")
-    assert values["solver_stage"] == "none"
+    assert values["solver_stage"] == "solver"
     assert values["cache_seconds"] == 30
     assert values["timeout_seconds"] == 10
     assert values["packs_dir"] == "/var/lib/wassal/packs"
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+@pytest.mark.parametrize("stage", ["solver", "none", "apps.content.tests.stages.Solver"])
+def test_the_hosts_accept_the_real_stage_none_or_a_dotted_path(module: str, stage: str) -> None:
+    values = content_probe(module, env_for(module, CONTENT_SOLVER_STAGE=stage))
+    assert values["solver_stage"] == stage
 
 
 def test_content_settings_for_tests_need_no_environment() -> None:

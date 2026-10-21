@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # One image for the API, admin, worker, scheduler and ops jobs (research R2, R3; FR-024, FR-029).
-# Build from the repository root, which holds tools/content_kit (B04 research R13):
+# Build from the repository root, which holds tools/content_kit and tools/solver (B04 research
+# R13, B05 research R16):
 #   docker build -f backend/docker/Dockerfile --build-arg RELEASE=<sha> .
 # The image holds no secret. Runtime values come from the environment (contracts/environment.md).
 
@@ -10,13 +11,15 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=0 \
     UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
-# The backend sits at /app and the toolkit at /tools/content_kit, so the lock's
-# `../tools/content_kit` path resolves. It installs non-editable into /opt/venv.
+# The backend sits at /app, the toolkit at /tools/content_kit and the solver at /tools/solver, so
+# the lock's `../tools/content_kit` and `../tools/solver` paths resolve. Both install non-editable
+# into /opt/venv.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=backend/uv.lock,target=uv.lock \
     --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=backend/.python-version,target=.python-version \
     --mount=type=bind,source=tools/content_kit,target=/tools/content_kit \
+    --mount=type=bind,source=tools/solver,target=/tools/solver \
     uv sync --locked --no-dev --no-install-project
 COPY backend /app
 
