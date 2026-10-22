@@ -433,7 +433,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     becomes 1.0.0 (`1.0.0+2`); downloads are in M04, not M06; staging and prod bundle only the newest
     pack in `content/source/`, and dev bundles the sample. Constitution 1.2.0 (amended 2026-10-21)
     allows plain HTTP in dev builds only, to the developer's own machine.
-  - [ ] `007-m05-local-economy`. Built on 2026-10-22. Decided in its clarifications: every start
+  - [ ] `007-m05-local-economy`. Built on 2026-10-22, open as #8. Decided in its clarifications: every start
     costs a liter, replays included (resolves mobile §24.5); trusted time counts with the phone's
     uptime, so clock changes while it stays on do nothing (constitution 1.3.0, amended 2026-10-22,
     clarifies Principle VI); the database is left out of device backup until account linking.

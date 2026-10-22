@@ -22,7 +22,7 @@ left, in what order, and where to look.
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
-| [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Built 2026-10-22 on `007-m05-local-economy`. Not yet a PR. |
+| [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Built 2026-10-22 on `007-m05-local-economy`. Open as #8. |
 
 ## Every month
 
