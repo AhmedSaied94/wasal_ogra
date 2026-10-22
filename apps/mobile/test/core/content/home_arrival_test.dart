@@ -8,10 +8,12 @@ import 'package:wassal/core/content/content_updater.dart';
 import 'package:wassal/core/content/decode_pack_file.dart';
 import 'package:wassal/core/content/pack_store.dart';
 import 'package:wassal/core/routing/router.dart';
-import 'package:wassal/core/routing/trip_pause_overlay.dart';
+import 'package:wassal/features/trip/application/trip_phase.dart';
+import 'package:wassal/features/trip/presentation/cards/pause_card.dart';
 
 import '../../helpers/content.dart';
 import '../../helpers/pump_app.dart';
+import '../../helpers/trip.dart';
 
 // The switch happens only on arrival at Home (contracts/updates.md "The
 // switch at Home", FR-024 to FR-027).
@@ -83,14 +85,14 @@ void main() {
     await _go(tester, container, '/trip/line_hay.01');
     _readyV2(container);
 
-    unawaited(showTripPause(appContext(tester)));
+    controllerOf(tester).pause(PauseReason.button);
     await tester.pumpAndSettle();
-    expect(find.byType(TripPauseOverlay), findsOneWidget);
+    expect(find.byType(PauseCard), findsOneWidget);
     expect(_version(container), 1);
 
     await tester.tap(find.text('كمّل المشوار'));
     await tester.pumpAndSettle();
-    expect(find.byType(TripPauseOverlay), findsNothing);
+    expect(find.byType(PauseCard), findsNothing);
     expect(_version(container), 1);
   });
 

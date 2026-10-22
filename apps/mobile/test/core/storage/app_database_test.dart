@@ -26,6 +26,10 @@ const _tables = {
   'trip_session',
   'projection_base',
   'clock_anchor',
+  // v2: the trip's records (specs/008-m02-trip-screen).
+  'trip_record',
+  'trip_record_command',
+  'trip_intent',
 };
 
 final _anchor = firstAnchor(
@@ -56,7 +60,7 @@ String _sha256(File file) => sha256.convert(file.readAsBytesSync()).toString();
 
 void main() {
   group('first open', () {
-    test('creates exactly the 8 tables', () async {
+    test('creates exactly the 11 tables', () async {
       final db = await _opened(tempDbFile());
       final names = await _rows(
         db,
@@ -139,10 +143,10 @@ void main() {
       );
     });
 
-    test('stamps schema version 1', () async {
+    test('stamps schema version 2', () async {
       final db = await _opened(tempDbFile());
       expect(await _rows(db, 'PRAGMA user_version'), [
-        {'user_version': 1},
+        {'user_version': 2},
       ]);
     });
   });
@@ -240,13 +244,13 @@ void main() {
   });
 
   group('a file the app cannot open stays as it is', () {
-    test('user_version 2 fails with DatabaseFromNewerApp', () async {
+    test('user_version 3 fails with DatabaseFromNewerApp', () async {
       final file = tempDbFile();
       final first = _open(file);
       await first.customSelect('SELECT 1').get();
       await first.close();
       sqlite3.open(file.path)
-        ..execute('PRAGMA user_version = 2')
+        ..execute('PRAGMA user_version = 3')
         ..close();
       final before = _sha256(file);
 
@@ -256,8 +260,8 @@ void main() {
         db.customSelect('SELECT 1').get(),
         throwsA(
           isA<DatabaseFromNewerApp>()
-              .having((e) => e.fileVersion, 'fileVersion', 2)
-              .having((e) => e.appVersion, 'appVersion', 1),
+              .having((e) => e.fileVersion, 'fileVersion', 3)
+              .having((e) => e.appVersion, 'appVersion', 2),
         ),
       );
       await db.close();

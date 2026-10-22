@@ -9,7 +9,13 @@ final class SharedPrefsSettingsStore implements SettingsStore {
   SharedPrefsSettingsStore._(this._prefs);
 
   /// Every key this store may hold.
-  static const keys = {'pref.digit_style'};
+  static const keys = {
+    'pref.digit_style',
+    // The trip's (specs/008-m02-trip-screen, data-model.md "Preferences").
+    'pref.trip_sound',
+    'pref.trip_haptics',
+    'pref.trip_hints_seen',
+  };
 
   final SharedPreferencesWithCache _prefs;
 

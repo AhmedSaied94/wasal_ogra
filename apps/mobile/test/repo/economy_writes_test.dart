@@ -12,6 +12,17 @@ const _store = 'lib/core/economy/drift_economy_store.dart';
 const _providers = 'lib/core/economy/economy_providers.dart';
 const _storage = 'lib/core/storage/';
 
+// The trip screen's record store (specs/008-m02-trip-screen/contracts/
+// trip-records.md "Guards"): only it writes the trip tables, and it never
+// writes the economy's.
+const _tripStore = 'lib/features/trip/data/drift_trip_records.dart';
+const _tripProviders = 'lib/features/trip/trip_providers.dart';
+const _tripTables = [
+  'tripRecordTable',
+  'tripRecordCommandTable',
+  'tripIntentTable',
+];
+
 const _tables = [
   'ledgerOps',
   'walletTable',
@@ -31,6 +42,9 @@ final _importsDatabase = RegExp(
 final _tableWrite = RegExp(
   '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_tables.join('|')})\\b',
 );
+final _tripTableWrite = RegExp(
+  '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_tripTables.join('|')})\\b',
+);
 final _rawWrite = RegExp(
   r'\.batch\(|\bcustomStatement\(|\bcustomUpdate\(|\bcustomInsert\(',
 );
@@ -41,7 +55,11 @@ final _ledgerCompanion = RegExp(r'\bLedgerOpsCompanion\(');
 String _path(File file) => file.path.replaceAll(r'\', '/');
 
 bool _mayImportDatabase(String path) =>
-    path.startsWith(_storage) || path == _store || path == _providers;
+    path.startsWith(_storage) ||
+    path == _store ||
+    path == _providers ||
+    path == _tripStore ||
+    path == _tripProviders;
 
 bool _mayWrite(String path) => path.startsWith(_storage) || path == _store;
 
@@ -51,6 +69,16 @@ List<String> directWrites(String source) {
   return [
     for (var i = 0; i < lines.length; i++)
       if (_tableWrite.hasMatch(lines[i]) || _rawWrite.hasMatch(lines[i]))
+        '${i + 1}: ${lines[i].trim()}',
+  ];
+}
+
+/// Lines of [source] that write a trip table.
+List<String> tripTableWrites(String source) {
+  final lines = stripComments(source).split('\n');
+  return [
+    for (var i = 0; i < lines.length; i++)
+      if (_tripTableWrite.hasMatch(lines[i]) || _rawWrite.hasMatch(lines[i]))
         '${i + 1}: ${lines[i].trim()}',
   ];
 }
@@ -137,6 +165,24 @@ void main() {
     expect(violations, isEmpty, reason: violations.join('\n'));
   });
 
+  test('the trip store exists, so the trip rules scan real code', () {
+    expect(File(_tripStore).existsSync(), isTrue);
+  });
+
+  test('nothing but storage and the trip store writes a trip table', () {
+    final violations = [
+      for (final file in files)
+        if (!_path(file).startsWith(_storage) && _path(file) != _tripStore)
+          for (final hit in tripTableWrites(file.readAsStringSync()))
+            '${_path(file)}:$hit',
+    ];
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('the trip store writes no economy table', () {
+    expect(directWrites(File(_tripStore).readAsStringSync()), isEmpty);
+  });
+
   test('ledger_ops rows change only in their sync columns', () {
     expect(ledgerRuleBreaks(File(_store).readAsStringSync()), isEmpty);
     final deletes = [
@@ -159,6 +205,25 @@ void main() {
     expect(directWrites('map.update(key, (v) => v);'), isEmpty);
     expect(directWrites('await file.delete();'), isEmpty);
     expect(directWrites('// db.into(db.walletTable)'), isEmpty);
+  });
+
+  test('the trip scan catches trip-table writes and ignores the rest', () {
+    expect(
+      tripTableWrites('db.into(db.tripRecordTable).insert(x);'),
+      hasLength(1),
+    );
+    expect(
+      tripTableWrites('await update(tripRecordCommandTable).write(x);'),
+      hasLength(1),
+    );
+    expect(
+      tripTableWrites('_db.delete(_db.tripIntentTable).go();'),
+      hasLength(1),
+    );
+    expect(tripTableWrites('db.batch((b) {});'), hasLength(1));
+    expect(tripTableWrites('db.select(db.tripRecordTable).get();'), isEmpty);
+    expect(tripTableWrites('// db.into(db.tripIntentTable)'), isEmpty);
+    expect(directWrites('db.into(db.tripRecordTable).insert(x);'), isEmpty);
   });
 
   test('the ledger scan catches every way around _setSyncStatus', () {

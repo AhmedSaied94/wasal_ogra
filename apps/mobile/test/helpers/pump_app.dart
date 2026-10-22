@@ -15,25 +15,34 @@ import 'content.dart';
 import 'economy.dart';
 import 'memory_settings_store.dart';
 import 'surfaces.dart';
+import 'trip.dart';
 
 /// Pumps the whole app the way `bootstrap()` does, with test overrides.
 ///
 /// [content] replaces the content loader's seams, which default to the
 /// sample pack's bundled assets ([contentTestOverrides]). [economy] replaces
 /// the economy's, which default to a database in memory
-/// ([economyTestOverrides]).
+/// ([economyTestOverrides]). [trip] replaces the trip screen's platform
+/// edges, which are always fakes ([tripTestOverrides]). [overrides] come
+/// last. [size]
+/// replaces [surface]'s frame (the trip's surfaces). Without [settle], the
+/// initial location gets a fixed number of frames ([pumpFrames]).
 Future<ProviderContainer> pumpWassalApp(
   WidgetTester tester, {
   List<Override> overrides = const [],
   List<Override>? content,
   List<Override>? economy,
+  List<Override>? trip,
+  Flavor flavor = Flavor.dev,
   String? initialLocation,
   double textScale = 1.0,
   Surface surface = Surface.reference,
+  Size? size,
   DigitStyle digits = DigitStyle.arabicIndic,
   SettingsStore? settingsStore,
+  bool settle = true,
 }) async {
-  applySurface(tester, surface);
+  applySurfaceSize(tester, size ?? surface.size);
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
@@ -41,7 +50,7 @@ Future<ProviderContainer> pumpWassalApp(
     ProviderScope(
       retry: (_, _) => null,
       overrides: [
-        flavorProvider.overrideWithValue(Flavor.dev),
+        flavorProvider.overrideWithValue(flavor),
         // The saved digit style, as the device's preference store holds it.
         settingsStoreProvider.overrideWith(
           (ref) =>
@@ -50,6 +59,7 @@ Future<ProviderContainer> pumpWassalApp(
         ),
         ...content ?? contentTestOverrides(),
         ...economy ?? economyTestOverrides(),
+        ...trip ?? tripTestOverrides(),
         ...overrides,
       ],
       child: const WassalApp(),
@@ -62,9 +72,21 @@ Future<ProviderContainer> pumpWassalApp(
   );
   if (initialLocation != null) {
     container.read(routerProvider).go(initialLocation);
-    await tester.pumpAndSettle();
+    await (settle ? tester.pumpAndSettle() : pumpFrames(tester));
   }
   return container;
+}
+
+/// Pumps [count] frames of [step] each: for screens with a clock on them
+/// (a countdown that ticks every second), where nothing ever settles.
+Future<void> pumpFrames(
+  WidgetTester tester, {
+  int count = 20,
+  Duration step = const Duration(milliseconds: 50),
+}) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump(step);
+  }
 }
 
 GoRouter _router(WidgetTester tester) =>

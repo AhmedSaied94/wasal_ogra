@@ -2,7 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/theme/app_theme.dart';
 import 'package:wassal/core/theme/tokens/colors.dart';
+import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/presentation/trip_colors.dart';
 
 // Palette checks from contracts/design-tokens.md (FR-010, FR-011).
 
@@ -51,6 +54,17 @@ void main() {
     expect(hex(ColorTokens.station3), '#5FAE4E');
     expect(hex(ColorTokens.station4), '#A9DDF3');
     expect(ColorTokens.badgeNew, ColorTokens.danger);
+    // The trip screen's tokens (specs/008-m02-trip-screen, research R17).
+    expect(hex(ColorTokens.fare), '#7ACC6C');
+    expect(hex(ColorTokens.bubbleWarn), '#FFD9A8');
+    expect(hex(ColorTokens.bubbleFight), '#F2894A');
+    expect(hex(ColorTokens.bubbleThanks), '#BFE3F7');
+    expect(hex(ColorTokens.shirtEffendi), '#8A8F99');
+    expect(hex(ColorTokens.shirtStudent), '#EDF1F5');
+    expect(hex(ColorTokens.shirtWorker), '#24508F');
+    expect(hex(ColorTokens.shirtHajja), '#2B2633');
+    expect(hex(ColorTokens.shirtYoung), '#C23B2E');
+    expect(hex(ColorTokens.shirtPlain), '#D9C9A3');
     for (final c in ColorTokens.all) {
       expect(c.a, 1.0, reason: 'tokens are opaque');
     }
@@ -63,6 +77,10 @@ void main() {
         for (var j = i + 1; j < stations.length; j++)
           (stations[i], stations[j]),
       (ColorTokens.primary, ColorTokens.danger),
+      // A fare on its way and change on its way (research R17).
+      (ColorTokens.fare, ColorTokens.primary),
+      // A warning bubble and a fight bubble.
+      (ColorTokens.bubbleWarn, ColorTokens.bubbleFight),
     ];
     for (final (a, b) in pairs) {
       expect(
@@ -83,6 +101,11 @@ void main() {
       (ColorTokens.hibr, ColorTokens.danger),
       (ColorTokens.hibr, ColorTokens.gold),
       for (final s in ColorTokens.stations) (s.letter, s.fill),
+      // The amount on a fare token, and the text of each bubble style.
+      (ColorTokens.hibr, ColorTokens.fare),
+      (ColorTokens.hibr, ColorTokens.bubbleWarn),
+      (ColorTokens.hibr, ColorTokens.bubbleFight),
+      (ColorTokens.hibr, ColorTokens.bubbleThanks),
     ];
     for (final (text, fill) in pairs) {
       expect(
@@ -91,6 +114,28 @@ void main() {
         reason: '${hex(text)} on ${hex(fill)}',
       );
     }
+  });
+
+  test('shirts that look alike otherwise differ by ΔL* ≥ 18', () {
+    const tokens = WassalTokens.standard;
+    final pairs = shirtPairsToSeparate();
+    expect(pairs, isNotEmpty);
+    for (final (a, b) in pairs) {
+      final ca = shirtColor(tokens, a);
+      final cb = shirtColor(tokens, b);
+      expect(
+        (lightness(ca) - lightness(cb)).abs(),
+        greaterThanOrEqualTo(18),
+        reason: '$a ${hex(ca)} vs $b ${hex(cb)}',
+      );
+    }
+  });
+
+  test('every shirt has its own token', () {
+    const tokens = WassalTokens.standard;
+    final colors = {for (final s in Shirt.values) shirtColor(tokens, s)};
+    expect(colors, hasLength(Shirt.values.length));
+    expect(colors.every(ColorTokens.all.contains), isTrue);
   });
 
   test('station letters: white on stations 1–2, ink on stations 3–4', () {

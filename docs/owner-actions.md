@@ -22,7 +22,8 @@ left, in what order, and where to look.
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
-| [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Built 2026-10-22 on `007-m05-local-economy`. Open as #8. |
+| [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
+| [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. |
 
 ## Every month
 
@@ -567,12 +568,76 @@ All three on the Galaxy A06 (T067). Then tick M05 in the
   medians in a follow-up issue.
 - [ ] **2. The clock can't be moved (quickstart scenario 4).** Spend a liter, note the next-liter
   time, set the phone's clock 3 hours ahead with the phone on and reopen the app: nothing changes.
-  Set the clock back, restart the phone and wait 20 minutes: one liter came back. No screen
-  spends a liter before M02's trip screen, so this check waits for M02. Until then,
-  `trusted_clock_test.dart` and `fuel_service_test.dart` cover it with fakes.
+  Set the clock back, restart the phone and wait 20 minutes: one liter came back. M02's trip
+  screen spends the liter (open a trip from the playtest list on Home), so this check can run once
+  M02 merges. Until then, `trusted_clock_test.dart` and `fuel_service_test.dart` cover it with fakes.
 - [ ] **3. Backup exclusion (quickstart scenario 6).** `adb shell bmgr backupnow
   com.wassalogra.app.dev`, then restore (Android's "Test backup and restore" steps): the app
   starts as a new player, with a full tank and 0 JENEHAT, while the digit setting comes back.
+
+## 008 M02 trip screen
+
+Built and tested on 2026-10-22, on branch `008-m02-trip-screen`
+([tasks.md](../specs/008-m02-trip-screen/tasks.md),
+[quickstart](../specs/008-m02-trip-screen/quickstart.md)). The trip is playable: the Flame scene with
+stand-in passengers until the Rive file arrives, the dashboard and its help, the events, the failure
+card with the BONAT revive, the resume at launch, and the playtest tools on dev and staging.
+Constitution 1.4.0 (amended 2026-10-22) places the pause button in the top bar and makes over-change
+silent during a trip.
+
+### Before merge, in this order
+
+- [ ] **1. The character file (T059).** Make `apps/mobile/assets/rive/passenger.riv` to
+  [contracts/rive-character.md](../specs/008-m02-trip-screen/contracts/rive-character.md) (artboard
+  `Passenger`, its state machine and view model with `mood`, `talking`, `asleep`, `headphones`,
+  `alight`, `shirt`, `accessory`). Make it yourself rather than remixing a community file (those are
+  CC BY 4.0). Export it from a Cadet plan or higher, so it has no splash, and name the plan in the
+  PR. Then, in `apps/mobile`:
+
+  ```bash
+  fvm dart run rive_native:setup --verbose --clean --platform linux
+  fvm flutter test test/features/trip/rive_character_contract_test.dart
+  fvm flutter test --update-goldens test/features/trip/rive_character_goldens_test.dart
+  ```
+
+  The two `rive`-tagged tests fail until the file is there; everything else passes with
+  `fvm flutter test --exclude-tags rive`. Commit the file and the goldens the second test writes.
+- [ ] **2. The frame rate on the Galaxy A06 (T065, quickstart "Owner checks" 1 and 2).** Once the
+  file is in, with the phone on `adb`:
+
+  ```bash
+  cd apps/mobile
+  fvm dart run rive_native:setup --platform android
+  tool/perf/trip_fps.sh com.wassalogra.app.dev line_gamaa.02
+  ```
+
+  Pass: average ≥ 55 fps, no one-second window below 45 fps, memory under 300 MB, a drawer tap in
+  the hand within 100 ms, and the first frame within 1 s. Paste the summary in the PR. If it
+  misses 45 fps, tell Claude: research R1 lists the mitigations, in order.
+- [ ] **3. The device runs Claude couldn't do.** No phone or emulator was available, so these
+  integration tests have only run as widget tests. On a dev build, on a phone or an emulator:
+
+  ```bash
+  cd apps/mobile
+  fvm flutter test integration_test/trip_offline_test.dart --flavor dev    # T044, in airplane mode
+  fvm flutter test integration_test/trip_relaunch_test.dart --flavor dev   # T054
+  ```
+
+  Then the quickstart's scenarios 1–9 by hand (T099): a trip offline, interruptions, leaving and
+  restarting, passengers and choices, the events, the help, failing, the playtest tools, and
+  accessibility.
+- [x] **4. Remove the Sync Impact Report** comment at the top of `.specify/memory/constitution.md`
+  before the commit (the 1.4.0 amendment).
+
+### After merge
+
+Then tick M02 in the [delivery plan's Progress list](delivery-plan.md#progress).
+
+- [ ] **1. Download size (T100).** Build the release app bundle and check the arm64 download:
+  `bundletool get-size total`. It must stay under 80 MB; `rive_native` adds about 8 MB
+  (research R2).
+- [ ] **2. Playtest (T101, SC-009).** Five testers from outside the team play `line_hay.01` on a
+  staging build, without instructions. Record who finishes it and who replays by choice.
 
 ## Known for later features
 
