@@ -451,7 +451,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     uptime, so clock changes while it stays on do nothing (constitution 1.3.0, amended 2026-10-22,
     clarifies Principle VI); the database is left out of device backup until account linking.
 - [ ] Step 5: The first playable trip
-  - [ ] `008-m02-trip-screen`. Built on 2026-10-22. Decided in its clarifications: a launch with an
+  - [ ] `008-m02-trip-screen`. Built on 2026-10-22, open as #9. Decided in its clarifications: a launch with an
     unfinished trip opens that trip, paused, instead of Home; the revive costs BONAT at the catalog
     price (the ad revive is M11's); بلية's hints follow `trip_hints_mode_<line_id>`. Resolved mobile
     §24.6 (`rive 0.14` drawn in Flame with `Factory.flutter`, research R1) and the UI side of §24.4

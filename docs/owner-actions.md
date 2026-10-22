@@ -23,7 +23,7 @@ left, in what order, and where to look.
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
-| [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. |
+| [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. Open as #9. |
 
 ## Every month
 
