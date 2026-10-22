@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/home_arrival.dart';
+import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/connectivity.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/theme/app_theme.dart';
@@ -26,6 +29,7 @@ class WassalApp extends ConsumerStatefulWidget {
 
 class _WassalAppState extends ConsumerState<WassalApp> {
   ContentLifecycle? _content;
+  AppLifecycleListener? _lifecycle;
 
   @override
   void initState() {
@@ -33,22 +37,31 @@ class _WassalAppState extends ConsumerState<WassalApp> {
     // Content updates start only after startup, so the boot screen never
     // waits on the network (specs/006-m04-content-loader, FR-015).
     ref.listenManual(appStartupProvider, (_, next) {
-      if (next is AsyncData<void>) _startContent();
+      if (next is AsyncData<void>) _afterStartup();
     }, fireImmediately: true);
   }
 
-  void _startContent() {
+  void _afterStartup() {
     _content ??= ContentLifecycle(
       router: ref.read(routerProvider),
       controller: ref.read(activeContentProvider.notifier),
       updater: ref.read(contentUpdaterProvider),
       connectivity: ref.read(connectivitySourceProvider),
     );
+    // A fresh clock reading on every return to the foreground, and no fuel
+    // timer in the background (specs/007-m05-local-economy, research R9, R17).
+    _lifecycle ??= AppLifecycleListener(
+      onStateChange: (state) {
+        final economy = ref.read(economyProvider).value;
+        if (economy != null) unawaited(economy.handleLifecycle(state));
+      },
+    );
   }
 
   @override
   void dispose() {
     _content?.dispose();
+    _lifecycle?.dispose();
     super.dispose();
   }
 

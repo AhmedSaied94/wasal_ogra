@@ -41,6 +41,10 @@ final class Tunable<T extends Object> {
 
   static int? _int(Object? raw) => raw is int ? raw : null;
 
+  /// For the fuel rules, which divide by the regeneration time and count up
+  /// to the max (specs/007-m05-local-economy research R8).
+  static int? _positiveInt(Object? raw) => raw is int && raw > 0 ? raw : null;
+
   static PreTripCardMode? _preTripCardMode(Object? raw) {
     for (final mode in PreTripCardMode.values) {
       if (mode.wire == raw) return mode;
@@ -136,9 +140,15 @@ final class Tunable<T extends Object> {
     'rep_change_request_declined',
     _int,
   );
-  static const fuelMax = Tunable<int>._('fuel_max', _int);
-  static const fuelMaxSubscriber = Tunable<int>._('fuel_max_subscriber', _int);
-  static const fuelRegenMinutes = Tunable<int>._('fuel_regen_minutes', _int);
+  static const fuelMax = Tunable<int>._('fuel_max', _positiveInt);
+  static const fuelMaxSubscriber = Tunable<int>._(
+    'fuel_max_subscriber',
+    _positiveInt,
+  );
+  static const fuelRegenMinutes = Tunable<int>._(
+    'fuel_regen_minutes',
+    _positiveInt,
+  );
   static const adsInterstitialEveryNTrips = Tunable<int>._(
     'ads_interstitial_every_n_trips',
     _int,

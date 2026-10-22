@@ -11,6 +11,8 @@ analyzer:
     - ios/**
     - lib/l10n/generated/**
     - "**/*.g.dart"
+    # drift_dev make-migrations writes these.
+    - test/drift/*/generated/**
 
 linter:
   rules:

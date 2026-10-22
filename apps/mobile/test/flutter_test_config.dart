@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,8 @@ const goldenTolerance = 0.001;
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // Kill-point and reopen tests hold several databases at once on purpose.
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   await _loadBundledFonts();
   final current = goldenFileComparator;
   if (current is LocalFileComparator) {

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
-- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders. Since **M04** (`specs/006-m04-content-loader/`) it loads content packs: the one bundled in the build, newer ones it downloads in the background, and the switch to them at launch or on arrival at Home.
+- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders. Since **M04** (`specs/006-m04-content-loader/`) it loads content packs: the one bundled in the build, newer ones it downloads in the background, and the switch to them at launch or on arrival at Home. Since **M05** (`specs/007-m05-local-economy/`) it keeps its economy offline in drift: the append-only operation log and its projection (wallet, fuel, inventory, ownership, progress), one service that validates and applies every change, fuel, trusted time, and what M06's sync will call.
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `packages/trip_engine/`: the pure-Dart rules engine from **M01** (`specs/004-m01-trip-engine/`): every trip rule, the 13 commands, replay and rebuild, and the fixture tool. Its living rules reference is `packages/trip_engine/RULES.md`.
@@ -55,7 +55,7 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 | Purpose | Command (in `apps/mobile`) |
 | --- | --- |
 | Install deps and generate l10n | `fvm flutter pub get` |
-| Code generation (Riverpod) | `fvm dart run build_runner build -d` |
+| Code generation (Riverpod, drift) | `fvm dart run build_runner build -d` |
 | Format check | `fvm dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')` |
 | Analyze | `fvm flutter analyze --fatal-infos` |
 | All tests and goldens | `fvm flutter test --coverage` |
@@ -64,14 +64,19 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 | Run the dev variant | `fvm flutter run --flavor dev` |
 | Build the dev APK | `fvm flutter build apk --flavor dev --debug` |
 | Cold start on a device | `tool/perf/cold_start.sh <package> <runs>` (see `specs/001-m03-app-shell/quickstart.md`) |
+| After a table change: bump `schemaVersion`, export the schema, generate its step and tests | `fvm dart run drift_dev make-migrations` |
+| Schema tests only | `fvm flutter test test/drift` |
 
 - Every build needs `--flavor dev|staging|prod`; the app refuses to start without one.
 - Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
 - The app depends on `packages/content_models`, whose generated parts are gitignored too. After a fresh checkout, build it first (see "Content commands").
 - A dev build calls the local stack over plain HTTP, which only the dev flavor allows (constitution 1.2.0). On a phone or an emulator, run `adb reverse tcp:8000 tcp:8000` and the default `http://localhost:8000` works. `--dart-define=WASSAL_DEV_API_BASE=<url>` points a dev build elsewhere.
 - Staging and prod builds bundle the pack production promoted last, so they fail at `checkBundledPack` until `apps/mobile/assets/content/release/` holds one. Committing it is a step of `docs/runbooks/content-publishing.md` §3.
+- The app database is `<app support>/db/wassal.sqlite`, opened during startup. Device backup and phone-to-phone transfer leave it out (`res/xml/data_extraction_rules.xml`, `backup_rules.xml`). Only `lib/core/economy/drift_economy_store.dart` writes the economy's tables, and only through `EconomyService`.
+- A table change needs a new `schemaVersion` and its step in `AppDatabase.upgradeSteps`, and `make-migrations` adds its schema to `drift_schemas/app/` and its tests to `test/drift/`. Commit both. With a single version, `make-migrations` writes no tests: v1's are generated with `fvm dart run drift_dev schema generate drift_schemas/app/ test/drift/app/generated/` and checked in `test/drift/app/schema_v1_test.dart`.
+- SQLite comes from the `sqlite3` package's build hook, which downloads a prebuilt library on the first build (network needed once). Don't add `sqlite3_flutter_libs`.
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
-- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks, the tunables registry, no Flutter or plugin import in a `domain/` folder, plain HTTP only in the dev source set, and bundled packs that agree with their records.
+- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks, the tunables registry, no Flutter or plugin import in a `domain/` folder (each folder lists what it may import: in `lib/core/economy/domain/`, only `content_models`, `trip_engine` and the content and economy domains), plain HTTP only in the dev source set, bundled packs that agree with their records, no REAL column, the economy's tables written only by its store with `ledger_ops` rows changing only in their sync columns, no `sqlite3_flutter_libs`, and the backup exclusion.
 
 ### Trip engine commands
 
@@ -165,7 +170,7 @@ The two architecture docs are paired, so read both:
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
 - To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
-- **The constitution** (`.specify/memory/constitution.md`, v1.2.0, ratified 2026-10-18, amended 2026-10-21) overrides conflicting guidance, including this file.
+- **The constitution** (`.specify/memory/constitution.md`, v1.3.0, ratified 2026-10-18, amended 2026-10-22) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.
   - Any other deviation goes in the plan's Complexity Tracking and needs the owner's approval.

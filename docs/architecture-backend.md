@@ -386,7 +386,7 @@ Accounts are never merged, so currency can never be duplicated.
 - Invariant (property-tested): `wallet.<currency> == sum(ledger.delta where currency)` for every player.
 - Ledger rows are never updated or deleted, except when a player's account is anonymized (§14.1).
 
-`reason` enum: `trip_earnings`, `ad_result_double`, `ad_fuel_refill`, `item_purchase`, `vehicle_purchase`, `upgrade_purchase`, `cosmetic_purchase`, `booster_purchase`, `fuel_purchase`, `revive_purchase`, `iap_grant`, `ssv_grant`, `daily_reward`, `task_reward`, `challenge_reward`, `subscriber_grant`, `season_reward`, `referral_reward`, `refund_reversal`, `admin_adjustment`.
+`reason` enum: `trip_earnings`, `ad_result_double`, `ad_fuel_refill`, `item_purchase`, `vehicle_purchase`, `chapter_purchase`, `upgrade_purchase`, `cosmetic_purchase`, `booster_purchase`, `fuel_purchase`, `fuel_unlimited_purchase`, `revive_purchase`, `iap_grant`, `ssv_grant`, `daily_reward`, `task_reward`, `challenge_reward`, `subscriber_grant`, `season_reward`, `referral_reward`, `refund_reversal`, `admin_adjustment`. M05 added `chapter_purchase` and `fuel_unlimited_purchase`, which its client ops carry (`specs/007-m05-local-economy/research.md` R7).
 
 ### 7.3 `POST /v1/sync`
 
@@ -432,9 +432,9 @@ Processing rules:
 | --- | --- | --- | --- |
 | `trip_start` | `trip_id`, `content_version`, `fuel_mode` (`fuel` \| `unlimited` \| `challenge`) | trip exists in that pack; line, vehicle and previous trip unlocked; fuel reconciliation (§7.5) | fuel −1 unless `unlimited` window active |
 | `trip_result` | `trip_start_txn`, `TripResult` (mobile §7.2) | matching accepted `trip_start`; `0 ≤ stars ≤ 3`; `earnings_jenehat ≤ trip.max_earnings_jenehat`; `duration_ms ≥ 0.85 × last station time`; one result per start | JENEHAT +; `TripProgress` best; `TripRun` row; task/league counters |
-| `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}, `ref` (trip start txn) | caps from §3.4 (per trip / per game day) | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded for caps only |
+| `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}; `ref` (trip start txn), except for `fuel_refill`, which belongs to no trip. `morning_piggy` is never a client op: it grants BONAT, which only SSV does (§8) | caps from §3.4 (per trip / per game day) | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded for caps only |
 | `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `chapter`, `upgrade`}, `sku_id`, `variant?`, `price` | price equals catalog price in the client's `content_version`; prerequisites (chapter, line); not owned; balance | JENEHAT −; `Ownership` + |
-| `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price` | catalog price; **authoritative balance check** | BONAT −; inventory / fuel / unlimited window / ownership |
+| `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price`; a revive adds `ref` (its trip start txn) | catalog price; **authoritative balance check** | BONAT −; inventory / fuel / unlimited window / ownership |
 | `use_booster` | `booster_id`, `ref` | inventory count > 0 | inventory −1 |
 | `claim_daily_reward` | `day_index` | server game date; not yet claimed today; streak rules | grants per streak table |
 | `claim_task` | `task_id` | task completed per server-side counters | grants |
@@ -449,6 +449,12 @@ Hard violations are rejected. Soft anomalies (fuel overdraft within tolerance, u
 - On each `trip_start`, the server first regenerates: `fuel = min(fuel_max, fuel + floor((now − fuel_updated_at) / 20 min))`.
 - If `fuel == 0` and no unlimited window: accept with `fuel = 0`, record `fuel_overdraft` flag. Three overdrafts in a game day exceed tolerance and the op is rejected with `cap_reached`.
 - Regeneration minutes and caps come from the same values as the Remote Config keys in mobile §14.3, stored server-side in `liveops` settings.
+- **M05's rules, which B03 confirms** (`specs/007-m05-local-economy/contracts/fuel-and-time.md`, research R8 and R20). The client applies them offline; the server recomputes with its own clock:
+  - a start from a full tank starts the countdown to the next liter at that moment; below full, the time already counted is kept; when the tank fills, counting stops;
+  - liters above `fuel_max` (after it is lowered) are kept, and nothing regenerates until the tank is below the maximum;
+  - a full refill (`refuel_full`, or the `fuel_refill` ad) is refused on a full tank (`tank_full`), so no BONAT or ad is spent for nothing;
+  - `fuel_unlimited_1h` adds 60 minutes from the end of a window still running, or from now;
+  - every start costs a liter, replays of completed trips included (mobile §24.5).
 
 ---
 
@@ -722,7 +728,7 @@ Refresh-token rotation and blacklist use simplejwt's token blacklist tables.
 | --- | --- |
 | `TripProgress` | `player`, `trip_id`, `best_stars`, `best_time_ms`, `plays`, `first_completed_at`, unique(`player`, `trip_id`) |
 | `TripRun` | `id`, `player`, `trip_id`, `rev`, `start_op`, `stars`, `fights`, `mistakes_count`, `earnings_jenehat`, `duration_ms`, `revived`, `boosters_used`, `command_log_hash`, `content_version`, `client_version`. Range-partitioned by month, 90-day retention. |
-| `Ownership` | `player`, `kind` (`vehicle`, `upgrade`, `cosmetic`, `item`), `sku_id`, `variant`, `acquired_at`, unique(`player`, `kind`, `sku_id`) |
+| `Ownership` | `player`, `kind` (`vehicle`, `upgrade`, `cosmetic`, `item`, `chapter`), `sku_id`, `variant`, `acquired_at`, unique(`player`, `kind`, `sku_id`). M05 owns chapters too, bought with `spend_jenehat` |
 | `StoryState` | `player`, `chapter_id`, `status`, `scenes_seen` (array), `completed_at` |
 | `DailyState` | `player`, `streak`, `last_claim_game_date`, `task_counters` (JSON), `tasks_game_date` |
 

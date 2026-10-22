@@ -1,0 +1,1219 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": false
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "ledger_ops",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "seq",
+            "getter_name": "seq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "txn_id",
+            "getter_name": "txnId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "UNIQUE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "UNIQUE"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "unique"
+            ]
+          },
+          {
+            "name": "op_type",
+            "getter_name": "opType",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "opType",
+                        "tag": "opType"
+                      },
+                      ".isIn(const ['trip_start','trip_result','ad_reward','spend_jenehat','spend_bonat','use_booster'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "payload",
+            "getter_name": "payload",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "jenehat_delta",
+            "getter_name": "jenehatDelta",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "bonat_delta",
+            "getter_name": "bonatDelta",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "fuel_delta",
+            "getter_name": "fuelDelta",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "reason",
+            "getter_name": "reason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "ref",
+            "getter_name": "ref",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "occurred_at_ms",
+            "getter_name": "occurredAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "content_version",
+            "getter_name": "contentVersion",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "contentVersion",
+                        "tag": "contentVersion"
+                      },
+                      ").isBiggerOrEqualValue(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "fuel_max",
+            "getter_name": "fuelMax",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "fuelMax",
+                        "tag": "fuelMax"
+                      },
+                      ").isBiggerOrEqualValue(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "fuel_regen_minutes",
+            "getter_name": "fuelRegenMinutes",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "fuelRegenMinutes",
+                        "tag": "fuelRegenMinutes"
+                      },
+                      ").isBiggerOrEqualValue(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "max_earnings_jenehat",
+            "getter_name": "maxEarningsJenehat",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "maxEarningsJenehat",
+                        "tag": "maxEarningsJenehat"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "sync_status",
+            "getter_name": "syncStatus",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('\\'pending\\'')",
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "syncStatus",
+                        "tag": "syncStatus"
+                      },
+                      ".isIn(const ['pending','accepted','rejected'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "sync_reason",
+            "getter_name": "syncReason",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "wallet",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "id",
+                        "tag": "id"
+                      },
+                      ".equals(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "jenehat",
+            "getter_name": "jenehat",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "jenehat",
+                        "tag": "jenehat"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "bonat",
+            "getter_name": "bonat",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "bonat",
+                        "tag": "bonat"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "fuel",
+            "getter_name": "fuel",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "fuel",
+                        "tag": "fuel"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "fuel_counted_from_ms",
+            "getter_name": "fuelCountedFromMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "fuel_unlimited_until_ms",
+            "getter_name": "fuelUnlimitedUntilMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "last_seq",
+            "getter_name": "lastSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "inventory",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "booster_id",
+            "getter_name": "boosterId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "boosterId",
+                        "tag": "boosterId"
+                      },
+                      ".isIn(const ['change_bag','wake_all','ledger_peek','traffic_jam'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "count",
+            "getter_name": "count",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "count",
+                        "tag": "count"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "booster_id"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "ownership",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "kind",
+            "getter_name": "kind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "kind",
+                        "tag": "kind"
+                      },
+                      ".isIn(const ['item','vehicle','chapter'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "sku_id",
+            "getter_name": "skuId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "variant_id",
+            "getter_name": "variantId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "acquired_at_ms",
+            "getter_name": "acquiredAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "acquired_by",
+            "getter_name": "acquiredBy",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "kind",
+          "sku_id"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "trip_progress",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "trip_id",
+            "getter_name": "tripId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "best_stars",
+            "getter_name": "bestStars",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "bestStars",
+                        "tag": "bestStars"
+                      },
+                      ").isBetweenValues(0,3)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "best_time_ms",
+            "getter_name": "bestTimeMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "plays",
+            "getter_name": "plays",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "plays",
+                        "tag": "plays"
+                      },
+                      ").isBiggerOrEqualValue(0)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "first_completed_at_ms",
+            "getter_name": "firstCompletedAtMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "trip_id"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "trip_session",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "id",
+                        "tag": "id"
+                      },
+                      ".equals(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unfinished_start",
+            "getter_name": "unfinishedStart",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_trip_id",
+            "getter_name": "unfinishedTripId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_content_version",
+            "getter_name": "unfinishedContentVersion",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_max_earnings",
+            "getter_name": "unfinishedMaxEarnings",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_started_at_ms",
+            "getter_name": "unfinishedStartedAtMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_revived",
+            "getter_name": "unfinishedRevived",
+            "moor_type": "bool",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"unfinished_revived\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"unfinished_revived\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unfinished_traffic_jam_ads",
+            "getter_name": "unfinishedTrafficJamAds",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "last_result_start",
+            "getter_name": "lastResultStart",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "last_result_outcome",
+            "getter_name": "lastResultOutcome",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "last_result_earnings",
+            "getter_name": "lastResultEarnings",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "last_result_doubled",
+            "getter_name": "lastResultDoubled",
+            "moor_type": "bool",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"last_result_doubled\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"last_result_doubled\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "projection_base",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "id",
+                        "tag": "id"
+                      },
+                      ".equals(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "state",
+            "getter_name": "state",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "after_seq",
+            "getter_name": "afterSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "kind",
+            "getter_name": "kind",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "kind",
+                        "tag": "kind"
+                      },
+                      ".isIn(const ['new_player','server_snapshot'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "state_version",
+            "getter_name": "stateVersion",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "taken_at_ms",
+            "getter_name": "takenAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "clock_anchor",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "id",
+                        "tag": "id"
+                      },
+                      ".equals(1)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "anchor_ms",
+            "getter_name": "anchorMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "anchor_elapsed_ms",
+            "getter_name": "anchorElapsedMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "boot_count",
+            "getter_name": "bootCount",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "source",
+            "getter_name": "source",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "source",
+                        "tag": "source"
+                      },
+                      ".isIn(const ['device','server'])"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "latest_trusted_ms",
+            "getter_name": "latestTrustedMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "references": [
+        0
+      ],
+      "type": "index",
+      "data": {
+        "on": 0,
+        "name": "ledger_ops_sync",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "sync_status",
+            "order_by": null
+          },
+          {
+            "column": "seq",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "references": [
+        0
+      ],
+      "type": "index",
+      "data": {
+        "on": 0,
+        "name": "ledger_ops_ref",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "ref",
+            "order_by": null
+          }
+        ]
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "ledger_ops",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"ledger_ops\" (\"seq\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"txn_id\" TEXT NOT NULL UNIQUE, \"op_type\" TEXT NOT NULL CHECK(\"op_type\" IN ('trip_start', 'trip_result', 'ad_reward', 'spend_jenehat', 'spend_bonat', 'use_booster')), \"payload\" TEXT NOT NULL, \"jenehat_delta\" INTEGER NOT NULL DEFAULT 0, \"bonat_delta\" INTEGER NOT NULL DEFAULT 0, \"fuel_delta\" INTEGER NOT NULL DEFAULT 0, \"reason\" TEXT NULL, \"ref\" TEXT NULL, \"occurred_at_ms\" INTEGER NOT NULL, \"content_version\" INTEGER NOT NULL CHECK(\"content_version\" >= 1), \"fuel_max\" INTEGER NOT NULL CHECK(\"fuel_max\" >= 1), \"fuel_regen_minutes\" INTEGER NOT NULL CHECK(\"fuel_regen_minutes\" >= 1), \"max_earnings_jenehat\" INTEGER NULL CHECK(\"max_earnings_jenehat\" >= 0), \"sync_status\" TEXT NOT NULL DEFAULT 'pending' CHECK(\"sync_status\" IN ('pending', 'accepted', 'rejected')), \"sync_reason\" TEXT NULL);"
+        }
+      ]
+    },
+    {
+      "name": "wallet",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"wallet\" (\"id\" INTEGER NOT NULL CHECK(\"id\" = 1), \"jenehat\" INTEGER NOT NULL CHECK(\"jenehat\" >= 0), \"bonat\" INTEGER NOT NULL CHECK(\"bonat\" >= 0), \"fuel\" INTEGER NOT NULL CHECK(\"fuel\" >= 0), \"fuel_counted_from_ms\" INTEGER NOT NULL, \"fuel_unlimited_until_ms\" INTEGER NULL, \"last_seq\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "inventory",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"inventory\" (\"booster_id\" TEXT NOT NULL CHECK(\"booster_id\" IN ('change_bag', 'wake_all', 'ledger_peek', 'traffic_jam')), \"count\" INTEGER NOT NULL CHECK(\"count\" >= 0), PRIMARY KEY (\"booster_id\"));"
+        }
+      ]
+    },
+    {
+      "name": "ownership",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"ownership\" (\"kind\" TEXT NOT NULL CHECK(\"kind\" IN ('item', 'vehicle', 'chapter')), \"sku_id\" TEXT NOT NULL, \"variant_id\" TEXT NULL, \"acquired_at_ms\" INTEGER NOT NULL, \"acquired_by\" TEXT NOT NULL, PRIMARY KEY (\"kind\", \"sku_id\"));"
+        }
+      ]
+    },
+    {
+      "name": "trip_progress",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"trip_progress\" (\"trip_id\" TEXT NOT NULL, \"best_stars\" INTEGER NOT NULL CHECK(\"best_stars\" BETWEEN 0 AND 3), \"best_time_ms\" INTEGER NULL, \"plays\" INTEGER NOT NULL CHECK(\"plays\" >= 0), \"first_completed_at_ms\" INTEGER NULL, PRIMARY KEY (\"trip_id\"));"
+        }
+      ]
+    },
+    {
+      "name": "trip_session",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"trip_session\" (\"id\" INTEGER NOT NULL CHECK(\"id\" = 1), \"unfinished_start\" TEXT NULL, \"unfinished_trip_id\" TEXT NULL, \"unfinished_content_version\" INTEGER NULL, \"unfinished_max_earnings\" INTEGER NULL, \"unfinished_started_at_ms\" INTEGER NULL, \"unfinished_revived\" INTEGER NULL CHECK (\"unfinished_revived\" IN (0, 1)), \"unfinished_traffic_jam_ads\" INTEGER NULL, \"last_result_start\" TEXT NULL, \"last_result_outcome\" TEXT NULL, \"last_result_earnings\" INTEGER NULL, \"last_result_doubled\" INTEGER NULL CHECK (\"last_result_doubled\" IN (0, 1)), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "projection_base",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"projection_base\" (\"id\" INTEGER NOT NULL CHECK(\"id\" = 1), \"state\" TEXT NOT NULL, \"after_seq\" INTEGER NOT NULL, \"kind\" TEXT NOT NULL CHECK(\"kind\" IN ('new_player', 'server_snapshot')), \"state_version\" INTEGER NULL, \"taken_at_ms\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "clock_anchor",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"clock_anchor\" (\"id\" INTEGER NOT NULL CHECK(\"id\" = 1), \"anchor_ms\" INTEGER NOT NULL, \"anchor_elapsed_ms\" INTEGER NOT NULL, \"boot_count\" INTEGER NULL, \"source\" TEXT NOT NULL CHECK(\"source\" IN ('device', 'server')), \"latest_trusted_ms\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "ledger_ops_sync",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX ledger_ops_sync ON ledger_ops (sync_status, seq)"
+        }
+      ]
+    },
+    {
+      "name": "ledger_ops_ref",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX ledger_ops_ref ON ledger_ops (ref)"
+        }
+      ]
+    }
+  ]
+}

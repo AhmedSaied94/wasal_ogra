@@ -10,6 +10,7 @@ import 'package:wassal/core/platform/launch_metrics.dart';
 import 'package:wassal/core/theme/tokens/colors.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
 
+import '../../helpers/economy.dart';
 import '../../helpers/pump_app.dart';
 
 const launchChannel = MethodChannel('wassal/launch');
@@ -95,7 +96,11 @@ void main() {
         tunableLayersProvider.overrideWith((ref) async {
           attempts++;
           if (attempts == 1) throw StateError('asset unreadable');
-          return const TunableLayers(defaults: {}, overrides: {});
+          // The economy reads fuel_max at startup.
+          return TunableLayers(
+            defaults: bundledTunables(),
+            overrides: const {},
+          );
         }),
       ],
     );

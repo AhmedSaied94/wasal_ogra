@@ -13,6 +13,18 @@ final _moneyName = RegExp(
   caseSensitive: false,
 );
 
+// The database stores no REAL either (specs/007-m05-local-economy, FR-008):
+// every column is INTEGER or TEXT.
+final _realColumn = RegExp(r'\breal\(\)|\bRealColumn\b|\.real\(');
+
+List<String> realColumns(String source) {
+  final lines = stripComments(source).split('\n');
+  return [
+    for (var i = 0; i < lines.length; i++)
+      if (_realColumn.hasMatch(lines[i])) '${i + 1}: ${lines[i].trim()}',
+  ];
+}
+
 List<String> floatMoney(String source) {
   final lines = stripComments(source).split('\n');
   return [
@@ -30,6 +42,29 @@ void main() {
           '${file.path}:$hit',
     ];
     expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('lib/core/storage/ declares no REAL column', () {
+    final files = Directory('lib/core/storage')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .toList();
+    expect(files, isNotEmpty);
+    final violations = [
+      for (final file in files)
+        for (final hit in realColumns(file.readAsStringSync()))
+          '${file.path}:$hit',
+    ];
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('the REAL scan catches real columns and ignores the rest', () {
+    expect(realColumns('RealColumn get price => real()();'), hasLength(1));
+    expect(realColumns('final c = GeneratedColumn.real(x);'), hasLength(1));
+    expect(realColumns('// RealColumn get price => real()();'), isEmpty);
+    expect(realColumns('IntColumn get price => integer()();'), isEmpty);
+    expect(realColumns('final realName = 1;'), isEmpty);
   });
 
   test('NumberFormatter.piasters takes an int', () {

@@ -13,6 +13,7 @@ import 'package:wassal/core/config/tunable.dart';
 import 'package:wassal/core/glossary/ids.dart';
 
 import '../../helpers/content.dart';
+import '../../helpers/economy.dart';
 import '../../helpers/memory_settings_store.dart';
 
 // Reading tunables: overrides first, then the bundled defaults (FR-034,
@@ -32,8 +33,9 @@ ProviderContainer containerWith({
       settingsStoreProvider.overrideWith((ref) => MemorySettingsStore()),
       assetReaderProvider.overrideWithValue((path) async => assets[path]),
       // Startup also loads content; flutter test doesn't bundle its
-      // flavor-scoped assets.
+      // flavor-scoped assets. And it opens the economy's database.
       ...contentTestOverrides(),
+      ...economyTestOverrides(),
     ],
   );
   addTearDown(container.dispose);
@@ -77,6 +79,22 @@ void main() {
       final source = OverrideConfigSource({'fuel_max': bad}, fallback: bundled);
       expect(source.read(Tunable.fuelMax), 5);
     });
+  }
+
+  // The fuel rules divide by the regeneration time and count up to the max
+  // (specs/007-m05-local-economy research R8): neither may be below 1.
+  for (final fuel in [
+    Tunable.fuelMax,
+    Tunable.fuelMaxSubscriber,
+    Tunable.fuelRegenMinutes,
+  ]) {
+    for (final bad in [0, -1]) {
+      test('an override of $bad for ${fuel.key} falls back to the default', () {
+        final source = OverrideConfigSource({fuel.key: bad}, fallback: bundled);
+        expect(source.read(fuel), bundled.read(fuel));
+        expect(source.read(fuel), greaterThan(0));
+      });
+    }
   }
 
   test('a key missing from the bundled defaults is a StateError', () {
@@ -139,6 +157,7 @@ void main() {
         flavorProvider.overrideWithValue(Flavor.dev),
         settingsStoreProvider.overrideWith((ref) => MemorySettingsStore()),
         ...contentTestOverrides(),
+        ...economyTestOverrides(),
       ],
     );
     addTearDown(container.dispose);
