@@ -1,0 +1,11 @@
+# drift's options (specs/007-m05-local-economy/contracts/storage.md
+# "Migrations"). The Riverpod builders keep their defaults.
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          databases:
+            app: lib/core/storage/app_database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/

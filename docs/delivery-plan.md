@@ -168,8 +168,31 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | `006-m04-content-loader` | M04 | Content pack loader, bundled pack, models from schemas | M03, B04 | mobile §14; backend §9 |
 | `007-m05-local-economy` | M05 | Local persistence (drift), economy service, fuel | M03 | mobile §11, §13; product-spec «الاقتصاد» |
 
-- **Resolve:** mobile §24.5 (does replaying a completed trip cost fuel?) in M05. B03 must agree with
-  the answer.
+- **Resolved in M05:** mobile §24.5. Every trip start costs a liter, replays of completed trips
+  included (M05 research R20). B03 must agree with the answer.
+- **Handed over from M05** (research "Handed to later features"):
+  - M02 starts trips, records results, and buys and uses boosters and revives through the economy,
+    with one request id per player intent. It charges a revive only when the engine reports the
+    trip revivable and below the command cap (M01 research R9). On a launch with an unfinished
+    start, it rebuilds that trip from its replay record, or records it abandoned if the record is
+    gone.
+  - M06 sends the pending operations in `seq` order (`pendingOps`), applies each answer
+    (`markAccepted`, `markRejected`), replaces the base with the server's snapshot (`replaceBase`)
+    and anchors trusted time on the server's (`anchorOnServer`). It revisits the backup exclusion
+    with backend §22.6. M05's review asks it to move those calls to a sync-only interface that
+    screens don't get, and to queue lifecycle resyncs behind requests.
+  - M07: the tutorial's gift refill needs an operation type that B03 accepts.
+  - M08 and M12 draw countdowns from `nextLiterAtMs` and the trusted clock. M12 applies a small
+    BONAT purchase only after its 3-second undo window (ux-spec «الشرا»).
+  - M09 and M10 check unlock order before calling `buy`.
+  - M11 adds the daily ad caps and the ad calls.
+  - M13 adds `fuel_mode: challenge` for the first daily-challenge attempt.
+  - M14 and phase 3: the iOS backup exclusion (`NSURLIsExcludedFromBackupKey`) and an iOS
+    `UptimeSource`.
+  - M15 reports the refusal codes and `write_failed`.
+  - M17 gives subscribers the larger tank (`fuel_max_subscriber`) through the cached entitlements.
+  - B03 confirms the fuel rules (backend §7.5), the reasons `chapter_purchase` and
+    `fuel_unlimited_purchase`, the revive's `ref`, `chapter` ownership, and fuel for replays.
 - **Handed over from M03** (research R1): in M05, use drift with the native-assets `sqlite3` 3.x
   package. Don't add `sqlite3_flutter_libs`, which is end-of-life.
 - **Handed over from M04** (research "Handed to later features"):
@@ -406,11 +429,14 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     solver stage (B04's T107 follows its owner step 4), and B08 `solve`, the score and
     `replay_untrusted`.
 - [ ] Step 4: Content and the local economy
-  - [ ] `006-m04-content-loader`. Built on 2026-10-21, open as #7. Decided in its clarifications: the app
+  - [x] `006-m04-content-loader` (merged in #7, 2026-10-21). Decided in its clarifications: the app
     becomes 1.0.0 (`1.0.0+2`); downloads are in M04, not M06; staging and prod bundle only the newest
     pack in `content/source/`, and dev bundles the sample. Constitution 1.2.0 (amended 2026-10-21)
     allows plain HTTP in dev builds only, to the developer's own machine.
-  - [ ] `007-m05-local-economy`
+  - [ ] `007-m05-local-economy`. Built on 2026-10-22. Decided in its clarifications: every start
+    costs a liter, replays included (resolves mobile §24.5); trusted time counts with the phone's
+    uptime, so clock changes while it stays on do nothing (constitution 1.3.0, amended 2026-10-22,
+    clarifies Principle VI); the database is left out of device backup until account linking.
 - [ ] Step 5: The first playable trip
   - [ ] `008-m02-trip-screen`
 - [ ] Step 6: Accounts and sync

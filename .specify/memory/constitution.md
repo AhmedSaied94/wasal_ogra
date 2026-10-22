@@ -110,12 +110,21 @@ sessions that work anywhere.
   op. A rejected op MUST NOT abort the batch.
 - Store and ad webhooks (RTDN, Apple server notifications, AdMob SSV) MUST be idempotent on their
   notification id.
-- Server time is authoritative. The client MUST derive time from `server_time_offset` and never
-  trust the device clock for fuel, rewards or daily resets.
+- Server time is authoritative for fuel, rewards and daily resets.
+  - The client MUST derive time from an anchor advanced by the device's monotonic uptime. The
+    anchor is the last server time (`server_time_offset` from `/v1/bootstrap`), or the device
+    clock until a server time exists.
+  - The client MAY read the device clock only to take a new anchor: on first open, or after a
+    device restart while offline. A new anchor MUST NOT move trusted time backward.
+  - Changing the device clock while the device stays on MUST have no effect.
+  - The server MUST NOT accept device time as authority. It recomputes fuel, rewards and daily
+    resets from its own clock, and its state replaces the client's on sync.
 - A property test MUST prove that applying the same batch twice yields the same state.
 
 **Rationale:** Mobile networks retry and offline queues replay. Without idempotency, every retry
-risks a double grant or a double spend.
+risks a double grant or a double spend. Offline play (Principle V) needs a clock before any server
+contact and after a restart. Counting uptime from an anchor means a clock change gains nothing while
+the phone stays on, and the server's recomputation keeps any device-side gain provisional.
 
 ### VII. Content, Not Code
 
@@ -388,4 +397,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-21
+**Version**: 1.3.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-22

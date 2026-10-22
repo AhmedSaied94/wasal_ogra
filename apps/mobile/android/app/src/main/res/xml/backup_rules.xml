@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and earlier: the same exclusion as data_extraction_rules.xml
+     (specs/007-m05-local-economy, research R14). -->
+<full-backup-content>
+    <exclude domain="file" path="db/"/>
+</full-backup-content>

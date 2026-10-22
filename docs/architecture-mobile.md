@@ -444,21 +444,26 @@ Global rules: back button top-right; Android system back on the trip route opens
 
 ## 11. Local Persistence & Offline
 
-`drift` schema (one SQLite file). All tables carry `updated_at` and, when synced, `server_version`.
+`drift` schema in one SQLite file, `<app support>/db/wassal.sqlite`, opened during startup on its own isolate with WAL and `synchronous = FULL`. Device backup leaves the file out (Android `dataExtractionRules` and `fullBackupContent`), so a restore never brings back a ledger the server has moved past. The app refuses a file from a newer schema and never deletes or recreates it. Every column is INTEGER or TEXT: money is never REAL (constitution II).
+
+M05 created the economy's eight tables (`specs/007-m05-local-economy/data-model.md`); the others arrive with their features.
 
 | Table | Purpose |
 | --- | --- |
 | `profile` | `player_id?`, `local_id`, `display_name`, `driver_level`, settings JSON |
-| `wallet` | `jenehat`, `bonat`, `fuel`, `fuel_updated_at_server`, `fuel_unlimited_until` |
-| `ledger_ops` | append-only economy operations: `client_txn_id`, `op_type`, `currency`, `delta`, `reason`, `ref`, `occurred_at`, `sync_status` |
-| `inventory` | `booster_id`, `count` |
-| `trip_progress` | `trip_id`, `best_stars`, `best_time_ms`, `completed_at` |
-| `ownership` | vehicles, upgrades, cosmetics, apartment items (+ chosen style) |
+| `wallet` | one row: `jenehat`, `bonat`, `fuel`, `fuel_counted_from_ms`, `fuel_unlimited_until_ms`, `last_seq` (M05) |
+| `ledger_ops` | append-only, one row per applied operation (M05): `seq`, `txn_id` (UUIDv7, unique), `op_type`, the wire `payload` as canonical JSON, `jenehat_delta`, `bonat_delta`, `fuel_delta`, `reason`, `ref`, the trusted `occurred_at_ms`, `content_version`, the fuel tunables it applied with (`fuel_max`, `fuel_regen_minutes`), a start's `max_earnings_jenehat`, and `sync_status` / `sync_reason`, the only columns that ever change |
+| `inventory` | `booster_id`, `count` (M05) |
+| `trip_progress` | `trip_id`, `best_stars`, `best_time_ms`, `plays`, `first_completed_at_ms` (M05) |
+| `ownership` | `kind` (`item`, `vehicle`, `chapter`), `sku_id`, the chosen style as `variant_id`, `acquired_at_ms`, `acquired_by` (M05); upgrades and cosmetics later |
+| `trip_session` | one row: the unfinished trip and the last result, which a ×2 or a revive needs (M05) |
+| `projection_base` | one row: the state the projection folds from, the new player or (M06) the server's snapshot, with the last `seq` it includes (M05) |
+| `clock_anchor` | one row: the trusted-time anchor (§13) and the latest trusted time handed out (M05) |
 | `story_state` | `chapter_id`, `status`, scenes unlocked, family requests status |
 | `daily_state` | login streak, tasks, challenge attempts |
 | `entitlements_cache` | `remove_ads`, `subscription_until`, `season_pass` keys |
-| `content_cache` | installed pack versions and paths. Until M05 it is not a drift table but `state.json` in `<app support>/content/`, next to the stored packs (M04, `specs/006-m04-content-loader/data-model.md`) |
-| `sync_queue` | pending API operations |
+| `content_cache` | installed pack versions and paths. Not a drift table: `state.json` in `<app support>/content/`, next to the stored packs (M04, `specs/006-m04-content-loader/data-model.md`), which M05 keeps as it is |
+| `sync_queue` | pending API operations. The economy's pending operations are `ledger_ops` rows with `sync_status = pending` |
 
 Offline policy:
 
@@ -487,10 +492,14 @@ A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying 
 
 ## 13. Economy on the Client
 
-- **Wallet** is a projection of `ledger_ops` over the last server snapshot. Writes go through `EconomyService.apply(op)` in a single DB transaction.
-- **Fuel** regenerates from `fuel_updated_at_server` using server-corrected time (`now = device_monotonic + server_time_offset`). If the device clock jumps backward, regeneration pauses until the next bootstrap.
-- **Prices** (JENEHAT for items/vehicles/upgrades, BONAT for boosters/fuel/cosmetics) come from the content pack catalog, not from code.
-- **Rule from product doc:** BONAT can never be converted into JENEHAT in v1. No code path may do it.
+The rules, the API and the storage contract are in `specs/007-m05-local-economy/contracts/`.
+
+- **One service, one writer.** Every change goes through `EconomyService`, which validates a request against the current state, then stores the `ledger_ops` row and every row it changes in one transaction, and only then updates what screens read. Requests run one after the other. A request id seen before returns the stored outcome, so a double tap or a retry charges once. A full disk fails the request and changes nothing.
+- **The projection is a fold.** The materialized tables equal the fold of `projection_base` and the stored operations after it. A rejection from the server rebuilds them by folding again: each operation still in play is checked again (balances, ownership, inventory, its trip) and left out when it no longer applies; fuel is lenient. Debug builds check the projection against the fold each time the database opens. Startup reads only the materialized tables, never the log.
+- **Fuel.** `fuel_max` liters, one back every `fuel_regen_minutes`, counted from the start of the current countdown; at or above the maximum nothing counts. Every trip start costs a liter, replays included, unless an unlimited-fuel window runs. Each operation records the fuel tunables it applied with, so a fold gives the same fuel after Remote Config changes them. Exact rules: `contracts/fuel-and-time.md`, which B03 must agree with.
+- **Trusted time** (constitution VI, as amended in 1.3.0). Time is an anchor advanced by the phone's monotonic uptime (`SystemClock.elapsedRealtime`, through the `wassal/clock` channel). The anchor is the last server time, or the device clock until there is one. The device clock is read only to take a new anchor, at the first open or after a restart while offline, and a new anchor never moves time back. Clock changes while the phone stays on have no effect. The server recomputes fuel, rewards and daily resets from its own clock, and its state replaces the client's on sync (M06).
+- **Prices** (JENEHAT for items, vehicles and chapters; BONAT for boosters, fuel, revives and cosmetics) come from the active pack's catalog when the purchase applies, never from code or the caller. The kind decides the currency.
+- **Rule from product doc:** BONAT can never be converted into JENEHAT in v1. No code path may do it: no device operation adds BONAT, and none spends BONAT and adds JENEHAT (`direction_test.dart` builds every one).
 
 ---
 
@@ -692,7 +701,7 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 2. **Resolved in M03:** the reference low-end Android device is a Samsung Galaxy A06 (4 GB RAM, Helio G85). See [research R14](../specs/001-m03-app-shell/research.md#r14-reference-device-and-cold-start-method-resolves-mobile-242-owner-decision-2026-10-18).
 3. AdMob mediation networks for Egypt and the Gulf.
 4. **Resolved in M01:** a trip killed mid-way resumes exactly where it was left, rebuilt from its replay record, and fuel is untouched. See [research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244).
-5. Does replaying a completed trip for stars cost fuel? (Product doc implies yes; confirm.)
+5. **Resolved in M05:** every trip start costs a liter, replays of completed trips included. See [research R20](../specs/007-m05-local-economy/research.md#r20-fuel-for-replays-resolves-mobile-245).
 6. Rive runtime choice and licensing for production (verify current Flutter runtime and terms at kickoff).
 
 ---

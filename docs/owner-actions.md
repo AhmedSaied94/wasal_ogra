@@ -21,7 +21,8 @@ left, in what order, and where to look.
 | [003 B04 content pipeline](#003-b04-content-pipeline) | 4 | 6, then 5 after B05 | PR 1 merged in #3, PR 2 in #4. |
 | [004 M01 trip engine](#004-m01-trip-engine) | none | none | Merged in #5. |
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
-| [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Built 2026-10-21 on `006-m04-content-loader`. Open as #7. |
+| [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
+| [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Built 2026-10-22 on `007-m05-local-economy`. Not yet a PR. |
 
 ## Every month
 
@@ -520,6 +521,58 @@ Then tick M04 in the [delivery plan's Progress list](delivery-plan.md#progress).
 
 With the first real MVP pack, measure the cold start again on a prod build (item 1's command,
 with `--flavor prod` and the prod package name).
+
+## 007 M05 local economy
+
+Built and tested on 2026-10-22, on branch `007-m05-local-economy`
+([tasks.md](../specs/007-m05-local-economy/tasks.md),
+[quickstart](../specs/007-m05-local-economy/quickstart.md)). The app now keeps its economy offline
+in a drift database: the operation log and its balances, fuel, trusted time, purchases at the
+catalog price, and what M06's sync will call. Constitution 1.3.0 (amended 2026-10-22) clarifies
+Principle VI's time clause.
+
+### Before merge
+
+- [ ] **Quickstart scenario 3 on a phone or an emulator (T066).** No device or emulator was
+  available when Claude built M05, so only the automated scenarios (1 and 2) have run. In
+  airplane mode, with a dev build:
+
+  ```bash
+  cd apps/mobile
+  fvm flutter test integration_test/economy_offline_test.dart --flavor dev
+  ```
+
+  The test deletes the app's database, plays three trips, buys `salon.sitara`, restarts the app
+  and finds everything unchanged.
+- [x] **The constitution amendment to 1.3.0** (Principle VI: trusted time from an anchor advanced
+  by the phone's uptime). Approved in M05's clarification on 2026-10-22. The Sync Impact Report
+  comment at the top of `.specify/memory/constitution.md` came out before the commit.
+
+### After merge
+
+All three on the Galaxy A06 (T067). Then tick M05 in the
+[delivery plan's Progress list](delivery-plan.md#progress).
+
+- [ ] **1. Timing (quickstart scenario 5, SC-005, SC-006).** In profile mode:
+
+  ```bash
+  cd apps/mobile
+  fvm flutter drive --driver=test_driver/integration_test.dart \
+    --target=integration_test/economy_perf_test.dart --flavor dev --profile
+  ```
+
+  With 50,000 seeded operations, opening the database and reading the balances takes ≤ 200 ms,
+  and each kind of operation applies in ≤ 100 ms. The test prints the medians. Then
+  `tool/perf/cold_start.sh com.wassalogra.app.dev 10`: the cold start stays ≤ 3,000 ms. Put the
+  medians in a follow-up issue.
+- [ ] **2. The clock can't be moved (quickstart scenario 4).** Spend a liter, note the next-liter
+  time, set the phone's clock 3 hours ahead with the phone on and reopen the app: nothing changes.
+  Set the clock back, restart the phone and wait 20 minutes: one liter came back. No screen
+  spends a liter before M02's trip screen, so this check waits for M02. Until then,
+  `trusted_clock_test.dart` and `fuel_service_test.dart` cover it with fakes.
+- [ ] **3. Backup exclusion (quickstart scenario 6).** `adb shell bmgr backupnow
+  com.wassalogra.app.dev`, then restore (Android's "Test backup and restore" steps): the app
+  starts as a new player, with a full tank and 0 JENEHAT, while the digit setting comes back.
 
 ## Known for later features
 
