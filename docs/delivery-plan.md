@@ -457,7 +457,8 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     §24.6 (`rive 0.14` drawn in Flame with `Factory.flutter`, research R1) and the UI side of §24.4
     (research R8). Constitution 1.4.0 (amended 2026-10-22) places M03's pause control in the top bar
     and makes over-change silent during a trip. 58 of the 60 parity fixtures play through the
-    controls. Still to do: the character file and its plan (T059), the A06 run (T065).
+    controls. The character file is in (2026-10-23). Still to do: naming the Rive plan it was exported from
+    (T059), the A06 run (T065).
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
   - [ ] `010-b03-ledger-sync`

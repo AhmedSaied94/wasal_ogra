@@ -525,6 +525,7 @@ every frame of every sample trip.
 
 - [ ] T059 [US3] **Owner** (before merge): add `apps/mobile/assets/rive/passenger.riv` matching
   contracts/rive-character.md, exported from a Cadet (or higher) plan; note the plan in the PR.
+  *(The file and its goldens are in, 2026-10-23; the plan is still to be named in the PR.)*
 - [X] T060 [US3] Create `apps/mobile/lib/features/trip/presentation/scene/rive_passenger_art.dart`: the
   file decoded once with `File.asset('assets/rive/passenger.riv', riveFactory: Factory.flutter)` and
   cached in a keep-alive provider; per passenger a new `ArtboardInstance` of `Passenger`, its

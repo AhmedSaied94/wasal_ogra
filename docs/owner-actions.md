@@ -23,7 +23,7 @@ left, in what order, and where to look.
 | [005 B05 solver and parity](#005-b05-solver-and-parity) | none | 4, the last with B04's 3–7 | Merged in #6 on 2026-10-21. |
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
-| [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. Open as #9. |
+| [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. Open as #9. Character file in on 2026-10-23. |
 
 ## Every month
 
@@ -602,6 +602,10 @@ silent during a trip.
 
   The two `rive`-tagged tests fail until the file is there; everything else passes with
   `fvm flutter test --exclude-tags rive`. Commit the file and the goldens the second test writes.
+
+  *Done on 2026-10-23, except naming the plan: Claude made the file with Rive's MCP in the owner's
+  Rive account (still named "Untitled" there) and committed it with its 14 goldens. Name the plan
+  in the PR, then tick this.*
 - [ ] **2. The frame rate on the Galaxy A06 (T065, quickstart "Owner checks" 1 and 2).** Once the
   file is in, with the phone on `adb`:
 
