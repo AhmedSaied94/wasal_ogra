@@ -382,11 +382,12 @@ final class TripController {
 
   // ---------------------------------------------------------------- Time
 
-  /// The frame clock: steps the engine in 33 ms steps while running.
+  /// The frame clock: steps the engine in 33 ms steps while running, and
+  /// [settledSpeedUp] times as many once nothing is left for the player.
   void advance(Duration frameTime) {
     final session = _session;
     if (_phase != TripPhase.running || session == null || _disposed) return;
-    final steps = _accumulator.add(frameTime);
+    final steps = _accumulator.add(frameTime * _speed);
     for (var i = 0; i < steps && _phase == TripPhase.running; i++) {
       final before = session.engine.state;
       final events = session.engine.step();
@@ -846,11 +847,12 @@ final class TripController {
       facts: session.facts,
       speech: _speech(session),
     );
+    // A bubble stays as long for the eye however fast the clock runs.
     _memory = _memory.update(
       events,
       cues,
       tMs: after.tMs,
-      bubbleMinMs: session.facts.bubbleMinMs,
+      bubbleMinMs: session.facts.bubbleMinMs * _speed,
     );
     _takeHints(
       _hints.update(
@@ -964,6 +966,12 @@ final class TripController {
     _publish();
   }
 
+  /// How many times faster than real time the trip clock runs.
+  int get _speed =>
+      _phase == TripPhase.running && (_session?.engine.isSettled ?? false)
+      ? settledSpeedUp
+      : 1;
+
   void _publish() {
     if (_disposed) return;
     final session = _session;
@@ -984,6 +992,7 @@ final class TripController {
               disabledBoosters: _disabledBoosters,
               revive: _phase == TripPhase.failed ? _reviveOffer() : null,
               rejection: _rejection,
+              fastForward: _speed > 1,
             ),
             hint: _hints.showing,
             dispute: _phase == TripPhase.disputeOpen && _disputes.isNotEmpty

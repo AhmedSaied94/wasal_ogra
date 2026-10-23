@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/core/theme/components/pills.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
@@ -19,6 +20,7 @@ import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/overlays/banner.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
+import 'package:wassal/features/trip/presentation/overlays/fast_forward_strip.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
@@ -396,6 +398,64 @@ void main() {
     );
   });
 
+  group('fast-forward (trip_engine RULES.md §16)', () {
+    testWidgets(
+      'a dark strip at the scene\'s top while the clock runs faster',
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        await pumpCTrip(tester);
+        expect(find.byKey(FastForwardStrip.stripKey), findsNothing);
+
+        await showTripView(tester, cTripView(fastForward: true));
+        final l10n = l10nOf(tester);
+        final scene = sceneOf(tester);
+        final strip = find.byKey(FastForwardStrip.stripKey);
+        final rect = tester.getRect(strip);
+        expect(rect.top, closeTo(scene.top + 8, 0.5));
+        expect(rect.left, closeTo(scene.left + 10, 0.5));
+        expect(rect.right, closeTo(scene.right - 10, 0.5));
+        expect(rect.height, 40);
+        expect(fills(tester, strip), contains(ColorTokens.dashboardBg));
+        final text = tester.widget<Text>(
+          find.descendant(of: strip, matching: find.text(l10n.tripFastForward)),
+        );
+        expect(text.style!.color, ColorTokens.paper);
+        expect(text.style!.fontSize, greaterThanOrEqualTo(12));
+        // Two `play` glyphs, pointing the way the microbus goes in RTL.
+        final glyphs = find.descendant(
+          of: strip,
+          matching: find.byType(AppIcon),
+        );
+        expect(glyphs, findsNWidgets(2));
+        expect(
+          tester.getRect(glyphs.first).center.dx,
+          greaterThan(
+            tester.getRect(find.text(l10n.tripFastForward)).center.dx,
+          ),
+        );
+        // Read once: one live region with its text.
+        final live = find.semantics.byPredicate(
+          (n) =>
+              n.getSemanticsData().flagsCollection.isLiveRegion &&
+              n.label == l10n.tripFastForward,
+        );
+        expect(live, findsOne);
+
+        // No bubble enters its band.
+        for (final bubble in tester.widgetList<SpeechBubble>(
+          find.byType(SpeechBubble),
+        )) {
+          final top = tester.getRect(find.byWidget(bubble)).top;
+          expect(top, greaterThanOrEqualTo(scene.top + stripsBand(1)));
+        }
+
+        await showTripView(tester, cTripView());
+        expect(find.byKey(FastForwardStrip.stripKey), findsNothing);
+        semantics.dispose();
+      },
+    );
+  });
+
   group('a story trip', () {
     testWidgets('the chip above the title, the dark strip for the whole trip', (
       tester,
@@ -441,6 +501,23 @@ void main() {
 
       await showTripView(tester, storyTripView(kept: false));
       expect(fills(tester, strip), contains(ColorTokens.danger));
+    });
+
+    testWidgets('fast-forward: its strip goes under the story strip', (
+      tester,
+    ) async {
+      await pumpStoryTrip(tester);
+      await showTripView(tester, storyTripView(fastForward: true));
+      final scene = sceneOf(tester);
+      final rect = tester.getRect(find.byKey(FastForwardStrip.stripKey));
+      expect(rect.top, closeTo(scene.top + 8 + 40 + 8, 0.5));
+      expect(rect.height, 40);
+      for (final bubble in tester.widgetList<SpeechBubble>(
+        find.byType(SpeechBubble),
+      )) {
+        final top = tester.getRect(find.byWidget(bubble)).top;
+        expect(top, greaterThanOrEqualTo(scene.top + stripsBand(2)));
+      }
     });
 
     testWidgets('a regular trip has neither', (tester) async {

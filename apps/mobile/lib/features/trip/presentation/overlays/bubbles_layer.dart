@@ -1,6 +1,6 @@
 // What passengers say (layer 8, HANDOFF §3.4 `SpeechBubble`): the newest two
 // bubbles, each with its tail's tip 8 pt above the speaker's head, the body
-// kept 10 pt inside the scene (and under a story trip's 56 pt band), at
+// kept 10 pt inside the scene (and under the strips at its top), at
 // 16 pt and never scaled. A bubble pops from its tail; it just appears under
 // reduced motion.
 import 'dart:math';
@@ -11,6 +11,7 @@ import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 
@@ -19,6 +20,12 @@ const bubbleMargin = 10.0;
 
 /// A story trip's condition strip covers the scene's top this far.
 const storyBand = 56.0;
+
+/// The scene's top that [strips] strips cover (a story trip's condition,
+/// the fast-forward notice), each 8 pt below the last.
+double stripsBand(int strips) => strips == 0
+    ? 0
+    : SpaceTokens.s8 + strips * (StoryStrip.height + SpaceTokens.s8);
 
 /// At most this many bubbles show; older ones wait.
 const maxBubbles = 2;
@@ -228,10 +235,10 @@ class BubblesLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MediaQuery.withNoTextScaling(
-      child: TripSelector<(List<_Said>, bool)>(
+      child: TripSelector<(List<_Said>, int)>(
         select: (model) {
           final view = model.view;
-          if (view == null) return (const [], false);
+          if (view == null) return (const [], 0);
           final newest = [...view.bubbles]
             ..sort((a, b) => a.shownAtMs.compareTo(b.shownAtMs));
           return (
@@ -240,12 +247,12 @@ class BubblesLayer extends StatelessWidget {
                 if (view.passenger(b.passengerId)?.seatId case final seat?)
                   (bubble: b, seatId: seat),
             ],
-            view.storyCondition != null,
+            (view.storyCondition != null ? 1 : 0) + (view.fastForward ? 1 : 0),
           );
         },
         equals: (a, b) => a.$2 == b.$2 && listEquals(a.$1, b.$1),
         builder: (context, selected) {
-          final (said, story) = selected;
+          final (said, strips) = selected;
           final shown = [
             for (final s in said)
               if (layout.seats[s.seatId] case final seat?)
@@ -257,7 +264,7 @@ class BubblesLayer extends StatelessWidget {
           return CustomMultiChildLayout(
             delegate: _BubbleLayout(
               tips: [for (final s in shown) s.tip],
-              minTop: story ? storyBand + bubbleMargin : bubbleMargin,
+              minTop: stripsBand(strips) + bubbleMargin,
             ),
             children: [
               for (final (i, s) in shown.indexed) ...[

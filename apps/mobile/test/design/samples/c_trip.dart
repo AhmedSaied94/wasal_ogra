@@ -144,6 +144,7 @@ TripView cTripView({
   bool breakMode = false,
   TripPhase phase = TripPhase.running,
   FailSummary? failSummary,
+  bool fastForward = false,
 }) => TripView(
   tMs: tMs,
   phase: phase,
@@ -251,6 +252,7 @@ TripView cTripView({
   rejection: null,
   breakMode: breakMode,
   controlsLocked: false,
+  fastForward: fastForward,
 );
 
 TripModel cTripModel([TripView? view]) =>

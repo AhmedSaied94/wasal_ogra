@@ -762,7 +762,7 @@ final class ScriptedPlayer {
         continue;
       }
       expect(controller.phase, TripPhase.running);
-      controller.advance(const Duration(milliseconds: engineStepMs));
+      controller.advance(oneStep(controller));
       await _frame(timed: true);
     }
   }
@@ -771,7 +771,7 @@ final class ScriptedPlayer {
     for (var guard = 0; guard < 100000; guard++) {
       switch (controller.phase) {
         case TripPhase.running:
-          controller.advance(const Duration(milliseconds: engineStepMs));
+          controller.advance(oneStep(controller));
           await _frame(timed: true);
         case TripPhase.disputeOpen:
           await _answerDispute(controller);
@@ -863,7 +863,7 @@ Future<void> finishTrip(
   final controller = controllerOf(tester);
   for (final entry in loadFixture(fixture).commandLog) {
     while (controller.engine!.state.tMs < entry.tMs) {
-      controller.advance(const Duration(milliseconds: engineStepMs));
+      controller.advance(oneStep(controller));
     }
     switch (entry.command) {
       case PickFromTray(:final denomination):
@@ -881,7 +881,7 @@ Future<void> finishTrip(
     }
   }
   while (controller.phase == TripPhase.running) {
-    controller.advance(const Duration(milliseconds: engineStepMs));
+    controller.advance(oneStep(controller));
   }
   await tester.pumpAndSettle();
 }
@@ -913,6 +913,16 @@ final class TripCase {
   final bool lastLiter;
   final Future<void> Function(WidgetTester tester, TripController c)? prepare;
 }
+
+/// A frame that moves [controller]'s trip clock exactly one step, however
+/// fast it runs (`settledSpeedUp` times once nothing is left), so a log's
+/// commands land on their exact times.
+Duration oneStep(TripController controller) => Duration(
+  microseconds:
+      engineStepMs *
+      1000 ~/
+      ((controller.view?.fastForward ?? false) ? settledSpeedUp : 1),
+);
 
 /// Advances [c] until [reached] holds, then draws the frame.
 Future<void> untilView(
@@ -1014,6 +1024,15 @@ List<TripCase> us4TripCases() => [
     fixture: 'event__open_road_clamped',
     prepare: (tester, c) =>
         untilView(tester, c, (v) => v.windows.road == Road.open),
+  ),
+  TripCase(
+    'fast_forward',
+    fixture: 'event__skipped',
+    prepare: (tester, c) async {
+      await untilView(tester, c, (v) => v.fastForward);
+      // The strip faded in.
+      await tester.pump(const Duration(milliseconds: 300));
+    },
   ),
   TripCase(
     'fare_banner',

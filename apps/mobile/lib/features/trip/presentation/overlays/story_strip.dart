@@ -15,7 +15,7 @@ class StoryStrip extends StatelessWidget {
   static const iconKey = ValueKey('trip-story-shield');
 
   static const double height = 40;
-  static const double _radius = 14;
+  static const double radius = 14;
   static const double _icon = 20;
 
   @override
@@ -32,7 +32,7 @@ class StoryStrip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s12),
             decoration: BoxDecoration(
               color: kept ? ColorTokens.dashboardBg : ColorTokens.danger,
-              borderRadius: BorderRadius.circular(_radius),
+              borderRadius: BorderRadius.circular(radius),
             ),
             child: Row(
               spacing: SpaceTokens.s8,
