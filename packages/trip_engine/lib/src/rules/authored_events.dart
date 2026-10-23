@@ -32,17 +32,22 @@ void authoredEvents(Transition tx) {
   }
 }
 
-// Everyone named must be aboard, or waiting for a pickup; and a passenger
-// has at most one open change request.
+// Everyone named must be aboard, or waiting for a pickup; a passenger has
+// at most one open change request; and a dispute needs a liar: exactly one
+// of the two has paid.
 bool _canFire(Transition tx, TripEvent event, List<int> named) {
   final presence = event.eventId == EventId.roadsidePickup
       ? Presence.waiting
       : Presence.aboard;
   if (named.any((q) => tx.passenger(q).presence != presence)) return false;
-  return event.eventId != EventId.changeRequest ||
-      !named.any(
-        (q) => tx.changeRequests.containsKey(tx.passenger(q).passengerId),
-      );
+  return switch (event.eventId) {
+    EventId.changeRequest => !named.any(
+      (q) => tx.changeRequests.containsKey(tx.passenger(q).passengerId),
+    ),
+    EventId.paymentDispute =>
+      named.where((q) => tx.passenger(q).fareSent).length == 1,
+    _ => true,
+  };
 }
 
 // The parameters were validated at start (content-contract.md §2), so the

@@ -68,6 +68,26 @@ final us5Expectations = <String, Expectation>{
     expect(resultOf(run).caughtLiars, 1);
     expect(resultOf(run).faresCollectedPiasters, 1400);
   },
+  'event__payment_dispute_no_liar.json': (run) {
+    // §8: p2 was asked for the fare before the dispute's time, so both have
+    // paid and there is no liar: the dispute is skipped, and no one is
+    // accused.
+    final skipped = eventsOf<EventSkipped>(run.events).single;
+    expect(skipped.eventId, EventId.paymentDispute);
+    expect(eventsOf<DisputeRaised>(run.events), isEmpty);
+    expect(resultOf(run).fights, 0);
+    expect(resultOf(run).stars, 3);
+  },
+  'event__payment_dispute_liar_pays.json': (run) {
+    // §6.2: p2 pays while the dispute is open, so it closes with no event:
+    // no one is caught or accused.
+    expect(eventsOf<DisputeRaised>(run.events), hasLength(1));
+    expect(eventsOf<DisputeResolved>(run.events), isEmpty);
+    expect(run.engine.state.disputes, isEmpty);
+    expect(resultOf(run).caughtLiars, 0);
+    expect(resultOf(run).fights, 0);
+    expect(resultOf(run).faresCollectedPiasters, 1400);
+  },
   'event__change_request.json': (run) {
     // §4.8, §5.5: the tray's two 500s go out and the 1000 note comes back.
     final hops = eventsOf<TokenHopStarted>(run.events);

@@ -35,16 +35,18 @@ def authored_events(tx: Trip) -> None:
 
 
 def _can_fire(tx: Trip, event: TripEvent, named: list[int]) -> bool:
-    """Everyone named must be aboard, or waiting for a pickup; and a passenger has at most one
-    open change request."""
+    """Everyone named must be aboard, or waiting for a pickup; a passenger has at most one open
+    change request; and a dispute needs a liar: exactly one of the two has paid."""
     event_id = event.event_id.value
     presence = Presence.WAITING if event_id == "roadside_pickup" else Presence.ABOARD
     passengers = tx.state.passengers
     if any(passengers[q].presence is not presence for q in named):
         return False
-    return event_id != "change_request" or not any(
-        passengers[q].passenger_id in tx.state.change_requests for q in named
-    )
+    if event_id == "change_request":
+        return not any(passengers[q].passenger_id in tx.state.change_requests for q in named)
+    if event_id == "payment_dispute":
+        return sum(passengers[q].fare_sent for q in named) == 1
+    return True
 
 
 def _fire(tx: Trip, index: int, event: TripEvent, named: list[int]) -> None:

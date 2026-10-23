@@ -1,5 +1,6 @@
-// payment_dispute (rules.md §4.7, §8): two passengers each say they paid;
-// the driver names the one who did.
+// payment_dispute (rules.md §4.7, §6.2, §8): two passengers each say they
+// paid; the driver names the one who did. It needs a liar: exactly one of
+// the two has paid when it fires, and it closes if the other pays.
 import 'package:content_models/content_models.dart';
 import 'package:test/test.dart';
 import 'package:trip_engine/trip_engine.dart';
@@ -8,8 +9,9 @@ import '../support/builders.dart';
 import '../support/edits.dart';
 import '../support/scripts.dart';
 
-// p1 pays at 1 s unless [p1Pays] is false; p2 only when [p2Pays].
-TripEngine _trip({bool p1Pays = true, bool p2Pays = false}) => startTrip(
+// p1 pays at 1 s unless [p1Pays] is false; p2 only when [p2Pays]. The
+// dispute's time is 5 s.
+TripEngine _start({bool p1Pays = true, bool p2Pays = false}) => startTrip(
   (TripBuilder()
         ..station('kobri', 10)
         ..station('gamaa', 40)
@@ -36,14 +38,23 @@ TripEngine _trip({bool p1Pays = true, bool p2Pays = false}) => startTrip(
         )
         ..event(EventId.paymentDispute, 5, passengers: ['p1', 'p2']))
       .build(),
-)..stepToSeconds(6);
+);
+
+// The dispute open between p1, who paid, and p2, who didn't.
+TripEngine _trip() => _start()..stepToSeconds(6);
 
 void main() {
   test('it opens with both passengers speaking', () {
     final engine = startTrip(
       (TripBuilder()
             ..station('gamaa', 40)
-            ..passenger('p1', seat: 'A_r', dest: 'gamaa', payment: [1000])
+            ..passenger(
+              'p1',
+              seat: 'A_r',
+              dest: 'gamaa',
+              payment: [1000],
+              paysAt: 1,
+            )
             ..passenger('p2', seat: 'A_m', dest: 'gamaa', payment: [1000])
             ..event(EventId.paymentDispute, 5, passengers: ['p1', 'p2']))
           .build(),
@@ -52,7 +63,7 @@ void main() {
     final raised = eventsOf<DisputeRaised>(events).single;
     expect(raised.disputeId, 0);
     expect(raised.passengerIds, ['p1', 'p2']);
-    expect(spoken(events, 'p1'), [SpeechSlot.dispute]);
+    expect(spoken(events, 'p1'), [SpeechSlot.pays, SpeechSlot.dispute]);
     expect(spoken(events, 'p2'), [SpeechSlot.dispute]);
     expect(engine.state.disputes.keys, [0]);
   });
@@ -70,21 +81,43 @@ void main() {
     expect(engine.state.disputes, isEmpty);
   });
 
-  for (final (name, p1Pays, p2Pays, paid) in [
-    ('a wrong answer', true, false, 'p2'),
-    ('both having paid', true, true, 'p1'),
-    ('neither having paid', false, false, 'p1'),
+  test('a wrong answer is a false accusation against the other', () {
+    final engine = _trip();
+    final events = engine.ok(const ResolveDispute(0, 'p2'));
+    expect(eventsOf<FalseAccusation>(events).single.passengerId, 'p1');
+    expect(spoken(events, 'p1'), [SpeechSlot.accused]);
+    expect(eventsOf<DisputeResolved>(events).single.right, isFalse);
+    expect(engine.state.counters.fights, 1);
+  });
+
+  for (final (name, p1Pays, p2Pays) in [
+    ('both have paid', true, true),
+    ('neither has paid', false, false),
   ]) {
-    test('$name is a false accusation against the other', () {
-      final engine = _trip(p1Pays: p1Pays, p2Pays: p2Pays);
-      final other = paid == 'p1' ? 'p2' : 'p1';
-      final events = engine.ok(ResolveDispute(0, paid));
-      expect(eventsOf<FalseAccusation>(events).single.passengerId, other);
-      expect(spoken(events, other), [SpeechSlot.accused]);
-      expect(eventsOf<DisputeResolved>(events).single.right, isFalse);
-      expect(engine.state.counters.fights, 1);
+    test('$name: there is no liar, so it is skipped', () {
+      final engine = _start(p1Pays: p1Pays, p2Pays: p2Pays);
+      final events = engine.stepToSeconds(6);
+      final skipped = eventsOf<EventSkipped>(events).single;
+      expect((skipped.index, skipped.eventId), (0, EventId.paymentDispute));
+      expect(eventsOf<EventStarted>(events), isEmpty);
+      expect(eventsOf<DisputeRaised>(events), isEmpty);
+      expect(spoken(events, 'p1'), isNot(contains(SpeechSlot.dispute)));
+      expect(engine.state.disputes, isEmpty);
+      engine.rejects(const ResolveDispute(0, 'p1'), RejectionCode.noChoice);
     });
   }
+
+  test('it closes, with no event, when the other pays', () {
+    final engine = _trip();
+    final events = engine.ok(const Tap('p2'));
+    expect(eventsOf<FareSent>(events).single.passengerId, 'p2');
+    expect(engine.state.disputes, isEmpty);
+    expect(eventsOf<DisputeResolved>(events), isEmpty);
+    expect(eventsOf<LiarCaught>(events), isEmpty);
+    expect(eventsOf<FalseAccusation>(events), isEmpty);
+    expect(engine.state.counters.fights, 0);
+    engine.rejects(const ResolveDispute(0, 'p1'), RejectionCode.noChoice);
+  });
 
   test('a third passenger is a bad argument', () {
     _trip().rejects(const ResolveDispute(0, 'p3'), RejectionCode.badArgument);

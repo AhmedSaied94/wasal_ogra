@@ -73,8 +73,24 @@ def pay_now(tx: Trip, passenger: int) -> None:
     state.never_pays = False
     if had_claim:
         state.claim_resolved = True
+    _close_disputes_without_liar(tx, passenger_id)
     start_patience(tx, passenger)
     _send_fare(tx, passenger_id, payment)
+
+
+def _close_disputes_without_liar(tx: Trip, passenger_id: str) -> None:
+    """Once `passenger_id` has paid, a dispute naming them whose other passenger paid too has no
+    liar left, and closes with no event (§6.2)."""
+    trip = tx.state
+    index = tx.course.passenger_index
+    settled = [
+        key
+        for key, dispute in trip.disputes.items()
+        if passenger_id in (dispute.a, dispute.b)
+        and trip.passengers[index[dispute.b if dispute.a == passenger_id else dispute.a]].fare_sent
+    ]
+    for key in settled:
+        del trip.disputes[key]
 
 
 def pay_rest(tx: Trip, passenger: int) -> None:
