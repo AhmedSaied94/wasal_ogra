@@ -42,5 +42,6 @@ workflows:
           mkdir -p build/ipa/Payload
           cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
           cd build/ipa && zip -qry wassal-dev-unsigned.ipa Payload
+          ls -l wassal-dev-unsigned.ipa
     artifacts:
-      - apps/mobile/build/ipa/*.ipa
+      - $CM_BUILD_DIR/apps/mobile/build/ipa/*.ipa
