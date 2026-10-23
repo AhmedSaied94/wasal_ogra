@@ -24,6 +24,7 @@ its own:
 | [restore.md](restore.md) | Restoring a backup into production or staging, rebuilding either VM, the drill's results |
 | [content-publishing.md](content-publishing.md) | Authoring, building and publishing on staging, promoting to production, `content/source`, rollback, the minimum app version |
 | [break-glass.md](break-glass.md) | Getting back into a VM when WireGuard or SSH doesn't work |
+| [ios-test-build.md](ios-test-build.md) | The unsigned iOS dev build on Codemagic, and installing it on an iPhone with a free Apple ID |
 
 ## First-time setup
 
