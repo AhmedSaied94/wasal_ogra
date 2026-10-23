@@ -13,7 +13,6 @@ workflows:
       # Must equal .fvmrc; the first script checks it.
       flutter: 3.47.7
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Flutter matches .fvmrc
         script: |
