@@ -245,36 +245,59 @@ class WindowsComponent extends Component with HasGameReference<TripGame> {
       ..drawCircle(head, h * 0.17, Paint()..color = DesignExtras.driverSkin);
   }
 
-  /// The next station's sign: in the left window of `C-Trip` (box 30), the
-  /// windscreen's left of a tuktuk. It slides in and grows over the last
-  /// [signLeadMs]; under reduced motion it stands in place.
+  /// The next station's sign, in its colour ([stationSign]).
   void _drawSign(Canvas canvas, SceneLayout layout) {
     final strip = game.view?.strip;
-    final countdown = strip?.countdownMs;
-    if (strip == null || countdown == null || countdown > signLeadMs) return;
-    final next = strip.chips.where((c) => c.next).firstOrNull;
-    if (next == null) return;
-    final near = game.reduceMotion ? 1.0 : 1 - countdown / signLeadMs;
-    final tuktuk = layout.vehicle == VehicleId.tuktuk;
-    final (bx, by, px, py, ph) = tuktuk
-        ? (80.0, 110.0, 116.0, 140.0, 40.0)
-        : (10.0, 76.0, 46.0, 106.0, 34.0);
-    final grow = 0.6 + 0.4 * near;
-    final slide = layout.across(-50 * (1 - near));
-    final foot = layout.at(px + 2, py + ph);
+    final next = strip?.chips.where((c) => c.next).firstOrNull;
+    final sign = stationSign(
+      layout,
+      strip?.countdownMs,
+      reduceMotion: game.reduceMotion,
+    );
+    if (next == null || sign == null) return;
     canvas
-      ..save()
-      ..translate(foot.dx + slide, foot.dy)
-      ..scale(grow)
-      ..translate(-foot.dx, -foot.dy)
+      ..drawRRect(sign.post, Paint()..color = ColorTokens.iconOff)
       ..drawRRect(
-        layout.rrectOf(px, py, 4, ph, 2),
-        Paint()..color = ColorTokens.iconOff,
-      )
-      ..drawRRect(
-        layout.rrectOf(bx, by, 76, 30, 10),
+        sign.board,
         Paint()..color = TripColors.station(next.slot).bg,
-      )
-      ..restore();
+      );
   }
+}
+
+/// The next station's sign [countdownMs] before its station: in the left
+/// window of `C-Trip`, the windscreen's left of a tuktuk. It slides in and
+/// grows over the last [signLeadMs]; under reduced motion it stands in
+/// place. Its board and post as they stand, and the board's [scale]
+/// against the design's 76×30; null outside that stretch. The windows draw
+/// the board, and `StationSignName` writes the name on it.
+({RRect board, RRect post, double scale})? stationSign(
+  SceneLayout layout,
+  int? countdownMs, {
+  required bool reduceMotion,
+}) {
+  if (countdownMs == null || countdownMs > signLeadMs) return null;
+  final near = reduceMotion ? 1.0 : 1 - countdownMs / signLeadMs;
+  final tuktuk = layout.vehicle == VehicleId.tuktuk;
+  final (bx, by, px, py, ph) = tuktuk
+      ? (80.0, 110.0, 116.0, 140.0, 40.0)
+      : (10.0, 76.0, 46.0, 106.0, 34.0);
+  const from = TripMotion.signGrowFrom;
+  final grow = from + (1 - from) * near;
+  final slide = layout.across(-50 * (1 - near));
+  // Grown about the post's foot, then slid along the street.
+  final foot = layout.at(px + 2, py + ph);
+  RRect place(RRect r) => RRect.fromRectAndRadius(
+    Rect.fromLTRB(
+      foot.dx + slide + (r.left - foot.dx) * grow,
+      foot.dy + (r.top - foot.dy) * grow,
+      foot.dx + slide + (r.right - foot.dx) * grow,
+      foot.dy + (r.bottom - foot.dy) * grow,
+    ),
+    r.tlRadius * grow,
+  );
+  return (
+    board: place(layout.rrectOf(bx, by, 76, 30, 10)),
+    post: place(layout.rrectOf(px, py, 4, ph, 2)),
+    scale: layout.scale * grow,
+  );
 }

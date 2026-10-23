@@ -125,6 +125,17 @@ abstract final class DesignExtras {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  /// `C-Trip`: the next station's name on its sign in the window, Readex
+  /// Pro 700 13, centred on the board (HANDOFF §11 "Next-station sign").
+  static const stationSignName = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `Fail` box 11: the reason chip's text, Readex Pro 600 13, measured 16.
   static const failReason = TextStyle(
     fontFamily: TypeTokens.readexPro,

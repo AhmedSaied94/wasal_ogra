@@ -35,6 +35,7 @@ import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
+import 'package:wassal/features/trip/presentation/overlays/station_sign_name.dart';
 import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
 import 'package:wassal/features/trip/presentation/playtest/debug_panel.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
@@ -281,6 +282,12 @@ class _TripScreenState extends ConsumerState<TripScreen> {
           children: [
             Positioned.fill(
               child: ExcludeSemantics(child: GameWidget(game: game)),
+            ),
+            // On the window's sign, under everything else.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ExcludeSemantics(child: StationSignName(layout: layout)),
+              ),
             ),
             Positioned.fill(child: PatchesLayer(layout: layout)),
             Positioned.fill(child: TokenLayer(layout: layout)),

@@ -64,6 +64,11 @@ abstract final class TripMotion {
   /// The driver's hand reaching toward a passenger and back.
   static const throwReach = Duration(milliseconds: 350);
 
+  /// The next station's sign grows from this share of its size to all of
+  /// it, so the name on it never drops under 12 pt (13 pt at full size;
+  /// constitution XI).
+  static const double signGrowFrom = 12 / 13;
+
   /// The street's speed in the windows, in points per second.
   static const double streetSpeed = 60;
 
