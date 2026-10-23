@@ -24,7 +24,7 @@ left, in what order, and where to look.
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
 | [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. Open as #9. Character file in on 2026-10-23. |
-| [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Built 2026-10-23 on `008.5-m21-design-refresh`. Not committed yet. |
+| [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Built 2026-10-23 on `008.5-m21-design-refresh`. Open as #10. |
 
 ## Every month
 

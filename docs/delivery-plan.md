@@ -617,7 +617,10 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     (T059), the A06 run (T065). 008.5 replaces its character file with the new design's.
 - [ ] Step 5.5: The new design
   - [ ] `008.5-m21-design-refresh`. Added 2026-10-23, when the owner adopted Style C
-    (`docs/design/`). Needs the owner's Rive files in the new style before it merges.
+    (`docs/design/`). Built on 2026-10-23, open as #10. The owner's `wassal.riv` is in, exported
+    from Rive's free plan (research R15). Still to do before the merge: `reducedMotion` in the file
+    (T110), the A06 runs (T111, T124), the side-by-side review (T126) and the short-screen
+    approval.
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
   - [ ] `010-b03-ledger-sync`
