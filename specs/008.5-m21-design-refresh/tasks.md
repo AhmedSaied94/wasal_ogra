@@ -1174,7 +1174,7 @@ token and see the goldens move.
   `specs/001-m03-app-shell/contracts/design-tokens.md`: `> **Superseded by**` the matching contract in
   `specs/008.5-m21-design-refresh/contracts/` (trip-layout.md, rive-characters.md, design-tokens.md),
   "from M21".
-- [ ] T122 [P] Update `docs/delivery-plan.md`: tick Step 5.5 in the Progress list with the PR number
+- [X] T122 [P] Update `docs/delivery-plan.md`: tick Step 5.5 in the Progress list with the PR number
   once merged. Under M07's "Handed over" item, add the new threshold (`inset + 764` pt) and the 360×640
   golden to aim for.
 - [X] T123 [P] Add the M21 section to `docs/owner-actions.md`, split into before and after merge, each

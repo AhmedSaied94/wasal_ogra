@@ -33,6 +33,7 @@ import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/overlays/banner.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
+import 'package:wassal/features/trip/presentation/overlays/fast_forward_strip.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
@@ -314,6 +315,12 @@ class _TripScreenState extends ConsumerState<TripScreen> {
               left: SpaceTokens.s10,
               right: SpaceTokens.s10,
               child: IgnorePointer(child: StoryStrip()),
+            ),
+            const Positioned(
+              top: SpaceTokens.s8,
+              left: SpaceTokens.s10,
+              right: SpaceTokens.s10,
+              child: IgnorePointer(child: FastForwardStrip()),
             ),
           ],
         );

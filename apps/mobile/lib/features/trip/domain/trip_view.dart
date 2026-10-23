@@ -46,6 +46,7 @@ final class TripView extends ViewValue {
     required this.rejection,
     required this.breakMode,
     required this.controlsLocked,
+    this.fastForward = false,
   });
 
   final int tMs;
@@ -82,6 +83,10 @@ final class TripView extends ViewValue {
   /// The command limit was reached: only pause still responds.
   final bool controlsLocked;
 
+  /// Nothing is left for the player, so the clock runs `settledSpeedUp`
+  /// times faster to the end of the line.
+  final bool fastForward;
+
   PassengerView? passenger(String passengerId) {
     for (final p in passengers) {
       if (p.passengerId == passengerId) return p;
@@ -114,6 +119,7 @@ final class TripView extends ViewValue {
     'rejection': rejection,
     'breakMode': breakMode,
     'controlsLocked': controlsLocked,
+    'fastForward': fastForward,
   };
 }
 

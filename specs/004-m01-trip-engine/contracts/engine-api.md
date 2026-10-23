@@ -24,6 +24,7 @@ final class TripEngine {
   TripState get state;                 // immutable; read freely
   TripStatus get status;               // shorthand for state.status
   TripResult? get result;              // set when finished, failed or abandoned
+  bool get isSettled;                  // nothing left for the player (RULES.md §16)
   List<LoggedCommand> get commandLog;  // unmodifiable, accepted commands only
   ReplayRecord get replayRecord;       // definition, seed, params, log, state.tMs
 

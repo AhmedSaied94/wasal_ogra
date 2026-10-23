@@ -530,3 +530,23 @@ It is drawn only by §12, once per speech, in emission order.
 - Booleans and integers are never mixed in arithmetic.
 - Every list the engine iterates has a fixed order (§1.2). Maps are iterated only through those
   orders, never by hash order.
+
+## 16. Settled: a query, not a rule
+
+The screen asks the engine whether anything is left for the player (`TripEngine.isSettled`). No
+rule reads the answer, and no state or result depends on it, so the mirror leaves it out (B05 spec
+FR-006). The trip is *settled* when it is `running` or `paused` and:
+
+- every authored event has fired or been skipped;
+- no passenger is `waiting`;
+- no token is alive, dropped or not;
+- no claim, dispute, change request or pending break is open;
+- every aboard passenger is not a `sleeper`, has `balance == 0`, and has sent their fare unless
+  they are `never_pays` or a group member. A sleeper who is awake dozes off again (§3, step 2.2), so
+  one aboard always needs the player.
+
+From a settled state with no command, the rest of the trip only reaches its stations: it stays
+settled, no reputation changes, no mistake is added, and everyone left gets off thanked, or left
+unpaid when `never_pays` (test `rules/settled_test.dart`, over every fixture). No command can
+improve the result from there, but one can end it: a tap on a paid passenger opens a truthful claim
+(§4.5). While it holds, M02 runs the trip clock faster, which changes nothing here.

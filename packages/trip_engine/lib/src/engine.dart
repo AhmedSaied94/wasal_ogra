@@ -12,6 +12,7 @@ import 'params.dart';
 import 'replay.dart';
 import 'rules/command_handlers.dart';
 import 'rules/course.dart';
+import 'rules/settled.dart' as rules;
 import 'rules/step.dart';
 import 'rules/transition.dart';
 import 'validation.dart';
@@ -74,6 +75,10 @@ final class TripEngine {
 
   /// Set when the trip finishes, fails or is abandoned.
   TripResult? get result => _state.result;
+
+  /// Nothing is left for the player (rules.md §16): with no command, the
+  /// rest of the trip only reaches its stations.
+  bool get isSettled => rules.isSettled(_course, _state);
 
   /// The accepted commands, unmodifiable.
   List<LoggedCommand> get commandLog => UnmodifiableListView(_log);

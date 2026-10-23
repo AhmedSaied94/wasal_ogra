@@ -24,38 +24,40 @@ BoosterSlotView _booster(BoosterId booster, int count, {int? price}) =>
       adOffered: false,
     );
 
-TripView storyTripView({bool kept = true}) => cTripView(
-  reputation: 88,
-  strip: cTripStrip(countdownMs: 31000, vehiclePermille: 180),
-  passengers: cTripPassengers(talking: const {'C_l'}),
-  tokens: const [],
-  hand: const HandView(pieces: {500: 1, 50: 1}, totalPiasters: 550),
-  tray: [
-    _slot(50, 1),
-    _slot(100, 2),
-    _slot(500, 1),
-    _slot(1000, 2),
-    _slot(2000, 1),
-    _slot(5000, 0),
-    _slot(10000, 0),
-    _slot(20000, 0),
-  ],
-  boosters: [
-    _booster(BoosterId.changeBag, 2),
-    _booster(BoosterId.ledgerPeek, 1),
-    _booster(BoosterId.wakeAll, 1),
-    _booster(BoosterId.trafficJam, 0, price: 5),
-  ],
-  bubbles: const [
-    BubbleView(
-      passengerId: 'p_C_l',
-      text: 'الباقي يا أسطى!',
-      style: BubbleStyle.warning,
-      shownAtMs: 35000,
-    ),
-  ],
-  storyCondition: kept,
-);
+TripView storyTripView({bool kept = true, bool fastForward = false}) =>
+    cTripView(
+      reputation: 88,
+      strip: cTripStrip(countdownMs: 31000, vehiclePermille: 180),
+      passengers: cTripPassengers(talking: const {'C_l'}),
+      tokens: const [],
+      hand: const HandView(pieces: {500: 1, 50: 1}, totalPiasters: 550),
+      tray: [
+        _slot(50, 1),
+        _slot(100, 2),
+        _slot(500, 1),
+        _slot(1000, 2),
+        _slot(2000, 1),
+        _slot(5000, 0),
+        _slot(10000, 0),
+        _slot(20000, 0),
+      ],
+      boosters: [
+        _booster(BoosterId.changeBag, 2),
+        _booster(BoosterId.ledgerPeek, 1),
+        _booster(BoosterId.wakeAll, 1),
+        _booster(BoosterId.trafficJam, 0, price: 5),
+      ],
+      bubbles: const [
+        BubbleView(
+          passengerId: 'p_C_l',
+          text: 'الباقي يا أسطى!',
+          style: BubbleStyle.warning,
+          shownAtMs: 35000,
+        ),
+      ],
+      storyCondition: kept,
+      fastForward: fastForward,
+    );
 
 /// The trip screen on the reference frame, showing `StoryTrip`'s state.
 Future<void> pumpStoryTrip(
