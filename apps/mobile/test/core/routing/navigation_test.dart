@@ -2,7 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
-import 'package:wassal/core/theme/components/wassal_bottom_bar.dart';
+import 'package:wassal/core/theme/components/nav.dart';
+import 'package:wassal/core/theme/components/overlays.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
@@ -51,7 +52,7 @@ void main() {
         await pumpWassalApp(tester, initialLocation: d.location);
         expect(currentLocation(tester), d.location);
         expect(
-          find.byType(WassalBottomBar).hitTestable(),
+          find.byType(BottomNav).hitTestable(),
           d.presentation == Presentation.tab ? findsOneWidget : findsNothing,
         );
       });
@@ -64,18 +65,23 @@ void main() {
     );
     final closers = <String, Future<void> Function(WidgetTester)>{
       'drag down': (tester) =>
-          tester.drag(find.byType(BottomSheet), const Offset(0, 600)),
-      'close button': (tester) => tester.tap(find.byTooltip('قفل')),
+          tester.drag(find.byType(AppSheet), const Offset(0, 600)),
+      'close button': (tester) => tester.tap(
+        find.descendant(
+          of: find.byType(AppSheet),
+          matching: find.bySemanticsLabel('قفل'),
+        ),
+      ),
       'tap outside': (tester) => tester.tapAt(const Offset(195, 20)),
     };
     for (final d in sheets) {
       for (final MapEntry(key: how, value: close) in closers.entries) {
         testWidgets('${d.name} by $how', (tester) async {
           await pumpWassalApp(tester, initialLocation: d.location);
-          expect(find.byType(BottomSheet), findsOneWidget);
+          expect(find.byType(AppSheet), findsOneWidget);
           await close(tester);
           await tester.pumpAndSettle();
-          expect(find.byType(BottomSheet), findsNothing);
+          expect(find.byType(AppSheet), findsNothing);
           expect(currentLocation(tester), tabFor(d.section).location);
         });
       }

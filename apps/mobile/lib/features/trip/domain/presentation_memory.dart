@@ -12,8 +12,9 @@ import 'package:wassal/features/trip/domain/view_value.dart';
 /// A walk in or out of the cabin (contracts/scene-layout.md "Motion").
 const walkMs = 600;
 
-/// The fare-increase banner: in, held, out.
-const bannerMs = 250 + 3000 + 250;
+/// The fare-increase banner: in, held 4 s, out (008.5 contracts/
+/// trip-layout.md "Motion": the toast's 200 ms each way).
+const bannerMs = 200 + 4000 + 200;
 
 /// Someone waves from the roadside while they walk in, and a little after.
 const waveMs = 2 * walkMs;

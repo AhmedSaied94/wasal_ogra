@@ -1,28 +1,37 @@
-// بلية's hint (layer 8, contracts/trip-view.md "Hints"): the apprentice's
-// head at the door on the scene's right, under the windows, his line in a
-// bubble beside him, and a pointing hand at the passenger it is about,
-// pulsing on the trip clock (steady under reduced motion). His head is a stand-in drawing
-// until the art arrives.
-import 'dart:math' as math;
-
+// بلية's hint (layer 8, research R12, HANDOFF `Tutorial` blocks 5–7): his
+// head at the scene's bottom corner by the door, his line beside it in a
+// character bubble with his name, and the coach's hand pointing at the
+// passenger it is about. No scrim: the hint takes no touch (the screen wraps
+// it in an IgnorePointer), so everything under it still answers. While a
+// popover is open in the scene, it moves to the top corner. When it shows
+// and what it says are M02's.
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
+import 'package:wassal/core/theme/components/story.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
+import 'package:wassal/features/trip/presentation/scene/character_avatar.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// بلية's head.
-const balyaHeadSize = 48.0;
+/// What the hint layer draws: the line, the seat it points at, whether a
+/// popover is open in the scene, and whether a story strip tops it.
+typedef _Shown = ({String text, String? seatId, bool popover, bool story});
 
-/// The pointing hand.
-const _pointerSize = 36.0;
+/// `Tutorial` blocks 5–6 against the scene's bottom-right corner: his head
+/// 6 in and 22 up; his bubble 14 from the left, 104 from the right, 2
+/// above his head.
+const _headRight = 6.0;
+const _headBottom = 22.0;
+const _bubbleLeft = 14.0;
+const _bubbleRight = 104.0;
+const _bubbleAboveHead = 2.0;
 
-/// What the hint layer draws: the line, and the face it points at.
-typedef _Shown = ({String text, String? seatId});
+/// How far the tail's square pokes past the bubble's edge.
+const _tailOut = 7.0;
 
 class HintLayer extends StatelessWidget {
   const HintLayer({required this.layout, super.key});
@@ -46,56 +55,90 @@ class HintLayer extends StatelessWidget {
         return (
           text: text,
           seatId: target == null ? null : view.passenger(target)?.seatId,
+          popover: view.choices.any(
+            (c) => c is ClaimChoice || c is ChangeRequestChoice,
+          ),
+          story: view.storyCondition != null,
         );
       },
       builder: (context, shown) {
         if (shown == null) return const SizedBox.shrink();
-        final top = layout.windows.height + SpaceTokens.s;
-        final face = layout.seats[shown.seatId]?.face;
+        // A popover hangs under a face, and the false claimer's hint comes
+        // with his: while one is open, بلية moves to the scene's top
+        // corner, clear of every row's popover (below a story strip).
+        final headTop = shown.popover
+            ? (shown.story ? storyBand : SpaceTokens.s8) + _bubbleAboveHead
+            : layout.height - _headBottom - CharacterAvatar.size.height;
+        final face = layout.seats[shown.seatId]?.head;
+        final target = face == null
+            ? null
+            : Rect.fromLTWH(face.left, face.top, face.width, face.height);
+        // The hand points up from under its target, as `Tutorial` draws it,
+        // unless there it would cover بلية's words or a popover under the
+        // face; then it points down from above.
+        final band = Rect.fromLTRB(
+          _bubbleLeft,
+          headTop - _bubbleAboveHead,
+          layout.width - _headRight,
+          headTop + CharacterAvatar.size.height,
+        );
+        Offset? hand;
+        var down = false;
+        if (target != null) {
+          final below = CoachHand.placeFor(target) & CoachHand.size;
+          down = shown.popover || below.overlaps(band);
+          hand = down ? CoachHand.placeAbove(target) : below.topLeft;
+        }
+        // Physical sides: the door is on the right in either direction,
+        // and بلية stands at it.
         return Stack(
           children: [
-            if (face != null)
-              Positioned(
-                // On the face's top corner toward the door.
-                left: face.left + face.width - _pointerSize / 2,
-                top: face.top + face.height * 0.2 - _pointerSize / 2,
-                child: const _Pointer(key: pointerKey),
-              ),
             Positioned(
-              top: top,
-              right: SpaceTokens.s,
+              right: _headRight,
+              top: headTop,
+              child: const KeyedSubtree(
+                key: headKey,
+                child: CharacterAvatar('belya'),
+              ),
+            ),
+            Positioned(
+              left: _bubbleLeft,
+              right: _bubbleRight,
+              top: headTop - _bubbleAboveHead,
               child: Semantics(
                 liveRegion: true,
                 label: l10n.tripHintSemantics(shown.text),
                 excludeSemantics: true,
-                // Physical order: the door is on the right in either
-                // direction, and بلية stands at it.
-                child: Row(
-                  textDirection: TextDirection.ltr,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: layout.width * 0.6),
-                      child: Bubble(
-                        key: bubbleKey,
-                        text: shown.text,
-                        style: BubbleStyle.thanks,
-                        tailX: 0,
-                        tailDown: false,
-                      ),
+                    SpeechBubble(
+                      key: bubbleKey,
+                      text: shown.text,
+                      name: l10n.tripHintSpeaker,
+                      variant: SpeechBubbleVariant.character,
+                      tail: false,
+                      padding: DesignExtras.hintBubblePadding,
+                      quoteStyle: DesignExtras.hintQuote,
+                      scaled: true,
                     ),
-                    const SizedBox(width: SpaceTokens.xs),
-                    SizedBox.square(
-                      key: headKey,
-                      dimension: balyaHeadSize,
-                      child: CustomPaint(
-                        painter: _BalyaPainter(context.tokens),
-                      ),
+                    const Positioned(
+                      right: -_tailOut,
+                      bottom: DesignExtras.hintTailRise,
+                      child: _Tail(),
                     ),
                   ],
                 ),
               ),
             ),
+            if (hand case final hand?)
+              Positioned(
+                left: hand.dx,
+                top: hand.dy,
+                child: down
+                    ? const CoachHand.down(key: pointerKey)
+                    : const CoachHand(key: pointerKey),
+              ),
           ],
         );
       },
@@ -103,84 +146,24 @@ class HintLayer extends StatelessWidget {
   }
 }
 
-/// The pointing hand, pulsing on the trip clock: still while the trip is.
-class _Pointer extends StatelessWidget {
-  const _Pointer({super.key});
+/// The bubble's tail toward بلية: a 16 pt square turned 45°, its rounded
+/// corner the tip.
+class _Tail extends StatelessWidget {
+  const _Tail();
 
   @override
-  Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final hand = Container(
-      width: _pointerSize,
-      height: _pointerSize,
-      decoration: BoxDecoration(
-        color: tokens.gold,
-        shape: BoxShape.circle,
-        border: Border.all(color: tokens.hibr, width: 2),
-      ),
-      child: Icon(Icons.touch_app_rounded, size: 22, color: tokens.hibr),
-    );
-    return TripPulse(amplitude: 0.15, child: hand);
-  }
-}
-
-/// بلية: a round face in a cap, smiling, in the sticker style.
-class _BalyaPainter extends CustomPainter {
-  const _BalyaPainter(this.tokens);
-
-  final WassalTokens tokens;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = size.shortestSide / 2;
-    final center = size.center(Offset.zero);
-    final line = math.max(2.0, r * 0.1);
-    final ink = Paint()
-      ..color = tokens.hibr
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = line
-      ..strokeCap = StrokeCap.round;
-    canvas
-      ..drawCircle(
-        center + Offset(-line, line),
-        r - line,
-        Paint()..color = tokens.hibr,
-      )
-      ..drawCircle(
-        center,
-        r - line,
-        Paint()..color = Color.lerp(tokens.gold, tokens.waraq, 0.55)!,
-      )
-      ..drawCircle(center, r - line, ink);
-    // The cap.
-    final cap = Path()
-      ..addArc(
-        Rect.fromCircle(center: center, radius: r - line),
-        math.pi * 1.05,
-        math.pi * 0.9,
-      )
-      ..close();
-    canvas
-      ..drawPath(cap, Paint()..color = tokens.primary)
-      ..drawPath(cap, ink);
-    // Eyes and a grin.
-    final eye = Paint()..color = tokens.hibr;
-    canvas
-      ..drawCircle(center + Offset(-r * 0.3, r * 0.05), r * 0.08, eye)
-      ..drawCircle(center + Offset(r * 0.3, r * 0.05), r * 0.08, eye)
-      ..drawArc(
-        Rect.fromCenter(
-          center: center + Offset(0, r * 0.25),
-          width: r * 0.8,
-          height: r * 0.5,
+  Widget build(BuildContext context) => Transform.rotate(
+    angle: 0.7853981633974483,
+    child: const SizedBox.square(
+      dimension: DesignExtras.hintTail,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: ColorTokens.paper,
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(DesignExtras.hintTailRadius),
+          ),
         ),
-        0.15 * math.pi,
-        0.7 * math.pi,
-        false,
-        ink,
-      );
-  }
-
-  @override
-  bool shouldRepaint(_BalyaPainter oldDelegate) => oldDelegate.tokens != tokens;
+      ),
+    ),
+  );
 }

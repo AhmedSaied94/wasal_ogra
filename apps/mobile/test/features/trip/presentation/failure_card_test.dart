@@ -1,4 +1,5 @@
 import 'package:content_models/content_models.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
@@ -8,6 +9,7 @@ import 'package:wassal/features/trip/domain/step_accumulator.dart';
 import 'package:wassal/features/trip/presentation/cards/failure_card.dart';
 import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
 import '../../../helpers/pump_app.dart';
@@ -53,7 +55,14 @@ void main() {
     expect(inCard('المشوار باظ'), findsOneWidget);
     expect(inCard('${_numbers.integer(4)} خناقات'), findsOneWidget);
     expect(inCard('عيد المشوار'), findsOneWidget);
-    expect(inCard('${_numbers.integer(-1)} بنزين'), findsOneWidget);
+    // 008.5: the liter is the fuel chip «−١» (HANDOFF §9.1 #4).
+    expect(
+      inCard(
+        lookupAppLocalizations(const Locale('ar'))
+            .tripFuelChip(_numbers.integer(1)),
+      ),
+      findsOneWidget,
+    );
     expect(inCard('ارجع الموقف'), findsOneWidget);
   });
 
@@ -72,7 +81,13 @@ void main() {
   ) async {
     final c = await failOnScreen(tester, bonat: _price - 1);
     expect(inCard('صالح بـ${_numbers.integer(_price)} بون'), findsOneWidget);
-    expect(inCard('ناقصك ${_numbers.integer(1)} بونات'), findsOneWidget);
+    expect(
+      inCard(
+        lookupAppLocalizations(const Locale('ar'))
+            .tripBoosterShort(1, _numbers.integer(1)),
+      ),
+      findsOneWidget,
+    );
     final semantics = tester.ensureSemantics();
     expect(
       tester.getSemantics(find.byKey(FailureCard.reviveKey)),
@@ -127,7 +142,7 @@ void main() {
       );
       final strip = find.text('أي خناقة والمشوار يتعاد');
       expect(strip, findsOneWidget);
-      final bar = tester.getRect(find.byType(TripTopBar));
+      final bar = tester.getRect(find.byType(TripHud));
       final rect = tester.getRect(find.byType(StoryStrip));
       expect(rect.top, greaterThanOrEqualTo(bar.bottom));
       expect(rect.top - bar.bottom, lessThan(24));

@@ -1,9 +1,12 @@
 // The trip's device preferences (data-model.md "Preferences"): sound,
 // vibration, and the passenger types بلية has already explained.
+import 'package:wassal/core/audio_haptics/vibration_setting.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 
 const tripSoundKey = 'pref.trip_sound';
-const tripHapticsKey = 'pref.trip_haptics';
+
+/// Vibration is the app's, not only the trip's: buttons tick with it too.
+const tripHapticsKey = vibrationKey;
 const tripHintsSeenKey = 'pref.trip_hints_seen';
 
 const _on = 'on';

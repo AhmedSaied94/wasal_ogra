@@ -19,6 +19,8 @@ StationStripView stationStrip(TripState state, TripFacts facts) {
           slot: i,
           name: facts.stationName(station.stationId),
           farePiasters: station.farePiasters + state.fareIncreasePiasters,
+          basePiasters: station.farePiasters,
+          atMs: station.atMs,
           studentIcon: student,
           reached: i < next,
           next: i == next,

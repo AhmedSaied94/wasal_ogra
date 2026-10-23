@@ -15,6 +15,7 @@ import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/features/trip/presentation/trip_screen.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
 import '../../../helpers/pump_app.dart';
@@ -53,20 +54,30 @@ List<String> heard(WidgetTester tester) => [
     if (node.label.isNotEmpty) node.label,
 ];
 
+/// The zones on the reference frame, with its top inset.
+TripZones referenceZones() => TripZones(
+  width: 390,
+  height: 844,
+  viewPaddingTop: TripSurface.reference.inset,
+);
+
 void main() {
-  testWidgets('three bands at 390×844: 110, the scene, 230 over 16', (
+  // 008.5 (M21) moved the zones to the design's (contracts/trip-layout.md):
+  // the HUD under the top inset, the gap, the scene, and 258 over 16.
+  testWidgets('the zones at 390×844: the HUD, the scene, 258 over 16', (
     tester,
   ) async {
     await pumpTrip(tester);
-    final top = tester.getRect(find.byType(TripTopBar));
+    final zones = referenceZones();
+    final top = tester.getRect(find.byType(TripHud));
     final scene = tester.getRect(find.byType(GameWidget<TripGame>));
     final dashboard = tester.getRect(find.byType(TripDashboard));
-    expect(top.top, 0);
-    expect(top.height, topBarHeight);
+    expect(top.top, zones.inset);
+    expect(top.height, tripHudHeight);
     expect(dashboard.height, dashboardHeight);
     expect(dashboard.bottom, 844);
-    expect(scene.top, topBarHeight);
-    expect(scene.height, 844 - topBarHeight - dashboardHeight + 16);
+    expect(scene.top, zones.sceneTop);
+    expect(scene.height, zones.scene);
     expect(scene.bottom - dashboard.top, dashboardOverlap);
   });
 
@@ -102,12 +113,13 @@ void main() {
   ) async {
     final semantics = tester.ensureSemantics();
     await pumpTrip(tester);
-    expect(heard(tester), contains('إيقاف'));
+    final pause = lookupAppLocalizations(const Locale('ar')).tripTopBarPause;
+    expect(heard(tester), contains(pause));
     controllerOf(tester).pause(PauseReason.button);
     await tester.pumpAndSettle();
     final labels = heard(tester);
     expect(labels, contains('ارجع الموقف'));
-    expect(labels, isNot(contains('إيقاف')));
+    expect(labels, isNot(contains(pause)));
     expect(labels.where((l) => l.contains('×')), isEmpty, reason: 'the drawer');
     semantics.dispose();
   });
@@ -130,10 +142,12 @@ void main() {
     ) {
       advanceMs(c, 33);
     }
+    final zones = referenceZones();
     final layout = SceneLayout(
       c.session!.facts.definition.seats,
+      vehicle: c.session!.facts.definition.vehicleId,
       width: 390,
-      height: 844 - topBarHeight - dashboardHeight + 16,
+      height: zones.scene,
     );
 
     Future<void> check() async {
@@ -147,7 +161,7 @@ void main() {
         ),
       );
       expect(chip.dx, closeTo(at.dx, 0.01));
-      expect(chip.dy, closeTo(at.dy + topBarHeight, 0.01));
+      expect(chip.dy, closeTo(at.dy + zones.sceneTop, 0.01));
     }
 
     expect(c.alpha, 0);
@@ -158,6 +172,8 @@ void main() {
     await check();
   });
 
+  // 008.5 (M21): the design's notes say their amount at 16; 15 stays the
+  // floor.
   testWidgets('a token is at least 40×24 with a 15 pt amount', (tester) async {
     await pumpTrip(tester);
     final c = controllerOf(tester);
@@ -165,14 +181,14 @@ void main() {
       advanceMs(c, 33);
     }
     await tester.pump();
-    final chip = find.byType(TokenChip).first;
+    final chip = find.byType(MoneyNote).first;
     final size = tester.getSize(chip);
     expect(size.width, greaterThanOrEqualTo(tokenMinWidth));
     expect(size.height, greaterThanOrEqualTo(tokenMinHeight));
     final text = tester.widget<Text>(
       find.descendant(of: chip, matching: find.byType(Text)),
     );
-    expect(text.style!.fontSize, 15);
+    expect(text.style!.fontSize, greaterThanOrEqualTo(15));
   });
 
   testWidgets('passenger areas name the seat and the station, not payment', (

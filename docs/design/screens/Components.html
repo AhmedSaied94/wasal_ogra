@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1200">
+<title>Components and states</title>
+<!-- Exported from the Claude Design canvas «وصّل الأجرة — Design». Artboard 1200x1700. Do not edit; edit the canvas and re-export. -->
+<link rel="stylesheet" href="./fonts.css">
+<style>
+body{margin:0}
+a{color:#1A4B8C}a:hover{color:#123A6E}
+button{font-family:inherit}
+</style>
+<style>html,body{margin:0;background:#1D1A2B}</style>
+</head>
+<body>
+<div style="width: 1200px; height: 1700px; box-sizing: border-box; padding: 40px; background: #FFFFFF; color: #1D1A2B; font-family: 'Readex Pro', system-ui, sans-serif; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 28px; align-content: start">
+
+<section style="grid-column: span 4; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Buttons</h2>
+<div dir="rtl" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: end">
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">primary · 64h · Marhey 27</span><button type="button" style="height: 64px; border: 0; border-radius: 22px; background: #1A4B8C; color: #FFFFFF; box-shadow: 0 6px 0 #0F2F5A; font-family: Marhey, sans-serif; font-weight: 700; font-size: 27px; display: flex; align-items: center; justify-content: center; gap: 10px">يلا نطلع!<span style="height: 30px; box-sizing: border-box; padding: 0 10px; border-radius: 999px; background: #FFD23F; color: #1D1A2B; font-family: 'Readex Pro', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center">−١</span></button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">primary · pressed (lip 0, +6px)</span><div style="height: 70px; display: flex; align-items: flex-end"><button type="button" style="width: 100%; height: 64px; border: 0; border-radius: 22px; background: #163F77; color: #FFFFFF; font-family: Marhey, sans-serif; font-weight: 700; font-size: 27px">يلا نطلع!</button></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">secondary · 54–60h</span><button type="button" style="height: 56px; border: 0; border-radius: 20px; background: #FFFFFF; color: #1D1A2B; box-shadow: inset 0 0 0 2px #C7DDEA, 0 5px 0 #C7DDEA; font-family: Marhey, sans-serif; font-weight: 700; font-size: 21px">مشوار تاني</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">rewarded ad · icon + 2 lines</span><button type="button" style="height: 66px; border: 0; border-radius: 22px; background: #1A4B8C; color: #FFFFFF; box-shadow: 0 6px 0 #0F2F5A; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="3"></rect><path d="M10.5 8.5l4 2.5-4 2.5z" fill="#FFFFFF"></path><path d="M8 21h8M12 17v4"></path></svg><span style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15"><span style="font-family: Marhey, sans-serif; font-weight: 700; font-size: 22px">اقبض ×٢</span><span style="font-size: 12px; color: #DCEBFA">+١٧٠ بدل ٨٥</span></span></button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">danger · ink text</span><button type="button" style="height: 64px; border: 0; border-radius: 22px; background: #F2542D; color: #1D1A2B; box-shadow: 0 6px 0 #C23A17; font-family: Marhey, sans-serif; font-weight: 700; font-size: 25px">البنزين خلص</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">sun · tray call</span><button type="button" style="height: 44px; border: 0; border-radius: 16px; background: #FFD23F; color: #1D1A2B; box-shadow: 0 4px 0 #D9A800; font-size: 14px; font-weight: 700">حد معاه فكة؟ ×٢</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">disabled · 45% opacity, no lip</span><button type="button" disabled style="height: 56px; border: 0; border-radius: 20px; background: #1A4B8C; color: #FFFFFF; opacity: 0.45; font-family: Marhey, sans-serif; font-weight: 700; font-size: 21px">اشتريها</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span dir="ltr" style="font-size: 12px; color: #4A4558">tertiary · icon 44 · close 44</span><div style="display: flex; gap: 10px; align-items: center"><a href="#" style="height: 44px; display: flex; align-items: center; padding: 0 8px; color: #1A4B8C; font-size: 15px; font-weight: 700; text-decoration: none">ارجع الموقف</a><span style="width: 44px; height: 44px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 4px 0 #C7DDEA, inset 0 0 0 1px #E3EEF5; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="2" fill="#1A4B8C"></rect><rect x="14" y="5" width="4" height="14" rx="2" fill="#1A4B8C"></rect></svg></span><span style="width: 44px; height: 44px; border-radius: 50%; background: #E8F4FB; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D1A2B" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span></div></div>
+</div>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Pills, badges, chips</h2>
+<div dir="rtl" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; border-radius: 18px; background: #E8F4FB; padding: 14px">
+<span style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 5px; padding: 0 6px 0 12px; background: #FFFFFF; border-radius: 999px; box-shadow: 0 4px 0 #C7DDEA; font-weight: 700; font-size: 16px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#F5B301"></circle><circle cx="12" cy="12" r="7" fill="#FFD23F"></circle><path d="M12 8v8" stroke="#D9A800" stroke-width="2.4" stroke-linecap="round"></path></svg>١٬٢٤٠</span>
+<span style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 5px; padding: 0 6px 0 12px; background: #FFFFFF; border-radius: 999px; box-shadow: 0 4px 0 #C7DDEA; font-weight: 700; font-size: 16px"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7.5a2.5 2.5 0 0 1 2.5-2.5h15A2.5 2.5 0 0 1 22 7.5v2a2.5 2.5 0 0 0 0 5v2a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 16.5v-2a2.5 2.5 0 0 0 0-5z" fill="#1A4B8C"></path></svg>٨٥</span>
+<span style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 5px; padding: 0 6px 0 12px; background: #FFFFFF; border-radius: 999px; box-shadow: 0 4px 0 #C7DDEA"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3" width="11" height="18" rx="2.5" fill="#F2542D"></rect><rect x="6" y="6" width="6" height="4.5" rx="1.2" fill="#FFFFFF"></rect></svg><span style="display: flex; flex-direction: column; line-height: 1.05"><b style="font-size: 15px">٤/٥</b><span style="font-size: 12px; color: #5B6475">١٢:٣٠</span></span></span>
+<span style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 5px; padding: 0 6px 0 12px; background: #FFD9CC; border-radius: 999px; box-shadow: 0 4px 0 #F2A08A"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3" width="11" height="18" rx="2.5" fill="#F2542D"></rect><rect x="6" y="6" width="6" height="4.5" rx="1.2" fill="#FFFFFF"></rect></svg><span style="display: flex; flex-direction: column; line-height: 1.05"><b style="font-size: 15px">٠/٥</b><span style="font-size: 12px">١٢:٣٠</span></span></span>
+<span style="position: relative; width: 46px; height: 46px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 4px 0 rgba(26,75,140,.18)"><span style="position: absolute; top: 0; left: 2px; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #F2542D; border: 2px solid #1D1A2B"></span></span>
+<span style="font-size: 12px; font-weight: 700; line-height: 18px; background: #1A4B8C; color: #FFFFFF; border-radius: 999px; padding: 0 6px">٢/٣</span>
+<span style="font-size: 12px; font-weight: 700; background: #F2542D; color: #1D1A2B; border-radius: 999px; padding: 0 8px">جديد</span>
+<span style="font-size: 12px; font-weight: 700; background: #FFD23F; border-radius: 999px; padding: 0 8px">مشوار قصة</span>
+<span style="font-size: 12px; font-weight: 700; background: #DCEBFA; color: #1A4B8C; border-radius: 999px; padding: 0 8px">خلص</span>
+<span style="font-size: 12px; font-weight: 700; background: #FFFFFF; border-radius: 999px; padding: 0 8px">محتاج نت</span>
+</div>
+<span style="font-size: 12px; color: #4A4558">New-dot: 12px, danger fill, 2px ink ring (the only outline in the system). Counter: primary, 12px bold.</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Controls</h2>
+<div dir="rtl" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border-radius: 18px; background: #E8F4FB; padding: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; border-radius: 16px; padding: 0 12px; height: 52px; font-size: 15px">الصوت<span style="display: flex; gap: 8px"><span style="width: 52px; height: 30px; box-sizing: border-box; border-radius: 999px; background: #1A4B8C; padding: 3px; display: flex; justify-content: flex-end"><span style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF"></span></span><span style="width: 52px; height: 30px; box-sizing: border-box; border-radius: 999px; background: #C7DDEA; padding: 3px; display: flex; justify-content: flex-start"><span style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF"></span></span></span></div>
+<div style="display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: #FFFFFF"><span style="flex: 1; height: 40px; border-radius: 10px; background: #FFD23F; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">الصالة</span><span style="flex: 1; height: 40px; border-radius: 10px; color: #4A4558; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">المطبخ</span></div>
+<div style="display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: #FFFFFF"><span style="flex: 1; height: 40px; border-radius: 10px; background: #1A4B8C; color: #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">الترقيات</span><span style="flex: 1; height: 40px; border-radius: 10px; color: #4A4558; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">الزينة</span></div>
+<span style="height: 52px; box-sizing: border-box; border-radius: 16px; background: #FFFFFF; box-shadow: inset 0 0 0 2px #C7DDEA; padding: 0 14px; font-size: 18px; font-weight: 600; display: flex; align-items: center">حمادة</span>
+</div>
+<span style="font-size: 12px; color: #4A4558">Switch: on = primary, knob at the end side (left in RTL). Segmented: active sun (rooms) or primary (tabs).</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Trip HUD</h2>
+<div dir="rtl" style="border-radius: 18px; background: #E8F4FB; padding: 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 16px; align-items: center"><span style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600">السمعة ٧٢٪<span style="display: block; width: 92px; height: 12px; border-radius: 999px; background: #FFFFFF; box-shadow: inset 0 0 0 2px #D5E6F0; overflow: hidden"><span style="display: block; width: 72%; height: 100%; border-radius: 999px; background: #1A4B8C"></span></span></span><span style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600">تحت ٤٠٪<span style="display: block; width: 92px; height: 12px; border-radius: 999px; background: #FFFFFF; box-shadow: inset 0 0 0 2px #D5E6F0; overflow: hidden"><span style="display: block; width: 30%; height: 100%; border-radius: 999px; background: #F2542D"></span></span></span></div>
+<div style="position: relative; height: 26px; background: #FFFFFF; border-radius: 13px">
+<span style="position: absolute; left: 20px; right: 20px; top: 10px; height: 6px; border-radius: 999px; background: #E3EEF5"></span>
+<span style="position: absolute; right: 20px; top: 10px; height: 6px; width: 40%; border-radius: 999px; background: #1A4B8C"></span>
+<span style="position: absolute; right: 25%; top: 1px; width: 24px; height: 24px; border-radius: 50%; background: #3B2A6B; color: #FFFFFF; opacity: 0.35; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">ك</span>
+<span style="position: absolute; right: 55%; top: 1px; width: 24px; height: 24px; box-sizing: border-box; border-radius: 50%; background: #0F766E; color: #FFFFFF; border: 2px solid #FFFFFF; box-shadow: 0 0 0 3px #F2542D; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">م</span>
+<span style="position: absolute; left: 20px; top: 1px; width: 24px; height: 24px; border-radius: 50%; background: #5FAE4E; color: #1D1A2B; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">ج</span>
+<span style="position: absolute; right: 40%; top: 0; width: 28px; height: 26px; margin-right: -14px; border-radius: 10px; background: #FFD23F; box-shadow: 0 3px 0 #D9A800"></span>
+</div>
+<div style="display: flex; gap: 10px; align-items: center; font-size: 12px"><span>passed 35%</span><span>· next: danger ring + countdown chip</span><span style="background: #F2542D; border-radius: 999px; padding: 0 6px; font-weight: 700">١٨ث</span><span>(pulses &lt; ٨ث)</span></div>
+</div>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Station tags (on the shoulder)</h2>
+<div dir="rtl" style="display: flex; gap: 18px; align-items: center; border-radius: 18px; background: #F3EBDD; padding: 18px">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 24px; height: 24px; box-sizing: border-box; border-radius: 50%; background: #3B2A6B; color: #FFFFFF; border: 2.5px solid #FFFFFF; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">ك</span><span dir="ltr" style="font-size: 12px">back 24</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; background: #0F766E; color: #FFFFFF; border: 2.5px solid #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center">م</span><span dir="ltr" style="font-size: 12px">middle 26</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; background: #5FAE4E; color: #1D1A2B; border: 2.5px solid #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">ج</span><span dir="ltr" style="font-size: 12px">near 30</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; background: #A9DDF3; color: #1D1A2B; border: 2.5px solid #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">س</span><span dir="ltr" style="font-size: 12px">station 4</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; background: #3B2A6B; color: #FFFFFF; border: 2.5px solid #FFFFFF; box-shadow: 0 0 0 3px #F2542D; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">ك</span><span dir="ltr" style="font-size: 12px">hot · pulse 1↔1.18</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 30px; height: 30px; border-radius: 50%; background: #FFD23F; box-shadow: 0 0 0 3px #F2542D; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.3l-5.8 3.1 1.1-6.5L2.6 9.3l6.5-.9z" fill="#1D1A2B"></path></svg></span><span dir="ltr" style="font-size: 12px">«نزّلني هنا»</span></span>
+</div>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Speech bubbles</h2>
+<div dir="rtl" style="display: flex; flex-wrap: wrap; gap: 18px 14px; align-items: flex-start; border-radius: 18px; background: #F3EBDD; padding: 18px 14px 24px">
+<span style="position: relative; background: #FFFFFF; border-radius: 18px; padding: 3px 14px 5px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 0 rgba(26,75,140,.18)">خد ١٠، طالب<span style="position: absolute; bottom: -6px; left: 50%; margin-left: -7px; width: 14px; height: 14px; background: #FFFFFF; border-radius: 0 0 4px 0; transform: rotate(45deg)"></span></span>
+<span style="position: relative; background: #FFD9CC; border-radius: 18px; padding: 3px 14px 5px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 0 rgba(242,84,45,.35)">الباقي يا أسطى!<span style="position: absolute; bottom: -6px; left: 50%; margin-left: -7px; width: 14px; height: 14px; background: #FFD9CC; border-radius: 0 0 4px 0; transform: rotate(45deg)"></span></span>
+<span style="position: relative; background: #F2542D; color: #1D1A2B; border-radius: 18px; padding: 3px 14px 5px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 0 #C23A17">إنت بتتهمني؟!<span style="position: absolute; bottom: -6px; left: 50%; margin-left: -7px; width: 14px; height: 14px; background: #F2542D; border-radius: 0 0 4px 0; transform: rotate(45deg)"></span></span>
+<span style="position: relative; background: #DCEBFA; color: #1A4B8C; border-radius: 18px; padding: 3px 14px 5px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 0 #9DBFE6">تمام، شكرًا يا أسطى<span style="position: absolute; bottom: -6px; left: 50%; margin-left: -7px; width: 14px; height: 14px; background: #DCEBFA; border-radius: 0 0 4px 0; transform: rotate(45deg)"></span></span>
+<span style="position: relative; max-width: 220px; background: #FFFFFF; border-radius: 20px; padding: 6px 14px 8px; box-shadow: 0 4px 0 rgba(26,75,140,.25)"><span style="display: block; font-size: 12px; font-weight: 600; color: #5B6475">بلية</span><span style="font-family: Marhey, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.4">ده نايم، دوس عليه صحّيه</span></span>
+</div>
+<span style="font-size: 12px; color: #4A4558">normal · warn (station near) · fight (ink on danger) · thanks · character/coach (name + Marhey). Tail points at the head; bubbles clamp inside the screen; max 2 at once.</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Money in the scene</h2>
+<div dir="rtl" style="display: flex; gap: 18px; align-items: center; border-radius: 18px; background: #F3EBDD; padding: 30px 18px 18px">
+<span style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="height: 26px; box-sizing: border-box; padding: 0 9px; border-radius: 7px; background: #BFE3C9; box-shadow: 0 3px 0 #8CC59E; font-size: 16px; font-weight: 700; display: flex; align-items: center">٥٠</span><span dir="ltr" style="font-size: 12px">fare → front</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="height: 26px; box-sizing: border-box; padding: 0 9px; border-radius: 7px; background: #DCEBFA; box-shadow: 0 3px 0 #9DBFE6; font-size: 16px; font-weight: 700; display: flex; align-items: center">٣</span><span dir="ltr" style="font-size: 12px">change → back</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="position: relative; height: 26px; box-sizing: border-box; padding: 0 9px; border-radius: 7px; background: #FFD9CC; box-shadow: 0 3px 0 #F2542D; font-size: 16px; font-weight: 700; display: flex; align-items: center">١٠<span style="position: absolute; top: -24px; left: 50%; margin-left: -11px; width: 22px; height: 22px; border-radius: 50%; background: #F2542D; font-size: 14px; display: flex; align-items: center; justify-content: center">؟</span></span><span dir="ltr" style="font-size: 12px">blocked</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="height: 26px; box-sizing: border-box; padding: 0 9px; border-radius: 7px; background: #BFE3C9; box-shadow: 0 0 0 4px #FFE27A; font-size: 16px; font-weight: 700; display: flex; align-items: center; transform: rotate(12deg)">٢٠</span><span dir="ltr" style="font-size: 12px">fallen (bump) · tap 3s</span></span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="height: 26px; box-sizing: border-box; padding: 0 9px; border-radius: 7px; background: #DCEBFA; box-shadow: 0 3px 0 #9DBFE6; font-size: 16px; font-weight: 700; display: flex; align-items: center; transform: rotate(-18deg)">١٥٫٥</span><span dir="ltr" style="font-size: 12px">in hand</span></span>
+</div>
+<span style="font-size: 12px; color: #4A4558">Note ≥42×26, digits 16 bold. Moves seat→seat on the column path; per-hop time by line (1.3 / 1.1 / 0.9 s).</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Dashboard parts</h2>
+<div dir="rtl" style="border-radius: 22px; background: #2A2633; color: #FFFFFF; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 8px">
+<span style="flex: 1; height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 2px dashed #FFD23F; border-radius: 16px; background: #3A3646"><span style="min-width: 26px; height: 20px; border-radius: 5px; background: #FBD9C8; color: #1D1A2B; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">١٠</span><span style="width: 24px; height: 24px; border-radius: 50%; background: #D9D4E2; color: #1D1A2B; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">نص</span><span style="margin-inline-start: auto; font-size: 20px; font-weight: 700">= ١٠٫٥</span></span>
+<span style="height: 44px; box-sizing: border-box; display: flex; align-items: center; padding: 0 12px; border-radius: 16px; background: #F2542D; color: #1D1A2B; font-size: 13px; font-weight: 700">اختار ورقة ١٠+</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+<span style="height: 44px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 3px 0 #C9C4D3; color: #1D1A2B; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #F5B301; font-size: 12px; display: flex; align-items: center; justify-content: center">١</span>×٣</span>
+<span style="height: 44px; box-sizing: border-box; border-radius: 14px; border: 2px dashed #6B6678; color: #D9D4E2; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center">٢٠٠ ×٠</span>
+<span style="height: 44px; border-radius: 14px; background: #FFF1C2; box-shadow: 0 0 0 3px #F2542D; color: #1D1A2B; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span style="width: 34px; height: 20px; border-radius: 5px; background: #BFE3C9; font-size: 12px; display: flex; align-items: center; justify-content: center">٥٠</span>×١</span>
+<span style="height: 44px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 3px 0 #C9C4D3; transform: translateY(3px); color: #1D1A2B; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">pressed</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding-top: 6px">
+<span style="position: relative; height: 44px; border-radius: 14px; background: #3A3646; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">كيس فكة<span style="position: absolute; top: -9px; left: -4px; background: #FFD23F; color: #1D1A2B; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 700">×١</span></span>
+<span style="position: relative; height: 44px; border-radius: 14px; background: #3A3646; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">صحّي النايم<span style="position: absolute; top: -9px; left: -4px; background: #1A4B8C; color: #FFFFFF; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 700">٨ بون</span></span>
+<span style="position: relative; height: 44px; border-radius: 14px; background: #3A3646; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">زحمة<span style="position: absolute; top: -9px; left: -4px; background: #1A4B8C; color: #FFFFFF; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 700">إعلان</span></span>
+<span style="position: relative; height: 44px; border-radius: 14px; background: #1A4B8C; box-shadow: inset 0 0 0 2px #FFD23F; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">الدفتر<span style="position: absolute; top: -9px; left: -4px; background: #FFD23F; color: #1D1A2B; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 700">٤ث</span></span>
+</div>
+</div>
+<span style="font-size: 12px; color: #4A4558">Hand slot · break mode (call = danger, ≥10 notes ringed) · tray: full / empty / breakable / pressed · boosters: count / price / ad / active timer.</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Ledger, choices, coach</h2>
+<div dir="rtl" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; border-radius: 18px; background: #F3EBDD; padding: 16px; position: relative">
+<span style="font-size: 12px; font-weight: 700; line-height: 18px; border-radius: 999px; padding: 0 8px; background: #1A4B8C; color: #FFFFFF">دافع</span>
+<span style="font-size: 12px; font-weight: 700; line-height: 18px; border-radius: 999px; padding: 0 8px; background: #F2542D; color: #1D1A2B">لسه</span>
+<span style="font-size: 12px; font-weight: 700; line-height: 18px; border-radius: 999px; padding: 0 8px; background: #FFFFFF">على صاحبه</span>
+<span style="display: flex; gap: 6px; background: #FFFFFF; border-radius: 18px; padding: 5px; box-shadow: 0 4px 0 rgba(26,75,140,.25)"><span style="height: 44px; border-radius: 14px; padding: 0 14px; background: #E8F4FB; font-size: 14px; font-weight: 700; display: flex; align-items: center">ماشي</span><span style="height: 44px; border-radius: 14px; padding: 0 14px; background: #F2542D; box-shadow: 0 3px 0 #C23A17; font-size: 14px; font-weight: 700; display: flex; align-items: center">لأ، ما دفعتش!</span></span>
+<span style="display: flex; flex-direction: column; gap: 8px; background: #FFFFFF; border-radius: 20px; padding: 10px 12px; box-shadow: 0 4px 0 rgba(26,75,140,.25)"><span style="font-family: Marhey, sans-serif; font-weight: 700; font-size: 16px">مين اللي دفع؟</span><span style="display: flex; gap: 8px"><span style="width: 56px; height: 56px; border-radius: 16px; background: #E8F4FB"></span><span style="width: 56px; height: 56px; border-radius: 16px; background: #E8F4FB; box-shadow: inset 0 0 0 3px #1A4B8C"></span></span></span>
+<svg width="48" height="56" viewBox="0 0 56 64" aria-hidden="true"><path d="M22 4 a5 5 0 0 1 10 0 V26 l12 2 a7 7 0 0 1 6 8 l-3 16 a9 9 0 0 1 -9 8 H24 a9 9 0 0 1 -7 -4 L5 38 a5 5 0 0 1 8 -6 l9 8 Z" fill="#FFFFFF" stroke="#1D1A2B" stroke-width="3" stroke-linejoin="round"></path></svg>
+</div>
+<span style="font-size: 12px; color: #4A4558">Ledger badges live 5 s under each face. Coach: scrim 62% with a mask hole (r18) around the one tappable target + sun ring 4px + pointing hand.</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Banners, toasts, sheets</h2>
+<div dir="rtl" style="display: flex; flex-direction: column; gap: 10px; border-radius: 18px; background: #E8F4FB; padding: 14px">
+<span style="height: 54px; box-sizing: border-box; border-radius: 18px; background: #F2542D; box-shadow: 0 4px 0 #C23A17; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; line-height: 1.2"><b style="font-family: Marhey, sans-serif; font-size: 17px">الأجرة زادت!</b><span style="font-size: 12px; font-weight: 600">المستشفى بقت ٨ بدل ٧</span></span>
+<span style="height: 40px; box-sizing: border-box; border-radius: 14px; background: #2A2633; color: #FFFFFF; display: flex; align-items: center; padding: 0 12px; font-size: 12.5px">انت أوفلاين، المشاوير شغالة</span>
+<span style="height: 52px; box-sizing: border-box; border-radius: 18px; background: #2A2633; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 14px; font-size: 13px">اتشرى كيس فكة<span style="height: 38px; border-radius: 12px; padding: 0 12px; background: #FFD23F; color: #1D1A2B; font-weight: 700; display: flex; align-items: center">رجّع ٣</span></span>
+<span style="border-radius: 24px 24px 0 0; background: #FFFFFF; padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 8px"><span style="align-self: center; width: 44px; height: 5px; border-radius: 999px; background: #D5E6F0"></span><span style="display: flex; align-items: center; justify-content: space-between"><b style="font-family: Marhey, sans-serif; font-size: 22px">عنوان اللوح</b><span style="width: 44px; height: 44px; border-radius: 50%; background: #E8F4FB"></span></span></span>
+</div>
+<span style="font-size: 12px; color: #4A4558">Sheets rise from the bottom (drag down or ✕ to close). Dialogs center. Undo toast: 3 s for bonat buys under 50; ≥50 asks to confirm.</span>
+</section>
+
+<section style="grid-column: span 2; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">Bottom navigation (Home, Lines, Apartment, Shop only)</h2>
+<div dir="rtl" style="width: 390px; height: 88px; flex: none; box-sizing: border-box; background: #FFFFFF; border-radius: 26px 26px 0 0; box-shadow: 0 -4px 0 #D5E6F0; padding: 8px 10px 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px">
+<span style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0; border: 0; background: none; color: #1A4B8C; font-size: 13px; font-weight: 700">
+<span style="width: 60px; height: 34px; border-radius: 999px; background: #1A4B8C; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 16V9q1-3 4-4h14a2 2 0 0 1 2 2v9z" fill="#FFFFFF"></path><rect x="6" y="7" width="4" height="3.5" rx="1" fill="#1A4B8C"></rect><rect x="12" y="7" width="4" height="3.5" rx="1" fill="#1A4B8C"></rect><circle cx="7" cy="17" r="2.2" fill="#FFD23F"></circle><circle cx="17" cy="17" r="2.2" fill="#FFD23F"></circle></svg></span>
+الموقف
+</span>
+<span style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0; border: 0; background: none; color: #5B6475; font-size: 13px; font-weight: 600">
+<span style="width: 60px; height: 34px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"></path></svg></span>
+الخطوط
+</span>
+<span style="text-decoration: none; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0; border: 0; background: none; color: #5B6475; font-size: 13px; font-weight: 600">
+<span style="width: 60px; height: 34px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg></span>
+الشقة
+<span style="position: absolute; top: 2px; left: 22px; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #F2542D; border: 2px solid #1D1A2B"></span>
+</span>
+<span style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0; border: 0; background: none; color: #5B6475; font-size: 13px; font-weight: 600">
+<span style="width: 60px; height: 34px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9"></path><path d="M4 9v11h16V9"></path><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"></path><path d="M10 20v-5h4v5"></path></svg></span>
+المحل
+</span>
+</div>
+<p style="margin: 0; font-size: 12px; color: #4A4558">Active tab: primary pill 60×34 + white glyph, label primary 700. Others: icon.off 24px stroke 2.4, label ink.muted 600. New-dot at the icon’s top-end corner.</p>
+</section>
+</div>
+</body>
+</html>

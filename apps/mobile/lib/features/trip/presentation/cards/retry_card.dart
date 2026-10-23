@@ -1,9 +1,9 @@
-// A save that failed on the device: a neutral message and «حاول تاني», which
-// sends the same request again, so nothing is charged twice.
+// A save that failed on the device (008.5 `States` spend confirmation
+// layout): a neutral message and «حاول تاني», which sends the same request
+// again, so nothing is charged twice.
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/components/primary_button.dart';
-import 'package:wassal/core/theme/components/secondary_button.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/cards/trip_card.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
@@ -29,12 +29,15 @@ class RetryCard extends StatelessWidget {
     final home = onHome;
     return TripCard(
       title: l10n.retryMessage(retry),
+      art: const AppIcon('warning', size: DesignExtras.confirmArt),
       children: [
-        PrimaryButton(label: l10n.tripRetryAction, onPressed: onRetry),
-        if (home != null) ...[
-          const SizedBox(height: SpaceTokens.m),
-          SecondaryButton(label: l10n.tripRetryHome, onPressed: home),
-        ],
+        switch (home) {
+          final home? => CardActions(
+            confirm: CardConfirm(label: l10n.tripRetryAction, onTap: onRetry),
+            dismiss: CardTile(label: l10n.tripRetryHome, onTap: home),
+          ),
+          null => CardConfirm(label: l10n.tripRetryAction, onTap: onRetry),
+        },
       ],
     );
   }

@@ -1,0 +1,1226 @@
+[
+ {
+  "name": "ad_not_ready",
+  "file": "icons/ad_not_ready.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "States"
+  ]
+ },
+ {
+  "name": "ad_play_on_primary",
+  "file": "icons/ad_play_on_primary.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "C-Home",
+   "Components",
+   "Fail",
+   "Fuel",
+   "Result",
+   "Shop"
+  ]
+ },
+ {
+  "name": "ad_screen",
+  "file": "icons/ad_screen.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "States"
+  ]
+ },
+ {
+  "name": "album",
+  "file": "icons/album.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#2A2633",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "AptRooms"
+  ]
+ },
+ {
+  "name": "album_alt",
+  "file": "icons/album_alt.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "Chapters"
+  ]
+ },
+ {
+  "name": "back",
+  "file": "icons/back.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Album",
+   "Challenge",
+   "Chapters",
+   "DeleteAccount",
+   "DeleteStep1",
+   "Event",
+   "Garage",
+   "Invite",
+   "King",
+   "Result",
+   "Settings"
+  ]
+ },
+ {
+  "name": "bonat",
+  "file": "icons/bonat.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#A9DDF3"
+  ],
+  "usedOn": [
+   "C-Home",
+   "HomeStates",
+   "RoomDone"
+  ]
+ },
+ {
+  "name": "bonat_alt",
+  "file": "icons/bonat_alt.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "Components",
+   "Daily",
+   "Event",
+   "Fail",
+   "Fuel",
+   "Lines",
+   "PurchaseDone",
+   "Shop",
+   "Starter",
+   "States"
+  ]
+ },
+ {
+  "name": "bonat_muted",
+  "file": "icons/bonat_muted.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "Daily"
+  ]
+ },
+ {
+  "name": "bonat_pack_l",
+  "file": "icons/bonat_pack_l.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Shop"
+  ]
+ },
+ {
+  "name": "bonat_pack_m",
+  "file": "icons/bonat_pack_m.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#7CA7D8"
+  ],
+  "usedOn": [
+   "Shop"
+  ]
+ },
+ {
+  "name": "booster_change_bag",
+  "file": "icons/booster_change_bag.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F5B301",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "C-Trip",
+   "Daily",
+   "PreTrip",
+   "Returning",
+   "Shop",
+   "States",
+   "StoryTrip",
+   "TripEvents"
+  ]
+ },
+ {
+  "name": "booster_ledger",
+  "file": "icons/booster_ledger.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#7CC5E8",
+   "#A9DDF3"
+  ],
+  "usedOn": [
+   "C-Trip",
+   "Daily",
+   "PreTrip",
+   "Shop",
+   "StoryTrip",
+   "TripEvents"
+  ]
+ },
+ {
+  "name": "booster_traffic",
+  "file": "icons/booster_traffic.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#A9DDF3",
+   "#F2542D",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "C-Trip"
+  ]
+ },
+ {
+  "name": "booster_traffic_s",
+  "file": "icons/booster_traffic_s.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#A9DDF3",
+   "#F2542D"
+  ],
+  "usedOn": [
+   "PreTrip",
+   "Shop",
+   "StoryTrip",
+   "TripEvents"
+  ]
+ },
+ {
+  "name": "booster_wake",
+  "file": "icons/booster_wake.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#F2542D",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "C-Trip",
+   "PreTrip",
+   "Shop",
+   "StoryTrip",
+   "Tasks",
+   "TripEvents"
+  ]
+ },
+ {
+  "name": "call_change",
+  "file": "icons/call_change.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "C-Trip"
+  ]
+ },
+ {
+  "name": "challenge_trophy",
+  "file": "icons/challenge_trophy.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "C-Home"
+  ]
+ },
+ {
+  "name": "check",
+  "file": "icons/check.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "AptRooms",
+   "Chapters",
+   "Daily",
+   "Event",
+   "Lines",
+   "Result",
+   "Tasks"
+  ]
+ },
+ {
+  "name": "checkbox_on",
+  "file": "icons/checkbox_on.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Result"
+  ]
+ },
+ {
+  "name": "chevron_back_soft",
+  "file": "icons/chevron_back_soft.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#DCEBFA"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "Settings"
+  ]
+ },
+ {
+  "name": "chevron_down",
+  "file": "icons/chevron_down.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#C23A17"
+  ],
+  "usedOn": [
+   "King"
+  ]
+ },
+ {
+  "name": "chevron_up",
+  "file": "icons/chevron_up.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#2F6B22"
+  ],
+  "usedOn": [
+   "King",
+   "Result"
+  ]
+ },
+ {
+  "name": "clock",
+  "file": "icons/clock.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Challenge",
+   "Event",
+   "Tasks"
+  ]
+ },
+ {
+  "name": "close",
+  "file": "icons/close.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "BuyVehicle",
+   "Components",
+   "Fuel",
+   "LineDetails",
+   "Piece",
+   "PreTrip",
+   "Requests",
+   "Result",
+   "Tasks"
+  ]
+ },
+ {
+  "name": "coin",
+  "file": "icons/coin.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#D9A800",
+   "#F5B301",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "C-Home",
+   "Components",
+   "HomeStates",
+   "Result"
+  ]
+ },
+ {
+  "name": "coin_plain",
+  "file": "icons/coin_plain.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F5B301",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms",
+   "BuyVehicle",
+   "Garage",
+   "Lines",
+   "Piece",
+   "PurchaseDone",
+   "ShareCard",
+   "Shop"
+  ]
+ },
+ {
+  "name": "coin_plain_l",
+  "file": "icons/coin_plain_l.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#F5B301"
+  ],
+  "usedOn": [
+   "Lines"
+  ]
+ },
+ {
+  "name": "coin_up",
+  "file": "icons/coin_up.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F5B301",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "BuyVehicle"
+  ]
+ },
+ {
+  "name": "copy",
+  "file": "icons/copy.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Invite"
+  ]
+ },
+ {
+  "name": "curtains",
+  "file": "icons/curtains.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#BFE6F7",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "Starter"
+  ]
+ },
+ {
+  "name": "dice",
+  "file": "icons/dice.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Name"
+  ]
+ },
+ {
+  "name": "driver_ring",
+  "file": "icons/driver_ring.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Vehicles"
+  ]
+ },
+ {
+  "name": "edit",
+  "file": "icons/edit.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Settings"
+  ]
+ },
+ {
+  "name": "fuel",
+  "file": "icons/fuel.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "C-Home",
+   "Daily",
+   "HomeStates",
+   "PreTrip",
+   "Returning",
+   "Shop"
+  ]
+ },
+ {
+  "name": "fuel_small",
+  "file": "icons/fuel_small.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Components",
+   "Pause"
+  ]
+ },
+ {
+  "name": "fuel_unlimited",
+  "file": "icons/fuel_unlimited.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "Event"
+  ]
+ },
+ {
+  "name": "fuel_unlimited_alt",
+  "file": "icons/fuel_unlimited_alt.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "Shop",
+   "Starter"
+  ]
+ },
+ {
+  "name": "gift",
+  "file": "icons/gift.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "C-Home",
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "google",
+  "file": "icons/google.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#5FAE4E",
+   "#E8F4FB",
+   "#F2542D",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "Settings"
+  ]
+ },
+ {
+  "name": "hand",
+  "file": "icons/hand.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "C-Trip",
+   "StoryTrip",
+   "TripEvents",
+   "Tutorial"
+  ]
+ },
+ {
+  "name": "house_filled",
+  "file": "icons/house_filled.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "Returning"
+  ]
+ },
+ {
+  "name": "info",
+  "file": "icons/info.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "LineDetails"
+  ]
+ },
+ {
+  "name": "info_filled",
+  "file": "icons/info_filled.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "DeleteStep1"
+  ]
+ },
+ {
+  "name": "lantern",
+  "file": "icons/lantern.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#F5B301",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "C-Home"
+  ]
+ },
+ {
+  "name": "lantern_red",
+  "file": "icons/lantern_red.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "Event"
+  ]
+ },
+ {
+  "name": "lock",
+  "file": "icons/lock.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms",
+   "Chapters",
+   "Event",
+   "HomeStates",
+   "LineDetails",
+   "Lines",
+   "Tutorial"
+  ]
+ },
+ {
+  "name": "lock_outline",
+  "file": "icons/lock_outline.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#4A4558"
+  ],
+  "usedOn": [
+   "Album"
+  ]
+ },
+ {
+  "name": "medal_star",
+  "file": "icons/medal_star.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "Daily"
+  ]
+ },
+ {
+  "name": "nav_apartment",
+  "file": "icons/nav_apartment.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#8A93A6"
+  ],
+  "usedOn": [
+   "C-Home",
+   "Components",
+   "HomeStates",
+   "Lines",
+   "Shop"
+  ]
+ },
+ {
+  "name": "nav_apartment_active",
+  "file": "icons/nav_apartment_active.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms"
+  ]
+ },
+ {
+  "name": "nav_home",
+  "file": "icons/nav_home.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#8A93A6"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms",
+   "Lines",
+   "Shop"
+  ]
+ },
+ {
+  "name": "nav_home_active",
+  "file": "icons/nav_home_active.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "C-Home",
+   "Components",
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "nav_lines",
+  "file": "icons/nav_lines.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#8A93A6"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms",
+   "C-Home",
+   "Components",
+   "HomeStates",
+   "Shop"
+  ]
+ },
+ {
+  "name": "nav_shop",
+  "file": "icons/nav_shop.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#8A93A6"
+  ],
+  "usedOn": [
+   "AptGoal",
+   "AptGoalReady",
+   "AptRooms",
+   "C-Home",
+   "Components",
+   "HomeStates",
+   "Lines"
+  ]
+ },
+ {
+  "name": "no_ads",
+  "file": "icons/no_ads.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#F2542D"
+  ],
+  "usedOn": [
+   "Shop"
+  ]
+ },
+ {
+  "name": "paint_decor",
+  "file": "icons/paint_decor.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#F5B301",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Event"
+  ]
+ },
+ {
+  "name": "pause",
+  "file": "icons/pause.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "C-Trip",
+   "Components",
+   "StoryTrip",
+   "TripEvents",
+   "Tutorial"
+  ]
+ },
+ {
+  "name": "phone",
+  "file": "icons/phone.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Shop"
+  ]
+ },
+ {
+  "name": "piggy",
+  "file": "icons/piggy.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#C2573F",
+   "#F4B7A0"
+  ],
+  "usedOn": [
+   "C-Home"
+  ]
+ },
+ {
+  "name": "piggy_alt",
+  "file": "icons/piggy_alt.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#F4B7A0"
+  ],
+  "usedOn": [
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "play",
+  "file": "icons/play.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "Album",
+   "RoomDone"
+  ]
+ },
+ {
+  "name": "plus",
+  "file": "icons/plus.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "AptRooms",
+   "PreTrip"
+  ]
+ },
+ {
+  "name": "requests_list",
+  "file": "icons/requests_list.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "AptRooms"
+  ]
+ },
+ {
+  "name": "ring_gem",
+  "file": "icons/ring_gem.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#7CC5E8",
+   "#A9DDF3",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "C-Home"
+  ]
+ },
+ {
+  "name": "ring_outline",
+  "file": "icons/ring_outline.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#7CC5E8",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "BuyVehicle"
+  ]
+ },
+ {
+  "name": "route_bold",
+  "file": "icons/route_bold.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1A4B8C"
+  ],
+  "usedOn": [
+   "BuyVehicle",
+   "C-Home",
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "route_gold",
+  "file": "icons/route_gold.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Lines"
+  ]
+ },
+ {
+  "name": "share",
+  "file": "icons/share.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Challenge",
+   "Invite",
+   "Result",
+   "SceneViewer"
+  ]
+ },
+ {
+  "name": "shield_check",
+  "file": "icons/shield_check.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "StoryTrip"
+  ]
+ },
+ {
+  "name": "shop_awning",
+  "file": "icons/shop_awning.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Shop"
+  ]
+ },
+ {
+  "name": "speech",
+  "file": "icons/speech.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Challenge"
+  ]
+ },
+ {
+  "name": "star",
+  "file": "icons/star.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#F5B301"
+  ],
+  "usedOn": [
+   "C-Home"
+  ]
+ },
+ {
+  "name": "star_gold_ink",
+  "file": "icons/star_gold_ink.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "ShareCard"
+  ]
+ },
+ {
+  "name": "star_ink",
+  "file": "icons/star_ink.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "Components",
+   "Event",
+   "HomeStates",
+   "LineDetails",
+   "Lines",
+   "PreTrip",
+   "Tasks"
+  ]
+ },
+ {
+  "name": "star_outline",
+  "file": "icons/star_outline.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#C7DDEA",
+   "#E3EEF5"
+  ],
+  "usedOn": [
+   "PreTrip"
+  ]
+ },
+ {
+  "name": "star_outline_alt",
+  "file": "icons/star_outline_alt.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#C7DDEA",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Result"
+  ]
+ },
+ {
+  "name": "star_s",
+  "file": "icons/star_s.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F5B301",
+   "#FFE27A"
+  ],
+  "usedOn": [
+   "Result"
+  ]
+ },
+ {
+  "name": "sticker",
+  "file": "icons/sticker.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#F2542D",
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "Event"
+  ]
+ },
+ {
+  "name": "student_card",
+  "file": "icons/student_card.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#FFD23F",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "PreTrip"
+  ]
+ },
+ {
+  "name": "tasks",
+  "file": "icons/tasks.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#A9DDF3"
+  ],
+  "usedOn": [
+   "C-Home",
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "timer",
+  "file": "icons/timer.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#1D1A2B"
+  ],
+  "usedOn": [
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "trophy_gold",
+  "file": "icons/trophy_gold.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "King"
+  ]
+ },
+ {
+  "name": "trophy_muted",
+  "file": "icons/trophy_muted.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#8A93A6"
+  ],
+  "usedOn": [
+   "HomeStates"
+  ]
+ },
+ {
+  "name": "trophy_silver",
+  "file": "icons/trophy_silver.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#B9B4C8"
+  ],
+  "usedOn": [
+   "King"
+  ]
+ },
+ {
+  "name": "upgrade_cassette",
+  "file": "icons/upgrade_cassette.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#E8846B",
+   "#FFFFFF"
+  ],
+  "usedOn": [
+   "Garage"
+  ]
+ },
+ {
+  "name": "upgrade_drawer",
+  "file": "icons/upgrade_drawer.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#2A2633",
+   "#BFE3C9",
+   "#D9D4E2",
+   "#F5B301"
+  ],
+  "usedOn": [
+   "Garage"
+  ]
+ },
+ {
+  "name": "upgrade_folding_seat",
+  "file": "icons/upgrade_folding_seat.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1A4B8C",
+   "#2A2633",
+   "#D9725A",
+   "#E8846B"
+  ],
+  "usedOn": [
+   "Garage"
+  ]
+ },
+ {
+  "name": "upgrade_mirror",
+  "file": "icons/upgrade_mirror.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#2A2633",
+   "#BFE6F7"
+  ],
+  "usedOn": [
+   "Garage"
+  ]
+ },
+ {
+  "name": "warning",
+  "file": "icons/warning.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#1D1A2B",
+   "#F2542D"
+  ],
+  "usedOn": [
+   "States",
+   "TripEvents"
+  ]
+ },
+ {
+  "name": "wifi_off",
+  "file": "icons/wifi_off.svg",
+  "tint": "currentColor (tint with the text colour of the context)",
+  "designColors": [
+   "#FFD23F"
+  ],
+  "usedOn": [
+   "HomeStates",
+   "States"
+  ]
+ },
+ {
+  "name": "x_circle",
+  "file": "icons/x_circle.svg",
+  "tint": "multicolour, render as-is",
+  "designColors": [
+   "#C23A17",
+   "#FFD9CC"
+  ],
+  "usedOn": [
+   "DeleteAccount"
+  ]
+ }
+]

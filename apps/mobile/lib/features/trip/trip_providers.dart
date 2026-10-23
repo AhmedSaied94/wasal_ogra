@@ -2,20 +2,23 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:rive/rive.dart' as rive;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/audio_haptics/vibration_setting.dart';
 import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
+import 'package:wassal/features/trip/application/art_tier.dart';
 import 'package:wassal/features/trip/application/trip_ad_offers.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_settings.dart';
 import 'package:wassal/features/trip/data/drift_trip_records.dart';
 import 'package:wassal/features/trip/data/trip_records.dart';
 import 'package:wassal/features/trip/presentation/scene/passenger_art.dart';
+import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/features/trip/presentation/scene/rive_passenger_art.dart';
+import 'package:wassal/features/trip/presentation/scene/svg_passenger_art.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -50,6 +53,7 @@ class TripSettingsNotifier extends _$TripSettingsNotifier {
     if (next == state) return;
     state = next;
     await next.write(ref.read(settingsStoreProvider).requireValue);
+    ref.invalidate(vibrationEnabledProvider);
   }
 }
 
@@ -62,22 +66,16 @@ TripAdOffers tripAdOffers(Ref ref) => const NoTripAdOffers();
 @Riverpod(keepAlive: true)
 bool tripFrameDriven(Ref ref) => true;
 
-/// The owner's character file, decoded once; null without it (T060).
+/// How passengers are drawn: in Rive where the file's `Person` passed its
+/// check and the tier allows, with each look's static art elsewhere.
 @Riverpod(keepAlive: true)
-Future<rive.File?> passengerRive(Ref ref) async {
-  final file = await loadPassengerRive();
-  ref.onDispose(() => file?.dispose());
-  return file;
+PassengerArtFactory passengerArt(Ref ref) {
+  unawaited(SvgPassengerArtFactory.preload());
+  return passengerArtFor(
+    ref.watch(riveArtProvider).value,
+    ref.watch(artTierSettingProvider),
+  );
 }
-
-/// How passengers are drawn: the character once its file loads, else the
-/// stand-in.
-@Riverpod(keepAlive: true)
-PassengerArtFactory passengerArt(Ref ref) =>
-    switch (ref.watch(passengerRiveProvider).value) {
-      final file? => RivePassengerArtFactory(file),
-      null => const StandInPassengerArtFactory(),
-    };
 
 /// A trip that opens from a fixture instead of the pack: the scripted
 /// player's seam (contracts/trip-controller.md "Test seams").

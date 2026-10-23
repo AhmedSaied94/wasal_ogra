@@ -1,89 +1,224 @@
-// What passengers say (layer 8): at most two bubbles, above the speaker's
-// head with the tail toward them, kept inside the scene with 8 pt margins,
-// at most 60% of its width, at 15 pt and never scaled
-// (contracts/scene-layout.md "Bubbles").
+// What passengers say (layer 8, HANDOFF §3.4 `SpeechBubble`): the newest two
+// bubbles, each with its tail's tip 8 pt above the speaker's head, the body
+// kept 10 pt inside the scene (and under a story trip's 56 pt band), at
+// 16 pt and never scaled. A bubble pops from its tail; it just appears under
+// reduced motion.
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 
-const bubbleMargin = 8.0;
-const bubbleMaxShare = 0.6;
-const _tail = 10.0;
+/// Bubbles keep this far inside the scene.
+const bubbleMargin = 10.0;
+
+/// A story trip's condition strip covers the scene's top this far.
+const storyBand = 56.0;
+
+/// At most this many bubbles show; older ones wait.
+const maxBubbles = 2;
+
+/// Two bubbles keep this far apart.
 const _gap = 6.0;
-const _padding = EdgeInsets.symmetric(horizontal: 12, vertical: 6);
 
-TextStyle bubbleTextStyle(Color ink) => TypeTokens.body.copyWith(color: ink);
+enum SpeechBubbleVariant { normal, warn, fight, thanks, character }
 
-typedef _Said = ({BubbleView bubble, String seatId});
+/// The variant of a passenger's bubble style.
+SpeechBubbleVariant variantOf(BubbleStyle style) => switch (style) {
+  BubbleStyle.plain => SpeechBubbleVariant.normal,
+  BubbleStyle.warning => SpeechBubbleVariant.warn,
+  BubbleStyle.fight => SpeechBubbleVariant.fight,
+  BubbleStyle.thanks => SpeechBubbleVariant.thanks,
+};
 
-/// A bubble placed in the scene.
-@immutable
-final class BubblePlacement {
-  const BubblePlacement({required this.rect, required this.tailX});
+typedef _BubbleColors = ({Color bg, Color text, BoxShadow lip});
 
-  final Rect rect;
+_BubbleColors _colorsOf(SpeechBubbleVariant variant) => switch (variant) {
+  SpeechBubbleVariant.normal || SpeechBubbleVariant.character => (
+    bg: ColorTokens.paper,
+    text: ColorTokens.ink,
+    lip: LipTokens.bubble,
+  ),
+  SpeechBubbleVariant.warn => (
+    bg: ColorTokens.dangerSoft,
+    text: ColorTokens.ink,
+    lip: LipTokens.bubbleWarn,
+  ),
+  SpeechBubbleVariant.fight => (
+    bg: ColorTokens.danger,
+    text: ColorTokens.ink,
+    lip: DesignExtras.bubbleFightLip,
+  ),
+  SpeechBubbleVariant.thanks => (
+    bg: ColorTokens.primarySoft,
+    text: ColorTokens.primary,
+    lip: LipTokens.bubble,
+  ),
+};
 
-  /// The tail's x, toward the speaker, in scene coordinates.
-  final double tailX;
-}
+/// The tail: a 14 pt square turned 45°, poking 6 pt below the body.
+const _tailHalfDiagonal = DesignExtras.bubbleTail * 0.7071067811865476;
 
-/// Places bubbles of [sizes] over [anchors] (contracts/scene-layout.md
-/// "Bubbles"): above the head, inside the margins, the second moved up or
-/// across so the two never overlap.
-List<BubblePlacement> placeBubbles(
-  List<Size> sizes,
-  List<Offset> anchors, {
-  required Size scene,
-}) {
-  final placed = <BubblePlacement>[];
-  for (final (i, size) in sizes.indexed) {
-    final anchor = anchors[i];
-    double left(double x) => x.clamp(
-      bubbleMargin,
-      max(bubbleMargin, scene.width - bubbleMargin - size.width),
-    );
-    double top(double y) => max(bubbleMargin, y);
-    var rect = Rect.fromLTWH(
-      left(anchor.dx - size.width / 2),
-      top(anchor.dy - _tail - size.height),
-      size.width,
-      size.height,
-    );
-    for (final other in placed) {
-      if (!rect.overlaps(other.rect.inflate(_gap / 2))) continue;
-      final above = other.rect.top - _gap - size.height;
-      if (above >= bubbleMargin) {
-        rect = Rect.fromLTWH(rect.left, above, size.width, size.height);
-        continue;
-      }
-      // No room above: beside the other one.
-      final right = other.rect.right + _gap;
-      final leftSide = other.rect.left - _gap - size.width;
-      final x = right + size.width <= scene.width - bubbleMargin
-          ? right
-          : max(bubbleMargin, leftSide);
-      rect = Rect.fromLTWH(x, rect.top, size.width, size.height);
-    }
-    placed.add(
-      BubblePlacement(
-        rect: rect,
-        tailX: anchor.dx.clamp(
-          rect.left + 14,
-          max(rect.left + 14, rect.right - 14),
+/// How far the body's bottom sits above the tail square's centre.
+const _tailInset = DesignExtras.bubbleTail / 2 - 6;
+
+/// A speech bubble; on its own it draws its tail under its middle.
+class SpeechBubble extends StatelessWidget {
+  const SpeechBubble({
+    required this.text,
+    this.variant = SpeechBubbleVariant.normal,
+    this.name,
+    this.tail = true,
+    this.padding,
+    this.quoteStyle,
+    this.scaled = false,
+    super.key,
+  });
+
+  final String text;
+  final SpeechBubbleVariant variant;
+
+  /// The speaker's name over a character's line.
+  final String? name;
+
+  /// A character bubble's own padding and line style (بلية's hint).
+  final EdgeInsets? padding;
+  final TextStyle? quoteStyle;
+
+  /// Whether its text follows the system's scale up to 1.3 (the hint, as
+  /// cards do); passengers' bubbles never scale.
+  final bool scaled;
+
+  /// Whether to draw the tail; the scene places it at the speaker.
+  final bool tail;
+
+  static Key tailKey(String passengerId) =>
+      ValueKey('bubble-tail-$passengerId');
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _colorsOf(variant);
+    final character = variant == SpeechBubbleVariant.character;
+    final scaler = scaled
+        ? MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)
+        : TextScaler.noScaling;
+    final line = TypeTokens.bubble.copyWith(color: colors.text, height: 1.35);
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.bg,
+        borderRadius: BorderRadius.all(
+          Radius.circular(
+            character
+                ? DesignExtras.characterBubbleRadius
+                : RadiusTokens.bubble,
+          ),
         ),
+        boxShadow: [colors.lip],
+      ),
+      child: Padding(
+        padding:
+            padding ??
+            (character
+                ? DesignExtras.characterBubblePadding
+                : DesignExtras.bubblePadding),
+        child: character
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (name case final name?)
+                    Text(
+                      name,
+                      textScaler: scaler,
+                      style: TypeTokens.label
+                          .weight(700)
+                          .copyWith(color: ColorTokens.inkMuted),
+                    ),
+                  Text(
+                    text,
+                    textScaler: scaler,
+                    style: (quoteStyle ?? TypeTokens.quote).copyWith(
+                      color: colors.text,
+                    ),
+                  ),
+                ],
+              )
+            : Text(text, textScaler: TextScaler.noScaling, style: line),
       ),
     );
+    final bubble = tail
+        ? Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              body,
+              Positioned(
+                bottom: _tailInset - DesignExtras.bubbleTail / 2,
+                child: SpeechBubbleTail(variant: variant),
+              ),
+            ],
+          )
+        : body;
+    return BubblePop(child: bubble);
   }
-  return placed;
 }
+
+/// A bubble's tail, in its variant's colour. The [tipKey] goes on the
+/// turned square, so its rect's bottom is the tip.
+class SpeechBubbleTail extends StatelessWidget {
+  const SpeechBubbleTail({required this.variant, this.tipKey, super.key});
+
+  final SpeechBubbleVariant variant;
+  final Key? tipKey;
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+    angle: pi / 4,
+    child: SizedBox.square(
+      key: tipKey,
+      dimension: DesignExtras.bubbleTail,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _colorsOf(variant).bg,
+          borderRadius: const BorderRadius.only(
+            bottomRight: Radius.circular(DesignExtras.bubbleTailRadius),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Pops [child] from 0.6 to its size, from the bottom, once; under reduced
+/// motion it just appears.
+class BubblePop extends StatelessWidget {
+  const BubblePop({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.6, end: 1),
+      duration: TripMotion.bubblePop,
+      curve: TripMotion.bubblePopCurve,
+      builder: (context, scale, child) => Transform.scale(
+        scale: scale,
+        alignment: Alignment.bottomCenter,
+        child: child,
+      ),
+      child: child,
+    );
+  }
+}
+
+typedef _Said = ({BubbleView bubble, String seatId});
 
 class BubblesLayer extends StatelessWidget {
   const BubblesLayer({required this.layout, super.key});
@@ -93,204 +228,130 @@ class BubblesLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MediaQuery.withNoTextScaling(
-      child: TripSelector<List<_Said>>(
+      child: TripSelector<(List<_Said>, bool)>(
         select: (model) {
           final view = model.view;
-          if (view == null) return const [];
-          return [
-            for (final b in view.bubbles)
-              if (view.passenger(b.passengerId)?.seatId case final seat?)
-                (bubble: b, seatId: seat),
-          ];
+          if (view == null) return (const [], false);
+          final newest = [...view.bubbles]
+            ..sort((a, b) => a.shownAtMs.compareTo(b.shownAtMs));
+          return (
+            [
+              for (final b in newest.skip(max(0, newest.length - maxBubbles)))
+                if (view.passenger(b.passengerId)?.seatId case final seat?)
+                  (bubble: b, seatId: seat),
+            ],
+            view.storyCondition != null,
+          );
         },
-        equals: listEquals,
-        builder: (context, said) => _Bubbles(layout: layout, said: said),
+        equals: (a, b) => a.$2 == b.$2 && listEquals(a.$1, b.$1),
+        builder: (context, selected) {
+          final (said, story) = selected;
+          final shown = [
+            for (final s in said)
+              if (layout.seats[s.seatId] case final seat?)
+                (
+                  said: s,
+                  tip: Offset(seat.bubbleAnchor.x, seat.bubbleAnchor.y),
+                ),
+          ];
+          return CustomMultiChildLayout(
+            delegate: _BubbleLayout(
+              tips: [for (final s in shown) s.tip],
+              minTop: story ? storyBand + bubbleMargin : bubbleMargin,
+            ),
+            children: [
+              for (final (i, s) in shown.indexed) ...[
+                LayoutId(
+                  id: (_Part.body, i),
+                  child: SpeechBubble(
+                    key: ValueKey(
+                      'bubble-${s.said.bubble.passengerId}-'
+                      '${s.said.bubble.shownAtMs}',
+                    ),
+                    text: s.said.bubble.text,
+                    variant: variantOf(s.said.bubble.style),
+                    tail: false,
+                  ),
+                ),
+                LayoutId(
+                  id: (_Part.tail, i),
+                  child: BubblePop(
+                    child: SpeechBubbleTail(
+                      variant: variantOf(s.said.bubble.style),
+                      tipKey: SpeechBubble.tailKey(s.said.bubble.passengerId),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _Bubbles extends StatelessWidget {
-  const _Bubbles({required this.layout, required this.said});
+enum _Part { body, tail }
 
-  final SceneLayout layout;
-  final List<_Said> said;
+/// Each body over its tail's tip, clamped inside the margins; a second
+/// body that would overlap the first moves above it, or beside it.
+class _BubbleLayout extends MultiChildLayoutDelegate {
+  _BubbleLayout({required this.tips, required this.minTop});
+
+  final List<Offset> tips;
+  final double minTop;
 
   @override
-  Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final direction = Directionality.of(context);
-    // Measured as the bubble's Text draws: over the inherited style, which
-    // brings the theme's spacing and line height.
-    final inherited = DefaultTextStyle.of(context);
-    final style = inherited.style.merge(bubbleTextStyle(tokens.hibr));
-    final locale = Localizations.maybeLocaleOf(context);
-    final maxText =
-        layout.width * bubbleMaxShare -
-        _padding.horizontal -
-        2 * ShapeTokens.borderCard;
-    final shown = <_Said>[];
-    final sizes = <Size>[];
-    final anchors = <Offset>[];
-    for (final s in said) {
-      final seat = layout.seats[s.seatId];
-      if (seat == null) continue;
-      final painter = TextPainter(
-        text: TextSpan(text: s.bubble.text, style: style),
-        textDirection: direction,
-        textScaler: TextScaler.noScaling,
-        textHeightBehavior: inherited.textHeightBehavior,
-        locale: locale,
-      )..layout(maxWidth: maxText);
-      // Rounded up: a fraction less and the Text wraps a line the bubble
-      // has no room for.
-      sizes.add(
-        Size(
-          painter.width.ceilToDouble() +
-              _padding.horizontal +
-              2 * ShapeTokens.borderCard,
-          painter.height.ceilToDouble() +
-              _padding.vertical +
-              2 * ShapeTokens.borderCard,
+  void performLayout(Size size) {
+    final placed = <Rect>[];
+    for (final (i, tip) in tips.indexed) {
+      final body = layoutChild(
+        (_Part.body, i),
+        BoxConstraints.loose(
+          Size(max(0, size.width - 2 * bubbleMargin), size.height),
         ),
       );
-      painter.dispose();
-      anchors.add(Offset(seat.bubbleAnchor.x, seat.bubbleAnchor.y));
-      shown.add(s);
-    }
-    final placements = placeBubbles(
-      sizes,
-      anchors,
-      scene: Size(layout.width, layout.height),
-    );
-    return Stack(
-      children: [
-        for (final (i, s) in shown.indexed)
-          Positioned.fromRect(
-            rect: placements[i].rect,
-            child: Bubble(
-              key: ValueKey(
-                'bubble-${s.bubble.passengerId}-${s.bubble.shownAtMs}',
-              ),
-              text: s.bubble.text,
-              style: s.bubble.style,
-              tailX: placements[i].tailX - placements[i].rect.left,
-              tailDown: anchors[i].dy > placements[i].rect.bottom,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// One speech bubble, in its style's color, with a hard shadow.
-class Bubble extends StatelessWidget {
-  const Bubble({
-    required this.text,
-    required this.style,
-    required this.tailX,
-    required this.tailDown,
-    super.key,
-  });
-
-  final String text;
-  final BubbleStyle style;
-
-  /// From the bubble's left edge.
-  final double tailX;
-
-  /// Whether the speaker is below (the tail shows).
-  final bool tailDown;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final fill = switch (style) {
-      BubbleStyle.plain => tokens.waraq,
-      BubbleStyle.warning => tokens.bubbleWarn,
-      BubbleStyle.fight => tokens.bubbleFight,
-      BubbleStyle.thanks => tokens.bubbleThanks,
-    };
-    final body = CustomPaint(
-      painter: _BubblePainter(
-        fill: fill,
-        ink: tokens.hibr,
-        tailX: tailX,
-        tailDown: tailDown,
-        shadow: hardShadowOffset(3, Directionality.of(context)),
-      ),
-      child: Padding(
-        padding: _padding + const EdgeInsets.all(ShapeTokens.borderCard),
-        child: Text(text, style: bubbleTextStyle(tokens.hibr)),
-      ),
-    );
-    if (MediaQuery.disableAnimationsOf(context)) return body;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.8, end: 1),
-      duration: TripMotion.bubblePop,
-      curve: Curves.easeOutBack,
-      builder: (context, scale, child) => Transform.scale(
-        scale: scale,
-        alignment: Alignment.bottomCenter,
-        child: child,
-      ),
-      child: body,
-    );
-  }
-}
-
-class _BubblePainter extends CustomPainter {
-  const _BubblePainter({
-    required this.fill,
-    required this.ink,
-    required this.tailX,
-    required this.tailDown,
-    required this.shadow,
-  });
-
-  final Color fill;
-  final Color ink;
-  final double tailX;
-  final bool tailDown;
-  final Offset shadow;
-
-  Path _shape(Size size) {
-    final body = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(ShapeTokens.radiusControl),
-    );
-    final path = Path()..addRRect(body);
-    if (tailDown) {
-      path
-        ..moveTo(tailX - 7, size.height - 1)
-        ..lineTo(tailX, size.height + _tail - 2)
-        ..lineTo(tailX + 7, size.height - 1)
-        ..close();
-    }
-    return path;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final shape = _shape(size);
-    canvas
-      ..drawPath(shape.shift(shadow), Paint()..color = ink)
-      ..drawPath(shape, Paint()..color = fill)
-      ..drawPath(
-        shape,
-        Paint()
-          ..color = ink
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = ShapeTokens.borderCard
-          ..strokeJoin = StrokeJoin.round,
+      final tailCentre = tip.dy - _tailHalfDiagonal;
+      double left(double x) => x.clamp(
+        bubbleMargin,
+        max(bubbleMargin, size.width - bubbleMargin - body.width),
       );
+      var rect = Rect.fromLTWH(
+        left(tip.dx - body.width / 2),
+        max(minTop, tailCentre + _tailInset - body.height),
+        body.width,
+        body.height,
+      );
+      for (final other in placed) {
+        if (!rect.overlaps(other.inflate(_gap / 2))) continue;
+        final above = other.top - _gap - body.height;
+        if (above >= minTop) {
+          rect = Rect.fromLTWH(rect.left, above, body.width, body.height);
+          continue;
+        }
+        final right = other.right + _gap;
+        final x = right + body.width <= size.width - bubbleMargin
+            ? right
+            : max(bubbleMargin, other.left - _gap - body.width);
+        rect = Rect.fromLTWH(x, rect.top, body.width, body.height);
+      }
+      placed.add(rect);
+      positionChild((_Part.body, i), rect.topLeft);
+      layoutChild((
+        _Part.tail,
+        i,
+      ), BoxConstraints.tight(const Size.square(DesignExtras.bubbleTail)));
+      positionChild(
+        (_Part.tail, i),
+        Offset(
+          tip.dx - DesignExtras.bubbleTail / 2,
+          tailCentre - DesignExtras.bubbleTail / 2,
+        ),
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(_BubblePainter old) =>
-      old.fill != fill ||
-      old.ink != ink ||
-      old.tailX != tailX ||
-      old.tailDown != tailDown ||
-      old.shadow != shadow;
+  bool shouldRelayout(_BubbleLayout oldDelegate) =>
+      !listEquals(oldDelegate.tips, tips) || oldDelegate.minTop != minTop;
 }

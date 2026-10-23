@@ -3,6 +3,7 @@ import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
+import 'package:wassal/features/trip/domain/poses.dart';
 import 'package:wassal/features/trip/domain/speech.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
@@ -263,6 +264,130 @@ void main() {
       final log = cues.whereType<LogCue>().single.line;
       expect(log.kind, LogKind.breakDone);
       expect(log.amountPiasters, event.denomination);
+    });
+  });
+
+  // 008.5 (tasks.md T097, contracts/rive-characters.md "Triggers"). Getting
+  // off plays `alight` from the view's `leaving`, as M02's art did, so a
+  // thanked passenger's alighting still makes no cue (above).
+  group('the characters\' triggers', () {
+    List<(String, CharacterTrigger)> triggers(List<TripCue> cues) => [
+      for (final c in cues.whereType<CharacterCue>())
+        (c.passengerId, c.trigger),
+    ];
+
+    test('boarding: board', () {
+      expect(
+        triggers(
+          cuesOf([
+            const PassengerBoarded(33, passengerId: 'p1', seatId: 'A_r'),
+          ]),
+        ),
+        [('p1', CharacterTrigger.board)],
+      );
+    });
+
+    test('getting off: none from the events', () {
+      for (final outcome in AlightOutcome.values) {
+        expect(
+          triggers(
+            cuesOf([
+              PassengerAlighted(33, passengerId: 'p1', outcome: outcome),
+            ]),
+          ),
+          isEmpty,
+          reason: '$outcome',
+        );
+      }
+    });
+
+    test('a call: call, unless they turn attentive in the same batch', () {
+      expect(
+        triggers(
+          cuesOf([const PassengerCalled(33, passengerId: 'p1', taps: 1)]),
+        ),
+        [('p1', CharacterTrigger.call)],
+      );
+      expect(
+        triggers(
+          cuesOf([
+            const PassengerCalled(33, passengerId: 'p1', taps: 2),
+            const PassengerAttentive(33, passengerId: 'p1'),
+          ]),
+        ),
+        isEmpty,
+      );
+      // Another passenger turning attentive doesn't hold this one's call.
+      expect(
+        triggers(
+          cuesOf([
+            const PassengerCalled(33, passengerId: 'p1', taps: 1),
+            const PassengerAttentive(33, passengerId: 'p2'),
+          ]),
+        ),
+        [('p1', CharacterTrigger.call)],
+      );
+    });
+
+    test('waking and turning attentive: none (the view plays them)', () {
+      expect(
+        triggers(
+          cuesOf([
+            const PassengerWoke(33, passengerId: 'p1'),
+            const PassengerAttentive(33, passengerId: 'p2'),
+          ]),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('exact change: happy; any other result: none', () {
+      ChangeDelivered delivered(ChangeResult result) => ChangeDelivered(
+        33,
+        tokenId: 1,
+        passengerId: 'p1',
+        result: result,
+        amountPiasters: 300,
+      );
+      expect(triggers(cuesOf([delivered(ChangeResult.exact)])), [
+        ('p1', CharacterTrigger.happy),
+      ]);
+      for (final result in [
+        ChangeResult.short,
+        ChangeResult.over,
+        ChangeResult.notOwed,
+      ]) {
+        expect(
+          triggers(cuesOf([delivered(result)])),
+          isEmpty,
+          reason: '$result',
+        );
+      }
+    });
+
+    test('beside each highlight: targeted', () {
+      final cues = cuesOf([
+        const ChangeSent(
+          33,
+          passengerId: 'p1',
+          tokenId: 1,
+          amountPiasters: 300,
+        ),
+        const ChangeSent(
+          33,
+          passengerId: 'p2',
+          tokenId: 2,
+          amountPiasters: 500,
+        ),
+      ]);
+      expect(
+        [for (final c in cues.whereType<HighlightCue>()) c.passengerId],
+        ['p1', 'p2'],
+      );
+      expect(triggers(cues), [
+        ('p1', CharacterTrigger.targeted),
+        ('p2', CharacterTrigger.targeted),
+      ]);
     });
   });
 }

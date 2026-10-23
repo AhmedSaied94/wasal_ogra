@@ -154,6 +154,15 @@ final class TripController {
   @visibleForTesting
   TripEngine? get engine => _session?.engine;
 
+  /// Shows [model] as if the engine had produced it: the design samples'
+  /// states on the real screen (goldens and layout tests).
+  @visibleForTesting
+  void debugShowModel(TripModel model) {
+    _model = model;
+    _models.add(model);
+    _frames.value++;
+  }
+
   /// What internal builds' debug panel shows, read-only: the engine's state
   /// and its replay record (research R21).
   ({TripState state, ReplayRecord record})? get debugSnapshot =>

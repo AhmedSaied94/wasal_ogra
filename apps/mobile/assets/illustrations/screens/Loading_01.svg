@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="170" viewBox="0 0 358 210">
+<path d="M330 120 H358 M326 150 H358 M334 180 H358" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"></path>
+<ellipse cx="178" cy="196" rx="148" ry="9" fill="#D9A800" opacity="0.5"></ellipse>
+<path d="M322 160 V48 Q322 30 304 30 H118 Q98 30 86 46 L44 102 Q38 110 38 124 V160 Q38 174 52 174 H308 Q322 174 322 160 Z" fill="#FFFFFF"></path>
+<path d="M38 146 V160 Q38 174 52 174 H308 Q322 174 322 160 V146 Z" fill="#E3EEF5"></path>
+<rect x="38" y="126" width="284" height="14" fill="#1A4B8C"></rect>
+<rect x="38" y="140" width="284" height="5" fill="#F2542D"></rect>
+<path d="M70 174 A30 30 0 0 1 130 174 Z" fill="#58546A"></path>
+<path d="M236 174 A30 30 0 0 1 296 174 Z" fill="#58546A"></path>
+<rect x="114" y="4" width="96" height="26" rx="13" fill="#1D1A2B"></rect>
+<text x="162" y="23" text-anchor="middle" font-family="Marhey, sans-serif" font-weight="700" font-size="15" fill="#FFD23F">الموقف</text>
+<path d="M114 40 V100 H52 L90 50 Q97 40 108 40 Z" fill="#9FD3EE"></path>
+<path d="M66 90 L86 62" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.8"></path>
+<rect x="122" y="40" width="54" height="60" rx="12" fill="#9FD3EE"></rect>
+<rect x="182" y="40" width="54" height="60" rx="12" fill="#9FD3EE"></rect>
+<rect x="242" y="40" width="54" height="60" rx="12" fill="#9FD3EE"></rect>
+<circle cx="100" cy="84" r="12" fill="#C68B5E"></circle>
+<path d="M88 82 Q88 70 100 70 Q112 70 112 82 Q106 76 100 76 Q94 76 88 82 Z" fill="#2B2238"></path>
+<circle cx="128" cy="44" r="2.5" fill="#F2542D"></circle><circle cx="137" cy="45" r="2.5" fill="#F2542D"></circle><circle cx="146" cy="45.5" r="2.5" fill="#F2542D"></circle><circle cx="155" cy="45.5" r="2.5" fill="#F2542D"></circle><circle cx="164" cy="45" r="2.5" fill="#F2542D"></circle><circle cx="171" cy="44" r="2.5" fill="#F2542D"></circle>
+<circle cx="188" cy="44" r="2.5" fill="#F2542D"></circle><circle cx="197" cy="45" r="2.5" fill="#F2542D"></circle><circle cx="206" cy="45.5" r="2.5" fill="#F2542D"></circle><circle cx="215" cy="45.5" r="2.5" fill="#F2542D"></circle><circle cx="224" cy="45" r="2.5" fill="#F2542D"></circle><circle cx="231" cy="44" r="2.5" fill="#F2542D"></circle>
+<circle cx="48" cy="116" r="8" fill="#FFD23F"></circle>
+<circle cx="100" cy="176" r="24" fill="#2A2633"></circle>
+<circle cx="100" cy="176" r="10" fill="#D9D4E2"></circle>
+<circle cx="266" cy="176" r="24" fill="#2A2633"></circle>
+<circle cx="266" cy="176" r="10" fill="#D9D4E2"></circle>
+</svg>

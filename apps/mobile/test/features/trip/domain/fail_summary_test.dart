@@ -1,3 +1,4 @@
+import 'package:content_models/content_models.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_engine/trip_engine.dart';
@@ -234,6 +235,84 @@ void main() {
       );
       // What the cap spares the player: the engine would refuse it.
       expect(capped.revivable, isTrue);
+    });
+  });
+
+  group('the failure art (008.5)', () {
+    /// [state]'s seats in the art's order: the near row first, right to
+    /// left, the front seat last.
+    int seatRank(TripFacts facts, String seatId) {
+      final seat = facts.definition.seats.firstWhere((s) => s.seatId == seatId);
+      final row = seat.row == SeatRow.front
+          ? SeatRow.values.length
+          : seat.row.index;
+      return row * SeatCol.values.length + seat.col.index;
+    }
+
+    test('brokeStoryRule only for a story trip lost to a fight', () {
+      var stories = 0;
+      for (final name in allFixtureNames()) {
+        final fixture = loadFixture(name);
+        final state = replayed(fixture).state;
+        final facts = factsOf(fixture);
+        final summary = failSummary(
+          state.reputationLost,
+          facts,
+          null,
+          state: state,
+        );
+        final broke =
+            facts.storyNoFights &&
+            state.status == TripStatus.failed &&
+            state.counters.fights > 0;
+        if (broke) stories++;
+        expect(summary.brokeStoryRule, broke, reason: name);
+      }
+      expect(stories, greaterThan(0));
+    });
+
+    test('angryFaces: fights, then missed stops, then the seated, by seat', () {
+      var faces = 0;
+      for (final name in allFixtureNames()) {
+        final fixture = loadFixture(name);
+        final state = replayed(fixture).state;
+        if (state.status != TripStatus.failed) continue;
+        final facts = factsOf(fixture);
+        final summary = failSummary(
+          state.reputationLost,
+          facts,
+          null,
+          state: state,
+        );
+        int rank(String id) {
+          final p = state.passenger(id)!;
+          final group = switch (p.outcome) {
+            AlightOutcome.fight => 0,
+            AlightOutcome.missedStop => 1,
+            _ => 2,
+          };
+          return group * 1000 + seatRank(facts, p.seatId);
+        }
+
+        final expected = [
+          for (final p in state.passengers)
+            if (p.outcome == AlightOutcome.fight ||
+                p.outcome == AlightOutcome.missedStop ||
+                p.presence == Presence.aboard)
+              p.passengerId,
+        ]..sort((a, b) => rank(a).compareTo(rank(b)));
+        expect(summary.angryFaces, expected.take(3).toList(), reason: name);
+        faces += summary.angryFaces.length;
+      }
+      expect(faces, greaterThan(0));
+    });
+
+    test('without the state, none of it', () {
+      final fixture = loadFixture('ending__story_fight_fails');
+      final state = replayed(fixture).state;
+      final summary = failSummary(state.reputationLost, factsOf(fixture), null);
+      expect(summary.brokeStoryRule, isFalse);
+      expect(summary.angryFaces, isEmpty);
     });
   });
 }

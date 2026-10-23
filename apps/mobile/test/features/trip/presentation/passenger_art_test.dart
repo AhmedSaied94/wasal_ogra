@@ -1,56 +1,63 @@
 import 'dart:ui';
 
+import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/features/trip/application/art_tier.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
+import 'package:wassal/features/trip/domain/poses.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/features/trip/presentation/scene/rive_passenger_art.dart';
-import 'package:wassal/features/trip/presentation/trip_colors.dart';
+import 'package:wassal/features/trip/presentation/scene/svg_passenger_art.dart';
 
-// A passenger's view, as the character's view-model properties (tasks.md
-// T058, contracts/rive-character.md "View-model properties").
+// A passenger's view, as the inputs of `Person` (tasks.md T099,
+// contracts/rive-characters.md "From a pose to the inputs" and "How the app
+// uses it").
 
-final class _FakeInputs implements PassengerInputs {
-  final looks = <({Color shirt, String accessory})>[];
-  final states = <CharacterState>[];
-  var alights = 0;
-  var disposed = false;
-
-  @override
-  void setLook({required Color shirt, required String accessory}) =>
-      looks.add((shirt: shirt, accessory: accessory));
-
-  @override
-  void setState(CharacterState state) => states.add(state);
-
-  @override
-  void alight() => alights++;
-
-  @override
-  void dispose() => disposed = true;
-}
-
-final class _FakeRig implements CharacterRig {
+/// What the art set on its instance: the properties' current values, every
+/// set in order, and the triggers fired.
+final class _FakePerson implements CharacterInstance {
+  final values = <String, Object>{};
+  final sets = <String>[];
+  final fired = <String>[];
+  final draws = <({Offset head, double scale})>[];
   var advanced = 0.0;
-  final boxes = <Rect>[];
   var disposed = false;
+
+  @override
+  void setNumber(String property, double value) {
+    values[property] = value;
+    sets.add(property);
+  }
+
+  @override
+  void setBoolean(String property, {required bool value}) {
+    values[property] = value;
+    sets.add(property);
+  }
+
+  @override
+  void fire(String trigger) => fired.add(trigger);
 
   @override
   void advance(double dt) => advanced += dt;
 
   @override
-  void render(Canvas canvas, Rect box) => boxes.add(box);
+  void render(Canvas canvas, Offset head, double scale) =>
+      draws.add((head: head, scale: scale));
 
   @override
   void dispose() => disposed = true;
+
+  /// The inputs as the file sees them now, `look` aside.
+  Map<String, Object> get inputs => {
+    for (final MapEntry(:key, :value) in values.entries)
+      if (key != 'look') key: value,
+  };
 }
 
-const _look = SkinLook(
-  skin: 'hajja_black',
-  shirt: Shirt.hajja,
-  accessory: Accessory.glasses,
-  labelKey: 'tripLookHajja',
-);
+final _look = looks['hagga']!;
 
 PassengerView _view({
   PresenceView presence = PresenceView.aboard,
@@ -60,6 +67,9 @@ PassengerView _view({
   bool waking = false,
   bool headphones = false,
   bool attentive = false,
+  bool nearStopPulse = false,
+  bool claimOpen = false,
+  AlightOutcome? outcome,
 }) => PassengerView(
   passengerId: 'p1',
   seatId: 'A_r',
@@ -72,114 +82,210 @@ PassengerView _view({
   waking: waking,
   headphones: headphones,
   attentive: attentive,
-  nearStopPulse: false,
+  nearStopPulse: nearStopPulse,
   dropMeHere: false,
   ledgerBadge: null,
-  outcome: null,
+  outcome: outcome,
+  claimOpen: claimOpen,
 );
 
-void main() {
-  const tokens = WassalTokens.standard;
+/// Everything off: `idle`.
+const _idle = <String, Object>{
+  'mood': 0.0,
+  'talking': false,
+  'asleep': false,
+  'headphones': false,
+  'changeDue': false,
+  'claim': false,
+  'surprised': false,
+};
 
-  test('the look is set once, from the skin', () {
-    final inputs = _FakeInputs();
-    final art = RivePassengerArt(
-      rig: _FakeRig(),
-      inputs: inputs,
-      look: _look,
-      tokens: tokens,
-    );
+Map<String, Object> _with(Map<String, Object> on) => {..._idle, ...on};
+
+(RivePassengerArt, _FakePerson) _art([Look? look]) {
+  final person = _FakePerson();
+  return (RivePassengerArt(person, look: look ?? _look), person);
+}
+
+void main() {
+  test('the look is set once, from Look.rive', () {
+    final (art, person) = _art();
     art
       ..update(_view())
       ..update(_view(mood: 2));
-    expect(inputs.looks, [
-      (shirt: shirtColor(tokens, Shirt.hajja), accessory: 'glasses'),
-    ]);
+    expect(person.sets.where((s) => s == 'look'), hasLength(1));
+    expect(person.values['look'], _look.rive.toDouble());
   });
 
-  test('every accessory has its wire name', () {
-    for (final accessory in Accessory.values) {
-      final inputs = _FakeInputs();
-      RivePassengerArt(
-        rig: _FakeRig(),
-        inputs: inputs,
-        look: SkinLook(
-          skin: 'x',
-          shirt: Shirt.plain,
-          accessory: accessory,
-          labelKey: passengerLabelKey,
-        ),
-        tokens: tokens,
-      );
-      expect(inputs.looks.single.accessory, accessory.name);
+  test('every look sets its own number', () {
+    for (final look in looks.values) {
+      final (_, person) = _art(look);
+      expect(person.values['look'], look.rive.toDouble(), reason: look.id);
     }
   });
 
-  test('mood, talking, sleep and headphones follow the view', () {
-    final inputs = _FakeInputs();
-    final art = RivePassengerArt(
-      rig: _FakeRig(),
-      inputs: inputs,
-      look: _look,
-      tokens: tokens,
-    );
-    art
-      ..update(_view(mood: 3, talking: true))
-      ..update(_view(asleep: true, headphones: true))
-      // Waking up and taking the headphones off both show as awake, bare.
-      ..update(_view(waking: true, attentive: true));
-    expect(inputs.states, const [
-      CharacterState(mood: 3, talking: true, asleep: false, headphones: false),
-      CharacterState(mood: 0, talking: false, asleep: true, headphones: true),
-      CharacterState(mood: 0, talking: false, asleep: false, headphones: false),
-    ]);
+  group("a pose's one input, the others off", () {
+    final cases = <String, (PassengerView, Map<String, Object>)>{
+      'idle': (_view(), _idle),
+      'talk': (_view(talking: true), _with({'talking': true})),
+      'impatient_1': (_view(mood: 1), _with({'mood': 1.0})),
+      'impatient_2': (_view(mood: 2), _with({'mood': 2.0})),
+      'impatient_2 at mood 3': (_view(mood: 3), _with({'mood': 2.0})),
+      'sleep': (_view(asleep: true), _with({'asleep': true})),
+      'waking: asleep off, so the file plays wake': (
+        _view(asleep: true, waking: true),
+        _idle,
+      ),
+      'headphones': (_view(headphones: true), _with({'headphones': true})),
+      'change_due': (_view(nearStopPulse: true), _with({'changeDue': true})),
+      'claim': (_view(claimOpen: true), _with({'claim': true})),
+      'fight': (
+        _view(
+          presence: PresenceView.leaving,
+          outcome: AlightOutcome.fight,
+          mood: 3,
+        ),
+        _with({'mood': 3.0}),
+      ),
+      'asleep and talking: only sleep': (
+        _view(asleep: true, talking: true),
+        _with({'asleep': true}),
+      ),
+      'a claim while frowning: only the claim': (
+        _view(claimOpen: true, mood: 2),
+        _with({'claim': true}),
+      ),
+    };
+    for (final MapEntry(key: name, value: (view, inputs)) in cases.entries) {
+      test(name, () {
+        final (art, person) = _art();
+        art.update(view);
+        expect(person.inputs, inputs);
+      });
+    }
   });
 
-  test('the same state is not sent twice', () {
-    final inputs = _FakeInputs();
-    RivePassengerArt(
-        rig: _FakeRig(),
-        inputs: inputs,
-        look: _look,
-        tokens: tokens,
-      )
+  test('moving between poses clears the last one', () {
+    final (art, person) = _art();
+    art.update(_view(talking: true));
+    expect(person.inputs, _with({'talking': true}));
+    art.update(_view(mood: 2, talking: true));
+    expect(person.inputs, _with({'mood': 2.0}));
+    art.update(_view(claimOpen: true));
+    expect(person.inputs, _with({'claim': true}));
+    art.update(_view());
+    expect(person.inputs, _idle);
+  });
+
+  test('the headphones follow the view in every pose', () {
+    final (art, person) = _art();
+    art.update(_view(headphones: true, nearStopPulse: true));
+    expect(person.inputs, _with({'changeDue': true, 'headphones': true}));
+    // Attentive: the view takes them off, and the file lifts them.
+    art.update(_view(attentive: true));
+    expect(person.values['headphones'], isFalse);
+  });
+
+  test('only what changed is set again', () {
+    final (art, person) = _art();
+    art.update(_view(mood: 1));
+    person.sets.clear();
+    art
       ..update(_view(mood: 1))
-      ..update(_view(mood: 1));
-    expect(inputs.states, hasLength(1));
+      ..update(_view(mood: 2));
+    expect(person.sets, ['mood']);
+  });
+
+  test('each trigger fires once, by its name', () {
+    final (art, person) = _art();
+    for (final trigger in CharacterTrigger.values) {
+      art.play(trigger);
+    }
+    expect(person.fired, ['board', 'alight', 'call', 'happy', 'targeted']);
   });
 
   test('alight fires once, when they start to leave', () {
-    final inputs = _FakeInputs();
-    final art = RivePassengerArt(
-      rig: _FakeRig(),
-      inputs: inputs,
-      look: _look,
-      tokens: tokens,
-    )..update(_view());
-    expect(inputs.alights, 0);
+    final (art, person) = _art();
+    art.update(_view());
+    expect(person.fired, isEmpty);
     art
       ..update(_view(presence: PresenceView.leaving))
       ..update(_view(presence: PresenceView.leaving, mood: 3));
-    expect(inputs.alights, 1);
+    expect(person.fired, ['alight']);
   });
 
-  test('the rig draws, moves on and goes with the art', () {
-    final rig = _FakeRig();
-    final inputs = _FakeInputs();
-    final art = RivePassengerArt(
-      rig: rig,
-      inputs: inputs,
-      look: _look,
-      tokens: tokens,
-    )..advance(0.5);
+  test('drawn by the head: its centre on the box, scaled to its width', () {
+    final (art, person) = _art();
     final recorder = PictureRecorder();
-    art.render(Canvas(recorder), const Rect.fromLTWH(10, 20, 80, 96));
+    final canvas = Canvas(recorder);
+    art
+      ..advance(0.5)
+      ..render(canvas, const Rect.fromLTWH(10, 20, 84, 84))
+      ..render(canvas, const Rect.fromLTWH(0, 0, 52.5, 52.5));
     recorder.endRecording().dispose();
-    expect(rig.advanced, 0.5);
-    expect(rig.boxes, [const Rect.fromLTWH(10, 20, 80, 96)]);
-
+    expect(person.advanced, 0.5);
+    expect(person.draws, [
+      (head: const Offset(52, 62), scale: 1.0),
+      (head: const Offset(26.25, 26.25), scale: 0.625),
+    ]);
     art.dispose();
-    expect(rig.disposed, isTrue);
-    expect(inputs.disposed, isTrue);
+    expect(person.disposed, isTrue);
+  });
+
+  group('which art a passenger gets', () {
+    RivePassengerArtFactory factory(ArtTier tier) =>
+        RivePassengerArtFactory(person: _FakePerson.new, tier: tier);
+
+    test('Rive on every row at the rive tier', () {
+      for (final row in SeatRow.values) {
+        expect(
+          factory(ArtTier.rive).create(_look, row: row),
+          isA<RivePassengerArt>(),
+          reason: row.name,
+        );
+      }
+    });
+
+    test('near_rive: the front seat and row A in Rive, the rest static', () {
+      final tier = factory(ArtTier.nearRive);
+      expect(tier.create(_look, row: SeatRow.front), isA<RivePassengerArt>());
+      expect(tier.create(_look), isA<RivePassengerArt>());
+      for (final row in [SeatRow.b, SeatRow.c, SeatRow.d]) {
+        expect(
+          tier.create(_look, row: row),
+          isA<SvgPassengerArt>(),
+          reason: row.name,
+        );
+      }
+    });
+
+    test('static: every seat static', () {
+      for (final row in SeatRow.values) {
+        expect(
+          factory(ArtTier.static).create(_look, row: row),
+          isA<SvgPassengerArt>(),
+        );
+      }
+    });
+
+    test('reduced motion: static, whatever the tier', () {
+      expect(
+        factory(ArtTier.rive).create(_look, reduceMotion: true),
+        isA<SvgPassengerArt>(),
+      );
+    });
+
+    test('without Person in the file, the static art', () {
+      for (final art in [
+        null,
+        const RiveArt.none(['assets/rive/wassal.riv: missing']),
+        const RiveArt(file: null, usable: {'Person'}, problems: []),
+      ]) {
+        expect(
+          passengerArtFor(art, ArtTier.rive),
+          isA<SvgPassengerArtFactory>(),
+        );
+      }
+    });
   });
 }

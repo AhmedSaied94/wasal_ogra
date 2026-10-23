@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:content_models/content_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
@@ -161,6 +162,12 @@ class TripScope extends InheritedWidget {
       controls != oldWidget.controls;
 }
 
+/// The traffic jam booster's extra seconds, in the player's digits.
+String jamSecondsOf(BuildContext context, NumberFormatter numbers) {
+  final params = TripScope.of(context).controller.session?.facts.params;
+  return numbers.integer((params?.boosterTrafficJamMs ?? 0) ~/ 1000);
+}
+
 /// Rebuilds only when [select] of the model changes.
 class TripSelector<T> extends StatefulWidget {
   const TripSelector({
@@ -282,19 +289,27 @@ class _ShakeableState extends State<Shakeable>
 }
 
 /// Beats [child] on the trip clock, up to [amplitude] above its size once
-/// every two [TripMotion.countdownPulse]s: still while the trip is, and
-/// steady under reduced motion.
+/// every [cycle]: still while the trip is, and steady under reduced motion.
 class TripPulse extends StatelessWidget {
-  const TripPulse({required this.amplitude, required this.child, super.key});
+  const TripPulse({
+    required this.amplitude,
+    required this.child,
+    this.cycle,
+    super.key,
+  });
 
   final double amplitude;
   final Widget child;
+
+  /// Out to `1 + amplitude` and back; by default two
+  /// [TripMotion.countdownPulse]s, the countdown chip's beat.
+  final Duration? cycle;
 
   @override
   Widget build(BuildContext context) {
     if (MediaQuery.disableAnimationsOf(context)) return child;
     final controller = TripScope.of(context).controller;
-    final cycle = TripMotion.countdownPulse.inMilliseconds * 2;
+    final cycle = (this.cycle ?? TripMotion.countdownPulse * 2).inMilliseconds;
     return AnimatedBuilder(
       animation: controller.frames,
       child: child,

@@ -1,3 +1,5 @@
+> **Superseded by** [specs/008.5-m21-design-refresh/contracts/rive-characters.md](../../008.5-m21-design-refresh/contracts/rive-characters.md) from M21. This page records what M02 built.
+
 # Contract: The Passenger Character File
 
 What `apps/mobile/assets/rive/passenger.riv` must contain, so the app can draw every passenger with it

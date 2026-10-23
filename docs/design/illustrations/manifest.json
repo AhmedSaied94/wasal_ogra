@@ -1,0 +1,530 @@
+[
+ {
+  "file": "illustrations/screens/Album_01.svg",
+  "screen": "Album",
+  "size": "160x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Album_02.svg",
+  "screen": "Album",
+  "size": "160x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Album_03.svg",
+  "screen": "Album",
+  "size": "160x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoal_01.svg",
+  "screen": "AptGoal",
+  "size": "330x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoal_02.svg",
+  "screen": "AptGoal",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoal_03.svg",
+  "screen": "AptGoal",
+  "size": "120x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalReady_01.svg",
+  "screen": "AptGoalReady",
+  "size": "330x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalReady_02.svg",
+  "screen": "AptGoalReady",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalReady_03.svg",
+  "screen": "AptGoalReady",
+  "size": "120x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptRooms_01.svg",
+  "screen": "AptRooms",
+  "size": "358x300",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/BuyVehicle_01.svg",
+  "screen": "BuyVehicle",
+  "size": "358x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/C-Home_01.svg",
+  "screen": "C-Home",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/C-Home_02.svg",
+  "screen": "C-Home",
+  "size": "358x332",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/C-Trip_01.svg",
+  "screen": "C-Trip",
+  "size": "390x444",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Challenge_01.svg",
+  "screen": "Challenge",
+  "size": "358x200",
+  "label": ""
+ },
+ {
+  "file": "illustrations/characters/usta.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "الأسطى"
+ },
+ {
+  "file": "illustrations/characters/salma.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "سلمى"
+ },
+ {
+  "file": "illustrations/characters/bride_father.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "أبو العروسة"
+ },
+ {
+  "file": "illustrations/characters/bride_mother.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "أم العروسة"
+ },
+ {
+  "file": "illustrations/characters/moallem.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "المعلم"
+ },
+ {
+  "file": "illustrations/characters/belya.svg",
+  "screen": "Characters",
+  "size": "150x164",
+  "label": "بلية"
+ },
+ {
+  "file": "illustrations/passenger_states/idle.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "عادي"
+ },
+ {
+  "file": "illustrations/passenger_states/talk.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "بيتكلم"
+ },
+ {
+  "file": "illustrations/passenger_states/impatient.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "صبره بيخلص"
+ },
+ {
+  "file": "illustrations/passenger_states/sleep.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "نايم"
+ },
+ {
+  "file": "illustrations/passenger_states/headphones.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "لابس سماعات"
+ },
+ {
+  "file": "illustrations/passenger_states/change_due.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "ليه باقي ومحطته قربت"
+ },
+ {
+  "file": "illustrations/passenger_states/fight.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "خناقة"
+ },
+ {
+  "file": "illustrations/passenger_states/alight.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "نازل"
+ },
+ {
+  "file": "illustrations/passenger_states/board.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "راكب جديد"
+ },
+ {
+  "file": "illustrations/passenger_states/happy.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "شاكر"
+ },
+ {
+  "file": "illustrations/passenger_states/claim.svg",
+  "screen": "Characters",
+  "size": "130x140",
+  "label": "أنا دافع"
+ },
+ {
+  "file": "illustrations/screens/DeleteStep1_01.svg",
+  "screen": "DeleteStep1",
+  "size": "120x104",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Event_01.svg",
+  "screen": "Event",
+  "size": "358x260",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Fail_01.svg",
+  "screen": "Fail",
+  "size": "210x70",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Fuel_01.svg",
+  "screen": "Fuel",
+  "size": "358x150",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Garage_01.svg",
+  "screen": "Garage",
+  "size": "358x210",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/HomeStates_01.svg",
+  "screen": "HomeStates",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/HomeStates_02.svg",
+  "screen": "HomeStates",
+  "size": "358x282",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Intro_01.svg",
+  "screen": "Intro",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Invite_01.svg",
+  "screen": "Invite",
+  "size": "150x80",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Loading_01.svg",
+  "screen": "Loading",
+  "size": "300x170",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Name_01.svg",
+  "screen": "Name",
+  "size": "104x104",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/NotifAsk_01.svg",
+  "screen": "NotifAsk",
+  "size": "150x120",
+  "label": ""
+ },
+ {
+  "file": "illustrations/passengers/regular.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "العادي"
+ },
+ {
+  "file": "illustrations/passengers/hagga.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الحاجة"
+ },
+ {
+  "file": "illustrations/passengers/sleeper.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "النايم"
+ },
+ {
+  "file": "illustrations/passengers/hurried.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "المستعجل"
+ },
+ {
+  "file": "illustrations/passengers/effendi_200.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الأفندي أبو ٢٠٠"
+ },
+ {
+  "file": "illustrations/passengers/student.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الطالب"
+ },
+ {
+  "file": "illustrations/passengers/headphones.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "أبو سمّاعة"
+ },
+ {
+  "file": "illustrations/passengers/claimer.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "أنا دافع"
+ },
+ {
+  "file": "illustrations/passengers/group_payer.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "خليها عليا"
+ },
+ {
+  "file": "illustrations/passengers/chatterbox.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الرغاي"
+ },
+ {
+  "file": "illustrations/passengers/changer.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "اللي بيفك"
+ },
+ {
+  "file": "illustrations/passengers/bags_lady.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الست بالشنط"
+ },
+ {
+  "file": "illustrations/passengers/dodger.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "المتهرب"
+ },
+ {
+  "file": "illustrations/passengers/mother_kids.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الأم والعيال"
+ },
+ {
+  "file": "illustrations/passengers/big_family.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "العيلة الكبيرة"
+ },
+ {
+  "file": "illustrations/passengers/traveler.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "المسافر"
+ },
+ {
+  "file": "illustrations/passengers/regular_customer.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الزبون الدايم"
+ },
+ {
+  "file": "illustrations/passengers/honest.svg",
+  "screen": "Passengers",
+  "size": "150x164",
+  "label": "الأمين"
+ },
+ {
+  "file": "illustrations/screens/Piece_01.svg",
+  "screen": "Piece",
+  "size": "358x210",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PreTrip_01.svg",
+  "screen": "PreTrip",
+  "size": "58x58",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PurchaseDone_01.svg",
+  "screen": "PurchaseDone",
+  "size": "390x844",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PurchaseDone_02.svg",
+  "screen": "PurchaseDone",
+  "size": "170x120",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Requests_01.svg",
+  "screen": "Requests",
+  "size": "52x52",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Requests_02.svg",
+  "screen": "Requests",
+  "size": "52x52",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Requests_03.svg",
+  "screen": "Requests",
+  "size": "52x52",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Result_01.svg",
+  "screen": "Result",
+  "size": "50x50",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Returning_01.svg",
+  "screen": "Returning",
+  "size": "150x150",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/RoomDone_01.svg",
+  "screen": "RoomDone",
+  "size": "260x130",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/RoomDone_02.svg",
+  "screen": "RoomDone",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/SceneViewer_01.svg",
+  "screen": "SceneViewer",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/ShareCard_01.svg",
+  "screen": "ShareCard",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Starter_01.svg",
+  "screen": "Starter",
+  "size": "358x230",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/States_01.svg",
+  "screen": "States",
+  "size": "72x72",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/StoryTrip_01.svg",
+  "screen": "StoryTrip",
+  "size": "390x444",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/TripEvents_01.svg",
+  "screen": "TripEvents",
+  "size": "390x444",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Tutorial_01.svg",
+  "screen": "Tutorial",
+  "size": "390x444",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/Tutorial_02.svg",
+  "screen": "Tutorial",
+  "size": "96x110",
+  "label": ""
+ },
+ {
+  "file": "illustrations/vehicles/tuktuk.svg",
+  "screen": "Vehicles",
+  "size": "236x150",
+  "label": "توكتوك المعلم"
+ },
+ {
+  "file": "illustrations/vehicles/microbus_old.svg",
+  "screen": "Vehicles",
+  "size": "236x150",
+  "label": "ميكروباص قديم"
+ },
+ {
+  "file": "illustrations/vehicles/seatmap_03.svg",
+  "screen": "Vehicles",
+  "size": "236x104",
+  "label": "٣ صفوف × ٣ وكرسي قدام"
+ },
+ {
+  "file": "illustrations/vehicles/microbus_new.svg",
+  "screen": "Vehicles",
+  "size": "236x150",
+  "label": "ميكروباص جديد"
+ },
+ {
+  "file": "illustrations/vehicles/seatmap_05.svg",
+  "screen": "Vehicles",
+  "size": "236x104",
+  "label": "٣ صفوف × ٣ وصف رابع من كرسيين وكرسي قدام"
+ },
+ {
+  "file": "illustrations/vehicles/microbus_travel.svg",
+  "screen": "Vehicles",
+  "size": "236x150",
+  "label": "ميكروباص سفر وفوقه شنط"
+ },
+ {
+  "file": "illustrations/vehicles/seatmap_07.svg",
+  "screen": "Vehicles",
+  "size": "236x104",
+  "label": "زي الجديد والشنط بتبان من الشباك اللي ورا"
+ }
+]

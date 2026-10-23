@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
 import 'package:wassal/features/trip/domain/projection.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
@@ -231,7 +231,7 @@ void main() {
       }
       view = viewOf(engine, facts, memory: memory);
       expect(view.passenger('p1')!.presence, PresenceView.aboard);
-      expect(view.passenger('p1')!.look, skinLooks['effendi_suit']);
+      expect(view.passenger('p1')!.look, looks[skinAliases['effendi_suit']]);
       expect(view.passenger('p1')!.slot, 0);
       expect(view.passenger('p2')!.slot, 1);
 
@@ -346,7 +346,7 @@ void main() {
         passengerId: 'p',
         seatId: 's',
         presence: PresenceView.aboard,
-        look: skinLooks.values.first,
+        look: looks.values.first,
         slot: 0,
         mood: 0,
         talking: false,

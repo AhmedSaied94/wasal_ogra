@@ -101,7 +101,7 @@ A Python **solver/simulator** (`tools/solver`) mirrors the mobile trip engine. I
 | `trip_id` | `<line_id>.<nn>`, e.g. `line_gamaa.12` |
 | `station_id` | lowercase slug unique within a line, e.g. `kobri`, `mostashfa`, `gamaa` |
 | `archetype` (passenger behavior) | `regular`, `hajja`, `sleeper`, `hurry`, `big_note`, `student`, `headphones`, `false_claimer`, `group_payer`, `chatty`, `money_changer`, `bags_lady`, `dodger`, `mother_kids`, `big_family`, `traveler`, `regular_customer`, `honest` |
-| `skin` (passenger look) | free slug referencing a Rive artboard, e.g. `effendi_suit`, `student_cap` |
+| `skin` (passenger look) | free slug naming a passenger look drawn in Rive, e.g. `effendi_suit`, `student_cap`. The looks are the design's passenger types (`docs/design/HANDOFF.md` §5.3); 008.5 maps slugs to them. |
 | `chapter_id` | `ch1_first_job`, `ch2_her_father`, `ch3_shabka`, `ch4_salon`, `ch5_kitchen`, `ch6_bedroom`, `ch7_wedding` |
 | `room_id` / `item_id` | `salon`, `kitchen`, `bedroom` / `<room_id>.<slug>`, e.g. `salon.nish` |
 | `event_id` (in-trip) | `bump`, `traffic`, `open_road`, `fare_increase`, `drop_me_here`, `payment_dispute`, `change_request`, `roadside_pickup` |
@@ -955,7 +955,7 @@ Suggested order for MVP: B01 → B04 → B05 → B02 → B03 → B10 → B07 →
 | Push notifications | M14 | B11 | `POST /v1/push-tokens` + FCM |
 | Second device | M06 | B03 | `state_stale` → `GET /v1/state` |
 
-Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
+Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (the new design, spec 008.5) → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
 
 ---
 

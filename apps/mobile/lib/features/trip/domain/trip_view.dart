@@ -4,7 +4,7 @@
 // passenger (research R10, FR-033).
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
 
 /// The controller's phase (data-model.md "TripPhase"). The engine runs only
@@ -177,6 +177,8 @@ final class StationChip extends ViewValue {
     required this.slot,
     required this.name,
     required this.farePiasters,
+    required this.basePiasters,
+    required this.atMs,
     required this.studentIcon,
     required this.reached,
     required this.next,
@@ -190,6 +192,14 @@ final class StationChip extends ViewValue {
 
   /// The fare to this station, with any fare increase.
   final int farePiasters;
+
+  /// The fare before any increase: the strip strikes it through when
+  /// [farePiasters] is higher.
+  final int basePiasters;
+
+  /// When the vehicle reaches it, shifted by any traffic jam: the strip
+  /// places it at `atMs / the last station's atMs`.
+  final int atMs;
   final bool studentIcon;
   final bool reached;
   final bool next;
@@ -200,6 +210,8 @@ final class StationChip extends ViewValue {
     'slot': slot,
     'name': name,
     'farePiasters': farePiasters,
+    'basePiasters': basePiasters,
+    'atMs': atMs,
     'studentIcon': studentIcon,
     'reached': reached,
     'next': next,
@@ -209,8 +221,9 @@ final class StationChip extends ViewValue {
 /// Where a passenger is in the scene.
 enum PresenceView { boarding, aboard, leaving, gone }
 
-/// What the ledger peek shows over a passenger.
-enum LedgerBadge { paid, unpaid }
+/// What the ledger peek shows over a passenger: they paid, not yet, or
+/// their group's payer paid for them.
+enum LedgerBadge { paid, unpaid, onFriend }
 
 final class PassengerView extends ViewValue {
   const PassengerView({
@@ -229,12 +242,13 @@ final class PassengerView extends ViewValue {
     required this.dropMeHere,
     required this.ledgerBadge,
     required this.outcome,
+    this.claimOpen = false,
   });
 
   final String passengerId;
   final String seatId;
   final PresenceView presence;
-  final SkinLook look;
+  final Look look;
 
   /// The destination's slot (color and letter), or null when it isn't on
   /// the schedule.
@@ -260,6 +274,9 @@ final class PassengerView extends ViewValue {
   /// While leaving.
   final AlightOutcome? outcome;
 
+  /// Their «أنا دافع!» waits for an answer (008.5): the pose's `claim`.
+  final bool claimOpen;
+
   @override
   Map<String, Object?> get fields => {
     'passengerId': passengerId,
@@ -277,6 +294,7 @@ final class PassengerView extends ViewValue {
     'dropMeHere': dropMeHere,
     'ledgerBadge': ledgerBadge,
     'outcome': outcome,
+    'claimOpen': claimOpen,
   };
 }
 
@@ -438,6 +456,7 @@ final class BoosterSlotView extends ViewValue {
     required this.priceBonat,
     required this.enabled,
     required this.adOffered,
+    this.activeUntilMs,
   });
 
   final BoosterId booster;
@@ -450,6 +469,9 @@ final class BoosterSlotView extends ViewValue {
   /// Always false until M11.
   final bool adOffered;
 
+  /// While the booster works, when it stops: the ledger peek's end.
+  final int? activeUntilMs;
+
   @override
   Map<String, Object?> get fields => {
     'booster': booster,
@@ -457,6 +479,7 @@ final class BoosterSlotView extends ViewValue {
     'priceBonat': priceBonat,
     'enabled': enabled,
     'adOffered': adOffered,
+    'activeUntilMs': activeUntilMs,
   };
 }
 
@@ -632,7 +655,12 @@ final class ReviveOffer extends ViewValue {
 }
 
 final class FailSummary extends ViewValue {
-  const FailSummary({required this.causes, required this.revive});
+  const FailSummary({
+    required this.causes,
+    required this.revive,
+    this.brokeStoryRule = false,
+    this.angryFaces = const [],
+  });
 
   /// The top two, by reputation lost.
   final List<FailCause> causes;
@@ -640,8 +668,20 @@ final class FailSummary extends ViewValue {
   /// Null when no revive is offered.
   final ReviveOffer? revive;
 
+  /// A story trip lost to a fight under `no_fights_required`.
+  final bool brokeStoryRule;
+
+  /// Up to three passengers the card draws angry (008.5 `Fail`): those who
+  /// fought, then those who missed their stop, then those still seated.
+  final List<String> angryFaces;
+
   @override
-  Map<String, Object?> get fields => {'causes': causes, 'revive': revive};
+  Map<String, Object?> get fields => {
+    'causes': causes,
+    'revive': revive,
+    'brokeStoryRule': brokeStoryRule,
+    'angryFaces': angryFaces,
+  };
 }
 
 /// A rejection shown in the log's place until [untilMs].

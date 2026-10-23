@@ -6,8 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
-import 'package:wassal/core/theme/tokens/colors.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
 
 import '../../helpers/economy.dart';
@@ -49,7 +49,7 @@ void main() {
         matching: find.byType(Scaffold),
       ),
     );
-    expect(scaffold.backgroundColor, ColorTokens.shams);
+    expect(scaffold.backgroundColor, ColorTokens.sun);
     expect(find.text('وصّل الأجرة'), findsOneWidget);
     expect(launchCalls, isEmpty, reason: 'الموقف has not drawn yet');
   });

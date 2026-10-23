@@ -37,7 +37,11 @@ List<String> floatMoney(String source) {
 void main() {
   test('lib/ declares no money as double or num', () {
     final violations = [
-      for (final file in libDartFiles())
+      // The design tokens are colours and sizes, never money; their names
+      // come from the design (`noteFareDepth` is a shadow's depth).
+      for (final file in libDartFiles().where(
+        (f) => !f.path.replaceAll(r'\', '/').contains('lib/core/theme/tokens/'),
+      ))
         for (final hit in floatMoney(file.readAsStringSync()))
           '${file.path}:$hit',
     ];

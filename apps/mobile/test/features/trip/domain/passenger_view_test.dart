@@ -47,4 +47,22 @@ void main() {
     expect(alertness, Alertness.values.toSet());
     expect(talking, greaterThan(0));
   });
+
+  // 008.5 (tasks.md T098, data-model.md "PassengerView"): the pose's claim.
+  test('claimOpen holds exactly while the claim waits for an answer', () {
+    var open = 0;
+    for (final name in allFixtureNames()) {
+      playWithMemory(loadFixture(name), (state, view, _) {
+        for (final v in view.passengers) {
+          expect(
+            v.claimOpen,
+            state.claims.containsKey(v.passengerId),
+            reason: '$name at ${state.tMs} ms, ${v.passengerId}',
+          );
+          if (v.claimOpen) open++;
+        }
+      });
+    }
+    expect(open, greaterThan(0));
+  });
 }

@@ -3,10 +3,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
+import 'package:wassal/core/theme/components/controls.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/application/trip_settings.dart';
 import 'package:wassal/features/trip/presentation/cards/pause_card.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
 import '../../../helpers/memory_settings_store.dart';
@@ -15,13 +17,13 @@ import '../../../helpers/trip.dart';
 
 // The pause card (tasks.md T049, FR-013, ux-spec «نافذة الإيقاف»).
 
-Finder _switchIn(Key toggle) =>
-    find.descendant(of: find.byKey(toggle), matching: find.byType(Switch));
+/// 008.5: the switch is the whole `AppSwitch` row.
+Finder _switchIn(Key toggle) => find.byKey(toggle);
 
 void main() {
   testWidgets('the pause button and back both show it', (tester) async {
     await pumpTrip(tester);
-    await tester.tap(find.byKey(TripTopBar.pauseKey));
+    await tester.tap(find.byKey(TripHud.pauseKey));
     await tester.pumpAndSettle();
     expect(find.byType(PauseCard), findsOneWidget);
     expect(controllerOf(tester).model.pauseReason, PauseReason.button);
@@ -48,10 +50,14 @@ void main() {
         findsOneWidget,
       );
     }
-    final liter = const NumberFormatter(DigitStyle.arabicIndic).integer(-1);
-    expect(find.text('$liter بنزين'), findsOneWidget);
+    // 008.5: the liter is the fuel chip «−١» (HANDOFF §9.1 #4).
+    final liter = const NumberFormatter(DigitStyle.arabicIndic).integer(1);
     expect(
-      find.descendant(of: card, matching: find.byType(Switch)),
+      find.text(lookupAppLocalizations(const Locale('ar')).tripFuelChip(liter)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.byType(AppSwitch)),
       findsNWidgets(2),
     );
     expect(find.text('الصوت'), findsOneWidget);

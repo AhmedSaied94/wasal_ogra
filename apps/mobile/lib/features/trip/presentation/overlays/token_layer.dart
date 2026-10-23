@@ -1,73 +1,201 @@
-// Money in transit (layer 5): Flutter chips over the scene, moved every
-// frame by a `Flow` from the view and the clock's alpha (research R3), so the
-// amounts get the app's fonts, the digit setting and text scaling. Notes a
-// bump knocked to the floor lie where they fell until a tap picks them up.
+// Money in the scene (layer 5, HANDOFF §3.4 `MoneyNote`): Flutter notes over
+// the scene, moved every frame by a `Flow` from the view and the clock's
+// alpha along the hop on a slight arc (M02 research R3), so the amounts get
+// the app's fonts, the digit setting and text scaling. The player's hand
+// shows as the `inHand` note at the driver's palm; notes a bump knocked to
+// the floor lie where they fell, ringed, until a tap picks them up.
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/step_accumulator.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
+import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// A token's minimum size (ux-spec minimum sizes).
+/// A token's minimum size (ux-spec minimum sizes); a note is 42×26.
 const tokenMinWidth = 40.0;
 const tokenMinHeight = 24.0;
 
-typedef _Face = ({int id, TokenTint kind, int amount, bool blocked});
+/// A hop rises this far at its middle.
+const _arc = 10.0;
 
-class TokenLayer extends StatelessWidget {
+enum MoneyNoteKind { fare, change, blocked, fallen, inHand }
+
+/// A note: h 26, at least 42 wide, its digits 16/700 in its kind's colours
+/// with a 3 pt lip; a blocked one wears «؟», a fallen one a `sun.glow` ring.
+class MoneyNote extends StatelessWidget {
+  const MoneyNote({required this.kind, required this.amount, super.key});
+
+  final MoneyNoteKind kind;
+  final String amount;
+
+  static const bodyKey = ValueKey('money-note-body');
+
+  NoteColors get _colors => switch (kind) {
+    MoneyNoteKind.fare || MoneyNoteKind.fallen => TripColors.fare,
+    MoneyNoteKind.change => TripColors.change,
+    MoneyNoteKind.blocked => TripColors.blocked,
+    MoneyNoteKind.inHand => TripColors.inHand,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _colors;
+    final body = Container(
+      key: bodyKey,
+      height: DesignExtras.noteMin.height,
+      constraints: BoxConstraints(minWidth: DesignExtras.noteMin.width),
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: colors.bg,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(DesignExtras.noteRadius),
+        ),
+        boxShadow: [
+          if (kind == MoneyNoteKind.fallen)
+            DesignExtras.fallenRing.spread
+          else
+            DesignExtras.noteLip(colors.lip),
+        ],
+      ),
+      // Centred, without growing: an aligned Container fills a loose width.
+      child: Center(
+        widthFactor: 1,
+        child: Text(
+          amount,
+          maxLines: 1,
+          softWrap: false,
+          textScaler: TripTextScale.clamp(context),
+          style: DesignExtras.pillNumber.copyWith(color: colors.text),
+        ),
+      ),
+    );
+    final note = kind == MoneyNoteKind.blocked
+        ? Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              body,
+              Positioned(
+                top: -DesignExtras.noteBadgeRise,
+                child: Container(
+                  width: DesignExtras.noteBadge,
+                  height: DesignExtras.noteBadge,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: ColorTokens.danger,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context).tripNoteBlockedMark,
+                    textScaler: TripTextScale.clamp(context),
+                    style: TypeTokens.body
+                        .weight(700)
+                        .copyWith(color: ColorTokens.ink, height: 1),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : body;
+    return switch (kind) {
+      MoneyNoteKind.inHand => Transform.rotate(
+        angle: DesignExtras.inHandTilt,
+        child: note,
+      ),
+      MoneyNoteKind.fallen => Transform.rotate(
+        angle: DesignExtras.fallenTilt,
+        child: note,
+      ),
+      _ => note,
+    };
+  }
+}
+
+typedef _Face = ({int id, MoneyNoteKind kind, int amount});
+
+class TokenLayer extends ConsumerWidget {
   const TokenLayer({required this.layout, super.key});
 
   final SceneLayout layout;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scope = TripScope.of(context);
+    final numbers = ref.watch(numberFormatterProvider);
     return ExcludeSemantics(
-      child: TripSelector<List<_Face>>(
-        select: (model) => [
-          for (final t in model.view?.tokens ?? const <TokenView>[])
-            if (!t.dropped)
-              (
-                id: t.tokenId,
-                kind: t.kind,
-                amount: t.amountPiasters,
-                blocked: t.blocked,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: TripSelector<List<_Face>>(
+              select: (model) => [
+                for (final t in model.view?.tokens ?? const <TokenView>[])
+                  if (!t.dropped)
+                    (
+                      id: t.tokenId,
+                      kind: t.blocked
+                          ? MoneyNoteKind.blocked
+                          : switch (t.kind) {
+                              TokenTint.fare => MoneyNoteKind.fare,
+                              TokenTint.change => MoneyNoteKind.change,
+                            },
+                      amount: t.amountPiasters,
+                    ),
+              ],
+              equals: listEquals,
+              builder: (context, faces) => Flow(
+                delegate: _TokenFlow(
+                  controller: scope.controller,
+                  layout: layout,
+                  ids: [for (final f in faces) f.id],
+                ),
+                children: [
+                  for (final f in faces)
+                    MoneyNote(
+                      key: ValueKey(f.id),
+                      kind: f.kind,
+                      amount: numbers.piasters(f.amount),
+                    ),
+                ],
               ),
-        ],
-        equals: listEquals,
-        builder: (context, faces) => Flow(
-          delegate: _TokenFlow(
-            controller: scope.controller,
-            layout: layout,
-            ids: [for (final f in faces) f.id],
+            ),
           ),
-          children: [
-            for (final f in faces)
-              TokenChip(
-                key: ValueKey(f.id),
-                kind: f.kind,
-                amountPiasters: f.amount,
-                blocked: f.blocked,
-              ),
-          ],
-        ),
+          TripSelector<int>(
+            select: (model) => model.view?.hand.totalPiasters ?? 0,
+            builder: (context, total) {
+              if (total == 0) return const SizedBox.shrink();
+              final at =
+                  Offset(layout.hand.x, layout.hand.y) +
+                  DesignExtras.inHandFromPalm * layout.scale;
+              return Positioned(
+                left: at.dx,
+                top: at.dy,
+                child: FractionalTranslation(
+                  translation: const Offset(-0.5, -0.5),
+                  child: MoneyNote(
+                    kind: MoneyNoteKind.inHand,
+                    amount: numbers.piasters(total),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Where a token is drawn at this frame.
+/// Where a token is drawn at this frame: along its hop, raised on an arc.
 Offset tokenPosition(TokenView token, SceneLayout layout, double alpha) {
   final from = layout.anchorOf(token.from);
   final to = layout.anchorOf(token.to);
@@ -78,7 +206,7 @@ Offset tokenPosition(TokenView token, SceneLayout layout, double alpha) {
   );
   return Offset(
     from.x + (to.x - from.x) * progress,
-    from.y + (to.y - from.y) * progress,
+    from.y + (to.y - from.y) * progress - sin(pi * progress) * _arc,
   );
 }
 
@@ -126,65 +254,6 @@ class _TokenFlow extends FlowDelegate {
       !listEquals(oldDelegate.ids, ids);
 }
 
-/// A note in transit: green on its way to the driver, blue on its way back,
-/// orange with «؟» when held up.
-class TokenChip extends ConsumerWidget {
-  const TokenChip({
-    required this.kind,
-    required this.amountPiasters,
-    required this.blocked,
-    super.key,
-  });
-
-  final TokenTint kind;
-  final int amountPiasters;
-  final bool blocked;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = context.tokens;
-    final amount = ref.watch(numberFormatterProvider).piasters(amountPiasters);
-    final (fill, ink) = blocked
-        ? (tokens.danger, tokens.hibr)
-        : switch (kind) {
-            TokenTint.fare => (tokens.fare, tokens.hibr),
-            TokenTint.change => (tokens.primary, tokens.waraq),
-          };
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minWidth: tokenMinWidth,
-        minHeight: tokenMinHeight,
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: fill,
-          border: Border.all(color: tokens.hibr, width: 2),
-          borderRadius: BorderRadius.circular(ShapeTokens.radiusControl),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          child: Center(
-            widthFactor: 1,
-            heightFactor: 1,
-            child: Text(
-              blocked
-                  ? AppLocalizations.of(context).tripTokenBlocked(amount)
-                  : amount,
-              maxLines: 1,
-              style: TypeTokens.body.copyWith(
-                color: ink,
-                fontWeight: FontWeight.w700,
-                fontVariations: const [FontVariation('wght', 700)],
-                height: 1.2,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// The notes on the floor, each a tap area of at least 44×44 over its
 /// glint (FR-025, ux-spec «مطب»).
 class DroppedLayer extends StatelessWidget {
@@ -204,7 +273,7 @@ class DroppedLayer extends StatelessWidget {
     );
   }
 
-  /// Centered where the note lies.
+  /// Centred where the note lies.
   Widget _placed(DroppedMoneyView note) {
     final at = layout.floorAt(note.from, note.to, note.progressPermille);
     return Positioned(
@@ -234,7 +303,6 @@ class _DroppedNote extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = context.tokens;
     final amount = ref.watch(numberFormatterProvider).piasters(amountPiasters);
     final controls = TripScope.of(context).controls;
     return Semantics(
@@ -246,49 +314,15 @@ class _DroppedNote extends ConsumerWidget {
         onTap: () => controls.collect(tokenId),
         child: ConstrainedBox(
           constraints: const BoxConstraints(
-            minWidth: ShapeTokens.minTouch,
-            minHeight: ShapeTokens.minTouch,
+            minWidth: LayoutTokens.touchMin,
+            minHeight: LayoutTokens.touchMin,
           ),
           child: Center(
             widthFactor: 1,
             heightFactor: 1,
             child: Shakeable(
               controlKey: TripControls.droppedKey(tokenId),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: tokenMinWidth,
-                  minHeight: tokenMinHeight,
-                ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: tokens.waraq,
-                    border: Border.all(color: tokens.hibr, width: 2),
-                    borderRadius: BorderRadius.circular(
-                      ShapeTokens.radiusControl,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: SpaceTokens.xs,
-                      vertical: 1,
-                    ),
-                    child: Center(
-                      widthFactor: 1,
-                      heightFactor: 1,
-                      child: Text(
-                        amount,
-                        maxLines: 1,
-                        style: TypeTokens.body.copyWith(
-                          color: tokens.hibr,
-                          fontWeight: FontWeight.w700,
-                          fontVariations: const [FontVariation('wght', 700)],
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              child: MoneyNote(kind: MoneyNoteKind.fallen, amount: amount),
             ),
           ),
         ),

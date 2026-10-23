@@ -2,10 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| Scope | Phase 1, the MVP (Egypt, Android): 26 features in 12 steps |
-| Order from | Joint MVP sequence in `docs/architecture-backend.md` §21; feature tables in backend §20 and mobile §23 |
+| Scope | Phase 1, the MVP (Egypt, Android): 27 features in 13 steps |
+| Order from | Joint MVP sequence in `docs/architecture-backend.md` §21; feature tables in backend §20 and mobile §23; step 5.5 added on 2026-10-23 for the new design |
 | Rules | [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) |
-| Updated | 2026-10-21 |
+| Design | [`docs/design/`](design/README.md): Style C «كرتون ناعم», for every screen from step 5.5 on |
+| Updated | 2026-10-23 |
 
 This plan sets the order we build the game in and the Spec Kit routine every feature goes through.
 Tick features off in [Progress](#progress) as they merge.
@@ -20,18 +21,19 @@ Tick features off in [Progress](#progress) as they merge.
    new branch from wherever you are, so starting on another feature branch stacks the two features.
 2. **`/speckit-specify`** with the feature ID, its short name, the scope, and the source sections listed
    under its step. The git extension creates the branch, Spec Kit writes `specs/<spec>/spec.md`, and
-   that spec becomes the active feature. Example:
+   that spec becomes the active feature. A mobile feature with screens also names its artboards
+   from [Design sources](#design-sources). Example:
 
    ```text
-   /speckit-specify M03 App shell (short name: m03-app-shell). Routing with the bottom-nav shell,
-   theme tokens from the «ستيكر الميكروباص» palette, Arabic RTL on every screen, Arabic-Indic digits
-   by default with a Western-digits setting. Sources: docs/ux-spec.md «النظام البصري» and
-   «خريطة الشاشات والتنقل»; docs/architecture-mobile.md §5, §6, §9, §21.
-   Out of scope: real screen content.
+   /speckit-specify M08 Home, pre-trip card, result screen (short name: m08-home-result).
+   Sources: docs/ux-spec.md «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة»;
+   docs/design/HANDOFF.md §11 C-Home, HomeStates, PreTrip, Result, ShareCard, with
+   docs/design/README.md; docs/architecture-mobile.md §9.
    ```
 
 3. **`/speckit-clarify`**: answer up to 5 questions. The answers are written into the spec.
-4. **`/speckit-plan`**: give it both architecture docs.
+4. **`/speckit-plan`**: give it both architecture docs, and for a mobile feature with screens,
+   `docs/design/HANDOFF.md` and `docs/design/README.md`.
    - It writes `plan.md`, `research.md`, `data-model.md`, `contracts/` and `quickstart.md`, and runs
      the Constitution Check.
    - Every **NEEDS CLARIFICATION** item the feature touches must be resolved in `research.md`. Each
@@ -45,6 +47,8 @@ Tick features off in [Progress](#progress) as they merge.
    needs from you (accounts, devices, live checks) is added to [owner-actions.md](owner-actions.md).
 9. **Review and merge.**
    - CI gates are green.
+   - For each artboard the feature builds, the PR shows its golden next to
+     `docs/design/png/<Artboard>.png` (HANDOFF §10).
    - The feature's "Before merge" items in [owner-actions.md](owner-actions.md) are done.
    - The code is reviewed, with a security review for changes to auth, purchases, the ledger, sync,
      webhooks or personal data.
@@ -61,6 +65,13 @@ The numbers below assume you follow this plan; if you don't, the numbers shift b
 stay the same. Put the feature ID in the short name, so the folder, the branch and the ID line up:
 `001-m03-app-shell`.
 
+**008.5 is the one spec number that isn't a whole number.** It was added between 008 and 009 after
+both were numbered, so the later numbers stay as they are. The scripts only generate whole numbers,
+so give `/speckit-specify` both names explicitly (see [Step 5.5](#step-55-the-new-design)):
+`GIT_BRANCH_NAME=008.5-m21-design-refresh` and
+`SPECIFY_FEATURE_DIRECTORY=specs/008.5-m21-design-refresh`. The next generated number is still 009,
+because the number scan ignores `008.5-`.
+
 **One active feature at a time.** The active feature is the one `.specify/feature.json` points to,
 which is the one you specified last. To return to another feature, ask Claude to make
 `specs/<spec>` the active feature. The next command then checks out its branch.
@@ -76,6 +87,41 @@ owner merges, so its branch already contains the artifact.
 
 If a feature changes the Shared Contract Glossary (§3), it edits both architecture docs in the same PR.
 
+### Design sources
+
+From step 5.5 on, every screen is built from [`docs/design/`](design/README.md): Style C,
+«كرتون ناعم», which replaced «ستيكر الميكروباص» on 2026-10-23. Read the folder's README first, because
+its project overrides win over HANDOFF.md. Animation stays on Rive, identifiers come from the
+glossary, and merged decisions win on behaviour.
+
+- **Build** with the tokens and components 008.5 makes (HANDOFF §2, §3). Never restyle raw widgets.
+- **Test** each artboard with a golden at 390×844 and a layout test against
+  `docs/design/boxes/<Artboard>.json` (±2 px), in RTL with both digit styles (HANDOFF §10).
+- **Resolve** the open questions from HANDOFF §9.3 in the feature named below, in its `research.md`.
+
+| Feature | Artboards (HANDOFF §11) | From HANDOFF §9.3 |
+| --- | --- | --- |
+| 008.5 M21 | `Tokens`, `Components`, `Characters`, `Passengers`, `Vehicles` (as Rive art), `Loading`, `C-Trip`, `TripEvents`, `StoryTrip`, `Pause`, `Fail`, `States` 9–10 (empty, loading) | #5 ledger badge 5 s against the 10 s booster |
+| B03 | none | #8 the comeback-gift and family-request grants (no op yet); longest streak and trip count |
+| M06 | `States` 1, 7, 8 (offline, update required, maintenance) | none |
+| Before M07 | none | #4 routing money around أبو سمّاعة. If yes, it is a rules change: `RULES.md`, both engines and fixtures in one PR (constitution III), before M07 teaches it and M08's PreTrip mentions it. |
+| M07 | `Intro`, `Name`, `Tutorial` | #3 the coach line of each tutorial trip |
+| M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
+| M09 | `Lines`, `LineDetails`, `BuyVehicle` | none |
+| M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` | #2 when the Apartment tab opens |
+| B10 | none | #8 a maintenance end time in the 503 response |
+| M11 | `States` 2–3 (ad not ready, daily ad limit), `RewardedAdButton` | none |
+| M12 | `Shop`, `Fuel`, `PurchaseDone`, `States` 4–6 (spend confirmation, undo toast, payment failed) | none |
+| B08 | none | #8 the `trip_id` scheme for daily-challenge trips |
+| M13 | `Daily`, `Tasks`, `Challenge`, `Returning` | #6 the day-7 sticker before cosmetics exist |
+| M14 | `Settings`, `DeleteStep1`, `DeleteAccount`, `NotifAsk` | #7 hiding the «ملك الخط» switch until leagues |
+| M16, M17 (phase 2) | `Garage`, `Starter` | none |
+| M18, M19, M20 (phase 3) | `King`, `Event`, `Invite` | #8 the `trip_id` scheme for event trips (B14) |
+
+HANDOFF §9.3 #1 is already settled: `RULES.md` §6.1 rounds a student's fare up to the next 50
+piasters. HANDOFF §9.2's undrawn states for later phases (the Garage cosmetics tab, Event with the
+pass owned, the Invite redeem code) are designed before those phases start.
+
 ## The MVP sequence
 
 | Step | Specs | What you have after this step |
@@ -85,6 +131,7 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | 3 | 005 B05 | The Python mirror; every trip proven 3-star solvable |
 | 4 | 006 M04 · 007 M05 | The bundled pack loads; local wallet, ledger and fuel |
 | 5 | 008 M02 | **The first playable trip, fully offline** |
+| 5.5 | 008.5 M21 | Everything built so far in the new design, with the Rive art in its style |
 | 6 | 009 B02 · 010 B03 · 011 M06 | Server-backed accounts and wallet |
 | 7 | 012 M07 · 013 M08 · 014 M09 · 015 M10 | The full game loop |
 | 8 | 016 B10 · 017 B07 · 018 M11 | Rewarded ads and interstitials |
@@ -235,18 +282,107 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
   - The scene holds ≥ 45 fps on the reference device (the Galaxy A06, chosen in M03 for mobile §24.2).
 - **Milestone:** the first internal test of "is the puzzle fun?".
 
+### Step 5.5: The new design
+
+| Spec | ID | Feature | Depends on | Specify from |
+| --- | --- | --- | --- | --- |
+| `008.5-m21-design-refresh` | M21 | Design refresh: the «كرتون ناعم» design applied to everything built so far | M02, M03 | `docs/design/README.md`; HANDOFF §0–§10 and the §11 sections of the 008.5 artboards in [Design sources](#design-sources); mobile §8, §9; M02's `research.md` R3, R15 and `contracts/rive-character.md` |
+
+The design changed after M02 was built. This step moves what exists to the new design, so every
+feature from 009 on starts from the new tokens and components, with nothing left to restyle later.
+
+```text
+/speckit-specify M21 Design refresh (short name: m21-design-refresh).
+GIT_BRANCH_NAME=008.5-m21-design-refresh SPECIFY_FEATURE_DIRECTORY=specs/008.5-m21-design-refresh.
+Move everything built so far to the «كرتون ناعم» design in docs/design: tokens, components, the
+shell, the boot screen and the trip screen, with the owner's Rive files in the new style.
+Sources: docs/design/README.md (its overrides win), docs/design/HANDOFF.md §0–§10 and §11 Loading,
+C-Trip, TripEvents, StoryTrip, Pause, Fail, States; docs/architecture-mobile.md §8, §9.
+Out of scope: screens owned by later features; any rule, economy or schema change.
+```
+
+- **In scope:**
+  - **Tokens.** Generate the theme tokens from `docs/design/tokens.json` (HANDOFF §2), and have CI
+    fail when the generated tokens and the JSON differ, as `codegen --check` does for content.
+    Marhey and Readex Pro replace Lalezar and Baloo Bhaijaan 2. The palette and contrast tests
+    follow the new palette.
+  - **Components.** HANDOFF §3's component set replaces M03's sticker components. A gallery
+    reproduces the `Components` and `Tokens` boards. Lips, the press state and the motion follow
+    HANDOFF §2.3 and §6.5, with no Material ripples.
+  - **What M03 built.** The white `BottomNav`, the placeholder screens, the boot screen as
+    `Loading`, the digit-style setting in the `Settings` look, and sheets and dialogs.
+  - **What M02 built.** `TripHud` and `StationStrip`; the scene, its cabin and its seat positions
+    (HANDOFF §4); the overlays and the dashboard (§3.4); the events (`TripEvents`); the story strip
+    (`StoryTrip`); `Pause` and `Fail`; بلية's hints as character bubbles. The playtest tools change
+    only where they use shared components.
+  - **Rive art in the new style**, from the owner's files (below). Passengers get HANDOFF §5.4's
+    states. The characters ride in trips (بلية, أبو العروسة in story trips). `Loading` gets its
+    animation. A new character contract replaces M02's `contracts/rive-character.md`, and
+    `passenger.riv` is retired.
+  - **Tests.** Goldens at 390×844 shown next to `docs/design/png/<Artboard>.png`, and layout tests
+    against `docs/design/boxes/<Artboard>.json`, for every artboard in scope.
+- **Out of scope:** screens owned by later features (see [Design sources](#design-sources)). They
+  are built in the new design by their own features. No rule, engine, economy or content-schema
+  change.
+- **Not taken from the handoff** (`docs/design/README.md`, "Project overrides"):
+  - Lottie. The constitution locks Rive for characters, so `lottie/` is a motion reference only.
+  - Its art names as identifiers. The glossary keeps `micro_old` and the archetype names.
+- **Resolve:**
+  - **The scene geometry.** HANDOFF §4 draws a 390×444 scene scaled to the width, and crops the
+    cabin's top below 420. M02 measures the scene in points with no fixed resolution (research R3),
+    and keeps every minimum from 744 pt of height (R15). Settle it in `SceneLayout`, with every minimum
+    down to the A06's 360×800. Shorter screens keep M02's approved exception to constitution XI until
+    M07 (decided in 008.5's clarification).
+  - **Text scale.** HANDOFF §2.2 allows 1.3×, clamped to 1.15× in the HUD, the dashboard and the
+    station tags. Reconcile it with M02 research R15.
+  - **Skins.** Decide how `skin` slugs map to the Rive looks (HANDOFF §5.3): rename the sample
+    pack's skins, which changes its golden checksums, or map the slugs in the app.
+  - **Station colours.** HANDOFF §1 assigns them by a station's order on the line. The ux-spec and
+    M02 assign them by alighting order in the trip, which has at most 4 stops while a line can have
+    more. Keep the trip's order unless the clarification decides otherwise.
+  - ~~**The ledger badge** (HANDOFF §9.3 #5).~~ **Decided in 008.5's clarification:** the badges
+    last the whole peek, `booster_ledger_peek_ms` (10 s), with no separate 5-second timer.
+  - **The new Rive files' performance.** Measure on the A06 under HANDOFF §6.4's load (12 animated
+    passengers, 2 bubbles, 3 notes in flight). Record the p90 frame time against its 16 ms target,
+    and the fallback step used, if any.
+- **Owner, before 008.5 merges (so before 009 starts):** the Rive files in the new style, made to
+  008.5's character contract. Plan 008.5 first, because the files are made to that contract. They are
+  exported from Rive's free plan (the owner's decision of 2026-10-23, 008.5 research R15).
+  - The passenger looks of the MVP lines (HANDOFF §5.3: الحي and الجامعة, plus `regular_customer`
+    and `honest`).
+  - The six characters (§5.2).
+  - The two MVP vehicles (`tuktuk`, `micro_old`, drawn as `microbus_old`).
+  - The UI animations of §6.3.
+
+  008.5 itself uses the passengers, the characters that ride in trips, and `splash_drive`. The rest
+  wait for the features that show them.
+- **Done when:**
+  - `tokens.json` is the only source of colours, type, radii, lips and motion values, and CI fails
+    when the generated tokens differ from it.
+  - The gallery matches the `Components` and `Tokens` boards.
+  - Every artboard in scope has a golden next to its PNG and a passing layout test, in RTL with both
+    digit styles.
+  - The trip plays as before, in the new design and with the owner's Rive files: M02's tests and the
+    parity-fixture playthroughs still pass.
+  - The minimum sizes pass, and so does M02's A06 gate (≥ 45 fps, memory under 300 MB) under HANDOFF
+    §6.4's load.
+  - Nothing in `lib/` uses Lalezar, Baloo Bhaijaan 2, the sticker components or `passenger.riv`.
+
 ### Step 6: Accounts and sync
 
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
 | `009-b02-accounts-auth` | B02 | Accounts and auth: anonymous accounts, refresh rotation, Google/Apple linking and conflicts | B01 | backend §6, §13 |
 | `010-b03-ledger-sync` | B03 | Economy ledger, bootstrap, state, sync engine, op validators, fuel reconciliation, flags | B02, B04 | backend §7, §12 |
-| `011-m06-identity-sync` | M06 | Identity, bootstrap, sync queue | M05, B02, B03 | mobile §12, §16 |
+| `011-m06-identity-sync` | M06 | Identity, bootstrap, sync queue | M05, B02, B03 | mobile §12, §16; design `States` 1, 7, 8 |
 
 - **Resolve:**
   - backend §22.6 (a re-install without a linked provider creates a new player) in B02 and M06;
   - backend §22.2 (the game-day timezone) in B03;
-  - confirm that B03 matches the M05 answer to mobile §24.5.
+  - confirm that B03 matches the M05 answer to mobile §24.5;
+  - from the design (HANDOFF §9.3 #8), in B03: how the comeback gift (`Returning`) and the
+    family-request rewards (`Requests`) are granted, since no operation does it yet, and where the
+    longest streak and the trip count come from.
 - **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
   features"):
   - B02: `accounts.User` is staff-only, so decide how `Player` authenticates with simplejwt (B01
@@ -265,17 +401,29 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
-| `012-m07-onboarding` | M07 | Onboarding and tutorial overlays (5 tutorial trips) | M02 | ux-spec «البداية وأول جلسة»; product-spec «تجربة المستخدم» (أول جلسة) |
-| `013-m08-home-result` | M08 | Home, pre-trip card, result screen | M02, M05 | ux-spec «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة» |
-| `014-m09-lines-vehicles` | M09 | Lines map, line detail, vehicle purchase | M05 | ux-spec «الخطوط والعربية والجراج»; product-spec «التقدم: الخطوط والعربيات» |
-| `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا» |
+| `012-m07-onboarding` | M07 | Onboarding and tutorial overlays (5 tutorial trips) | M02 | ux-spec «البداية وأول جلسة»; product-spec «تجربة المستخدم» (أول جلسة); design `Intro`, `Name`, `Tutorial` |
+| `013-m08-home-result` | M08 | Home, pre-trip card, result screen | M02, M05 | ux-spec «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة»; design `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` |
+| `014-m09-lines-vehicles` | M09 | Lines map, line detail, vehicle purchase | M05 | ux-spec «الخطوط والعربية والجراج»; product-spec «التقدم: الخطوط والعربيات»; design `Lines`, `LineDetails`, `BuyVehicle` |
+| `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا»; design `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` |
 
-- **Resolve:** nothing open in the architecture docs.
+- **Resolve:**
+  - nothing open in the architecture docs;
+  - from the design (HANDOFF §9.3): before M07, whether money can be passed around a muted
+    أبو سمّاعة through the neighbouring seat (#4; the engine blocks it today). If yes, it is a rules
+    change with its parity fixtures (constitution III), in its own PR. In M07, each tutorial trip's
+    coach line (#3). In M10, when the Apartment tab opens (#2: the ux-spec locks it in chapters
+    1–2, the design shows the goal from the start).
 - **Handed over from M02** (research "Handed to later features"):
   - M07: a trip layout for screens under 744 pt in which faces keep their 50/80 pt minimums, with
     goldens at 360×640. It ends M02's approved exception to constitution XI (Complexity Tracking in
-    `specs/008-m02-trip-screen/plan.md`). M07 also reuses بلية's hint bubble and pointer for the
-    tutorial.
+    `specs/008-m02-trip-screen/plan.md`); 008.5 left it to M07, on the design's taller bands. M07 also
+    reuses بلية's hint bubble for the tutorial, as the design's `CoachMark` (HANDOFF §3.3).
+- **Handed over from M21** (`specs/008.5-m21-design-refresh/contracts/trip-layout.md` "Height"):
+  - M07: with the new design's 114 pt HUD and 258 pt dashboard, a screen keeps every minimum from
+    `inset + 764` pt of height (788 pt with a 24 pt inset), not M02's 744. Below it the exception
+    continues. M07's short-screen layout aims for the 360×640 surface: the trip goldens at 360×640
+    (`test/goldens/trip/`, surface `small`) are the ones to bring within the minimums.
+- **Handed over from M02**, continued:
   - M08: the result screen replaces M02's placeholder and reads the `TripResult` from the route's
     `extra` (or the economy's `lastResult`); Home replaces the playtest trip list.
 - **Done when:**
@@ -292,10 +440,12 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | --- | --- | --- | --- | --- |
 | `016-b10-catalog-offers` | B10 | Live-ops catalog and offers: store product grants, offer eligibility, live settings | B03 | backend §8, §11 |
 | `017-b07-ads-ssv` | B07 | Ads: AdMob SSV callback, reward polling, caps | B03 | backend §8 |
-| `018-m11-ads` | M11 | Ads integration: rewarded, interstitial, consent | M05, B07 | mobile §15.1; product-spec «تحقيق الدخل» (أماكن الإعلانات) |
+| `018-m11-ads` | M11 | Ads integration: rewarded, interstitial, consent | M05, B07 | mobile §15.1; product-spec «تحقيق الدخل» (أماكن الإعلانات); design `States` 2–3, `RewardedAdButton` |
 
 - **Resolve:**
   - backend §22.10 (BONAT pack amounts) in B10;
+  - in B10, a maintenance end time in the 503 response, which the design's maintenance state shows
+    (HANDOFF §9.3 #8);
   - in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets the
     ad content rating).
 - **Handed over from M01** (research R19): in B10, create `liveops.LiveSetting` with every key in
@@ -313,7 +463,7 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
 | `019-b06-purchases` | B06 | Purchases: verify, Google RTDN, voided purchases, entitlements | B03, B10 | backend §8 |
-| `020-m12-shop-iap` | M12 | Shop, IAP, fuel sheet | M05, M06, B06 | mobile §15.2; ux-spec «المحل والبنزين والدفع» |
+| `020-m12-shop-iap` | M12 | Shop, IAP, fuel sheet | M05, M06, B06 | mobile §15.2; ux-spec «المحل والبنزين والدفع»; design `Shop`, `Fuel`, `PurchaseDone`, `States` 4–6 |
 
 - **Resolve:** backend §22.5 (refunds of BONAT that was already spent) in B06. Backend §22.4 (the iOS
   purchase payload) waits for phase 3.
@@ -328,9 +478,12 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
 | `021-b08-daily-challenge` | B08 | Daily challenge: generation, delivery, replay verification, rewards | B03, B05 | backend §11 |
-| `022-m13-daily-loop` | M13 | Daily reward, tasks, daily challenge | M06, B08 | ux-spec «الرجوع اليومي»; product-spec «الاحتفاظ والتفاعل» |
+| `022-m13-daily-loop` | M13 | Daily reward, tasks, daily challenge | M06, B08 | ux-spec «الرجوع اليومي»; product-spec «الاحتفاظ والتفاعل»; design `Daily`, `Tasks`, `Challenge`, `Returning` |
 
-- **Resolve:** backend §22.11 (the retry cost after the free first attempt).
+- **Resolve:**
+  - backend §22.11 (the retry cost after the free first attempt);
+  - from the design (HANDOFF §9.3): in B08, the `trip_id` scheme for daily-challenge trips (#8); in
+    M13, the day-7 sticker, since cosmetics only arrive with the phase 2 garage (#6).
 - **Handed over from B05** (`specs/005-b05-solver-parity/contracts/mirror.md` §4, "What the caller
   must do"): verify a run with `replay_untrusted` using the server's own definition and params for
   that trip and pack version, never the client's copies; cap the request body before reading it;
@@ -347,10 +500,13 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | --- | --- | --- | --- | --- |
 | `023-b09-privacy-deletion` | B09 | Privacy: account deletion API and web page, Apple token revocation, data inventory | B02 | backend §14 |
 | `024-b11-push` | B11 | Push: tokens, categories, campaigns, caps, quiet hours | B02 | backend §11 |
-| `025-m14-settings-account` | M14 | Settings, account linking, deletion, notifications | M06, B09, B11 | ux-spec «الإعدادات والحساب والتواصل»; mobile §16 |
+| `025-m14-settings-account` | M14 | Settings, account linking, deletion, notifications | M06, B09, B11 | ux-spec «الإعدادات والحساب والتواصل»; mobile §16; design `Settings`, `DeleteStep1`, `DeleteAccount`, `NotifAsk` |
 
-- **Resolve:** in B09, backend §22.9 (legal review, and how long purchase records are kept) and §22.8
-  (the age rating).
+- **Resolve:**
+  - in B09, backend §22.9 (legal review, and how long purchase records are kept) and §22.8 (the
+    age rating);
+  - in M14, hiding the `Settings` artboard's «ملك الخط» notification switch until leagues launch
+    (HANDOFF §9.3 #7).
 - **Done when:**
   - Account deletion works both in the app and on the web page.
   - A linking conflict lets the player choose which progress to keep; accounts are never merged.
@@ -458,7 +614,13 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     (research R8). Constitution 1.4.0 (amended 2026-10-22) places M03's pause control in the top bar
     and makes over-change silent during a trip. 58 of the 60 parity fixtures play through the
     controls. The character file is in (2026-10-23). Still to do: naming the Rive plan it was exported from
-    (T059), the A06 run (T065).
+    (T059), the A06 run (T065). 008.5 replaces its character file with the new design's.
+- [ ] Step 5.5: The new design
+  - [ ] `008.5-m21-design-refresh`. Added 2026-10-23, when the owner adopted Style C
+    (`docs/design/`). Built on 2026-10-23, open as #10. The owner's `wassal.riv` is in, exported
+    from Rive's free plan (research R15). Still to do before the merge: `reducedMotion` in the file
+    (T110), the A06 runs (T111, T124), the side-by-side review (T126) and the short-screen
+    approval.
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
   - [ ] `010-b03-ledger-sync`

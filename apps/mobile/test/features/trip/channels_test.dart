@@ -81,7 +81,7 @@ Future<List<Frame>> play(
         expect(gameOf(tester).stage.position, Vector2.zero());
         expect(
           find.descendant(
-            of: find.byType(Bubble),
+            of: find.byType(SpeechBubble),
             matching: find.byType(TweenAnimationBuilder<double>),
           ),
           findsNothing,

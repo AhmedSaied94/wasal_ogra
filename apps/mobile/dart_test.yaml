@@ -1,5 +1,6 @@
 tags:
-  # The owner's Rive character (specs/008-m02-trip-screen, T058): these
-  # tests fail until assets/rive/passenger.riv is committed (T059). Run the
-  # rest with `--exclude-tags rive`.
+  # The owner's Rive file, assets/rive/wassal.riv
+  # (specs/008.5-m21-design-refresh, contracts/rive-characters.md "Tests"):
+  # these tests need Rive's Linux library (`rive_native:setup`). Run the rest
+  # with `--exclude-tags rive`.
   rive:

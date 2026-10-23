@@ -17,6 +17,7 @@ import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
 import '../../../helpers/trip.dart';
@@ -33,6 +34,10 @@ int priceOf(BoosterId booster) =>
       BoosterId.ledgerPeek => 'ledger_peek',
       _ => 'traffic_jam',
     })!.amount;
+
+/// The trip's strings (008.5 draws counts as «×N» and prices as «N بون»).
+AppLocalizations l10nOf(WidgetTester tester) =>
+    AppLocalizations.of(tester.element(find.byKey(HandSlot.slotKey)));
 
 Finder inSlot(BoosterId booster, String text) => find.descendant(
   of: find.byKey(BoostersRow.slotKey(booster)),
@@ -58,14 +63,24 @@ void main() {
       tester,
       economy: await stockedEconomy(stock: {BoosterId.changeBag: 2}),
     );
-    expect(inSlot(BoosterId.changeBag, _numbers.integer(2)), findsOneWidget);
+    expect(
+      inSlot(
+        BoosterId.changeBag,
+        l10nOf(tester).tripTimes(_numbers.integer(2)),
+      ),
+      findsOneWidget,
+    );
     for (final booster in [
       BoosterId.wakeAll,
       BoosterId.ledgerPeek,
       BoosterId.trafficJam,
     ]) {
       expect(
-        inSlot(booster, _numbers.integer(priceOf(booster))),
+        inSlot(
+          booster,
+          l10nOf(tester)
+              .tripBoosterPriceBadge(_numbers.integer(priceOf(booster))),
+        ),
         findsOneWidget,
         reason: booster.name,
       );
@@ -83,7 +98,13 @@ void main() {
     await tester.tap(find.byKey(BoostersRow.slotKey(BoosterId.changeBag)));
     await tester.pumpAndSettle();
     expect(c.engine!.state.boostersUsed, [BoosterId.changeBag]);
-    expect(inSlot(BoosterId.changeBag, _numbers.integer(1)), findsOneWidget);
+    expect(
+      inSlot(
+        BoosterId.changeBag,
+        l10nOf(tester).tripTimes(_numbers.integer(1)),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the ledger\'s badges show only while it is open', (
@@ -126,9 +147,13 @@ void main() {
       await tester.tap(find.byKey(BoostersRow.slotKey(BoosterId.changeBag)));
       await tester.pumpAndSettle();
       expect(find.byType(BoosterCard), findsOneWidget);
+      final l10n = lookupAppLocalizations(const Locale('ar'));
       final price = _numbers.integer(priceOf(BoosterId.changeBag));
-      expect(find.text('بـ$price بونات'), findsOneWidget);
-      expect(find.text('معاك ${_numbers.integer(50)} بونات'), findsOneWidget);
+      expect(find.text(l10n.tripBoosterCardPrice(price)), findsOneWidget);
+      expect(
+        find.text(l10n.tripBoosterCardBalance(50, _numbers.integer(50))),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(BoosterCard.buyKey));
       await tester.pumpAndSettle();
@@ -144,8 +169,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(BoosterCard.buyKey));
       await tester.pumpAndSettle();
-      final missing = _numbers.integer(priceOf(BoosterId.changeBag) - 3);
-      expect(find.text('ناقصك $missing بونات'), findsOneWidget);
+      final short = priceOf(BoosterId.changeBag) - 3;
+      expect(
+        find.text(
+          lookupAppLocalizations(const Locale('ar'))
+              .tripBoosterShort(short, _numbers.integer(short)),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(BoosterCard.buyKey), findsNothing);
 
       await tester.tap(find.byKey(BoosterCard.closeKey));
@@ -161,7 +192,7 @@ void main() {
         economy: await testEconomy(),
         tripId: 'line_gamaa.02',
       );
-      final button = find.byKey(BreakButton.buttonKey);
+      final button = find.byKey(CallChangeButton.buttonKey);
       expect(button, findsOneWidget);
       expect(
         find.descendant(of: button, matching: find.text('حد معاه فكة؟')),
@@ -171,7 +202,7 @@ void main() {
       expect(
         find.descendant(
           of: button,
-          matching: find.text(_numbers.integer(left)),
+          matching: find.text(l10nOf(tester).tripTimes(_numbers.integer(left))),
         ),
         findsOneWidget,
       );
@@ -189,7 +220,9 @@ void main() {
       expect(
         find.descendant(
           of: button,
-          matching: find.text(_numbers.integer(left - 1)),
+          matching: find.text(
+            l10nOf(tester).tripTimes(_numbers.integer(left - 1)),
+          ),
         ),
         findsOneWidget,
       );
@@ -201,9 +234,9 @@ void main() {
         economy: await testEconomy(),
         tripId: 'line_gamaa.02',
       );
-      await tester.tap(find.byKey(BreakButton.buttonKey));
+      await tester.tap(find.byKey(CallChangeButton.buttonKey));
       await tester.pump();
-      await tester.tap(find.byKey(BreakButton.buttonKey));
+      await tester.tap(find.byKey(CallChangeButton.buttonKey));
       await tester.pump();
       expect(c.view!.breakMode, isFalse);
     });
@@ -222,7 +255,7 @@ void main() {
           ..pickBreak(note);
       }
       await tester.pump();
-      await tester.tap(find.byKey(BreakButton.buttonKey));
+      await tester.tap(find.byKey(CallChangeButton.buttonKey));
       await tester.pump();
       expect(find.text('خلصت مرات الفكة في المشوار ده'), findsOneWidget);
       advanceMs(c, 2000 + 33);
@@ -252,9 +285,10 @@ void main() {
     final scene = tester.getRect(find.byType(GameWidget<TripGame>));
     final face = SceneLayout(
       c.session!.facts.definition.seats,
+      vehicle: c.session!.facts.definition.vehicleId,
       width: scene.width,
       height: scene.height,
-    ).seats[c.view!.passenger(target)!.seatId]!.face;
+    ).seats[c.view!.passenger(target)!.seatId]!.head;
     final faceRect = Rect.fromLTWH(
       scene.left + face.left,
       scene.top + face.top,
@@ -274,14 +308,14 @@ void main() {
     await tester.pump();
     final commands = c.engine!.commandLog.length;
     await tester.tap(find.byKey(Tray.slotKey(100)));
-    await tester.tap(find.byKey(BreakButton.buttonKey));
+    await tester.tap(find.byKey(CallChangeButton.buttonKey));
     await tester.tap(find.byKey(BoostersRow.slotKey(BoosterId.changeBag)));
     await tester.pumpAndSettle();
     expect(c.engine!.commandLog, hasLength(commands));
     expect(c.view!.breakMode, isFalse);
     expect(c.phase, TripPhase.running);
 
-    await tester.tap(find.byKey(TripTopBar.pauseKey));
+    await tester.tap(find.byKey(TripHud.pauseKey));
     await tester.pumpAndSettle();
     expect(find.byType(PauseCard), findsOneWidget);
   });

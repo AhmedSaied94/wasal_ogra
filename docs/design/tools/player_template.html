@@ -1,0 +1,141 @@
+<title>أنيميشن وصّل الأجرة</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marhey:wght@600;700&family=Readex+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky header + group tabs, then a responsive grid of animation cards, each with its segment chips. Uses the game's own style C tokens. */
+:root {
+  --ground: #E8F4FB; --paper: #FFFFFF; --lip: #C7DDEA; --track: #E3EEF5;
+  --ink: #1D1A2B; --ink2: #4A4558; --muted: #5B6475;
+  --primary: #1A4B8C; --primary-lip: #0F2F5A; --primary-soft: #DCEBFA; --on-primary: #FFFFFF;
+  --sun: #FFD23F; --sun-lip: #D9A800; --stage: #F3EBDD;
+  --display: "Marhey", "Readex Pro", system-ui, sans-serif;
+  --body: "Readex Pro", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #1F1C27; --paper: #2A2633; --lip: #14121A; --track: #3A3646;
+    --ink: #F1EEF6; --ink2: #D9D4E2; --muted: #A9A3B5;
+    --primary: #8DB8EC; --primary-lip: #3D6FAD; --primary-soft: #33405A; --on-primary: #10213A;
+    --sun: #FFD23F; --sun-lip: #B38A00; --stage: #F3EBDD; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #1F1C27; --paper: #2A2633; --lip: #14121A; --track: #3A3646;
+  --ink: #F1EEF6; --ink2: #D9D4E2; --muted: #A9A3B5;
+  --primary: #8DB8EC; --primary-lip: #3D6FAD; --primary-soft: #33405A; --on-primary: #10213A;
+  --sun: #FFD23F; --sun-lip: #B38A00; --stage: #F3EBDD; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 40px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--ground); padding-block: 18px 12px; display: flex; flex-direction: column; gap: 12px; }
+h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 5vw, 34px); line-height: 1.2; text-wrap: balance; }
+.lede { margin: 0; color: var(--ink2); max-width: 62ch; font-size: 14px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; background: var(--paper); border-radius: 16px; padding: 5px; width: fit-content; max-width: 100%; box-shadow: 0 4px 0 var(--lip); }
+.tabs button { font: 600 14px/1 var(--body); color: var(--ink2); background: transparent; border: 0; border-radius: 11px; height: 40px; padding: 0 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.tabs button[aria-selected="true"] { background: var(--primary); color: var(--on-primary); font-weight: 700; }
+.tabs .n { font-size: 12px; font-variant-numeric: tabular-nums; opacity: .8; }
+.groupbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.groupbar span { font-size: 13px; font-weight: 600; color: var(--muted); margin-inline-end: 4px; }
+.chip { font: 600 12px/1 var(--mono); height: 30px; padding: 0 10px; border-radius: 999px; border: 0; cursor: pointer; background: var(--track); color: var(--ink2); }
+.chip[aria-pressed="true"] { background: var(--sun); color: #1D1A2B; box-shadow: 0 3px 0 var(--sun-lip); }
+.chip:focus-visible, .tabs button:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+.card { background: var(--paper); border-radius: 22px; box-shadow: 0 5px 0 var(--lip); padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.stage { background: var(--stage); border-radius: 16px; height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.stage > div { width: 100%; height: 100%; }
+.name { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-inline: 4px; }
+.name b { font-family: var(--display); font-weight: 700; font-size: 18px; line-height: 1.2; }
+.name code { font: 12px var(--mono); color: var(--muted); direction: ltr; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; padding-inline: 2px; direction: ltr; justify-content: flex-end; }
+footer { color: var(--muted); font-size: 13px; max-width: 70ch; }
+@media (prefers-reduced-motion: reduce) { .chip { transition: none; } }
+</style>
+<div class="wrap" dir="rtl">
+  <header>
+    <h1>أنيميشن وصّل الأجرة</h1>
+    <p class="lede">٤٦ ملف Lottie متولّدين من رسومات التصميم نفسها. كل ملف فيه مقاطع بأسامي، والكود بيشغّل المقطع حسب حالة الراكب. دوس على أي مقطع عشان تشوفه.</p>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="groupbar" id="groupbar"></div>
+  </header>
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <footer>الملفات في <code dir="ltr">docs/design/lottie/</code>. أسامي المقاطع والطبقات ثابتة، فأي تعديل في Lottie Creator لازم يحافظ عليها عشان الكود ما يتغيّرش.</footer>
+</div>
+<script src="%%LIB%%"></script>
+<script>
+const META = %%META%%;
+const LOOPS = new Set(%%LOOPS%%);
+const DATA = %%DATA%%;
+const GROUPS = [["passengers","الركاب"],["characters","الشخصيات"],["vehicles","العربيات"],["ui","الواجهة"]];
+const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const anims = new Map();
+let current = "passengers";
+try { const h = location.hash.slice(1); if (GROUPS.some(g => g[0] === h)) current = h; } catch (e) {}
+
+function markerOf(key, name) { return DATA[key].markers.find(m => m.cm === name); }
+function play(key, name) {
+  const a = anims.get(key); if (!a) return;
+  const m = markerOf(key, name); if (!m) return;
+  a.loop = LOOPS.has(name);
+  a.removeEventListener && a.removeEventListener("complete");
+  a.playSegments([m.tm, m.tm + m.dr], true);
+  if (!a.loop) {
+    a.addEventListener("complete", function back() {
+      a.removeEventListener("complete", back);
+      const idle = markerOf(key, "idle") || DATA[key].markers.find(x => LOOPS.has(x.cm));
+      if (idle && name !== "alight" && name !== "board" && idle.cm !== name) { setTimeout(() => play(key, idle.cm), 400); }
+    });
+  }
+  if (reduce) { a.goToAndStop(m.tm + Math.floor(m.dr / 2), true); }
+  document.querySelectorAll(`[data-card="${key}"] .chip`).forEach(c => c.setAttribute("aria-pressed", String(c.dataset.m === name)));
+}
+function initCard(card) {
+  const key = card.dataset.card; if (anims.has(key) || !window.lottie) return;
+  const a = lottie.loadAnimation({ container: card.querySelector(".stage > div"), renderer: "svg", loop: true, autoplay: false,
+    animationData: JSON.parse(JSON.stringify(DATA[key])), rendererSettings: { preserveAspectRatio: "xMidYMid meet" } });
+  anims.set(key, a);
+  const first = DATA[key].markers.find(m => m.cm === "idle") || DATA[key].markers.find(m => m.cm === "loop") || DATA[key].markers[DATA[key].markers.length - 1];
+  a.addEventListener("DOMLoaded", () => play(key, first.cm));
+}
+const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) initCard(e.target); }), { rootMargin: "200px" }) : null;
+
+function render() {
+  anims.forEach(a => a.destroy()); anims.clear();
+  const grid = document.getElementById("grid"); grid.innerHTML = "";
+  const items = META.filter(m => m.group === current);
+  for (const m of items) {
+    const card = document.createElement("article");
+    card.className = "card"; card.dataset.card = m.key;
+    card.innerHTML = `<div class="stage"><div role="img" aria-label="${m.ar}"></div></div>
+      <div class="name"><b>${m.ar}</b><code>${m.id}.json</code></div>
+      <div class="chips">${m.markers.map(n => `<button class="chip" data-m="${n}" aria-pressed="false">${n}</button>`).join("")}</div>`;
+    card.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { initCard(card); play(m.key, c.dataset.m); }));
+    grid.appendChild(card);
+    if (io) io.observe(card); else initCard(card);
+  }
+  // group-wide segment buttons (people only share markers)
+  const bar = document.getElementById("groupbar"); bar.innerHTML = "";
+  if (current === "passengers" || current === "characters") {
+    const names = items[0].markers;
+    bar.innerHTML = `<span>شغّل على الكل:</span>` + names.map(n => `<button class="chip" data-all="${n}" aria-pressed="false" dir="ltr">${n}</button>`).join("");
+    bar.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+      bar.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === c)));
+      items.forEach(m => { const card = grid.querySelector(`[data-card="${m.key}"]`); initCard(card); play(m.key, c.dataset.all); });
+    }));
+  }
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.g === current)));
+}
+const tabs = document.getElementById("tabs");
+for (const [g, label] of GROUPS) {
+  const n = META.filter(m => m.group === g).length;
+  const b = document.createElement("button");
+  b.setAttribute("role", "tab"); b.dataset.g = g; b.innerHTML = `${label}<span class="n">${n.toLocaleString("ar-EG")}</span>`;
+  b.addEventListener("click", () => { current = g; try { history.replaceState(null, "", "#" + g); } catch (e) {} render(); });
+  tabs.appendChild(b);
+}
+render();
+</script>

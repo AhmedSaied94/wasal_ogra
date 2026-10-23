@@ -3,9 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/routing/new_dot_providers.dart';
 import 'package:wassal/core/routing/routes.dart';
-import 'package:wassal/core/theme/components/new_dot.dart';
-import 'package:wassal/core/theme/components/wassal_bottom_bar.dart';
-import 'package:wassal/core/theme/tokens/colors.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/components/nav.dart';
+import 'package:wassal/core/theme/components/pills.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -13,7 +14,7 @@ import '../../helpers/pump_app.dart';
 // these tests drive it through the provider.
 
 Finder dotIn(int tab) => find.descendant(
-  of: find.byKey(WassalBottomBar.cellKey(tab)),
+  of: find.byKey(BottomNav.cellKey(tab)),
   matching: find.byType(NewDot),
 );
 
@@ -50,8 +51,11 @@ void main() {
     expect(find.byType(NewDot), findsNothing);
   });
 
-  testWidgets('the dot: 12 pt, badgeNew fill, 2 pt ink outline, top-left in '
-      'RTL, labelled «جديد»', (tester) async {
+  // The look is the design's NewDot (pills_test.dart); its place and label
+  // are M03's.
+  testWidgets('the dot: the design NewDot, top-left in RTL, labelled «جديد»', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
     await pumpWassalApp(
       tester,
@@ -61,24 +65,12 @@ void main() {
       ],
     );
     final dot = dotIn(1);
-    expect(tester.getSize(dot), const Size(12, 12));
-    final decoration =
-        tester
-                .widget<DecoratedBox>(
-                  find.descendant(of: dot, matching: find.byType(DecoratedBox)),
-                )
-                .decoration
-            as BoxDecoration;
-    expect(decoration.color, ColorTokens.badgeNew);
-    expect(decoration.shape, BoxShape.circle);
-    final border = decoration.border! as Border;
-    expect(border.top.color, ColorTokens.hibr);
-    expect(border.top.width, 2);
+    expect(tester.getSize(dot), const Size.square(RingTokens.newDotSize));
 
     final icon = tester.getCenter(
       find.descendant(
-        of: find.byKey(WassalBottomBar.cellKey(1)),
-        matching: find.byType(Icon),
+        of: find.byKey(BottomNav.cellKey(1)),
+        matching: find.byType(AppIcon),
       ),
     );
     final centre = tester.getCenter(dot);
@@ -87,7 +79,7 @@ void main() {
 
     // The dot's label joins its tab's, so the tab reads as new.
     final cellLabel = tester
-        .getSemantics(find.byKey(WassalBottomBar.cellKey(1)))
+        .getSemantics(find.byKey(BottomNav.cellKey(1)))
         .label;
     expect(cellLabel, contains('جديد'));
     expect(cellLabel, contains('الخطوط'));

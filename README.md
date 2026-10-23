@@ -16,6 +16,7 @@ an apartment and get married. It launches on Android in Egypt first, then the Gu
 | [`docs/ux-spec.md`](docs/ux-spec.md) | Every screen, the visual system, minimum sizes, navigation (Egyptian Arabic) |
 | [`docs/architecture-mobile.md`](docs/architecture-mobile.md) | Flutter client: trip engine, rendering, persistence, sync |
 | [`docs/architecture-backend.md`](docs/architecture-backend.md) | Django backend: API, ledger, purchases, content pipeline, solver |
+| [`docs/design/`](docs/design/README.md) | The visual design, Style C «كرتون ناعم»: tokens, components and every screen ([`HANDOFF.md`](docs/design/HANDOFF.md)) |
 | [`.specify/memory/constitution.md`](.specify/memory/constitution.md) | The engineering rules no feature may break |
 | [`docs/delivery-plan.md`](docs/delivery-plan.md) | Build order, the Spec Kit routine per feature, and progress |
 

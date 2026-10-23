@@ -21,6 +21,8 @@ import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/scene/windows_component.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
+import 'package:wassal/features/trip/presentation/dashboard/hand_slot.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/trip.dart';
 
@@ -191,8 +193,16 @@ void main() {
       ),
       findsOneWidget,
     );
+    // 008.5 writes the strip's fares as «٨ج».
+    final l10n = AppLocalizations.of(
+      tester.element(find.byKey(HandSlot.slotKey)),
+    );
     expect(
-      find.text(_numbers.piasters(c.view!.strip.chips.first.farePiasters)),
+      find.text(
+        l10n.tripStripFare(
+          _numbers.piasters(c.view!.strip.chips.first.farePiasters),
+        ),
+      ),
       findsWidgets,
     );
 
@@ -233,17 +243,15 @@ void main() {
         )
         .transform
         .getMaxScaleOnAxis();
-    // On the trip clock, a beat every two seconds.
+    // On the trip clock, at the hot tag's beat (008.5 takes its timing and
+    // reach from the design's motion tokens).
     double at(int tMs) =>
         1 +
-        0.18 *
+        TripMotion.hotPulseAmplitude *
             (0.5 -
                 0.5 *
                     math.cos(
-                      tMs /
-                          (TripMotion.countdownPulse.inMilliseconds * 2) *
-                          2 *
-                          math.pi,
+                      tMs / TripMotion.hotPulse.inMilliseconds * 2 * math.pi,
                     ));
     for (var i = 0; i < 4; i++) {
       advanceMs(c, 330);
@@ -360,9 +368,10 @@ void main() {
     final scene = sceneRect(tester);
     final face = SceneLayout(
       c.session!.facts.definition.seats,
+      vehicle: c.session!.facts.definition.vehicleId,
       width: scene.width,
       height: scene.height,
-    ).seats[seatId]!.face;
+    ).seats[seatId]!.head;
     // From the door on the right.
     expect(component.artBox!.left, greaterThan(face.left + face.width));
 

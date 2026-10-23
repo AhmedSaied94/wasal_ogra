@@ -1,23 +1,29 @@
-// The windows (layer 1): the street passing on the trip clock, crawling
-// past stopped cars in traffic and rushing on the open road, someone
-// waving from the roadside, and the next station's sign growing as it
-// comes closer. The sign shows the station's color; its letter is on the
-// strip, which is Flutter text.
+// The windows (layer 1, HANDOFF §4.1): the street passing on the trip
+// clock in one layer, crawling past stopped cars in traffic and rushing on
+// the open road, someone waving from the roadside by the door, and the next
+// station's sign in its colour growing as it comes closer (its name and
+// letter are on the strip, which is Flutter text). The microbus has two
+// side windows, the tuktuk its windscreen.
 import 'dart:math' as math;
 
+import 'package:content_models/content_models.dart';
 import 'package:flame/components.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
+import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/scene/scene_space.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
+import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 
 /// The sign shows from this long before its station.
 const signLeadMs = 8000;
 
-/// The street's buildings repeat every this many points.
-const _blockWidth = 64.0;
+/// The street's buildings repeat every this many design points.
+const _blockWidth = 30.0;
 
 /// The street's speed on [road], in points per second.
 double streetSpeedOf(Road road) => switch (road) {
@@ -25,6 +31,9 @@ double streetSpeedOf(Road road) => switch (road) {
   Road.traffic => TripMotion.streetSpeed * TripMotion.trafficCrawl,
   Road.open => TripMotion.streetSpeed * TripMotion.openRoadRush,
 };
+
+/// One pane of glass and the way the street moves across it.
+typedef _Pane = ({Path glass, Rect bounds, double direction});
 
 class WindowsComponent extends Component with HasGameReference<TripGame> {
   /// How far the street has passed, in points: the speed changes with the
@@ -50,193 +59,245 @@ class WindowsComponent extends Component with HasGameReference<TripGame> {
     _lastClockMs = clockMs;
   }
 
+  /// The panes: the street moves toward the back on both sides.
+  List<_Pane> _panes(SceneLayout layout) {
+    if (layout.vehicle == VehicleId.tuktuk) {
+      final glass = Path()..addRRect(layout.rrectOf(70, 62, 250, 118, 24));
+      return [(glass: glass, bounds: glass.getBounds(), direction: 1)];
+    }
+    Path side(double edge, double sign) {
+      Offset p(double dx, double y) => layout.at(edge + sign * dx, y);
+      final a = p(0, 34);
+      final b = p(90, 50);
+      final c = p(94, 55);
+      final d = p(94, 136);
+      final e = p(90, 141);
+      final f = p(0, 176);
+      final corner = p(94, 51);
+      final corner2 = p(94, 140);
+      return Path()
+        ..moveTo(a.dx, a.dy)
+        ..lineTo(b.dx, b.dy)
+        ..quadraticBezierTo(corner.dx, corner.dy, c.dx, c.dy)
+        ..lineTo(d.dx, d.dy)
+        ..quadraticBezierTo(corner2.dx, corner2.dy, e.dx, e.dy)
+        ..lineTo(f.dx, f.dy)
+        ..close();
+    }
+
+    final left = side(0, 1);
+    final right = side(390, -1);
+    return [
+      (glass: left, bounds: left.getBounds(), direction: 1),
+      (glass: right, bounds: right.getBounds(), direction: -1),
+    ];
+  }
+
   @override
   void render(Canvas canvas) {
     final layout = game.layout;
     if (layout == null) return;
-    final tokens = game.tokens;
-    final r = layout.windows;
-    final glass = Rect.fromLTWH(r.left, r.top, r.width, r.height);
-    canvas
-      ..save()
-      ..clipRect(glass)
-      ..drawRect(
-        glass,
-        Paint()..color = Color.lerp(tokens.waraq, tokens.primary, 0.16)!,
-      );
-
-    // Buildings, scrolling with the trip.
-    final shift = _distance % _blockWidth;
-    final ground = glass.bottom;
-    final building = Paint()
-      ..color = Color.lerp(tokens.waraq, tokens.tablouh, 0.28)!;
-    final windowDot = Paint()..color = tokens.waraq.withValues(alpha: 0.7);
-    for (var i = -1; i * _blockWidth < glass.width + _blockWidth; i++) {
-      final x = i * _blockWidth + shift;
-      final tall = 0.45 + 0.35 * ((i * 7919) % 5) / 4;
-      final rect = Rect.fromLTRB(
-        x + 4,
-        ground - glass.height * tall,
-        x + _blockWidth - 6,
-        ground,
-      );
-      canvas.drawRect(rect, building);
-      for (var row = rect.top + 8; row < ground - 10; row += 14) {
-        canvas.drawRect(Rect.fromLTWH(rect.left + 8, row, 8, 6), windowDot);
-        canvas.drawRect(Rect.fromLTWH(rect.right - 16, row, 8, 6), windowDot);
+    final panes = _panes(layout);
+    for (final (i, pane) in panes.indexed) {
+      canvas
+        ..save()
+        ..clipPath(pane.glass)
+        ..drawRect(pane.bounds, Paint()..color = ColorTokens.sceneSky);
+      if (layout.vehicle == VehicleId.tuktuk) {
+        canvas.drawCircle(
+          layout.at(190, 92),
+          layout.across(14),
+          Paint()..color = ColorTokens.sunGlow,
+        );
       }
+      _drawStreet(canvas, layout, pane);
+      switch (road) {
+        case Road.traffic:
+          _drawCars(canvas, layout, pane);
+        case Road.open:
+          _drawRush(canvas, layout, pane);
+        case Road.normal:
+          break;
+      }
+      // The door is on the right: the waving passenger stands there.
+      if (i == panes.length - 1) _drawWave(canvas, layout, pane);
+      canvas.restore();
     }
-    switch (road) {
-      case Road.traffic:
-        _drawCars(canvas, glass);
-      case Road.open:
-        _drawRush(canvas, glass);
-      case Road.normal:
-        break;
+    _drawSign(canvas, layout);
+  }
+
+  /// Buildings scrolling with the trip, their feet on the pane's bottom.
+  void _drawStreet(Canvas canvas, SceneLayout layout, _Pane pane) {
+    final block = layout.across(_blockWidth);
+    final shift = (_distance * pane.direction) % block;
+    final ground = pane.bounds.bottom;
+    final height = pane.bounds.height;
+    final radius = Radius.circular(layout.across(5));
+    var i = 0;
+    for (
+      var x = pane.bounds.left - block + shift;
+      x < pane.bounds.right;
+      x += block, i++
+    ) {
+      // A fixed pattern along the street, so the same building comes back.
+      final n = ((_distance * pane.direction) / block).floor() - i;
+      final tall = 0.4 + 0.3 * (n * 7919 % 4).abs() / 3;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(
+            x + layout.across(3),
+            ground - height * tall,
+            x + block - layout.across(3),
+            ground,
+          ),
+          radius,
+        ),
+        Paint()
+          ..color = DesignExtras
+              .sceneBuildings[(n % DesignExtras.sceneBuildings.length).abs()],
+      );
     }
-    _drawWave(canvas, glass);
-    _drawSign(canvas, glass);
-    canvas.restore();
   }
 
   /// Stopped cars along the street.
-  void _drawCars(Canvas canvas, Rect glass) {
-    final tokens = game.tokens;
-    final h = glass.height * 0.3;
+  void _drawCars(Canvas canvas, SceneLayout layout, _Pane pane) {
+    final h = layout.across(18);
     final w = h * 2.2;
-    final line = math.max(1.5, h * 0.08);
-    final ink = Paint()
-      ..color = tokens.hibr
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = line;
-    final colors = [tokens.danger, tokens.primary, tokens.fare];
-    for (final (i, share) in const [0.08, 0.42, 0.76].indexed) {
-      final left = glass.left + glass.width * share;
+    final colors = [
+      ColorTokens.danger,
+      ColorTokens.primary,
+      ColorTokens.noteFare,
+    ];
+    for (final (i, share) in const [0.1, 0.6].indexed) {
+      final left = pane.bounds.left + pane.bounds.width * share;
+      final bottom = pane.bounds.bottom - layout.across(4);
       final body = RRect.fromRectAndRadius(
-        Rect.fromLTWH(left, glass.bottom - h * 1.1, w, h * 0.7),
-        Radius.circular(h * 0.2),
+        Rect.fromLTWH(left, bottom - h, w, h * 0.65),
+        Radius.circular(h * 0.25),
       );
       final cabin = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          left + w * 0.2,
-          glass.bottom - h * 1.45,
-          w * 0.5,
-          h * 0.4,
-        ),
-        Radius.circular(h * 0.15),
+        Rect.fromLTWH(left + w * 0.2, bottom - h * 1.3, w * 0.5, h * 0.45),
+        Radius.circular(h * 0.2),
       );
       canvas
-        ..drawRRect(cabin, Paint()..color = tokens.waraq)
-        ..drawRRect(cabin, ink)
-        ..drawRRect(body, Paint()..color = colors[i % colors.length])
-        ..drawRRect(body, ink);
+        ..drawRRect(cabin, Paint()..color = ColorTokens.paper)
+        ..drawRRect(body, Paint()..color = colors[i % colors.length]);
       for (final x in [left + w * 0.25, left + w * 0.75]) {
         canvas.drawCircle(
-          Offset(x, glass.bottom - h * 0.4),
-          h * 0.22,
-          Paint()..color = tokens.hibr,
+          Offset(x, bottom - h * 0.3),
+          h * 0.2,
+          Paint()..color = ColorTokens.sceneTyre,
         );
       }
     }
   }
 
   /// Speed lines over the rushing street.
-  void _drawRush(Canvas canvas, Rect glass) {
+  void _drawRush(Canvas canvas, SceneLayout layout, _Pane pane) {
     final paint = Paint()
-      ..color = game.tokens.waraq.withValues(alpha: 0.8)
-      ..strokeWidth = 2
+      ..color = ColorTokens.paper.withValues(alpha: 0.8)
+      ..strokeWidth = layout.across(2)
       ..strokeCap = StrokeCap.round;
-    const length = 28.0;
-    const gap = 3 * length;
+    final length = layout.across(22);
+    final gap = 3 * length;
     for (final (row, share) in const [0.3, 0.55, 0.8].indexed) {
-      final y = glass.top + glass.height * share;
-      final offset = (_distance * 2 + row * length) % gap;
-      for (var x = glass.left - gap + offset; x < glass.right; x += gap) {
+      final y = pane.bounds.top + pane.bounds.height * share;
+      final offset = (_distance * 2 * pane.direction + row * length) % gap;
+      for (
+        var x = pane.bounds.left - gap + offset;
+        x < pane.bounds.right;
+        x += gap
+      ) {
         canvas.drawLine(Offset(x, y), Offset(x + length, y), paint);
       }
     }
   }
 
   /// Someone on the roadside by the door, waving the bus down.
-  void _drawWave(Canvas canvas, Rect glass) {
+  void _drawWave(Canvas canvas, SceneLayout layout, _Pane pane) {
     final since = game.view?.windows.waveAtMs;
     if (since == null) return;
     final elapsed = game.clockMs - since;
-    final tokens = game.tokens;
-    final h = glass.height * 0.7;
-    final x = glass.right - glass.width * 0.12;
-    final ground = glass.bottom;
-    final line = math.max(2.0, h * 0.07);
-    final ink = Paint()
-      ..color = tokens.hibr
-      ..strokeWidth = line
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
+    final h = pane.bounds.height * 0.55;
+    final x = pane.bounds.center.dx;
+    final ground = pane.bounds.bottom;
     final body = RRect.fromRectAndRadius(
-      Rect.fromLTWH(x - h * 0.16, ground - h * 0.62, h * 0.32, h * 0.62),
-      Radius.circular(h * 0.1),
+      Rect.fromLTWH(x - h * 0.17, ground - h * 0.6, h * 0.34, h * 0.6),
+      Radius.circular(h * 0.14),
     );
-    final head = Offset(x, ground - h * 0.78);
+    final head = Offset(x, ground - h * 0.76);
     final swing = game.reduceMotion
         ? 0.0
         : 0.45 * math.sin(elapsed / waveMs * math.pi * 6);
-    final shoulder = Offset(x + h * 0.12, ground - h * 0.55);
+    final shoulder = Offset(x + h * 0.12, ground - h * 0.52);
     final hand =
-        shoulder + Offset.fromDirection(-math.pi / 2 + 0.35 + swing, h * 0.42);
+        shoulder + Offset.fromDirection(-math.pi / 2 + 0.35 + swing, h * 0.4);
     canvas
-      ..drawLine(shoulder, hand, ink)
-      ..drawRRect(body, Paint()..color = tokens.primary)
-      ..drawRRect(body, ink)
-      ..drawCircle(
-        head,
-        h * 0.16,
-        Paint()..color = Color.lerp(tokens.gold, tokens.waraq, 0.55)!,
+      ..drawLine(
+        shoulder,
+        hand,
+        Paint()
+          ..color = ColorTokens.characterShirtDefault
+          ..strokeWidth = h * 0.1
+          ..strokeCap = StrokeCap.round,
       )
-      ..drawCircle(head, h * 0.16, ink);
+      ..drawRRect(body, Paint()..color = ColorTokens.characterShirtDefault)
+      ..drawCircle(head, h * 0.17, Paint()..color = DesignExtras.driverSkin);
   }
 
-  void _drawSign(Canvas canvas, Rect glass) {
+  /// The next station's sign, in its colour ([stationSign]).
+  void _drawSign(Canvas canvas, SceneLayout layout) {
     final strip = game.view?.strip;
-    final countdown = strip?.countdownMs;
-    if (strip == null || countdown == null || countdown > signLeadMs) return;
-    final next = strip.chips.where((c) => c.next).firstOrNull;
-    if (next == null) return;
-    final near = 1 - countdown / signLeadMs;
-    final tokens = game.tokens;
-    final size = glass.height * (0.3 + 0.35 * near);
-    final x = glass.left + glass.width * (0.1 + 0.55 * near);
-    final pole = Paint()
-      ..color = tokens.hibr
-      ..strokeWidth = math.max(2, size * 0.08);
-    canvas.drawLine(
-      Offset(x, glass.bottom),
-      Offset(x, glass.bottom - size * 1.2),
-      pole,
+    final next = strip?.chips.where((c) => c.next).firstOrNull;
+    final sign = stationSign(
+      layout,
+      strip?.countdownMs,
+      reduceMotion: game.reduceMotion,
     );
-    final board = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(x, glass.bottom - size * 1.2),
-        width: size * 1.3,
-        height: size * 0.8,
-      ),
-      Radius.circular(size * 0.15),
-    );
+    if (next == null || sign == null) return;
     canvas
+      ..drawRRect(sign.post, Paint()..color = ColorTokens.iconOff)
       ..drawRRect(
-        board.shift(Offset(-size * 0.06, size * 0.06)),
-        Paint()..color = tokens.hibr,
-      )
-      ..drawRRect(
-        board,
-        Paint()
-          ..color = tokens.stations[next.slot % tokens.stations.length].fill,
-      )
-      ..drawRRect(
-        board,
-        Paint()
-          ..color = tokens.hibr
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = ShapeTokens.borderCard,
+        sign.board,
+        Paint()..color = TripColors.station(next.slot).bg,
       );
   }
+}
+
+/// The next station's sign [countdownMs] before its station: in the left
+/// window of `C-Trip`, the windscreen's left of a tuktuk. It slides in and
+/// grows over the last [signLeadMs]; under reduced motion it stands in
+/// place. Its board and post as they stand, and the board's [scale]
+/// against the design's 76×30; null outside that stretch. The windows draw
+/// the board, and `StationSignName` writes the name on it.
+({RRect board, RRect post, double scale})? stationSign(
+  SceneLayout layout,
+  int? countdownMs, {
+  required bool reduceMotion,
+}) {
+  if (countdownMs == null || countdownMs > signLeadMs) return null;
+  final near = reduceMotion ? 1.0 : 1 - countdownMs / signLeadMs;
+  final tuktuk = layout.vehicle == VehicleId.tuktuk;
+  final (bx, by, px, py, ph) = tuktuk
+      ? (80.0, 110.0, 116.0, 140.0, 40.0)
+      : (10.0, 76.0, 46.0, 106.0, 34.0);
+  const from = TripMotion.signGrowFrom;
+  final grow = from + (1 - from) * near;
+  final slide = layout.across(-50 * (1 - near));
+  // Grown about the post's foot, then slid along the street.
+  final foot = layout.at(px + 2, py + ph);
+  RRect place(RRect r) => RRect.fromRectAndRadius(
+    Rect.fromLTRB(
+      foot.dx + slide + (r.left - foot.dx) * grow,
+      foot.dy + (r.top - foot.dy) * grow,
+      foot.dx + slide + (r.right - foot.dx) * grow,
+      foot.dy + (r.bottom - foot.dy) * grow,
+    ),
+    r.tlRadius * grow,
+  );
+  return (
+    board: place(layout.rrectOf(bx, by, 76, 30, 10)),
+    post: place(layout.rrectOf(px, py, 4, ph, 2)),
+    scale: layout.scale * grow,
+  );
 }

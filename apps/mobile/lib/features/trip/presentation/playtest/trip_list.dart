@@ -5,10 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/components/secondary_button.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/buttons.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class TripList extends ConsumerWidget {
@@ -19,35 +17,39 @@ class TripList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final ink = context.tokens.hibr;
     final content = ref.watch(contentSourceProvider);
     final lines = [...content.lines]
       ..sort((a, b) => a.order.compareTo(b.order));
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: SpaceTokens.s8,
       children: [
         Semantics(
           header: true,
           child: Text(
             l10n.tripPlaytestTrips,
-            style: TypeTokens.title.copyWith(color: ink),
+            style: TypeTokens.displayS.copyWith(color: ColorTokens.ink),
           ),
         ),
         for (final line in lines)
           if (content.tripsOf(line.lineId) case final trips
               when trips.isNotEmpty) ...[
-            const SizedBox(height: SpaceTokens.m),
-            Text(line.name.arEg, style: TypeTokens.label.copyWith(color: ink)),
-            for (final trip in trips) ...[
-              const SizedBox(height: SpaceTokens.s),
-              SecondaryButton(
+            Padding(
+              padding: const EdgeInsets.only(top: SpaceTokens.s8),
+              child: Text(
+                line.name.arEg,
+                style: TypeTokens.label.copyWith(color: ColorTokens.ink2),
+              ),
+            ),
+            for (final trip in trips)
+              AppButton.secondary(
                 key: tripKey(trip.tripId),
                 // A Latin id.
                 label: trip.tripId,
-                onPressed: () => NavGuard.go(context, '/trip/${trip.tripId}'),
+                size: AppButtonSize.compact,
+                onTap: () => NavGuard.go(context, '/trip/${trip.tripId}'),
               ),
-            ],
           ],
       ],
     );
