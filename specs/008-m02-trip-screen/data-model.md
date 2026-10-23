@@ -158,7 +158,7 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 
 | Type | Fields |
 | --- | --- |
-| `TripView` | `tMs`, `phase`, `topBar`, `strip`, `passengers`, `tokens`, `dropped`, `windows`, `hand`, `tray`, `breakButton`, `boosters`, `undoUntilMs?`, `choices`, `bubbles`, `log`, `hint?`, `banner?`, `storyCondition?` (null without the condition, false once broken), `failSummary?`, `rejection?` (a rejection line), `breakMode` («حد معاه فكة؟» waiting for a note), `controlsLocked` (the command limit) |
+| `TripView` | `tMs`, `phase`, `topBar`, `strip`, `passengers`, `tokens`, `dropped`, `windows`, `hand`, `tray`, `breakButton`, `boosters`, `undoUntilMs?`, `choices`, `bubbles`, `log`, `hint?`, `banner?`, `storyCondition?` (null without the condition, false once broken), `failSummary?`, `rejection?` (a rejection line), `breakMode` («حد معاه فكة؟» waiting for a note), `controlsLocked` (the command limit), `fastForward` (nothing left for the player: the clock runs 4 times faster, trip_engine RULES.md §16) |
 | `TopBarView` | `lineName?`, `tripNumber`, `reputation` (0–100), `reputationLow` (below 40) |
 | `StationStripView` | `chips` (≤ 4), `vehiclePermille` (position along the strip), `countdownMs?`, `warning` (bool) |
 | `StationChip` | `stationId`, `slot` (0–3: color and letter), `name?`, `farePiasters`, `basePiasters` (008.5: the fare before a raise, struck through beside it), `atMs` (008.5: the stop's time, which places its dot), `studentIcon`, `reached`, `next` |

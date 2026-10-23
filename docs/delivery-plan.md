@@ -606,21 +606,20 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     costs a liter, replays included (resolves mobile §24.5); trusted time counts with the phone's
     uptime, so clock changes while it stays on do nothing (constitution 1.3.0, amended 2026-10-22,
     clarifies Principle VI); the database is left out of device backup until account linking.
-- [ ] Step 5: The first playable trip
-  - [ ] `008-m02-trip-screen`. Built on 2026-10-22, open as #9. Decided in its clarifications: a launch with an
+- [x] Step 5: The first playable trip
+  - [x] `008-m02-trip-screen` (merged in #9, 2026-10-23). Built on 2026-10-22. Decided in its clarifications: a launch with an
     unfinished trip opens that trip, paused, instead of Home; the revive costs BONAT at the catalog
     price (the ad revive is M11's); بلية's hints follow `trip_hints_mode_<line_id>`. Resolved mobile
     §24.6 (`rive 0.14` drawn in Flame with `Factory.flutter`, research R1) and the UI side of §24.4
     (research R8). Constitution 1.4.0 (amended 2026-10-22) places M03's pause control in the top bar
     and makes over-change silent during a trip. 58 of the 60 parity fixtures play through the
-    controls. The character file is in (2026-10-23). Still to do: naming the Rive plan it was exported from
-    (T059), the A06 run (T065). 008.5 replaces its character file with the new design's.
-- [ ] Step 5.5: The new design
-  - [ ] `008.5-m21-design-refresh`. Added 2026-10-23, when the owner adopted Style C
-    (`docs/design/`). Built on 2026-10-23, open as #10. The owner's `wassal.riv` is in, exported
-    from Rive's free plan (research R15). Still to do before the merge: `reducedMotion` in the file
-    (T110), the A06 runs (T111, T124), the side-by-side review (T126) and the short-screen
-    approval.
+    controls. 008.5 replaced its character file with the new design's. Still open: the A06 run (T065).
+- [x] Step 5.5: The new design
+  - [x] `008.5-m21-design-refresh` (merged in #10, 2026-10-23). Added and built 2026-10-23, when the
+    owner adopted Style C (`docs/design/`). The owner's `wassal.riv` is in, exported from Rive's free
+    plan (research R15). Merged before its owner checks, which are still open: `reducedMotion` in the
+    file (T110), the A06 runs (T111, T124), the side-by-side review (T126), the short-screen
+    approval, the launcher icon (T131) and the device runs.
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
   - [ ] `010-b03-ledger-sync`

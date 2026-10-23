@@ -280,6 +280,7 @@ The full field lists are in M01's [data-model.md](../specs/004-m01-trip-engine/d
 ### 7.3 Simulation loop
 
 - Fixed logic step of **33 ms** (≈30 Hz), independent of render frame rate. The scene interpolates between steps (`MoneyToken.progressPermille`).
+- Once nothing is left for the player (`TripEngine.isSettled`, [RULES.md](../packages/trip_engine/RULES.md) §16), `TripController` runs the trip clock 4 times faster to the end of the line. The steps, the result and `duration_ms` are unchanged, so replay, parity and the server's duration check (backend §7) are unaffected.
 - Each step, in this order: advance the clock → timers (waking, falling asleep, attentive ending, ledger peek ending, dropped money lost, breaks completing) → authored events → scheduled payments → tokens hop by hop → patience → station warning → `drop_me_here` deadlines and stations → failure check → end check. The exact order is [RULES.md](../packages/trip_engine/RULES.md) §3.
 - `TripEngine` is the only stateful object: `start`, `rebuild`, `step`, `stepTo`, `apply`, `pause` and `resume`. It has no async API, and it never throws during `step` or `apply`: invalid commands are rejected.
 - `pause()` freezes `t_ms`; the app calls it on lifecycle `paused` and on any overlay.

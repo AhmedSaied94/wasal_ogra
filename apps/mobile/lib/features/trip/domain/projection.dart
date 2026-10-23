@@ -29,6 +29,7 @@ final class TripScreenState {
     this.disabledBoosters = const {},
     this.revive,
     this.rejection,
+    this.fastForward = false,
   });
 
   final TripPhase phase;
@@ -47,6 +48,9 @@ final class TripScreenState {
   /// Shown on the failure card, or null.
   final ReviveOffer? revive;
   final RejectionLine? rejection;
+
+  /// The clock runs faster: nothing is left for the player.
+  final bool fastForward;
 }
 
 /// [hint] is بلية's hint on screen; [dispute] the dispute being asked.
@@ -126,6 +130,7 @@ TripView projectTripView(
     },
     breakMode: screen.breakMode,
     controlsLocked: screen.controlsLocked,
+    fastForward: screen.fastForward,
   );
 }
 

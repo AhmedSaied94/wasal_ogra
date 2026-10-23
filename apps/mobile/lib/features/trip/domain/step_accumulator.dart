@@ -8,6 +8,11 @@ const engineStepMs = 33;
 /// dropped, so a hitch slows the trip instead of jumping it.
 const maxStepsPerFrame = 10;
 
+/// Once nothing is left for the player (trip_engine RULES.md §16), the
+/// trip clock runs this many times faster to the end of the line. The
+/// engine and the result don't change, only how long the player waits.
+const settledSpeedUp = 4;
+
 final class StepAccumulator {
   int _micros = 0;
 

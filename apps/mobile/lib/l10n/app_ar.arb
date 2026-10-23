@@ -1200,6 +1200,10 @@
   "@tripStoryNoFights": {
     "description": "A story trip's condition, under the station strip for the whole trip (no_fights_required)."
   },
+  "tripFastForward": "خلّصت اللي عليك: بنوصّل على طول",
+  "@tripFastForward": {
+    "description": "At the scene's top once nothing is left for the player, while the trip clock runs faster to the end of the line (trip_engine RULES.md §16)."
+  },
   "tripStoryChip": "مشوار قصة",
   "@tripStoryChip": {
     "description": "The HUD's chip above a story trip's title (StatusChip story, HANDOFF StoryTrip block 1)."

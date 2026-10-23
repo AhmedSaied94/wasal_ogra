@@ -54,7 +54,9 @@ enum PauseReason { button, back, lifecycle, debugPanel }
   in order; the engine never waits for disk).
 - `advance` does nothing outside `running`. It adds the frame time to the accumulator (capped at 10
   steps, 330 ms), steps the engine once per 33 ms, folds the events into the presentation memory,
-  rebuilds the view and emits the cues. Pausing clears the accumulator.
+  rebuilds the view and emits the cues. Pausing clears the accumulator. Once nothing is left for the
+  player (`engine.isSettled`, trip_engine RULES.md §16), it adds `settledSpeedUp` (4) times the frame
+  time, until the trip ends or a command unsettles it; the engine and the result don't change.
 
 ## Providers
 

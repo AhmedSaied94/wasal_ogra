@@ -28,6 +28,7 @@ accepted command.
 | `undoUntilMs` | `state.undoAvailableUntilMs` |
 | `choices` | `state.claims` (claim), `state.changeRequests` (change request), and the dispute being asked |
 | `storyCondition` | `kind == story` and `rules.no_fights_required` |
+| `fastForward` | running and `engine.isSettled` (trip_engine RULES.md §16): the clock runs `settledSpeedUp` (4) times faster, and the strip «خلّصت اللي عليك: بنوصّل على طول» shows at the scene's top, under a story strip. Added after M21 at the owner's request (2026-10-23) |
 | `failSummary` | when failed (below) |
 
 ### Who has paid (FR-033)
@@ -71,7 +72,8 @@ their kind's color while they move.
   | plain (white) | every other slot |
 
 - **The queue** (on the trip clock):
-  - at most 2 bubbles visible; each stays at least `bubbleMinMs`, then makes room;
+  - at most 2 bubbles visible; each stays at least `bubbleMinMs`, then makes room. While `fastForward`,
+    the controller passes `bubbleMinMs × settledSpeedUp`, so a bubble stays as long on screen;
   - waiting lines show in emit order; one that has waited more than `2 × bubbleMinMs` is dropped;
   - a passenger has at most one bubble on screen; their next line waits for it;
   - reduced motion: bubbles appear without the pop.
@@ -190,7 +192,7 @@ select a plural (M03's placeholder rule).
 | `tripLook*` | speaker labels |
 | `tripLog*` | money lines |
 | `tripHint*` | بلية's lines |
-| `tripBanner*`, `tripStory*` | the fare-increase banner, the story condition |
+| `tripBanner*`, `tripStory*`, `tripFastForward` | the fare-increase banner, the story condition, the fast-forward strip |
 | `tripReject*` | rejection lines |
 | `tripSemantics*` | screen-reader labels |
 | `tripDebug*`, `tripPlaytest*` | dev and staging only |
