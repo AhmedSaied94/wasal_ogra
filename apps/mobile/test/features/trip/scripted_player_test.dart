@@ -14,11 +14,13 @@ const unreproducible = {
   'event__payment_dispute':
       'answers its dispute a second after it opens (5016 → 6006 ms); '
       'dispute_screen_way_test.dart plays it the screen\'s way',
-  'solver__line_hay_02': 'never answers its dispute',
+  'event__payment_dispute_liar_pays':
+      'asks the liar for the fare while its dispute is open, which the '
+      'dispute card doesn\'t allow',
 };
 
 /// What SC-002 counts: every fixture but those two.
-const reproducibleCount = 58;
+const reproducibleCount = 60;
 
 void main() {
   final names = allFixtureNames();

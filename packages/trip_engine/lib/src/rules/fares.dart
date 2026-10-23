@@ -70,6 +70,7 @@ void payNow(Transition tx, int passenger) {
       claimResolved: hadClaim ? true : null,
     ),
   );
+  _closeDisputesWithoutLiar(tx, id);
   startPatience(tx, passenger);
   _sendFare(tx, id, payment);
   final slot = tx.course.isPayer(passenger)
@@ -78,6 +79,24 @@ void payNow(Transition tx, int passenger) {
       ? SpeechSlot.paysOldFare
       : SpeechSlot.pays;
   say(tx, passenger, slot, amount: total);
+}
+
+/// Once [id] has paid, a dispute naming them whose other passenger paid too
+/// has no liar left, and closes with no event (§6.2).
+void _closeDisputesWithoutLiar(Transition tx, String id) {
+  final settled = [
+    for (final MapEntry(:key, value: dispute) in tx.disputes.entries)
+      if (dispute.a == id || dispute.b == id)
+        if (tx
+            .passenger(
+              tx.course.indexOf(dispute.a == id ? dispute.b : dispute.a),
+            )
+            .fareSent)
+          key,
+  ];
+  for (final index in settled) {
+    tx.closeDispute(index);
+  }
 }
 
 /// A passenger who owes the driver pays the rest in the fewest pieces (§6.4).

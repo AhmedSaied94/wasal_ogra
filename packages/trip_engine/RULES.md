@@ -262,6 +262,8 @@ at most 1,201 entries. `Revive` is not exempt (test `engine/engine_shell_test.da
      `old_fare_payers`, and `payment.total < fare`, add the fewest pieces for `fare − total`.
    - Fix `fare_piasters = fare`, `balance = total − fare` and `fare_sent = true`, and clear
      `never_pays`. If `q` has an open claim, it closes and `claim_resolved` is set.
+   - Each open dispute naming `q` whose other passenger has sent their fare has no liar left: it
+     closes, with no event (fixture `event__payment_dispute_liar_pays`).
    - If `balance > 0`, patience starts (§7.3).
    - Create a `fare` token from `q` to `DRIVER`, and emit `FareSent`.
    - `q` says:
@@ -344,10 +346,12 @@ at most 1,201 entries. `Revive` is not exempt (test `engine/engine_shell_test.da
 
 An event fires at `at_seconds × 1000` on the trip clock, which is never shifted. It needs every
 passenger it names to be aboard, except for `roadside_pickup`, which needs them `waiting`. A
-`change_request` also needs its passenger to have no open change request. A `payment_dispute` never
-names a group member (validated at start). Otherwise it is skipped (`EventSkipped{index,
-event_id}`), and it never fires later (fixture `event__skipped`, test
-`events/change_request_test.dart`). An event that fires emits `EventStarted{index, event_id}` first.
+`change_request` also needs its passenger to have no open change request. A `payment_dispute` also
+needs a liar: exactly one of its two passengers has sent their fare. With both or neither, no answer
+could be right (§4.7), so it doesn't fire (fixture `event__payment_dispute_no_liar`). It never names
+a group member (validated at start). Otherwise it is skipped (`EventSkipped{index, event_id}`), and
+it never fires later (fixture `event__skipped`, tests `events/change_request_test.dart`,
+`events/dispute_test.dart`). An event that fires emits `EventStarted{index, event_id}` first.
 Its parameters were validated at start (content-contract.md §2).
 
 With valid content, a `roadside_pickup`'s passengers are always `waiting` when it fires: they start
@@ -365,7 +369,7 @@ waiting and nothing else can board them (`pickup_conflict`, data-model.md "Valid
 | `roadside_pickup` | Each listed passenger boards now if their seat is free, and otherwise as soon as it is (§9.5). |
 
 Open choices close by themselves when a passenger involved gets off (§9.3). A dispute closes
-silently, with no event (test `events/dispute_test.dart`).
+silently, with no event (test `events/dispute_test.dart`), as it does when its liar pays (§6.2).
 
 ## 9. Stations
 
