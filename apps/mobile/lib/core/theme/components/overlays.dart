@@ -7,6 +7,7 @@ import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -204,68 +205,74 @@ class _AppSheetState extends State<AppSheet>
         MediaQuery.sizeOf(context).height - screenTopInset(context);
     final sheet = ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: ColorTokens.paper,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(RadiusTokens.sheet),
+      // It reaches the bottom edge, so it colours the navigation bar.
+      child: SystemBars(
+        bottom: ColorTokens.paper,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: ColorTokens.paper,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(RadiusTokens.sheet),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSheet._side,
-            AppSheet._grabberTop,
-            AppSheet._side,
-            AppSheet._side + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  key: AppSheet.grabberKey,
-                  width: grabber.width,
-                  height: grabber.height,
-                  decoration: BoxDecoration(
-                    color: ColorTokens.outline,
-                    borderRadius: BorderRadius.circular(RadiusTokens.pill),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSheet._side,
+              AppSheet._grabberTop,
+              AppSheet._side,
+              AppSheet._side + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    key: AppSheet.grabberKey,
+                    width: grabber.width,
+                    height: grabber.height,
+                    decoration: BoxDecoration(
+                      color: ColorTokens.outline,
+                      borderRadius: BorderRadius.circular(RadiusTokens.pill),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(
-                height:
-                    AppSheet._closeTop - AppSheet._grabberTop - grabber.height,
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: SpaceTokens.s12,
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: AppSheet._titleTop),
-                      child: Semantics(
-                        header: true,
-                        child: Text(
-                          widget.title,
-                          style: DesignExtras.sheetTitle.copyWith(
-                            color: ColorTokens.ink,
+                SizedBox(
+                  height:
+                      AppSheet._closeTop -
+                      AppSheet._grabberTop -
+                      grabber.height,
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: SpaceTokens.s12,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: AppSheet._titleTop),
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            widget.title,
+                            style: DesignExtras.sheetTitle.copyWith(
+                              color: ColorTokens.ink,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  IconCircleButton(
-                    icon: 'close',
-                    semanticLabel: AppLocalizations.of(context).closeLabel,
-                    inSheet: true,
-                    onTap: _close,
-                  ),
-                ],
-              ),
-              const SizedBox(height: SpaceTokens.s12),
-              Flexible(child: widget.child),
-            ],
+                    IconCircleButton(
+                      icon: 'close',
+                      semanticLabel: AppLocalizations.of(context).closeLabel,
+                      inSheet: true,
+                      onTap: _close,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SpaceTokens.s12),
+                Flexible(child: widget.child),
+              ],
+            ),
           ),
         ),
       ),

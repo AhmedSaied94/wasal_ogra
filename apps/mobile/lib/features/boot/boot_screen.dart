@@ -10,6 +10,7 @@ import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
+import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/components/vehicle_sprite.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
@@ -105,92 +106,98 @@ class _BootScreenState extends ConsumerState<BootScreen>
     final startup = ref.watch(appStartupProvider);
     final failed = startup.hasError && !startup.isLoading;
     final lines = loadingLines(l10n);
-    return Scaffold(
-      backgroundColor: ColorTokens.sun,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: CustomPaint(painter: _Backdrop())),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // The board's 844 points; shorter screens close the gaps.
-              final scale = math.min(1.0, constraints.maxHeight / _frame);
-              return CustomScrollView(
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Column(
-                      children: [
-                        SizedBox(height: _wordmarkTop * scale),
-                        Text(
-                          l10n.appName,
-                          textAlign: TextAlign.center,
-                          style: DesignExtras.loadingWordmark.copyWith(
-                            color: ColorTokens.ink,
-                            shadows: const [DesignExtras.loadingWordmarkShadow],
-                          ),
-                        ),
-                        const SizedBox(height: _taglineGap),
-                        Text(
-                          l10n.loadingTagline,
-                          textAlign: TextAlign.center,
-                          style: DesignExtras.loadingTagline.copyWith(
-                            color: ColorTokens.ink2,
-                          ),
-                        ),
-                        SizedBox(height: _vehicleGap * scale),
-                        AnimatedBuilder(
-                          animation: _driveCurve,
-                          builder: (context, child) => Transform.translate(
-                            offset: Offset(
-                              (1 - _driveCurve.value) * constraints.maxWidth,
-                              0,
+    return SystemBars(
+      top: ColorTokens.sun,
+      bottom: ColorTokens.sun,
+      child: Scaffold(
+        backgroundColor: ColorTokens.sun,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: CustomPaint(painter: _Backdrop())),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // The board's 844 points; shorter screens close the gaps.
+                final scale = math.min(1.0, constraints.maxHeight / _frame);
+                return CustomScrollView(
+                  slivers: [
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Column(
+                        children: [
+                          SizedBox(height: _wordmarkTop * scale),
+                          Text(
+                            l10n.appName,
+                            textAlign: TextAlign.center,
+                            style: DesignExtras.loadingWordmark.copyWith(
+                              color: ColorTokens.ink,
+                              shadows: const [
+                                DesignExtras.loadingWordmarkShadow,
+                              ],
                             ),
-                            child: child,
                           ),
-                          child: _Vehicle(sign: l10n.destHome),
-                        ),
-                        const Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: _barInset,
+                          const SizedBox(height: _taglineGap),
+                          Text(
+                            l10n.loadingTagline,
+                            textAlign: TextAlign.center,
+                            style: DesignExtras.loadingTagline.copyWith(
+                              color: ColorTokens.ink2,
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            spacing: _lineGap,
-                            children: [
-                              ProgressBar.road(
-                                value: ref.watch(bootProgressProvider).value,
-                                semanticLabel: l10n.loadingProgressLabel,
+                          SizedBox(height: _vehicleGap * scale),
+                          AnimatedBuilder(
+                            animation: _driveCurve,
+                            builder: (context, child) => Transform.translate(
+                              offset: Offset(
+                                (1 - _driveCurve.value) * constraints.maxWidth,
+                                0,
                               ),
-                              if (failed)
-                                InlineAlert(
-                                  icon: 'warning',
-                                  message: l10n.bootErrorMessage,
-                                  action: l10n.bootRetry,
-                                  onAction: () => retryAppStartup(ref),
-                                )
-                              else
-                                Center(
-                                  child: Text(
-                                    lines[_pick % lines.length],
-                                    textAlign: TextAlign.center,
-                                    style: DesignExtras.loadingLine.copyWith(
-                                      color: ColorTokens.ink,
+                              child: child,
+                            ),
+                            child: _Vehicle(sign: l10n.destHome),
+                          ),
+                          const Spacer(),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: _barInset,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              spacing: _lineGap,
+                              children: [
+                                ProgressBar.road(
+                                  value: ref.watch(bootProgressProvider).value,
+                                  semanticLabel: l10n.loadingProgressLabel,
+                                ),
+                                if (failed)
+                                  InlineAlert(
+                                    icon: 'warning',
+                                    message: l10n.bootErrorMessage,
+                                    action: l10n.bootRetry,
+                                    onAction: () => retryAppStartup(ref),
+                                  )
+                                else
+                                  Center(
+                                    child: Text(
+                                      lines[_pick % lines.length],
+                                      textAlign: TextAlign.center,
+                                      style: DesignExtras.loadingLine.copyWith(
+                                        color: ColorTokens.ink,
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        SizedBox(height: _barBottom * scale),
-                      ],
+                          SizedBox(height: _barBottom * scale),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
