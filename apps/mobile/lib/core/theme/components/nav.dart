@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/pills.dart';
 import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -53,41 +54,45 @@ class BottomNav extends StatelessWidget {
       l10n.tabApartment,
       l10n.tabShop,
     ];
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: ColorTokens.paper,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(DesignExtras.navRadius),
+    // Under the navigation bar too (SystemBars).
+    return SystemBars(
+      bottom: ColorTokens.paper,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: ColorTokens.paper,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignExtras.navRadius),
+          ),
+          boxShadow: [LipTokens.nav],
         ),
-        boxShadow: [LipTokens.nav],
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          _side,
-          _top,
-          _side,
-          MediaQuery.viewPaddingOf(context).bottom,
-        ),
-        child: SizedBox(
-          height: LayoutTokens.bottomNav - _top,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: _gap,
-            children: [
-              for (final (i, tab) in _tabs.indexed)
-                Expanded(
-                  child: _NavCell(
-                    key: cellKey(i),
-                    icon: tab.icon,
-                    activeIcon: tab.active,
-                    label: labels[i],
-                    newLabel: l10n.newBadgeLabel,
-                    active: i == currentIndex,
-                    showDot: i < newDots.length && newDots[i],
-                    onTap: () => onTap(i),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            _side,
+            _top,
+            _side,
+            MediaQuery.viewPaddingOf(context).bottom,
+          ),
+          child: SizedBox(
+            height: LayoutTokens.bottomNav - _top,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: _gap,
+              children: [
+                for (final (i, tab) in _tabs.indexed)
+                  Expanded(
+                    child: _NavCell(
+                      key: cellKey(i),
+                      icon: tab.icon,
+                      activeIcon: tab.active,
+                      label: labels[i],
+                      newLabel: l10n.newBadgeLabel,
+                      active: i == currentIndex,
+                      showDot: i < newDots.length && newDots[i],
+                      onTap: () => onTap(i),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

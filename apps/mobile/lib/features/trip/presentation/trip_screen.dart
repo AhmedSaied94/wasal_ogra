@@ -16,6 +16,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/audio_haptics/audio_haptics_providers.dart';
 import 'package:wassal/core/audio_haptics/sfx.dart';
 import 'package:wassal/core/routing/trip_pause_overlay.dart';
+import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
@@ -207,58 +208,63 @@ class _TripScreenState extends ConsumerState<TripScreen> {
         controls: _controls,
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: tripMaxTextScale,
-          child: Material(
-            color: ColorTokens.ground,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final bottom = MediaQuery.paddingOf(context).bottom;
-                final zones = TripZones(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight - bottom,
-                  viewPaddingTop: MediaQuery.viewPaddingOf(context).top,
-                );
-                return Stack(
-                  children: [
-                    // Over 430 wide the zones keep 390, centred, and the
-                    // cabin's wall reaches the screen's edges behind them.
-                    if (zones.left > 0)
+          // The bars are hidden; swiped in, they sit on the HUD and the
+          // dashboard.
+          child: SystemBars(
+            bottom: ColorTokens.dashboardBg,
+            child: Material(
+              color: ColorTokens.ground,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bottom = MediaQuery.paddingOf(context).bottom;
+                  final zones = TripZones(
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight - bottom,
+                    viewPaddingTop: MediaQuery.viewPaddingOf(context).top,
+                  );
+                  return Stack(
+                    children: [
+                      // Over 430 wide the zones keep 390, centred, and the
+                      // cabin's wall reaches the screen's edges behind them.
+                      if (zones.left > 0)
+                        Positioned(
+                          top: zones.sceneTop,
+                          left: 0,
+                          right: 0,
+                          height: zones.scene,
+                          child: const ColoredBox(color: ColorTokens.sceneWall),
+                        ),
                       Positioned(
                         top: zones.sceneTop,
-                        left: 0,
-                        right: 0,
+                        left: zones.left,
+                        width: zones.width,
                         height: zones.scene,
-                        child: const ColoredBox(color: ColorTokens.sceneWall),
+                        child: _scene(),
                       ),
-                    Positioned(
-                      top: zones.sceneTop,
-                      left: zones.left,
-                      width: zones.width,
-                      height: zones.scene,
-                      child: _scene(),
-                    ),
-                    Positioned(
-                      top: zones.inset,
-                      left: zones.left,
-                      width: zones.width,
-                      height: zones.hud,
-                      child: TripHud(
-                        onPause: () => _controller.pause(PauseReason.button),
-                        onDebug: ref.read(flavorProvider) == Flavor.prod
-                            ? null
-                            : () => _controller.pause(PauseReason.debugPanel),
+                      Positioned(
+                        top: zones.inset,
+                        left: zones.left,
+                        width: zones.width,
+                        height: zones.hud,
+                        child: TripHud(
+                          onPause: () => _controller.pause(PauseReason.button),
+                          onDebug: ref.read(flavorProvider) == Flavor.prod
+                              ? null
+                              : () => _controller.pause(PauseReason.debugPanel),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      top: zones.dashboardTop,
-                      left: zones.left,
-                      width: zones.width,
-                      height: zones.dashboard + bottom,
-                      child: const TripDashboard(),
-                    ),
-                    Positioned.fill(child: _card()),
-                  ],
-                );
-              },
+                      Positioned(
+                        top: zones.dashboardTop,
+                        left: zones.left,
+                        width: zones.width,
+                        height: zones.dashboard + bottom,
+                        child: const TripDashboard(),
+                      ),
+                      Positioned.fill(child: _card()),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

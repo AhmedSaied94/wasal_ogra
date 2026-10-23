@@ -190,4 +190,20 @@ void main() {
     final sun = ColorTokens.sun.toARGB32() & 0xFFFFFF;
     expect(colours, {sun.toRadixString(16).toUpperCase().padLeft(6, '0')});
   });
+
+  test('the native splash is portrait too, held sideways (M03 FR-004)', () {
+    final manifest = File('android/app/src/main/AndroidManifest.xml')
+        .readAsStringSync();
+    final activity = RegExp(
+      '<activity[^>]*android:name=".MainActivity"[^>]*>',
+      dotAll: true,
+    ).firstMatch(manifest)![0]!;
+    expect(activity, contains('android:screenOrientation="portrait"'));
+    final plist = File('ios/Runner/Info.plist').readAsStringSync();
+    final orientations = RegExp('<string>(UIInterfaceOrientation\\w+)</string>')
+        .allMatches(plist)
+        .map((m) => m[1])
+        .toSet();
+    expect(orientations, {'UIInterfaceOrientationPortrait'});
+  });
 }

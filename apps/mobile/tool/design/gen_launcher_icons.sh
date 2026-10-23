@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Writes the launcher icons from docs/design/brand/ (direction أ,
-# specs/008.5-m21-design-refresh tasks.md T130), and the 512×512 store icon
-# beside them. Needs rsvg-convert and ImageMagick.
+# specs/008.5-m21-design-refresh tasks.md T130), the 512×512 store icon
+# beside them, and the native splash's image. Needs rsvg-convert and
+# ImageMagick.
 #
 # Usage, from apps/mobile:
 #   tool/design/gen_launcher_icons.sh
@@ -72,4 +73,19 @@ done
 render "$brand/icon_master.svg" 512 "$tmp/store.png"
 opaque "$tmp/store.png" "$brand/store_icon_512.png"
 
-echo "Wrote the launcher icons and $brand/store_icon_512.png."
+# The native splash's images: the adaptive icon's two layers, at 4x. Android
+# 12 takes 288 dp (1152 px) and shows two thirds of it in a circle, as it
+# does the launcher icon's; older Androids and iOS show the whole image, so
+# theirs is 240 dp (960 px), for the microbus to come out the same size. The
+# background is the splash's own sun, so the square doesn't show. Then run
+# flutter_native_splash:create.
+splash() {
+  render "$brand/adaptive_background.svg" "$1" "$tmp/splash_background.png"
+  render "$brand/adaptive_foreground.svg" "$1" "$tmp/splash_foreground.png"
+  magick "$tmp/splash_background.png" "$tmp/splash_foreground.png" \
+    -composite "$2"
+}
+splash 1152 assets/branding/splash_icon_android12.png
+splash 960 assets/branding/splash_icon.png
+
+echo "Wrote the launcher icons, $brand/store_icon_512.png and the splash's images in assets/branding/."

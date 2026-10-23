@@ -196,7 +196,9 @@ OFL, like the ones they replace. Without even leading, Marhey sits low inside bu
 - **The line under the bar** is picked at random from a pool of ARB keys (`loadingLine1`, …), which
   starts with the one written line, «بنعدّ الفكة..». More lines are copy for the owner.
 - **A failed boot** keeps M03's retry, shown as an `InlineAlert` (the `States` look) under the bar.
-- **The native splash** stays `sun` (M03 FR-012), so the first frames match.
+- **The native splash** stays `sun` (M03 FR-012), so the first frames match. Since 2026-10-24 its image
+  is the launcher icon (direction أ) instead of M03's placeholder circle, written by
+  `tool/design/gen_launcher_icons.sh` from `docs/design/brand/`, and Android shows it in portrait.
 
 ## R7. The trip's geometry
 

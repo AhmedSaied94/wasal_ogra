@@ -11,6 +11,8 @@ import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/connectivity.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/theme/app_theme.dart';
+import 'package:wassal/core/theme/components/system_bars.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// The only locale: Egyptian Arabic, right to left, whatever the device
@@ -84,10 +86,14 @@ class _WassalAppState extends ConsumerState<WassalApp> {
       builder: (context, child) => MediaQuery.withClampedTextScaling(
         minScaleFactor: minTextScale,
         maxScaleFactor: maxTextScale,
-        // The Rive file once boot has decoded it; static art until then.
-        child: RiveArtScope(
-          art: ref.watch(riveArtProvider).value,
-          child: child ?? const SizedBox.shrink(),
+        // Screens are on the ground unless they say otherwise.
+        child: SystemBars(
+          bottom: ColorTokens.ground,
+          // The Rive file once boot has decoded it; static art until then.
+          child: RiveArtScope(
+            art: ref.watch(riveArtProvider).value,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

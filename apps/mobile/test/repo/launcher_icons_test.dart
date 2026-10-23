@@ -51,6 +51,20 @@ void main() {
     });
   }
 
+  test("the native splash's images: the icon on its ground, opaque", () {
+    // Android 12 masks the larger one to its circle; the rest show the
+    // smaller one whole (flutter_native_splash.yaml).
+    final splash = File('flutter_native_splash.yaml').readAsStringSync();
+    for (final (path, side) in [
+      ('assets/branding/splash_icon_android12.png', 1152),
+      ('assets/branding/splash_icon.png', 960),
+    ]) {
+      _expectSquare(path, side);
+      expect(_png(path).alpha, isFalse, reason: path);
+      expect(splash, contains('image: $path'));
+    }
+  });
+
   test('the adaptive icon names its three layers', () {
     final xml = File('$_res/mipmap-anydpi-v26/ic_launcher.xml')
         .readAsStringSync();

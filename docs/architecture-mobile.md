@@ -458,6 +458,8 @@ The last six routes come from the design (`docs/design/HANDOFF.md` §7), which s
 
 Global rules: back button top-right; Android system back on the trip route opens the pause overlay; sheets dismiss by swipe-down; no Material ripples, so tappables press down onto their lip (HANDOFF §2.3).
 
+System bars: the app is portrait from its first frame (the native splash too) and runs edge to edge. Each screen sets the bars through `SystemBars`: the status bar is clear, and the navigation bar takes the colour along the screen's bottom edge, so a phone in three-button mode never shows a band of another colour. That colour is `ground` by default, `paper` under the bottom nav and under a sheet, `sun` on Loading, and `dashboardBg` on the trip, whose bars are hidden until swiped in. Icons are dark on a light colour and light on a dark one. Android 15+ ignores the bar's colour and shows the screen through it.
+
 ---
 
 ## 10. State Management
