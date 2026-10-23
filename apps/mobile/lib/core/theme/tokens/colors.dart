@@ -33,6 +33,32 @@ abstract final class ColorTokens {
   /// The «new» dot fill, drawn with a [hibr] outline.
   static const badgeNew = danger;
 
+  /// A fare on its way to the driver. Change on its way back is [primary].
+  static const fare = Color(0xFF7ACC6C);
+
+  /// Bubbles: a warning (light orange), a fight (dark orange), thanks (light
+  /// blue). A plain bubble is [waraq].
+  static const bubbleWarn = Color(0xFFFFD9A8);
+  static const bubbleFight = Color(0xFFF2894A);
+  static const bubbleThanks = Color(0xFFBFE3F7);
+
+  /// Shirts of the stand-in passengers, one per skin family.
+  static const shirtEffendi = Color(0xFF8A8F99);
+  static const shirtStudent = Color(0xFFEDF1F5);
+  static const shirtWorker = Color(0xFF24508F);
+  static const shirtHajja = Color(0xFF2B2633);
+  static const shirtYoung = Color(0xFFC23B2E);
+  static const shirtPlain = Color(0xFFD9C9A3);
+
+  static const shirts = ShirtColors(
+    effendi: shirtEffendi,
+    student: shirtStudent,
+    worker: shirtWorker,
+    hajja: shirtHajja,
+    young: shirtYoung,
+    plain: shirtPlain,
+  );
+
   /// Drop-off station colors in stop order within a trip, never by station
   /// identity. A trip has at most four drop-off stations, and the letter is
   /// always shown so color is never the only cue.
@@ -55,6 +81,16 @@ abstract final class ColorTokens {
     station2,
     station3,
     station4,
+    fare,
+    bubbleWarn,
+    bubbleFight,
+    bubbleThanks,
+    shirtEffendi,
+    shirtStudent,
+    shirtWorker,
+    shirtHajja,
+    shirtYoung,
+    shirtPlain,
   ];
 }
 
@@ -65,4 +101,24 @@ class StationColor {
 
   final Color fill;
   final Color letter;
+}
+
+/// The shirt of each skin family (specs/008-m02-trip-screen, research R17).
+@immutable
+class ShirtColors {
+  const ShirtColors({
+    required this.effendi,
+    required this.student,
+    required this.worker,
+    required this.hajja,
+    required this.young,
+    required this.plain,
+  });
+
+  final Color effendi;
+  final Color student;
+  final Color worker;
+  final Color hajja;
+  final Color young;
+  final Color plain;
 }

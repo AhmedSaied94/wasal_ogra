@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show protected;
 import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/economy/domain/trusted_time.dart';
+import 'package:wassal/core/storage/app_database.steps.dart';
 import 'package:wassal/core/storage/tables.dart';
 
 part 'app_database.g.dart';
@@ -57,6 +58,9 @@ typedef UpgradeStep = Future<void> Function(Migrator m);
     TripSessionTable,
     ProjectionBaseTable,
     ClockAnchorTable,
+    TripRecordTable,
+    TripRecordCommandTable,
+    TripIntentTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -69,12 +73,22 @@ class AppDatabase extends _$AppDatabase {
   final OpenCheck? openCheck;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// The step to each version after 1. A later schema adds its entry here,
   /// calling the step `make-migrations` generates for it.
   @protected
-  Map<int, UpgradeStep> get upgradeSteps => const {};
+  Map<int, UpgradeStep> get upgradeSteps => const {2: _toV2};
+
+  /// v2 adds the trip's records (specs/008-m02-trip-screen,
+  /// contracts/trip-records.md "Schema"), as v2 defines them.
+  static Future<void> _toV2(Migrator m) async {
+    final schema = Schema2(database: m.database);
+    final v2 = Migrator(m.database, schema);
+    await v2.createTable(schema.tripRecord);
+    await v2.createTable(schema.tripRecordCommand);
+    await v2.createTable(schema.tripIntent);
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

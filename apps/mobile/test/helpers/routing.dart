@@ -11,9 +11,15 @@ Future<void> pressBack(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Taps the visible placeholder link to [name].
+/// Taps the visible placeholder link to [name], scrolling it into view
+/// when content above it (internal builds' trip list) pushed it down.
 Future<void> tapLink(WidgetTester tester, String name) async {
-  final link = find.byKey(PlaceholderScreen.linkKey(name)).hitTestable();
+  final key = find.byKey(PlaceholderScreen.linkKey(name));
+  if (key.hitTestable().evaluate().isEmpty && key.evaluate().isNotEmpty) {
+    await tester.ensureVisible(key.last);
+    await tester.pumpAndSettle();
+  }
+  final link = key.hitTestable();
   expect(link, findsOneWidget, reason: 'link to $name');
   await tester.tap(link);
   await tester.pumpAndSettle();

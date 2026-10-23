@@ -13,8 +13,12 @@ enum Surface {
   final Size size;
 }
 
-void applySurface(WidgetTester tester, Surface surface) {
-  tester.view.physicalSize = surface.size;
+void applySurface(WidgetTester tester, Surface surface) =>
+    applySurfaceSize(tester, surface.size);
+
+/// A test frame of [size] logical points, at device pixel ratio 1.
+void applySurfaceSize(WidgetTester tester, Size size) {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }

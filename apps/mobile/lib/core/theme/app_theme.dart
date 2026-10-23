@@ -16,6 +16,11 @@ class WassalTokens extends ThemeExtension<WassalTokens> {
     required this.gold,
     required this.badgeNew,
     required this.stations,
+    required this.fare,
+    required this.bubbleWarn,
+    required this.bubbleFight,
+    required this.bubbleThanks,
+    required this.shirts,
   });
 
   static const standard = WassalTokens(
@@ -28,6 +33,11 @@ class WassalTokens extends ThemeExtension<WassalTokens> {
     gold: ColorTokens.gold,
     badgeNew: ColorTokens.badgeNew,
     stations: ColorTokens.stations,
+    fare: ColorTokens.fare,
+    bubbleWarn: ColorTokens.bubbleWarn,
+    bubbleFight: ColorTokens.bubbleFight,
+    bubbleThanks: ColorTokens.bubbleThanks,
+    shirts: ColorTokens.shirts,
   );
 
   final Color shams;
@@ -39,6 +49,11 @@ class WassalTokens extends ThemeExtension<WassalTokens> {
   final Color gold;
   final Color badgeNew;
   final List<StationColor> stations;
+  final Color fare;
+  final Color bubbleWarn;
+  final Color bubbleFight;
+  final Color bubbleThanks;
+  final ShirtColors shirts;
 
   @override
   WassalTokens copyWith({
@@ -51,6 +66,11 @@ class WassalTokens extends ThemeExtension<WassalTokens> {
     Color? gold,
     Color? badgeNew,
     List<StationColor>? stations,
+    Color? fare,
+    Color? bubbleWarn,
+    Color? bubbleFight,
+    Color? bubbleThanks,
+    ShirtColors? shirts,
   }) => WassalTokens(
     shams: shams ?? this.shams,
     hibr: hibr ?? this.hibr,
@@ -61,6 +81,11 @@ class WassalTokens extends ThemeExtension<WassalTokens> {
     gold: gold ?? this.gold,
     badgeNew: badgeNew ?? this.badgeNew,
     stations: stations ?? this.stations,
+    fare: fare ?? this.fare,
+    bubbleWarn: bubbleWarn ?? this.bubbleWarn,
+    bubbleFight: bubbleFight ?? this.bubbleFight,
+    bubbleThanks: bubbleThanks ?? this.bubbleThanks,
+    shirts: shirts ?? this.shirts,
   );
 
   /// The app has a single theme (FR-009), so there is nothing to blend.

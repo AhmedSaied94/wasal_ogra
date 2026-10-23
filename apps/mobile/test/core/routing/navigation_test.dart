@@ -6,6 +6,7 @@ import 'package:wassal/core/theme/components/wassal_bottom_bar.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
+import '../../helpers/trip.dart';
 
 const _onboarding = {'onboardingIntro', 'onboardingName'};
 
@@ -21,7 +22,13 @@ void main() {
         await pumpWassalApp(tester);
         if (route!.tab != Section.home) await tapTab(tester, route.tab);
         for (final step in route.links) {
-          await tapLink(tester, step);
+          // The trip has no link: playing it to the end leads to the
+          // result.
+          if (step == RouteNames.result) {
+            await finishTrip(tester);
+          } else {
+            await tapLink(tester, step);
+          }
         }
         expect(currentLocation(tester), d.location);
       });

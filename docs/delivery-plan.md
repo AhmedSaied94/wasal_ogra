@@ -220,9 +220,15 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 - **Resolve:**
   - mobile §24.6: choose the Rive runtime and confirm its licensing;
   - mobile §24.4: design the UI side of the resume policy.
-- **Handed over from M01** (research R9): `Revive` is refused with `command_limit` once a trip has
+- ~~**Handed over from M01** (research R9): `Revive` is refused with `command_limit` once a trip has
   1,200 accepted commands, while `Abandon` is always accepted. Hide the revive offer at the cap
-  (`TripState.commandsAccepted`), so no ad or booster is spent on a refused revive.
+  (`TripState.commandsAccepted`), so no ad or booster is spent on a refused revive.~~ Done in M02:
+  the failure card offers no revive at the cap (`fail_summary.dart`).
+- **Resolved in M02:** mobile §24.6 (research R1) and the UI side of mobile §24.4 (research R8).
+  The hand-overs it took: M05's (starts, results, boosters and revives through the economy, one
+  request id per intent, the rebuild at launch), M04's (trips and speech pools through
+  `contentSourceProvider`, the active version recorded at the start) and M03's pause control, which
+  constitution 1.4.0 places in the top bar.
 - **Done when:**
   - A trip from the bundled pack plays from start to finish with no network.
   - The minimum sizes pass in RTL goldens.
@@ -265,6 +271,13 @@ If a feature changes the Shared Contract Glossary (§3), it edits both architect
 | `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا» |
 
 - **Resolve:** nothing open in the architecture docs.
+- **Handed over from M02** (research "Handed to later features"):
+  - M07: a trip layout for screens under 744 pt in which faces keep their 50/80 pt minimums, with
+    goldens at 360×640. It ends M02's approved exception to constitution XI (Complexity Tracking in
+    `specs/008-m02-trip-screen/plan.md`). M07 also reuses بلية's hint bubble and pointer for the
+    tutorial.
+  - M08: the result screen replaces M02's placeholder and reads the `TripResult` from the route's
+    `extra` (or the economy's `lastResult`); Home replaces the playtest trip list.
 - **Done when:**
   - From first open, the first trip starts in under 20 s.
   - The five tutorial trips, home, results, line progress, vehicle purchase and apartment items all
@@ -428,17 +441,24 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     report); a 50-trip pack's solver stage fits in 30 minutes on staging. Gives B04 its real
     solver stage (B04's T107 follows its owner step 4), and B08 `solve`, the score and
     `replay_untrusted`.
-- [ ] Step 4: Content and the local economy
+- [x] Step 4: Content and the local economy
   - [x] `006-m04-content-loader` (merged in #7, 2026-10-21). Decided in its clarifications: the app
     becomes 1.0.0 (`1.0.0+2`); downloads are in M04, not M06; staging and prod bundle only the newest
     pack in `content/source/`, and dev bundles the sample. Constitution 1.2.0 (amended 2026-10-21)
     allows plain HTTP in dev builds only, to the developer's own machine.
-  - [ ] `007-m05-local-economy`. Built on 2026-10-22, open as #8. Decided in its clarifications: every start
+  - [x] `007-m05-local-economy` (merged in #8, 2026-10-22). Decided in its clarifications: every start
     costs a liter, replays included (resolves mobile §24.5); trusted time counts with the phone's
     uptime, so clock changes while it stays on do nothing (constitution 1.3.0, amended 2026-10-22,
     clarifies Principle VI); the database is left out of device backup until account linking.
 - [ ] Step 5: The first playable trip
-  - [ ] `008-m02-trip-screen`
+  - [ ] `008-m02-trip-screen`. Built on 2026-10-22, open as #9. Decided in its clarifications: a launch with an
+    unfinished trip opens that trip, paused, instead of Home; the revive costs BONAT at the catalog
+    price (the ad revive is M11's); بلية's hints follow `trip_hints_mode_<line_id>`. Resolved mobile
+    §24.6 (`rive 0.14` drawn in Flame with `Factory.flutter`, research R1) and the UI side of §24.4
+    (research R8). Constitution 1.4.0 (amended 2026-10-22) places M03's pause control in the top bar
+    and makes over-change silent during a trip. 58 of the 60 parity fixtures play through the
+    controls. The character file is in (2026-10-23). Still to do: naming the Rive plan it was exported from
+    (T059), the A06 run (T065).
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
   - [ ] `010-b03-ledger-sync`

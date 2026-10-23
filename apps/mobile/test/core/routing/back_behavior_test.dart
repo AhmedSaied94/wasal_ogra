@@ -1,8 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/game.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/routing/placeholder_screen.dart';
-import 'package:wassal/core/routing/trip_pause_overlay.dart';
+import 'package:wassal/features/trip/presentation/cards/pause_card.dart';
+import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
+import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
+import 'package:wassal/features/trip/presentation/trip_screen.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
@@ -82,11 +85,11 @@ void main() {
     testWidgets('back opens the pause; back again closes it', (tester) async {
       await openTrip(tester);
       await pressBack(tester);
-      expect(find.byType(TripPauseOverlay), findsOneWidget);
+      expect(find.byType(PauseCard), findsOneWidget);
       expect(currentLocation(tester), '/trip/line_hay.01');
 
       await pressBack(tester);
-      expect(find.byType(TripPauseOverlay), findsNothing);
+      expect(find.byType(PauseCard), findsNothing);
       expect(currentLocation(tester), '/trip/line_hay.01');
       expect(exits, 0);
     });
@@ -96,7 +99,7 @@ void main() {
       await pressBack(tester);
       await tester.tap(find.text('كمّل المشوار'));
       await tester.pumpAndSettle();
-      expect(find.byType(TripPauseOverlay), findsNothing);
+      expect(find.byType(PauseCard), findsNothing);
       expect(currentLocation(tester), '/trip/line_hay.01');
     });
 
@@ -105,7 +108,7 @@ void main() {
       await pressBack(tester);
       await tester.tap(find.text('ارجع الموقف'));
       await tester.pumpAndSettle();
-      expect(find.byType(TripPauseOverlay), findsNothing);
+      expect(find.byType(PauseCard), findsNothing);
       expect(currentLocation(tester), '/home');
     });
 
@@ -114,19 +117,31 @@ void main() {
           '(${surface.name}, constitution XI)', (tester) async {
         await openTrip(tester, surface: surface);
         expect(find.byTooltip('رجوع'), findsNothing);
+        // The scene's own items (passengers), the pause button and
+        // internal builds' debug icon are XI's exemptions; every other
+        // control is in the bottom third.
+        final scene = tester.getRect(find.byType(GameWidget<TripGame>));
+        final pause = tester.getRect(find.byKey(TripTopBar.pauseKey));
+        final debug = tester.getRect(find.byKey(TripTopBar.debugKey));
+        expect(pause.top, lessThan(surface.size.height / 3));
         final tappables = find.descendant(
-          of: find.byType(PlaceholderScreen),
+          of: find.byType(TripScreen),
           matching: find.byWidgetPredicate(
-            (w) =>
-                (w is GestureDetector && w.onTap != null) ||
-                w is IconButton ||
-                w is InkWell,
+            (w) => w is GestureDetector && w.onTap != null,
           ),
         );
         expect(tappables, findsWidgets);
         for (final element in tappables.evaluate()) {
-          final top = tester.getRect(find.byWidget(element.widget)).top;
-          expect(top, greaterThanOrEqualTo(surface.size.height * 2 / 3));
+          final rect = tester.getRect(find.byWidget(element.widget));
+          if (rect == pause || rect == debug) continue;
+          if (scene.contains(rect.center) && rect.bottom <= scene.bottom) {
+            continue;
+          }
+          expect(
+            rect.top,
+            greaterThanOrEqualTo(surface.size.height * 2 / 3),
+            reason: '$rect',
+          );
         }
       });
     }

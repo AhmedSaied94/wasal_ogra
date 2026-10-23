@@ -37,7 +37,7 @@ The backend (see [`architecture-backend.md`](./architecture-backend.md)) is auth
 | Field | Value |
 | --- | --- |
 | Language/Version | Dart 3.x, Flutter stable channel. Exact version pinned at kickoff with FVM (`.fvmrc`). |
-| Primary dependencies | `flame` (trip scene), `rive` (character animation), `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio` |
+| Primary dependencies | `flame` (trip scene), `rive` (character animation, 0.14 with `rive_native`) drawn in the scene by `flame_rive`, `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio`. Tests add `flame_test` (M02). |
 | Storage | Local SQLite via `drift` (game state, ledger, sync queue, content cache). Secure storage for auth tokens. Bundled assets for the initial content pack. |
 | Testing | `test` for the pure-Dart engine, `flutter_test` + golden tests for widgets, `integration_test` for end-to-end trip flows, shared JSON fixtures for engine ↔ solver parity |
 | Target platform | Android first (minSdk 24, targetSdk 36), iOS second (iOS 15.0). Portrait only. Decided in M03: `specs/001-m03-app-shell/research.md` R1. |
@@ -393,14 +393,14 @@ Per line, from Remote Config (§14.3): `trip_hop_ms_<line_id>` (1300 / 1100 / 90
 
 | Layer | Technology | Content |
 | --- | --- | --- |
-| Scene | Flame `GameWidget`, logical size 390×470, scaled to fit (as in the prototype) | cabin background, windows with parallax street, benches, passengers, money tokens, driver's hand, shake effects |
-| Characters | Rive artboard per `skin`, state machine inputs: `mood` (0 calm → 3 angry), `talking` (bool), `asleep` (bool), `headphones_on` (bool), `alight` (trigger) | driven from engine state each step |
-| Text overlays | Flutter widgets positioned from scene coordinates | speech bubbles, dispute popover, ledger badges (better Arabic shaping and accessibility than in-canvas text) |
-| HUD & dashboard | Flutter widgets | top bar, station strip, hand, tray, boosters, «آخر كلام» log |
+| Scene | Flame `GameWidget` filling the scene band. Scene coordinates are screen points: one world unit is one logical point, with no fixed resolution, so no letterboxing and every minimum size is measured in points. One pure function, `SceneLayout`, gives every seat's rectangle, face, token and bubble anchors to the Flame components and the Flutter overlays alike (M02 [research R3](../specs/008-m02-trip-screen/research.md#r3-the-scene-its-coordinates-and-flames-role)). | cabin, windows with their street, benches, passengers, driver's hand, effects (shake, glints). Flame draws only; it handles no touch and draws no text. |
+| Characters | One Rive file (`assets/rive/passenger.riv`), one artboard instance per passenger, drawn by `flame_rive` with `Factory.flutter` (the only factory that works inside Flame and in Linux `flutter test`). States through data binding: view-model properties `mood` (0 calm → 3 angry), `talking`, `asleep`, `headphones`, `alight`, `shirt`, `accessory` ([contracts/rive-character.md](../specs/008-m02-trip-screen/contracts/rive-character.md)) | driven from the trip view each step; a stand-in drawing until the file exists |
+| Touch and text overlays | Flutter widgets in a `Stack` over the `GameWidget`, positioned from `SceneLayout` | passenger hit areas, money tokens with their amounts (moved by a `Flow`), dropped notes, choice answers, bubbles, ledger badges, hints, banners (Arabic shaping, semantics and test finders) |
+| HUD & dashboard | Flutter widgets | top bar, station strip, hand, tray, «حد معاه فكة؟», boosters, «آخر كلام» log |
 
 Rules from the UX doc that the renderer must enforce:
 
-- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt.
+- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt. Every minimum holds from 744 pt of screen height; below that only the faces shrink, until M07's short-screen layout (M02 [research R15](../specs/008-m02-trip-screen/research.md#r15-layout-screen-sizes-and-text-scale)).
 - At most 2 bubbles visible; others queue. Bubble duration ≥ `trip_bubble_min_ms_<line_id>`.
 - Bubbles are clamped inside the scene bounds; the tail points to the speaker.
 - Reduced-motion setting disables shake and bubble pop.
@@ -437,7 +437,8 @@ Global rules: back button top-right; Android system back on the trip route opens
 ## 10. State Management
 
 - Riverpod providers per feature; `AsyncNotifier` for anything backed by DB/API.
-- `TripController` owns one `TripEngine` instance, exposes `TripViewState` (a render-friendly projection), and forwards commands. It saves the trip's replay record (`TripEngine.replayRecord`) on every accepted command and every pause, and the replay record is the checkpoint: a killed app rebuilds the trip exactly where it was left with `TripEngine.rebuild`, paused, and fuel is untouched ([M01 research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244)).
+- `TripController` (M02, `lib/features/trip/application/`) owns one `TripEngine` instance, steps it at 33 ms from the frame clock, exposes a `TripModel` (its phase plus `TripView`, a render-friendly projection) and a stream of cues (sound, vibration, shake, words), and forwards commands. It saves the trip's replay record on every accepted command and every pause, and the replay record is the checkpoint: a killed app rebuilds the trip exactly where it was left with `TripEngine.rebuild`, paused, and fuel is untouched ([M01 research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244)).
+- The record lives in three drift tables of the app database, written only by `DriftTripRecords`: `trip_record` (one per start, keyed by the economy's start id), `trip_record_command` (append-only) and `trip_intent`, the outbox of economy calls that must survive a kill (a booster use is applied to the engine and written with its intent in one transaction, then charged, then the intent is deleted). See [M02 research R6, R7](../specs/008-m02-trip-screen/research.md#r6-the-trips-record-on-disk) and [contracts/trip-controller.md](../specs/008-m02-trip-screen/contracts/trip-controller.md).
 - Cross-feature state (wallet, fuel, entitlements, progression) lives in `core/economy` and `core/sync` providers, backed by drift streams.
 
 ---
@@ -700,9 +701,9 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 1. **Resolved in M03:** Android `minSdk` 24 and `targetSdk` 36; iOS 15.0. See [research R1](../specs/001-m03-app-shell/research.md#r1-minimum-platform-versions-resolves-mobile-241).
 2. **Resolved in M03:** the reference low-end Android device is a Samsung Galaxy A06 (4 GB RAM, Helio G85). See [research R14](../specs/001-m03-app-shell/research.md#r14-reference-device-and-cold-start-method-resolves-mobile-242-owner-decision-2026-10-18).
 3. AdMob mediation networks for Egypt and the Gulf.
-4. **Resolved in M01:** a trip killed mid-way resumes exactly where it was left, rebuilt from its replay record, and fuel is untouched. See [research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244).
+4. **Resolved in M01:** a trip killed mid-way resumes exactly where it was left, rebuilt from its replay record, and fuel is untouched. See [research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244). **UI side, M02:** at launch the boot screen opens the unfinished trip instead of Home, and the trip comes back paused with the pause card (or the failure card, or its result). See [M02 research R8](../specs/008-m02-trip-screen/research.md#r8-resuming-at-launch-the-ui-side-of-mobile-244).
 5. **Resolved in M05:** every trip start costs a liter, replays of completed trips included. See [research R20](../specs/007-m05-local-economy/research.md#r20-fuel-for-replays-resolves-mobile-245).
-6. Rive runtime choice and licensing for production (verify current Flutter runtime and terms at kickoff).
+6. **Resolved in M02:** `rive 0.14` with `rive_native`, drawn in Flame by `flame_rive` with `Factory.flutter`; the runtimes are MIT with no runtime fee, and exporting without a splash needs a paid editor seat. See [M02 research R1](../specs/008-m02-trip-screen/research.md#r1-the-character-runtime-and-its-license-resolves-mobile-246).
 
 ---
 

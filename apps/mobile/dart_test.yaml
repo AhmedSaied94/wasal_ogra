@@ -1,0 +1,5 @@
+tags:
+  # The owner's Rive character (specs/008-m02-trip-screen, T058): these
+  # tests fail until assets/rive/passenger.riv is committed (T059). Run the
+  # rest with `--exclude-tags rive`.
+  rive:

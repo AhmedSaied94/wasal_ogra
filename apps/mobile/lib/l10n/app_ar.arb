@@ -177,5 +177,943 @@
         "example": "12:30"
       }
     }
+  },
+  "tripTopBarTrip": "مشوار {number}",
+  "@tripTopBarTrip": {
+    "description": "Trip top bar: the trip's number within its line. The number is preformatted by NumberFormatter.",
+    "placeholders": {
+      "number": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripTopBarPause": "إيقاف",
+  "@tripTopBarPause": {
+    "description": "Trip top bar: screen-reader label of the pause button."
+  },
+  "tripTopBarReputation": "السمعة {value} من {max}",
+  "@tripTopBarReputation": {
+    "description": "Trip top bar: screen-reader label of the reputation meter. Both numbers are preformatted.",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "80"
+      },
+      "max": {
+        "type": "String",
+        "example": "100"
+      }
+    }
+  },
+  "tripStripCountdown": "المحطة الجاية بعد {countdown}",
+  "@tripStripCountdown": {
+    "description": "Trip station strip: screen-reader label of the next station's countdown. The countdown is preformatted (m:ss).",
+    "placeholders": {
+      "countdown": {
+        "type": "String",
+        "example": "0:12"
+      }
+    }
+  },
+  "tripStripStudent": "خصم للطلبة",
+  "@tripStripStudent": {
+    "description": "Trip station strip: screen-reader label of the student-card icon next to a fare."
+  },
+  "tripStripStation": "محطة {letter}، {name}، الأجرة {fare} جنيه",
+  "@tripStripStation": {
+    "description": "Trip station strip: screen-reader label of a station chip. The fare is preformatted.",
+    "placeholders": {
+      "letter": {
+        "type": "String",
+        "example": "أ"
+      },
+      "name": {
+        "type": "String",
+        "example": "المدرسة"
+      },
+      "fare": {
+        "type": "String",
+        "example": "7"
+      }
+    }
+  },
+  "tripStripStationNoName": "محطة {letter}، الأجرة {fare} جنيه",
+  "@tripStripStationNoName": {
+    "description": "Trip station strip: screen-reader label of a station chip whose name is unknown. The fare is preformatted.",
+    "placeholders": {
+      "letter": {
+        "type": "String",
+        "example": "أ"
+      },
+      "fare": {
+        "type": "String",
+        "example": "7"
+      }
+    }
+  },
+  "tripStripReached": "عدّينا محطة {letter}",
+  "@tripStripReached": {
+    "description": "Trip station strip: screen-reader label of a station already reached.",
+    "placeholders": {
+      "letter": {
+        "type": "String",
+        "example": "أ"
+      }
+    }
+  },
+  "tripStationLetter1": "أ",
+  "@tripStationLetter1": {
+    "description": "Trip: the first station's letter, shown with its color so color-blind players can tell stations apart."
+  },
+  "tripStationLetter2": "ب",
+  "@tripStationLetter2": {
+    "description": "Trip: the second station's letter."
+  },
+  "tripStationLetter3": "ج",
+  "@tripStationLetter3": {
+    "description": "Trip: the third station's letter."
+  },
+  "tripStationLetter4": "د",
+  "@tripStationLetter4": {
+    "description": "Trip: the fourth station's letter."
+  },
+  "tripHandLabel": "في إيدك",
+  "@tripHandLabel": {
+    "description": "Trip dashboard: the label of the slot holding the money in the driver's hand."
+  },
+  "tripHandEmpty": "فاضية",
+  "@tripHandEmpty": {
+    "description": "Trip dashboard: the hand slot when it holds nothing."
+  },
+  "tripHandSemantics": "في إيدك {amount} جنيه. اضغط عشان ترجّعهم الدرج.",
+  "@tripHandSemantics": {
+    "description": "Trip dashboard: screen-reader label of the hand slot holding money. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "15"
+      }
+    }
+  },
+  "tripHandEmptySemantics": "إيدك فاضية",
+  "@tripHandEmptySemantics": {
+    "description": "Trip dashboard: screen-reader label of the empty hand slot."
+  },
+  "tripTrayHalf": "نص",
+  "@tripTrayHalf": {
+    "description": "Trip dashboard: the label of the 50-piaster coin in the change drawer (half a pound)."
+  },
+  "tripTraySlot": "{amount} جنيه، معاك {count}",
+  "@tripTraySlot": {
+    "description": "Trip dashboard: screen-reader label of a drawer slot. Both numbers are preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "5"
+      },
+      "count": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripTrayEmptySlot": "{amount} جنيه، خلصت",
+  "@tripTrayEmptySlot": {
+    "description": "Trip dashboard: screen-reader label of an empty drawer slot. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "5"
+      }
+    }
+  },
+  "tripUndo": "رجّع",
+  "@tripUndo": {
+    "description": "Trip dashboard: the button that takes back the last throw, shown for one second after it."
+  },
+  "tripLookEffendi": "الأفندي",
+  "@tripLookEffendi": {
+    "description": "Trip: speaker label of a passenger in a suit."
+  },
+  "tripLookStudent": "الطالب",
+  "@tripLookStudent": {
+    "description": "Trip: speaker label of a passenger with a student's cap."
+  },
+  "tripLookWorker": "الصنايعي",
+  "@tripLookWorker": {
+    "description": "Trip: speaker label of a passenger in a blue work shirt."
+  },
+  "tripLookHajja": "الحاجة",
+  "@tripLookHajja": {
+    "description": "Trip: speaker label of an older woman in black with glasses."
+  },
+  "tripLookYoung": "الشاب",
+  "@tripLookYoung": {
+    "description": "Trip: speaker label of a young man in a red shirt and cap."
+  },
+  "tripLookPassenger": "راكب",
+  "@tripLookPassenger": {
+    "description": "Trip: neutral speaker label of a passenger whose look has no name."
+  },
+  "tripLookGroup": "الشلة",
+  "@tripLookGroup": {
+    "description": "Trip: speaker label of a passenger paying for a group."
+  },
+  "tripLogTitle": "آخر كلام",
+  "@tripLogTitle": {
+    "description": "Trip dashboard: the title of the last two lines said or received."
+  },
+  "tripLogSpeech": "{speaker}: {text}",
+  "@tripLogSpeech": {
+    "description": "Trip «آخر كلام»: a passenger's line, after their label.",
+    "placeholders": {
+      "speaker": {
+        "type": "String",
+        "example": "الأفندي"
+      },
+      "text": {
+        "type": "String",
+        "example": "الباقي يا أسطى!"
+      }
+    }
+  },
+  "tripLogSpeakerSlot": "{label} ({letter})",
+  "@tripLogSpeakerSlot": {
+    "description": "Trip: a speaker label with their station's letter, when two passengers aboard share the label.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "الأفندي"
+      },
+      "letter": {
+        "type": "String",
+        "example": "ب"
+      }
+    }
+  },
+  "tripLogFareArrived": "وصلك {amount} من {speaker}",
+  "@tripLogFareArrived": {
+    "description": "Trip «آخر كلام»: a fare reached the driver. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "50"
+      },
+      "speaker": {
+        "type": "String",
+        "example": "الشلة"
+      }
+    }
+  },
+  "tripLogBreakDone": "اتفكت الـ{amount}",
+  "@tripLogBreakDone": {
+    "description": "Trip «آخر كلام»: a passenger broke a note for the driver. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "50"
+      }
+    }
+  },
+  "tripLogDropped": "وقعت {amount} على الأرض",
+  "@tripLogDropped": {
+    "description": "Trip «آخر كلام»: money fell on the floor after a bump. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "tripLogLost": "ضاعت {amount}",
+  "@tripLogLost": {
+    "description": "Trip «آخر كلام»: money on the floor was not picked up in time. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "tripLogFareUp": "الأجرة بقت {amount}",
+  "@tripLogFareUp": {
+    "description": "Trip «آخر كلام»: the fare went up. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "8"
+      }
+    }
+  },
+  "tripRejectNoChange": "محدش معاه فكة للورقة دي",
+  "@tripRejectNoChange": {
+    "description": "Trip: said in the log's place when no passenger can break the chosen note."
+  },
+  "tripRejectBreakLimit": "خلصت مرات الفكة في المشوار ده",
+  "@tripRejectBreakLimit": {
+    "description": "Trip: said in the log's place when no breaks are left."
+  },
+  "tripRejectBoosterLimit": "المساعدة دي خلصت في المشوار ده",
+  "@tripRejectBoosterLimit": {
+    "description": "Trip: said in the log's place when a booster can't be used again this trip."
+  },
+  "tripRejectCommandLimit": "كفاية كده في المشوار ده",
+  "@tripRejectCommandLimit": {
+    "description": "Trip: said in the log's place when the trip's command limit is reached; only pause still works."
+  },
+  "tripNoFuelTitle": "البنزين خلص",
+  "@tripNoFuelTitle": {
+    "description": "Trip: title of the card shown when the tank is empty."
+  },
+  "tripNoFuelNext": "لتر جديد بعد {countdown}",
+  "@tripNoFuelNext": {
+    "description": "Trip no-fuel card: the time until the next free liter. The countdown is preformatted.",
+    "placeholders": {
+      "countdown": {
+        "type": "String",
+        "example": "12:30"
+      }
+    }
+  },
+  "tripNoFuelShop": "هات بنزين",
+  "@tripNoFuelShop": {
+    "description": "Trip no-fuel card: button to the fuel sheet."
+  },
+  "tripNoFuelHome": "ارجع الموقف",
+  "@tripNoFuelHome": {
+    "description": "Trip no-fuel card: button back to the stand (Home)."
+  },
+  "tripRetryStart": "ما عرفناش نبدأ المشوار.",
+  "@tripRetryStart": {
+    "description": "Trip: the start could not be saved on the device."
+  },
+  "tripRetryResult": "ما عرفناش نحفظ المشوار.",
+  "@tripRetryResult": {
+    "description": "Trip: the trip's result could not be saved on the device; nothing is lost."
+  },
+  "tripRetryPurchase": "ما عرفناش نكمّل الشرا.",
+  "@tripRetryPurchase": {
+    "description": "Trip: a booster purchase could not be saved on the device; nothing was charged twice."
+  },
+  "tripRetryRevive": "ما عرفناش نصالح الركاب.",
+  "@tripRetryRevive": {
+    "description": "Trip: a revive could not be saved on the device; nothing was charged twice."
+  },
+  "tripRetryAction": "حاول تاني",
+  "@tripRetryAction": {
+    "description": "Trip: button that tries the failed save again."
+  },
+  "tripRetryHome": "ارجع الموقف",
+  "@tripRetryHome": {
+    "description": "Trip: button back to the stand after the start failed to save."
+  },
+  "tripSeatFront": "الكرسي اللي قدّام",
+  "@tripSeatFront": {
+    "description": "Trip: screen-reader name of the seat next to the driver."
+  },
+  "tripSeatRowA": "الصف الأول",
+  "@tripSeatRowA": {
+    "description": "Trip: screen-reader name of the row right behind the driver."
+  },
+  "tripSeatRowB": "الصف التاني",
+  "@tripSeatRowB": {
+    "description": "Trip: screen-reader name of the second row."
+  },
+  "tripSeatRowC": "الصف التالت",
+  "@tripSeatRowC": {
+    "description": "Trip: screen-reader name of the third row."
+  },
+  "tripSeatRowD": "الصف الرابع",
+  "@tripSeatRowD": {
+    "description": "Trip: screen-reader name of the fourth row."
+  },
+  "tripSeatRight": "يمين",
+  "@tripSeatRight": {
+    "description": "Trip: screen-reader name of the right-hand seat of a row."
+  },
+  "tripSeatMiddle": "النص",
+  "@tripSeatMiddle": {
+    "description": "Trip: screen-reader name of the middle seat of a row."
+  },
+  "tripSeatLeft": "شمال",
+  "@tripSeatLeft": {
+    "description": "Trip: screen-reader name of the left-hand seat of a row."
+  },
+  "tripSeatAt": "{row} {side}",
+  "@tripSeatAt": {
+    "description": "Trip: screen-reader name of a seat, its row then its side.",
+    "placeholders": {
+      "row": {
+        "type": "String",
+        "example": "الصف الأول"
+      },
+      "side": {
+        "type": "String",
+        "example": "يمين"
+      }
+    }
+  },
+  "tripSemanticsPassenger": "{look}، {seat}، نازل محطة {letter}",
+  "@tripSemanticsPassenger": {
+    "description": "Trip: screen-reader label of a passenger. Says nothing about payment.",
+    "placeholders": {
+      "look": {
+        "type": "String",
+        "example": "الأفندي"
+      },
+      "seat": {
+        "type": "String",
+        "example": "الصف الأول يمين"
+      },
+      "letter": {
+        "type": "String",
+        "example": "ب"
+      }
+    }
+  },
+  "tripSemanticsPassengerNoStation": "{look}، {seat}",
+  "@tripSemanticsPassengerNoStation": {
+    "description": "Trip: screen-reader label of a passenger whose station is not on the strip.",
+    "placeholders": {
+      "look": {
+        "type": "String",
+        "example": "الأفندي"
+      },
+      "seat": {
+        "type": "String",
+        "example": "الصف الأول يمين"
+      }
+    }
+  },
+  "tripSemanticsEmptySeat": "{seat} فاضي",
+  "@tripSemanticsEmptySeat": {
+    "description": "Trip: screen-reader label of an empty seat.",
+    "placeholders": {
+      "seat": {
+        "type": "String",
+        "example": "الصف الأول يمين"
+      }
+    }
+  },
+  "tripTokenBlocked": "{amount} ؟",
+  "@tripTokenBlocked": {
+    "description": "Trip: a money token held up by a sleeping passenger or one with headphones. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "5"
+      }
+    }
+  },
+  "tripPauseRestart": "عيد المشوار",
+  "@tripPauseRestart": {
+    "description": "Trip pause card: start this trip again from the beginning; it costs a liter of fuel."
+  },
+  "tripPauseRestartCost": "{cost} بنزين",
+  "@tripPauseRestartCost": {
+    "description": "Trip pause card: the fuel the restart costs, under its button. The cost is preformatted with its minus sign.",
+    "placeholders": {
+      "cost": {
+        "type": "String",
+        "example": "−1"
+      }
+    }
+  },
+  "tripPauseRestartEmpty": "البنزين خلص",
+  "@tripPauseRestartEmpty": {
+    "description": "Trip pause card: under the restart button when the tank is empty, so it can't be used."
+  },
+  "tripPauseSound": "الصوت",
+  "@tripPauseSound": {
+    "description": "Trip pause card: switch for the trip's sound effects."
+  },
+  "tripPauseHaptics": "الاهتزاز",
+  "@tripPauseHaptics": {
+    "description": "Trip pause card: switch for the trip's vibration."
+  },
+  "tripClaimAccept": "ماشي",
+  "@tripClaimAccept": {
+    "description": "Under a passenger who says they paid: accept the claim."
+  },
+  "tripClaimInsist": "لأ، ما دفعتش!",
+  "@tripClaimInsist": {
+    "description": "Under a passenger who says they paid: insist they haven't."
+  },
+  "tripChangeRequestAgree": "فكّله",
+  "@tripChangeRequestAgree": {
+    "description": "Next to a passenger holding out a big note: break it for them from the drawer."
+  },
+  "tripChangeRequestDecline": "معلش",
+  "@tripChangeRequestDecline": {
+    "description": "Next to a passenger holding out a big note: decline to break it."
+  },
+  "tripDisputeTitle": "مين اللي دفع؟",
+  "@tripDisputeTitle": {
+    "description": "The payment dispute card: two passengers each say the other did not pay; the player picks who paid."
+  },
+  "tripDisputePaid": "{speaker} هو اللي دفع",
+  "@tripDisputePaid": {
+    "description": "The payment dispute card, screen reader: the face button that says this passenger paid. The speaker is a look label, maybe with a station letter.",
+    "placeholders": {
+      "speaker": {
+        "type": "String",
+        "example": "الأفندي (ب)"
+      }
+    }
+  },
+  "tripBannerFareUp": "الأجرة بقت {fare} بدل {old}",
+  "@tripBannerFareUp": {
+    "description": "The orange banner when the fare goes up mid-line. Both amounts are preformatted.",
+    "placeholders": {
+      "fare": {
+        "type": "String",
+        "example": "8"
+      },
+      "old": {
+        "type": "String",
+        "example": "7"
+      }
+    }
+  },
+  "tripPatchHere": "هنا",
+  "@tripPatchHere": {
+    "description": "On the star that replaces a passenger's station patch when they ask to get off here."
+  },
+  "tripSemanticsDropped": "{amount} على الأرض، دوس تلمّها",
+  "@tripSemanticsDropped": {
+    "description": "Screen reader: a note that fell on the floor after a bump, which a tap picks up. The amount is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "tripDisputeSide": "{speaker}، {seat}",
+  "@tripDisputeSide": {
+    "description": "The payment dispute card, screen reader: who a face is, by look label and seat.",
+    "placeholders": {
+      "speaker": {
+        "type": "String",
+        "example": "الصنايعي (أ)"
+      },
+      "seat": {
+        "type": "String",
+        "example": "الصف الأول يمين"
+      }
+    }
+  },
+  "tripBreakButton": "حد معاه فكة؟",
+  "@tripBreakButton": {
+    "description": "The yellow dashboard button: ask the passengers to break a note. Its count of breaks left shows on it."
+  },
+  "tripBreakCancel": "إلغاء",
+  "@tripBreakCancel": {
+    "description": "The same button while the player picks the note to break: cancel."
+  },
+  "tripBreakSemantics": "حد معاه فكة؟ باقي {count}",
+  "@tripBreakSemantics": {
+    "description": "Screen reader: the break button and how many breaks are left. The count is preformatted.",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "tripBreakPick": "اختار الورقة اللي تتفك",
+  "@tripBreakPick": {
+    "description": "In the hand's place while the player picks the note to break."
+  },
+  "tripBoosterChangeBag": "كيس فكة",
+  "@tripBoosterChangeBag": {
+    "description": "The change bag booster: coins for the drawer."
+  },
+  "tripBoosterWakeAll": "صحّي النايم",
+  "@tripBoosterWakeAll": {
+    "description": "The booster that wakes every sleeping passenger."
+  },
+  "tripBoosterLedgerPeek": "الدفتر",
+  "@tripBoosterLedgerPeek": {
+    "description": "The ledger booster: shows for a while who paid and who did not."
+  },
+  "tripBoosterTrafficJam": "زحمة",
+  "@tripBoosterTrafficJam": {
+    "description": "The traffic jam booster: more time before the next station."
+  },
+  "tripBoosterCount": "{booster}، معاك {count}",
+  "@tripBoosterCount": {
+    "description": "Screen reader: a booster slot with some left. Both values are preformatted.",
+    "placeholders": {
+      "booster": {
+        "type": "String",
+        "example": "كيس فكة"
+      },
+      "count": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "tripBoosterForSale": "{booster}، بـ{price} بونات",
+  "@tripBoosterForSale": {
+    "description": "Screen reader: a booster slot with none left, and its price in BONAT. The price is preformatted.",
+    "placeholders": {
+      "booster": {
+        "type": "String",
+        "example": "كيس فكة"
+      },
+      "price": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "tripBoosterUnavailable": "{booster}، مش متاح دلوقتي",
+  "@tripBoosterUnavailable": {
+    "description": "Screen reader: a booster slot that cannot be used now.",
+    "placeholders": {
+      "booster": {
+        "type": "String",
+        "example": "زحمة"
+      }
+    }
+  },
+  "tripBoosterCardPrice": "بـ{price} بونات",
+  "@tripBoosterCardPrice": {
+    "description": "The booster purchase card: its price in BONAT. Preformatted.",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "tripBoosterCardBalance": "معاك {bonat} بونات",
+  "@tripBoosterCardBalance": {
+    "description": "The booster purchase card: the player's BONAT. Preformatted.",
+    "placeholders": {
+      "bonat": {
+        "type": "String",
+        "example": "50"
+      }
+    }
+  },
+  "tripBoosterShort": "ناقصك {missing} بونات",
+  "@tripBoosterShort": {
+    "description": "The booster purchase card when the player lacks BONAT: how many are missing. Preformatted.",
+    "placeholders": {
+      "missing": {
+        "type": "String",
+        "example": "7"
+      }
+    }
+  },
+  "tripBoosterBuy": "اشتري واستعمل",
+  "@tripBoosterBuy": {
+    "description": "The booster purchase card: buy one and use it now."
+  },
+  "tripBoosterClose": "مش دلوقتي",
+  "@tripBoosterClose": {
+    "description": "The booster purchase card: close it and go on with the trip."
+  },
+  "tripLedgerPaid": "دافع",
+  "@tripLedgerPaid": {
+    "description": "A badge over a passenger while the ledger is open: they paid."
+  },
+  "tripLedgerUnpaid": "لسه",
+  "@tripLedgerUnpaid": {
+    "description": "A badge over a passenger while the ledger is open: they have not paid yet."
+  },
+  "tripHintSemantics": "بلية: {hint}",
+  "@tripHintSemantics": {
+    "description": "Screen reader: the apprentice Balya says a hint.",
+    "placeholders": {
+      "hint": {
+        "type": "String",
+        "example": "ده نايم"
+      }
+    }
+  },
+  "tripHintOwed": "يا أسطى، فيه حد لسه ليه باقي والمحطة قربت",
+  "@tripHintOwed": {
+    "description": "Balya's hint (always), said next to the passenger it is about."
+  },
+  "tripHintSleeper": "ده نايم: دوس عليه يصحى قبل ما تبعتله فلوس",
+  "@tripHintSleeper": {
+    "description": "Balya's hint (sleeper), said next to the passenger it is about."
+  },
+  "tripHintHeadphones": "لابس سمّاعات: نادي عليه مرتين",
+  "@tripHintHeadphones": {
+    "description": "Balya's hint (headphones), said next to the passenger it is about."
+  },
+  "tripHintHajja": "الحاجة إيدها بطيئة، الفلوس بتعدّي عليها على مهلها",
+  "@tripHintHajja": {
+    "description": "Balya's hint (hajja), said next to the passenger it is about."
+  },
+  "tripHintHurry": "ده مستعجل وصبره قليل، رجّعله باقيه بسرعة",
+  "@tripHintHurry": {
+    "description": "Balya's hint (hurry), said next to the passenger it is about."
+  },
+  "tripHintBigNote": "دفع بورقة كبيرة، جهّز فكة كتير",
+  "@tripHintBigNote": {
+    "description": "Balya's hint (big note), said next to the passenger it is about."
+  },
+  "tripHintStudent": "الطالب بيدفع نص أجرة",
+  "@tripHintStudent": {
+    "description": "Balya's hint (student), said next to the passenger it is about."
+  },
+  "tripHintGroupPayer": "ده دافع عن الشلة كلها، والباقي يرجعله هو",
+  "@tripHintGroupPayer": {
+    "description": "Balya's hint (group payer), said next to the passenger it is about."
+  },
+  "tripHintChatty": "ده رغاي، ركّز في الفلوس مش في الكلام",
+  "@tripHintChatty": {
+    "description": "Balya's hint (chatty), said next to the passenger it is about."
+  },
+  "tripHintFalseClaimer": "مش كل اللي يقول دفعت يبقى دفع، افتكر كويس",
+  "@tripHintFalseClaimer": {
+    "description": "Balya's hint (false claimer (general, points at nobody)), said next to the passenger it is about."
+  },
+  "tripHintHonest": "ده أمين، لو اديته زيادة هيرجعها",
+  "@tripHintHonest": {
+    "description": "Balya's hint (honest), said next to the passenger it is about."
+  },
+  "tripHintRegularCustomer": "زبون قديم، لو ظبطته هيسيبلك بقشيش",
+  "@tripHintRegularCustomer": {
+    "description": "Balya's hint (regular customer), said next to the passenger it is about."
+  },
+  "tripFailTitle": "المشوار باظ",
+  "@tripFailTitle": {
+    "description": "The failure card's title (ux-spec «فشل المشوار»)."
+  },
+  "tripFailCauses": "{first} و{second}",
+  "@tripFailCauses": {
+    "description": "The failure card's line with two causes, the bigger first.",
+    "placeholders": {
+      "first": {
+        "type": "String",
+        "example": "خناقتين"
+      },
+      "second": {
+        "type": "String",
+        "example": "راكب فاتته محطته"
+      }
+    }
+  },
+  "tripFailRevive": "صالح بـ{price} بون",
+  "@tripFailRevive": {
+    "description": "The failure card's BONAT revive: make it up with the passengers and go on from the same moment. Preformatted price.",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "20"
+      }
+    }
+  },
+  "tripCauseFight": "{count, plural, =1{خناقة} =2{خناقتين} few{{n} خناقات} other{{n} خناقة}}",
+  "@tripCauseFight": {
+    "description": "The failure card's cause line: fights, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripCauseFalseAccusation": "{count, plural, =1{ظلمت راكب دافع} =2{ظلمت راكبين دافعين} few{ظلمت {n} ركاب دافعين} other{ظلمت {n} راكب دافع}}",
+  "@tripCauseFalseAccusation": {
+    "description": "The failure card's cause line: honest passengers accused of not paying, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripCauseMissedStop": "{count, plural, =1{راكب فاتته محطته} =2{راكبين فاتتهم محطتهم} few{{n} ركاب فاتتهم محطتهم} other{{n} راكب فاتتهم محطتهم}}",
+  "@tripCauseMissedStop": {
+    "description": "The failure card's cause line: passengers carried past their stop, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripCauseShortChange": "{count, plural, =1{باقي ناقص مرة} =2{باقي ناقص مرتين} few{باقي ناقص {n} مرات} other{باقي ناقص {n} مرة}}",
+  "@tripCauseShortChange": {
+    "description": "The failure card's cause line: change given short, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripCauseImpatient": "{count, plural, =1{راكب زهق} =2{راكبين زهقوا} few{{n} ركاب زهقوا} other{{n} راكب زهقوا}}",
+  "@tripCauseImpatient": {
+    "description": "The failure card's cause line: passengers who ran out of patience, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripCauseChangeRequestDeclined": "{count, plural, =1{رفضت تفكّ لراكب} =2{رفضت تفكّ لراكبين} few{رفضت تفكّ لـ{n} ركاب} other{رفضت تفكّ لـ{n} راكب}}",
+  "@tripCauseChangeRequestDeclined": {
+    "description": "The failure card's cause line: change requests turned down, counted. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "3"
+      }
+    }
+  },
+  "tripStoryNoFights": "أي خناقة والمشوار يتعاد",
+  "@tripStoryNoFights": {
+    "description": "A story trip's condition, under the station strip for the whole trip (no_fights_required)."
+  },
+  "tripPlaytestTrips": "مشاوير التجربة",
+  "@tripPlaytestTrips": {
+    "description": "Internal builds: the heading of Home's list of every trip in the active pack."
+  },
+  "tripDebugOpen": "لوحة التجربة",
+  "@tripDebugOpen": {
+    "description": "Internal builds: the top bar's debug icon, read by screen readers. It pauses the trip."
+  },
+  "tripDebugTitle": "لوحة التجربة",
+  "@tripDebugTitle": {
+    "description": "Internal builds: the debug panel's title."
+  },
+  "tripDebugTrip": "المشوار",
+  "@tripDebugTrip": {
+    "description": "Internal builds: the debug panel's trip id row."
+  },
+  "tripDebugRev": "النسخة",
+  "@tripDebugRev": {
+    "description": "Internal builds: the debug panel's trip revision row."
+  },
+  "tripDebugSeed": "البذرة",
+  "@tripDebugSeed": {
+    "description": "Internal builds: the debug panel's random seed row."
+  },
+  "tripDebugClock": "الساعة",
+  "@tripDebugClock": {
+    "description": "Internal builds: the debug panel's engine clock row."
+  },
+  "tripDebugStatus": "الحالة",
+  "@tripDebugStatus": {
+    "description": "Internal builds: the debug panel's engine status row."
+  },
+  "tripDebugReputation": "السمعة",
+  "@tripDebugReputation": {
+    "description": "Internal builds: the debug panel's reputation row."
+  },
+  "tripDebugCounters": "العدادات",
+  "@tripDebugCounters": {
+    "description": "Internal builds: the debug panel's counters row."
+  },
+  "tripDebugCopy": "انسخ سجل الإعادة",
+  "@tripDebugCopy": {
+    "description": "Internal builds: copies the trip's replay record (JSON) to the clipboard."
+  },
+  "tripDebugCopied": "اتنسخ",
+  "@tripDebugCopied": {
+    "description": "Internal builds: said once the replay record is on the clipboard."
+  },
+  "tripDebugClose": "اقفل",
+  "@tripDebugClose": {
+    "description": "Internal builds: closes the debug panel and resumes the trip."
+  },
+  "tripPlaytestFinished": "وصلنا",
+  "@tripPlaytestFinished": {
+    "description": "The result placeholder (until M08): the trip finished."
+  },
+  "tripPlaytestFailed": "المشوار باظ",
+  "@tripPlaytestFailed": {
+    "description": "The result placeholder (until M08): the trip failed."
+  },
+  "tripPlaytestAbandoned": "سبت المشوار",
+  "@tripPlaytestAbandoned": {
+    "description": "The result placeholder (until M08): the trip was abandoned."
+  },
+  "tripPlaytestStars": "النجوم: {stars}",
+  "@tripPlaytestStars": {
+    "description": "The result placeholder: the stars earned, preformatted.",
+    "placeholders": {
+      "stars": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "tripPlaytestReached": "وصلت",
+  "@tripPlaytestReached": {
+    "description": "The result placeholder: the first star's condition, reaching the last station."
+  },
+  "tripPlaytestNoFights": "من غير خناقات",
+  "@tripPlaytestNoFights": {
+    "description": "The result placeholder: the second star's condition, no fights."
+  },
+  "tripPlaytestNoMistakes": "كل باقي صح من أول مرة",
+  "@tripPlaytestNoMistakes": {
+    "description": "The result placeholder: the third star's condition, every change right the first time."
+  },
+  "tripPlaytestMet": "{condition}: اتحقق",
+  "@tripPlaytestMet": {
+    "description": "The result placeholder: a star condition that was met, read by screen readers.",
+    "placeholders": {
+      "condition": {
+        "type": "String",
+        "example": "وصلت"
+      }
+    }
+  },
+  "tripPlaytestNotMet": "{condition}: ما اتحققش",
+  "@tripPlaytestNotMet": {
+    "description": "The result placeholder: a star condition that was not met, read by screen readers.",
+    "placeholders": {
+      "condition": {
+        "type": "String",
+        "example": "وصلت"
+      }
+    }
+  },
+  "tripPlaytestPay": "القبض: {pay} جنيه",
+  "@tripPlaytestPay": {
+    "description": "The result placeholder: the JENEHAT earned, preformatted.",
+    "placeholders": {
+      "pay": {
+        "type": "String",
+        "example": "85"
+      }
+    }
   }
 }

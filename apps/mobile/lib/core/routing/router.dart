@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:trip_engine/trip_engine.dart' show TripResult;
+import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
@@ -8,9 +10,11 @@ import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/routing/sheet_page.dart';
 import 'package:wassal/core/routing/shell_scaffold.dart';
 import 'package:wassal/core/routing/sticker_page.dart';
-import 'package:wassal/core/routing/trip_pause_overlay.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
+import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
+import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
+import 'package:wassal/features/trip/presentation/trip_screen.dart';
 
 part 'router.g.dart';
 
@@ -27,6 +31,8 @@ part 'router.g.dart';
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+  // The playtest tools are on dev and staging only (research R21).
+  final playtest = ref.read(flavorProvider) != Flavor.prod;
 
   GoRoute route(
     String name, {
@@ -45,7 +51,8 @@ GoRouter router(Ref ref) {
           ? null
           : (_, state) =>
                 d.acceptsParams(state.pathParameters) ? null : '/home',
-      pageBuilder: (context, state) => _page(context, state, d),
+      pageBuilder: (context, state) =>
+          _page(context, state, d, playtest: playtest),
       routes: routes,
     );
   }
@@ -115,10 +122,38 @@ GoRouter router(Ref ref) {
   return router;
 }
 
-Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
-  final screen = d.name == RouteNames.settings
-      ? const SettingsScreen()
-      : PlaceholderScreen(destination: d, params: state.pathParameters);
+Page<void> _page(
+  BuildContext context,
+  GoRouterState state,
+  Destination d, {
+  required bool playtest,
+}) {
+  final screen = switch (d.name) {
+    RouteNames.settings => const SettingsScreen(),
+    // Keyed: another trip in the same page is another screen, with its own
+    // controller.
+    RouteNames.trip => TripScreen(
+      key: ValueKey(state.pathParameters['tripId']),
+      tripId: state.pathParameters['tripId']!,
+    ),
+    RouteNames.home when playtest => PlaceholderScreen(
+      destination: d,
+      params: state.pathParameters,
+      extra: const TripList(),
+    ),
+    // M08 replaces it.
+    RouteNames.result => PlaceholderScreen(
+      destination: d,
+      params: state.pathParameters,
+      extra: ResultSummary(
+        result: switch (state.extra) {
+          final TripResult result => result,
+          _ => null,
+        },
+      ),
+    ),
+    _ => PlaceholderScreen(destination: d, params: state.pathParameters),
+  };
   return switch (d.presentation) {
     Presentation.tab => NoTransitionPage(
       key: state.pageKey,
@@ -137,7 +172,7 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       key: state.pageKey,
       name: d.name,
       reduceMotion: MediaQuery.disableAnimationsOf(context),
-      child: d.name == RouteNames.trip ? TripBackGuard(child: screen) : screen,
+      child: screen,
     ),
   };
 }

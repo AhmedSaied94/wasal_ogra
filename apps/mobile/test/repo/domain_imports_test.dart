@@ -24,6 +24,19 @@ bool _economyAllowed(String uri) =>
     uri.startsWith('package:wassal/core/economy/domain/') ||
     _sameFolder(uri);
 
+/// The trip screen's domain (specs/008-m02-trip-screen/contracts/
+/// trip-records.md "Guards"): the projection, the layout and the cues, over
+/// the engine, the content domain and the glossary's identifiers (research
+/// R23 converts between the two LineId enums).
+bool _tripAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'dart:math' ||
+    uri.startsWith('package:trip_engine/') ||
+    uri == 'package:wassal/core/glossary/ids.dart' ||
+    uri.startsWith('package:wassal/core/content/domain/') ||
+    uri.startsWith('package:wassal/features/trip/domain/') ||
+    _sameFolder(uri);
+
 /// A file of the same folder, by relative path.
 bool _sameFolder(String uri) =>
     !uri.contains(':') && !uri.contains('/') && !uri.contains('..');
@@ -31,6 +44,7 @@ bool _sameFolder(String uri) =>
 const _domains = <String, bool Function(String)>{
   'lib/core/content/domain': _contentAllowed,
   'lib/core/economy/domain': _economyAllowed,
+  'lib/features/trip/domain': _tripAllowed,
 };
 
 final _directive = RegExp(
@@ -129,6 +143,35 @@ void main() {
       'package:flutter/foundation.dart',
       'dart:io',
       'dart:math',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
+  });
+
+  test('the trip scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _tripAllowed);
+    for (final ok in [
+      'trip_view.dart',
+      'package:wassal/features/trip/domain/trip_view.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:trip_engine/trip_engine.dart',
+      'package:content_models/content_models.dart',
+      'package:wassal/core/glossary/ids.dart',
+      'dart:collection',
+      'dart:math',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/widgets.dart',
+      'package:flame/game.dart',
+      'package:drift/drift.dart',
+      'package:wassal/features/trip/application/trip_controller.dart',
+      'package:wassal/core/l10n/number_formatter.dart',
+      '../application/trip_controller.dart',
+      'dart:ui',
+      'dart:io',
     ]) {
       expect(scan(bad), hasLength(1), reason: bad);
     }

@@ -1,5 +1,6 @@
-// The app database's tables, schema version 1
-// (specs/007-m05-local-economy/data-model.md "Tables"). Every column is
+// The app database's tables, schema version 2: the economy's
+// (specs/007-m05-local-economy/data-model.md "Tables") and, since v2, the
+// trip's records (specs/008-m02-trip-screen/data-model.md). Every column is
 // INTEGER or TEXT: a guard forbids REAL (constitution II). Single-row tables
 // hold `id = 1` only.
 //
@@ -191,4 +192,60 @@ class ClockAnchorTable extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+/// One trip start that hasn't recorded its result yet (M02). Written only by
+/// `DriftTripRecords`.
+@DataClassName('TripRecordRow')
+class TripRecordTable extends Table {
+  @override
+  String get tableName => 'trip_record';
+
+  /// The economy's request id for the start (UUIDv7).
+  TextColumn get startTxn => text()();
+  TextColumn get tripId => text()();
+  IntColumn get contentVersion => integer()();
+
+  /// Canonical JSON, so a pack switch can't change the trip.
+  TextColumn get definitionJson => text()();
+  IntColumn get seed => integer()();
+  TextColumn get paramsJson => text()();
+
+  /// The last saved clock.
+  IntColumn get tMs => integer()();
+  IntColumn get createdAtMs => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {startTxn};
+}
+
+/// A record's accepted commands, append-only, in acceptance order.
+@DataClassName('TripRecordCommandRow')
+class TripRecordCommandTable extends Table {
+  @override
+  String get tableName => 'trip_record_command';
+
+  TextColumn get startTxn => text()();
+  IntColumn get seq => integer()();
+
+  /// The wire form, `[t_ms, "Name", …args]`.
+  TextColumn get commandJson => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {startTxn, seq};
+}
+
+/// An economy call that follows an engine command and must survive a kill.
+@DataClassName('TripIntentRow')
+class TripIntentTable extends Table {
+  @override
+  String get tableName => 'trip_intent';
+
+  TextColumn get requestTxn => text()();
+  TextColumn get startTxn => text()();
+  TextColumn get kind => text().check(kind.isIn(const ['use_booster']))();
+  TextColumn get booster => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {requestTxn};
 }

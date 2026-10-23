@@ -12,33 +12,44 @@ import '../../helpers/economy.dart';
 
 // Schema upgrades are all or nothing (FR-003): a step that fails or is
 // killed leaves the file at the version before it, whole, and that
-// version's code opens it. drift_schemas/ and test/drift/ cover v1's shape.
+// version's code opens it. drift_schemas/ and test/drift/ cover each
+// version's shape. These run one and two versions past the current one.
 
-/// A later app, with one step to v2.
-final class _V2 extends AppDatabase {
-  _V2(super.e, this._step);
+/// The app's schema version.
+final _current = AppDatabase(NativeDatabase.memory()).schemaVersion;
+
+/// A later app, with one step past the current version.
+final class _Next extends AppDatabase {
+  _Next(super.e, this._step);
 
   final Future<void> Function(Migrator m) _step;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => _current + 1;
 
   @override
-  Map<int, UpgradeStep> get upgradeSteps => {2: _step};
+  Map<int, UpgradeStep> get upgradeSteps => {
+    ...super.upgradeSteps,
+    _current + 1: _step,
+  };
 }
 
 /// Two versions later, one step each.
-final class _V3 extends AppDatabase {
-  _V3(super.e, this._toV2, this._toV3);
+final class _NextTwo extends AppDatabase {
+  _NextTwo(super.e, this._toNext, this._toLater);
 
-  final Future<void> Function(Migrator m) _toV2;
-  final Future<void> Function(Migrator m) _toV3;
-
-  @override
-  int get schemaVersion => 3;
+  final Future<void> Function(Migrator m) _toNext;
+  final Future<void> Function(Migrator m) _toLater;
 
   @override
-  Map<int, UpgradeStep> get upgradeSteps => {2: _toV2, 3: _toV3};
+  int get schemaVersion => _current + 2;
+
+  @override
+  Map<int, UpgradeStep> get upgradeSteps => {
+    ...super.upgradeSteps,
+    _current + 1: _toNext,
+    _current + 2: _toLater,
+  };
 }
 
 /// The process dying mid-step.
@@ -46,12 +57,12 @@ final class _Kill implements Exception {
   const _Kill();
 }
 
-/// A later app with no step to v2.
-final class _V2WithoutStep extends AppDatabase {
-  _V2WithoutStep(super.e);
+/// A later app with no step to its version.
+final class _NextWithoutStep extends AppDatabase {
+  _NextWithoutStep(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => _current + 1;
 }
 
 final _first = FirstOpen(
@@ -62,8 +73,8 @@ final _first = FirstOpen(
 QueryExecutor _connect(File file) =>
     NativeDatabase(file, setup: configureConnection);
 
-/// A v1 file with an economy in it, and its rows.
-Future<(File, Map<String, List<Map<String, Object?>>>)> _v1File() async {
+/// A file at the current version with an economy in it, and its rows.
+Future<(File, Map<String, List<Map<String, Object?>>>)> _currentFile() async {
   final file = tempDbFile();
   final economy = await testEconomy(
     dbFile: file,
@@ -97,37 +108,40 @@ Future<bool> _hasTable(AppDatabase db, String name) async =>
             .get())
         .isNotEmpty;
 
-/// The v1 code opens [file]; its rows and version are as they were.
-Future<void> _expectWholeV1(
+/// The current code opens [file]; its rows and version are as they were.
+Future<void> _expectWhole(
   File file,
   Map<String, List<Map<String, Object?>>> rows,
 ) async {
   final db = AppDatabase(_connect(file), firstOpen: () => _first);
   addTearDown(db.close);
-  expect(await _userVersion(db), 1);
+  expect(await _userVersion(db), _current);
   expect(await _hasTable(db, 'extra'), isFalse);
   expect(await dumpTables(db), rows);
   await db.close();
 }
 
 void main() {
-  test('a step that fails leaves v1 whole, and v1 opens it', () async {
-    final (file, rows) = await _v1File();
-    final db = _V2(_connect(file), (m) async {
-      await m.database.customStatement('CREATE TABLE extra (id INTEGER)');
-      await m.database.customStatement('UPDATE wallet SET jenehat = 999');
-      throw StateError('the step failed');
-    });
-    addTearDown(db.close);
-    await expectLater(db.customSelect('SELECT 1').get(), throwsStateError);
-    await db.close();
+  test(
+    'a step that fails leaves the file whole, and its version opens it',
+    () async {
+      final (file, rows) = await _currentFile();
+      final db = _Next(_connect(file), (m) async {
+        await m.database.customStatement('CREATE TABLE extra (id INTEGER)');
+        await m.database.customStatement('UPDATE wallet SET jenehat = 999');
+        throw StateError('the step failed');
+      });
+      addTearDown(db.close);
+      await expectLater(db.customSelect('SELECT 1').get(), throwsStateError);
+      await db.close();
 
-    await _expectWholeV1(file, rows);
-  });
+      await _expectWhole(file, rows);
+    },
+  );
 
   test('a kill in a later step keeps the steps before it', () async {
-    final (file, rows) = await _v1File();
-    final db = _V3(
+    final (file, rows) = await _currentFile();
+    final db = _NextTwo(
       _connect(file),
       (m) async {
         await m.database.customStatement('CREATE TABLE extra (id INTEGER)');
@@ -141,33 +155,39 @@ void main() {
     await expectLater(db.customSelect('SELECT 1').get(), throwsA(isA<_Kill>()));
     await db.close();
 
-    // At v2, whole: the v2 code opens it with nothing to do.
-    final v2 = _V2(_connect(file), (_) => fail('v2 is already applied'));
-    addTearDown(v2.close);
-    expect(await _userVersion(v2), 2);
-    expect(await _hasTable(v2, 'extra'), isTrue);
-    expect(await _hasTable(v2, 'later'), isFalse);
-    expect(await dumpTables(v2), rows);
+    // One version on, whole: that version's code opens it with nothing to do.
+    final next = _Next(
+      _connect(file),
+      (_) => fail('the step is already applied'),
+    );
+    addTearDown(next.close);
+    expect(await _userVersion(next), _current + 1);
+    expect(await _hasTable(next, 'extra'), isTrue);
+    expect(await _hasTable(next, 'later'), isFalse);
+    expect(await dumpTables(next), rows);
   });
 
   test('a step that succeeds commits with its version', () async {
-    final (file, rows) = await _v1File();
-    final db = _V2(_connect(file), (m) async {
+    final (file, rows) = await _currentFile();
+    final db = _Next(_connect(file), (m) async {
       await m.database.customStatement('CREATE TABLE extra (id INTEGER)');
     });
     addTearDown(db.close);
-    expect(await _userVersion(db), 2);
+    expect(await _userVersion(db), _current + 1);
     expect(await _hasTable(db, 'extra'), isTrue);
     expect(await dumpTables(db), rows);
   });
 
-  test('a version with no step refuses to open, and leaves v1 whole', () async {
-    final (file, rows) = await _v1File();
-    final db = _V2WithoutStep(_connect(file));
-    addTearDown(db.close);
-    await expectLater(db.customSelect('SELECT 1').get(), throwsStateError);
-    await db.close();
+  test(
+    'a version with no step refuses to open, and leaves the file whole',
+    () async {
+      final (file, rows) = await _currentFile();
+      final db = _NextWithoutStep(_connect(file));
+      addTearDown(db.close);
+      await expectLater(db.customSelect('SELECT 1').get(), throwsStateError);
+      await db.close();
 
-    await _expectWholeV1(file, rows);
-  });
+      await _expectWhole(file, rows);
+    },
+  );
 }

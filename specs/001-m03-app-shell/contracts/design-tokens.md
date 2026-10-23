@@ -20,6 +20,16 @@ This palette **supersedes** ux-spec «الألوان» (Clarifications, 2026-10-
 | `station3` | محطة ٣ | `#5FAE4E` | 64.4 | 3rd (ink letter) |
 | `station4` | محطة ٤ | `#A9DDF3` | 85.3 | 4th (ink letter) |
 | `badgeNew` | — | alias of `danger` | 57.5 | The «new» dot fill (2 pt `hibr` outline) |
+| `fare` | أخضر | `#7ACC6C` | 75.1 | A fare on its way to the driver (M02); change on its way back is `primary` |
+| `bubbleWarn` | — | `#FFD9A8` | 88.8 | Warning bubble: a stop near, short change, impatience (M02) |
+| `bubbleFight` | — | `#F2894A` | 67.5 | Fight bubble: a fight, an accusation, a missed stop (M02) |
+| `bubbleThanks` | — | `#BFE3F7` | 88.3 | Thanks bubble: thanks, a tip, excess returned (M02) |
+| `shirtEffendi` | — | `#8A8F99` | 59.3 | Stand-in passenger shirt: the effendi family (M02) |
+| `shirtStudent` | — | `#EDF1F5` | 95.0 | Stand-in shirt: the student family (M02) |
+| `shirtWorker` | — | `#24508F` | 34.2 | Stand-in shirt: the worker family (M02) |
+| `shirtHajja` | — | `#2B2633` | 16.2 | Stand-in shirt: the hajja family (M02) |
+| `shirtYoung` | — | `#C23B2E` | 45.4 | Stand-in shirt: the young family (M02) |
+| `shirtPlain` | — | `#D9C9A3` | 81.4 | Stand-in shirt: an unknown skin's fallback (M02) |
 
 Station colors are assigned by stop order within a trip, never by station identity. A trip has at most
 four drop-off stations (spec, Assumptions).
@@ -38,6 +48,9 @@ fails the build on any violation.
 | station3 – station4 | 20.9 |
 | station1 – station3, station1 – station4, station2 – station4 | 41.9, 62.8, 40.8 |
 | primary – danger | 25.3 |
+| fare – primary (a fare and change in flight) | 42.9 |
+| bubbleWarn – bubbleFight | 21.3 |
+| shirtEffendi – shirtWorker, shirtStudent – shirtYoung (same accessory, `shirtPairsToSeparate`) | 25.1, 49.6 |
 
 **Text on fill (≥ 4.5:1; ≥ 3:1 only for text ≥ 18.66 px bold or 24 px regular):**
 
@@ -52,6 +65,8 @@ fails the build on any violation.
 | hibr on gold | 9.18 | Coin and star badges |
 | waraq on station1 / station2 | 12.14 / 5.47 | Station letters |
 | hibr on station3 / station4 | 6.20 / 11.60 | Station letters |
+| hibr on fare | 8.65 | The amount on a fare token (M02) |
+| hibr on bubbleWarn / bubbleFight / bubbleThanks | 12.75 / 6.84 / 12.59 | Bubble text (M02) |
 
 **Non-text contrast (≥ 3:1), «new» dot:** passes on every background through its fill or its outline:
 on tablouh the fill gives 4.27; on shams the outline gives 11.78; on waraq the outline gives 17.01.

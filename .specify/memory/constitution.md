@@ -196,18 +196,25 @@ them is not done.
 - Touch targets MUST be ≥ 44×44 pt, all text ≥ 12 pt, and bubble text ≥ 15 pt after scaling. Faces
   MUST be ≥ 50 pt wide in the back row and ≥ 80 pt in the near row. Money tokens MUST be ≥ 40×24 pt
   with a 15 pt amount.
-- During a trip, everything the player touches except the passengers MUST sit in the bottom third
-  of the screen, for one-handed play.
+- During a trip, every control the player plays with MUST sit in the bottom third of the screen,
+  for one-handed play. Two kinds of touch are exempt:
+  - what the scene itself shows: the passengers, money dropped on the floor, and the answers to a
+    passenger's question, placed next to that passenger;
+  - controls that stop play rather than play it: the pause button in the top bar (ux-spec
+    «الشريط العلوي»), which the phone's back button doubles, and the debug panel of internal builds.
 - Every station MUST be marked by both a color and a letter. Colors that must be told apart MUST
   differ in lightness, not only in hue. Text contrast MUST meet WCAG 2.1 AA.
 - Reduced motion MUST disable the scene shake and the bubble pop. Haptics MUST have an off setting.
 - No more than two speech bubbles may be visible at once. Each stays up for at least the line's
   `trip_bubble_min_ms` and stays inside the scene bounds.
-- Key events (payment, wrong change, an approaching station) MUST reach the player through more than
-  one channel: sound, visual and text.
+- Key events (payment, short change, an approaching station) MUST reach the player through more
+  than one channel: sound, visual and text. Change beyond what was owed is not a key event: it stays
+  silent during the trip, as the product spec says («المستغل يسكت»), and the result lists it.
 
 **Rationale:** In the prototype playtest, small faces and fast text were the main cause of
-confusion. These numbers are the fix.
+confusion. These numbers are the fix. The pause button is used rarely and on purpose, so keeping it
+away from the thumb prevents accidental pauses, and the back button reaches it one-handed. Silent
+over-change is a game rule: the player learns it from the result, not from a cue.
 
 ### XII. No Runtime LLM
 
@@ -397,4 +404,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-22
+**Version**: 1.4.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-22
