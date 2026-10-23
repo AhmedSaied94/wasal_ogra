@@ -2,6 +2,7 @@
 // "Cues"). Every key event reaches the player through more than one channel,
 // so it still does with sound or vibration off (constitution XI).
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/features/trip/domain/poses.dart';
 import 'package:wassal/features/trip/domain/speech.dart';
 import 'package:wassal/features/trip/domain/talk_log.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
@@ -59,6 +60,20 @@ final class HighlightCue extends TripCue {
 
   @override
   Map<String, Object?> get fields => {'passengerId': passengerId};
+}
+
+/// A one-shot on a passenger's character (008.5 research R16).
+final class CharacterCue extends TripCue {
+  const CharacterCue(this.passengerId, this.trigger);
+
+  final String passengerId;
+  final CharacterTrigger trigger;
+
+  @override
+  Map<String, Object?> get fields => {
+    'passengerId': passengerId,
+    'trigger': trigger,
+  };
 }
 
 /// Short change landing: the token flashes orange.
@@ -151,6 +166,10 @@ List<TripCue> mapCues(
   required SpeechResolver speech,
 }) {
   final cues = <TripCue>[];
+  // A call that wakes them plays as the headphones coming off instead.
+  final attentive = {
+    for (final e in events.whereType<PassengerAttentive>()) e.passengerId,
+  };
   int amountOf(int tokenId) =>
       (before.token(tokenId) ?? after.token(tokenId))?.pieces.total ?? 0;
 
@@ -179,7 +198,9 @@ List<TripCue> mapCues(
       case ChangeDelivered(:final passengerId, :final result):
         switch (result) {
           case ChangeResult.exact:
-            cues.add(const SoundCue(CueSound.thanks));
+            cues
+              ..add(const SoundCue(CueSound.thanks))
+              ..add(CharacterCue(passengerId, CharacterTrigger.happy));
           case ChangeResult.short:
             cues
               ..add(const SoundCue(CueSound.wrong))
@@ -190,7 +211,13 @@ List<TripCue> mapCues(
       case ChangeSent(:final passengerId):
         cues
           ..add(HighlightCue(passengerId))
+          ..add(CharacterCue(passengerId, CharacterTrigger.targeted))
           ..add(const SoundCue(CueSound.notePass));
+      case PassengerBoarded(:final passengerId):
+        cues.add(CharacterCue(passengerId, CharacterTrigger.board));
+      case PassengerCalled(:final passengerId)
+          when !attentive.contains(passengerId):
+        cues.add(CharacterCue(passengerId, CharacterTrigger.call));
       case ExcessReturned():
         cues
           ..add(const SoundCue(CueSound.coin))

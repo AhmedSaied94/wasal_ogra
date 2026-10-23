@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="358" height="210" viewBox="0 0 358 210">
+<rect x="0" y="0" width="358" height="210" fill="#C9C0E6"></rect>
+<path d="M0 40 H358 M0 80 H358 M0 120 H358" stroke="#BDB3DD" stroke-width="2"></path>
+<rect x="0" y="160" width="358" height="50" fill="#8A84A0"></rect>
+<ellipse cx="180" cy="170" rx="150" ry="8" fill="#6E6A80"></ellipse>
+<path d="M330 150 V54 Q330 38 314 38 H100 Q80 38 70 52 L34 102 Q28 110 28 122 V150 Q28 162 40 162 H318 Q330 162 330 150 Z" fill="#FFFFFF"></path>
+<path d="M28 138 V150 Q28 162 40 162 H318 Q330 162 330 150 V138 Z" fill="#E3EEF5"></path>
+<rect x="28" y="116" width="302" height="14" fill="#1A4B8C"></rect>
+<rect x="28" y="130" width="302" height="5" fill="#F2542D"></rect>
+<path d="M98 48 V104 H44 L76 56 Q82 48 92 48 Z" fill="#9FD3EE"></path>
+<rect x="106" y="48" width="52" height="56" rx="12" fill="#9FD3EE"></rect><rect x="164" y="48" width="52" height="56" rx="12" fill="#9FD3EE"></rect><rect x="222" y="48" width="52" height="56" rx="12" fill="#9FD3EE"></rect>
+<path d="M106 50 h52 v14 q-26 10 -52 0 z" fill="#F2542D"></path><path d="M164 50 h52 v14 q-26 10 -52 0 z" fill="#F2542D"></path><path d="M222 50 h52 v14 q-26 10 -52 0 z" fill="#F2542D"></path>
+<rect x="282" y="48" width="40" height="56" rx="10" fill="#9FD3EE"></rect>
+<g transform="translate(300 120)"><rect x="-26" y="-11" width="52" height="20" rx="10" fill="#FFD23F"></rect><text x="0" y="4" text-anchor="middle" font-family="Marhey, sans-serif" font-weight="700" font-size="12" fill="#1D1A2B">على الله</text></g>
+<path d="M120 36 h120" stroke="#2A2633" stroke-width="2"></path>
+<circle cx="126" cy="36" r="3" fill="#F2542D"></circle><circle cx="146" cy="36" r="3" fill="#FFD23F"></circle><circle cx="166" cy="36" r="3" fill="#5FAE4E"></circle><circle cx="186" cy="36" r="3" fill="#A9DDF3"></circle><circle cx="206" cy="36" r="3" fill="#F2542D"></circle><circle cx="226" cy="36" r="3" fill="#FFD23F"></circle>
+<path d="M60 162 A26 26 0 0 1 112 162 Z" fill="#58546A"></path><path d="M250 162 A26 26 0 0 1 302 162 Z" fill="#58546A"></path>
+<circle cx="86" cy="164" r="22" fill="#2A2633"></circle><circle cx="86" cy="164" r="9" fill="#D9D4E2"></circle>
+<circle cx="276" cy="164" r="22" fill="#2A2633"></circle><circle cx="276" cy="164" r="9" fill="#D9D4E2"></circle>
+<circle cx="40" cy="112" r="7" fill="#FFD23F"></circle>
+</svg>

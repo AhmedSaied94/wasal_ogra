@@ -1,194 +1,258 @@
-// The owner's Rive character (contracts/rive-character.md): the file is
-// decoded once; each passenger gets its own artboard, state machine and
-// view-model instance, set from its look once and from its view on every
-// change, and drawn into the seat's face like the stand-in.
+// The passengers in Rive (contracts/rive-characters.md "People"): per
+// passenger, an instance of the file's `Person`, its `Passenger` state
+// machine and its own `Passenger` view-model instance. The look is set once;
+// on every view change, the inputs of the passenger's one pose; on a cue,
+// its trigger. It is placed by the head's centre and scaled by the seat, as
+// the static art is, which draws every seat the tier leaves out and every
+// passenger under reduced motion.
+import 'package:content_models/content_models.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rive/rive.dart' as rive;
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/application/art_tier.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
+import 'package:wassal/features/trip/domain/poses.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/scene/passenger_art.dart';
-import 'package:wassal/features/trip/presentation/trip_colors.dart';
+import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/features/trip/presentation/scene/svg_passenger_art.dart';
 
-const passengerRiveAsset = 'assets/rive/passenger.riv';
-const riveArtboardName = 'Passenger';
-const riveStateMachineName = 'Passenger';
-const riveViewModelName = 'Passenger';
+/// `Person`'s rig (HANDOFF §5.1): the head's centre in the artboard, and its
+/// radius.
+const personHead = Offset(100, 100);
+const personHeadRadius = 42.0;
 
-/// The character file, or null when it is missing or isn't the contract's,
-/// so every passenger falls back to the stand-in.
-Future<rive.File?> loadPassengerRive({AssetBundle? bundle}) async {
-  final rive.File? file;
-  try {
-    file = await rive.File.asset(
-      passengerRiveAsset,
-      riveFactory: rive.Factory.flutter,
-      bundle: bundle,
-    );
-    // Whatever stops the character (no asset in the build, no native
-    // library, a bad file), the trip plays with the stand-in.
-  } on Object catch (error) {
-    debugPrint('passenger.riv: $error');
-    return null;
-  }
-  if (file == null) return null;
-  final artboard = file.artboard(riveArtboardName);
-  final machine = artboard?.stateMachine(riveStateMachineName);
-  final model = file.viewModelByName(riveViewModelName);
-  final usable = machine != null && model != null;
-  machine?.dispose();
-  artboard?.dispose();
-  model?.dispose();
-  if (usable) return file;
-  debugPrint('passenger.riv: no $riveArtboardName artboard, machine or model');
-  file.dispose();
-  return null;
-}
-
-/// What the character shows besides its look.
+/// What a person's view model is set to (contracts/rive-characters.md "From
+/// a pose to the inputs"): the pose's one input on and every other off, so
+/// combinations the design never draws never reach the file. `headphones`
+/// follows the passenger in every pose.
 @immutable
-final class CharacterState {
-  const CharacterState({
-    required this.mood,
-    required this.talking,
-    required this.asleep,
-    required this.headphones,
+final class PersonInputs {
+  const PersonInputs({
+    this.mood = 0,
+    this.talking = false,
+    this.asleep = false,
+    this.headphones = false,
+    this.changeDue = false,
+    this.claim = false,
+    this.surprised = false,
   });
 
-  factory CharacterState.of(PassengerView view) => CharacterState(
-    mood: view.mood,
-    talking: view.talking,
-    asleep: view.asleep,
-    headphones: view.headphones,
-  );
+  /// The inputs of [view]'s pose. A failed trip already frowns everyone
+  /// through the view's mood.
+  factory PersonInputs.of(PassengerView view) {
+    final pose = poseFor(view, failed: false);
+    return PersonInputs(
+      mood: switch (pose) {
+        CharacterPose.impatient1 => 1,
+        CharacterPose.impatient2 => 2,
+        CharacterPose.fight => 3,
+        CharacterPose.angry => 4,
+        _ => 0,
+      },
+      talking: pose == CharacterPose.talk,
+      // False while waking, so the file plays `wake`.
+      asleep: pose == CharacterPose.sleep && !view.waking,
+      headphones: view.headphones,
+      changeDue: pose == CharacterPose.changeDue,
+      claim: pose == CharacterPose.claim,
+      surprised: pose == CharacterPose.surprised,
+    );
+  }
 
   final int mood;
   final bool talking;
   final bool asleep;
-
-  /// On the ears; off (around the neck) while attentive.
   final bool headphones;
+  final bool changeDue;
+  final bool claim;
+  final bool surprised;
+
+  Map<String, bool> get booleans => {
+    'talking': talking,
+    'asleep': asleep,
+    'headphones': headphones,
+    'changeDue': changeDue,
+    'claim': claim,
+    'surprised': surprised,
+  };
 
   @override
   bool operator ==(Object other) =>
-      other is CharacterState &&
+      other is PersonInputs &&
       other.mood == mood &&
       other.talking == talking &&
       other.asleep == asleep &&
-      other.headphones == headphones;
+      other.headphones == headphones &&
+      other.changeDue == changeDue &&
+      other.claim == claim &&
+      other.surprised == surprised;
 
   @override
-  int get hashCode => Object.hash(mood, talking, asleep, headphones);
+  int get hashCode => Object.hash(
+    mood,
+    talking,
+    asleep,
+    headphones,
+    changeDue,
+    claim,
+    surprised,
+  );
 
   @override
-  String toString() =>
-      'CharacterState(mood: $mood, talking: $talking, asleep: $asleep, '
-      'headphones: $headphones)';
+  String toString() => 'PersonInputs(mood: $mood, $booleans)';
 }
 
-/// The view model's properties the app sets.
-abstract interface class PassengerInputs {
-  void setLook({required Color shirt, required String accessory});
-  void setState(CharacterState state);
-
-  /// Fires `alight`.
-  void alight();
-  void dispose();
-}
-
-/// What draws and animates the character.
-abstract interface class CharacterRig {
+/// One `Person` from the file, as the art drives it: the seam the tests
+/// fake, so the mapping is checked without the native runtime.
+abstract interface class CharacterInstance {
+  void setNumber(String property, double value);
+  void setBoolean(String property, {required bool value});
+  void fire(String trigger);
   void advance(double dt);
-  void render(Canvas canvas, Rect box);
+
+  /// Draws the artboard [scale] times its size, its head's centre on
+  /// [head].
+  void render(Canvas canvas, Offset head, double scale);
   void dispose();
 }
 
 final class RivePassengerArtFactory implements PassengerArtFactory {
-  const RivePassengerArtFactory(this.file);
+  const RivePassengerArtFactory({
+    required this.person,
+    this.tier = ArtTier.rive,
+    this.fallback = const SvgPassengerArtFactory(),
+  });
 
-  final rive.File file;
+  /// Over [file]'s `Person`, which passed the contract check.
+  factory RivePassengerArtFactory.of(
+    rive.File file, {
+    ArtTier tier = ArtTier.rive,
+  }) => RivePassengerArtFactory(person: () => _RivePerson(file), tier: tier);
+
+  final CharacterInstance Function() person;
+  final ArtTier tier;
+
+  /// What draws the seats the tier leaves out, and reduced motion.
+  final PassengerArtFactory fallback;
 
   @override
-  PassengerArt create(SkinLook look, WassalTokens tokens) {
-    final artboard = file.artboard(riveArtboardName)!;
-    final machine = artboard.stateMachine(riveStateMachineName)!;
-    final model = file.viewModelByName(riveViewModelName)!;
-    final instance = model.createDefaultInstance() ?? model.createInstance()!;
-    model.dispose();
-    machine.bindViewModelInstance(instance);
-    return RivePassengerArt(
-      rig: _ArtboardRig(artboard, machine),
-      inputs: _ViewModelInputs(instance),
-      look: look,
-      tokens: tokens,
-    );
+  PassengerArt create(
+    Look look, {
+    SeatRow row = SeatRow.a,
+    bool reduceMotion = false,
+  }) {
+    if (reduceMotion || !tier.drawsRow(row)) {
+      return fallback.create(look, row: row, reduceMotion: reduceMotion);
+    }
+    return RivePassengerArt(person(), look: look);
   }
 }
 
-/// A passenger drawn by the character.
+/// How passengers are drawn: in Rive when [art] has a usable `Person` and
+/// [tier] draws any seat with it; with each look's static art otherwise.
+PassengerArtFactory passengerArtFor(RiveArt? art, ArtTier tier) =>
+    switch (art) {
+      RiveArt(:final file?, :final usable)
+          when usable.contains('Person') && tier != ArtTier.static =>
+        RivePassengerArtFactory.of(file, tier: tier),
+      _ => const SvgPassengerArtFactory(),
+    };
+
+/// A passenger drawn by Rive.
 final class RivePassengerArt implements PassengerArt {
-  RivePassengerArt({
-    required this._rig,
-    required this._inputs,
-    required SkinLook look,
-    required WassalTokens tokens,
-  }) {
-    _inputs.setLook(
-      shirt: shirtColor(tokens, look.shirt),
-      accessory: look.accessory.name,
-    );
+  RivePassengerArt(this._person, {required Look look}) {
+    _person.setNumber('look', look.rive.toDouble());
   }
 
-  final CharacterRig _rig;
-  final PassengerInputs _inputs;
-  CharacterState? _state;
+  final CharacterInstance _person;
+  PersonInputs? _inputs;
   bool _alighted = false;
+
+  /// Unused: under reduced motion the static art draws instead.
+  @override
+  bool reduceMotion = false;
 
   @override
   void update(PassengerView view) {
-    final state = CharacterState.of(view);
-    if (state != _state) {
-      _state = state;
-      _inputs.setState(state);
+    final inputs = PersonInputs.of(view);
+    final last = _inputs;
+    _inputs = inputs;
+    if (inputs.mood != last?.mood) {
+      _person.setNumber('mood', inputs.mood.toDouble());
     }
+    final before = last?.booleans;
+    for (final MapEntry(key: name, :value) in inputs.booleans.entries) {
+      if (before?[name] != value) _person.setBoolean(name, value: value);
+    }
+    // Getting off plays from the view: the engine's event has no step of
+    // its own on screen (research R16).
     if (view.presence == PresenceView.leaving && !_alighted) {
       _alighted = true;
-      _inputs.alight();
+      play(CharacterTrigger.alight);
     }
   }
 
   @override
-  void advance(double dt) => _rig.advance(dt);
+  void play(CharacterTrigger trigger) => _person.fire(trigger.name);
 
   @override
-  void render(Canvas canvas, Rect box) => _rig.render(canvas, box);
+  void advance(double dt) => _person.advance(dt);
 
   @override
-  void dispose() {
-    _rig.dispose();
-    _inputs.dispose();
-  }
+  void render(Canvas canvas, Rect box) =>
+      _person.render(canvas, box.center, box.width / (2 * personHeadRadius));
+
+  @override
+  void dispose() => _person.dispose();
 }
 
-final class _ArtboardRig implements CharacterRig {
-  _ArtboardRig(this._artboard, this._machine);
+final class _RivePerson implements CharacterInstance {
+  factory _RivePerson(rive.File file) {
+    final artboard = file.artboard('Person')!;
+    final machine = artboard.stateMachine('Passenger')!;
+    final model = file.defaultArtboardViewModel(artboard)!;
+    final instance = model.createDefaultInstance() ?? model.createInstance()!;
+    model.dispose();
+    machine.bindViewModelInstance(instance);
+    return _RivePerson._(artboard, machine, instance);
+  }
+
+  _RivePerson._(this._artboard, this._machine, this._instance);
 
   final rive.Artboard _artboard;
   final rive.StateMachine _machine;
+  final rive.ViewModelInstance _instance;
+
+  @override
+  void setNumber(String property, double value) =>
+      _instance.number(property)?.value = value;
+
+  @override
+  void setBoolean(String property, {required bool value}) =>
+      _instance.boolean(property)?.value = value;
+
+  @override
+  void fire(String trigger) => _instance.trigger(trigger)?.trigger();
 
   @override
   void advance(double dt) => _machine.advanceAndApply(dt);
 
-  /// As flame_rive's `RiveComponent` draws, fitted into [box].
   @override
-  void render(Canvas canvas, Rect box) {
+  void render(Canvas canvas, Offset head, double scale) {
+    final left = head.dx - personHead.dx * scale;
+    final top = head.dy - personHead.dy * scale;
     canvas.save();
     final renderer = rive.Renderer.make(canvas);
     try {
       renderer.align(
-        rive.Fit.contain,
-        Alignment.center,
-        rive.AABB.fromValues(box.left, box.top, box.right, box.bottom),
+        rive.Fit.fill,
+        Alignment.topLeft,
+        rive.AABB.fromValues(
+          left,
+          top,
+          left + _artboard.width * scale,
+          top + _artboard.height * scale,
+        ),
         _artboard.bounds,
         1,
       );
@@ -201,33 +265,8 @@ final class _ArtboardRig implements CharacterRig {
 
   @override
   void dispose() {
+    _instance.dispose();
     _machine.dispose();
     _artboard.dispose();
   }
-}
-
-final class _ViewModelInputs implements PassengerInputs {
-  _ViewModelInputs(this._instance);
-
-  final rive.ViewModelInstance _instance;
-
-  @override
-  void setLook({required Color shirt, required String accessory}) {
-    _instance.color('shirt')?.value = shirt;
-    _instance.enumerator('accessory')?.value = accessory;
-  }
-
-  @override
-  void setState(CharacterState state) {
-    _instance.number('mood')?.value = state.mood.toDouble();
-    _instance.boolean('talking')?.value = state.talking;
-    _instance.boolean('asleep')?.value = state.asleep;
-    _instance.boolean('headphones')?.value = state.headphones;
-  }
-
-  @override
-  void alight() => _instance.trigger('alight')?.trigger();
-
-  @override
-  void dispose() => _instance.dispose();
 }

@@ -7,9 +7,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class ResultSummary extends ConsumerWidget {
@@ -28,7 +27,6 @@ class ResultSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final numbers = ref.watch(numberFormatterProvider);
-    final ink = context.tokens.hibr;
     final shown = result;
     final last = shown == null
         ? ref.watch(economyViewProvider).lastResult
@@ -36,18 +34,18 @@ class ResultSummary extends ConsumerWidget {
     final outcome = shown?.outcome ?? last?.outcome;
     final pay = shown?.earningsJenehat ?? last?.earningsJenehat;
     if (outcome == null) return const SizedBox.shrink();
-    final body = TypeTokens.body.copyWith(color: ink);
+    final body = TypeTokens.body.copyWith(color: ColorTokens.ink);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: SpaceTokens.s4,
       children: [
         Text(switch (outcome) {
           TripOutcome.finished => l10n.tripPlaytestFinished,
           TripOutcome.failed => l10n.tripPlaytestFailed,
           TripOutcome.abandoned => l10n.tripPlaytestAbandoned,
-        }, style: TypeTokens.title.copyWith(color: ink)),
+        }, style: TypeTokens.displayS.copyWith(color: ColorTokens.ink)),
         if (shown != null) ...[
-          const SizedBox(height: SpaceTokens.s),
           Text(
             l10n.tripPlaytestStars(numbers.integer(shown.stars)),
             key: starsKey,
@@ -68,10 +66,8 @@ class ResultSummary extends ConsumerWidget {
               met: met,
             ),
         ],
-        if (pay != null) ...[
-          const SizedBox(height: SpaceTokens.s),
+        if (pay != null)
           Text(l10n.tripPlaytestPay(numbers.integer(pay)), style: body),
-        ],
       ],
     );
   }
@@ -83,30 +79,29 @@ class _Condition extends StatelessWidget {
   final String label;
   final bool met;
 
+  static const _icon = 20.0;
+
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
     return Semantics(
       label: met ? l10n.tripPlaytestMet(label) : l10n.tripPlaytestNotMet(label),
       excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.only(top: SpaceTokens.xs),
-        child: Row(
-          children: [
-            Icon(
-              met ? Icons.check_circle_rounded : Icons.cancel_rounded,
-              color: met ? tokens.fare : tokens.danger,
+      child: Row(
+        spacing: SpaceTokens.s8,
+        children: [
+          AppIcon(
+            met ? 'check' : 'close',
+            size: _icon,
+            color: met ? ColorTokens.successInk : ColorTokens.danger,
+          ),
+          Expanded(
+            child: Text(
+              label,
+              style: TypeTokens.body.copyWith(color: ColorTokens.ink),
             ),
-            const SizedBox(width: SpaceTokens.s),
-            Expanded(
-              child: Text(
-                label,
-                style: TypeTokens.body.copyWith(color: tokens.hibr),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

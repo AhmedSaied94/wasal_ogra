@@ -161,15 +161,15 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 | `TripView` | `tMs`, `phase`, `topBar`, `strip`, `passengers`, `tokens`, `dropped`, `windows`, `hand`, `tray`, `breakButton`, `boosters`, `undoUntilMs?`, `choices`, `bubbles`, `log`, `hint?`, `banner?`, `storyCondition?` (null without the condition, false once broken), `failSummary?`, `rejection?` (a rejection line), `breakMode` («حد معاه فكة؟» waiting for a note), `controlsLocked` (the command limit) |
 | `TopBarView` | `lineName?`, `tripNumber`, `reputation` (0–100), `reputationLow` (below 40) |
 | `StationStripView` | `chips` (≤ 4), `vehiclePermille` (position along the strip), `countdownMs?`, `warning` (bool) |
-| `StationChip` | `stationId`, `slot` (0–3: color and letter), `name?`, `farePiasters`, `studentIcon`, `reached`, `next` |
-| `PassengerView` | `passengerId`, `seatId`, `presence` (`boarding`, `aboard`, `leaving`, `gone`), `look` (`SkinLook`), `slot?`, `mood` (0–3), `talking`, `asleep`, `waking`, `headphones`, `attentive`, `nearStopPulse`, `dropMeHere` (the «هنا» star), `ledgerBadge?` (`paid` or `unpaid`, only during a peek), `outcome?` (while leaving) |
+| `StationChip` | `stationId`, `slot` (0–3: color and letter), `name?`, `farePiasters`, `basePiasters` (008.5: the fare before a raise, struck through beside it), `atMs` (008.5: the stop's time, which places its dot), `studentIcon`, `reached`, `next` |
+| `PassengerView` | `passengerId`, `seatId`, `presence` (`boarding`, `aboard`, `leaving`, `gone`), `look` (`SkinLook`), `slot?`, `mood` (0–3), `talking`, `asleep`, `waking`, `headphones`, `attentive`, `nearStopPulse`, `dropMeHere` (the «هنا» star), `ledgerBadge?` (`paid`, `unpaid` or `onFriend` (008.5: a group member their payer paid for), only during a peek), `outcome?` (while leaving), `claimOpen` (008.5: their «أنا دافع!» waits for an answer) |
 | `TokenView` | `tokenId`, `kind` (`fare` forward or `change` back, from the token's kind), `amountPiasters`, `from?` (a seat; null for the driver), `to?`, `progressPermille`, `hopMs` (the hop's length, for interpolation), `blocked`, `dropped`, `atHolder` |
 | `DroppedMoneyView` | `tokenId`, `amountPiasters`, `from?`, `to?`, `progressPermille` (where it fell), `untilMs` |
 | `WindowsView` | `road` (`normal`, `traffic` while `state.trafficActive`, `open` from an `open_road` event until the next `StationReached`), `waveAtMs?` (a `roadside_pickup`'s wave, for `waveMs`) |
 | `HandView` | `pieces` (denomination → count), `totalPiasters` |
 | `TraySlotView` | `denomination`, `count`, `breakable` (glows in break mode) |
 | `BreakButtonView` | `left`, `enabled` |
-| `BoosterSlotView` | `booster`, `count`, `priceBonat?` (when 0 left), `enabled`, `adOffered` (always false until M11) |
+| `BoosterSlotView` | `booster`, `count`, `priceBonat?` (when 0 left), `enabled`, `adOffered` (always false until M11), `activeUntilMs?` (008.5: while «الدفتر» works, for its badge's seconds) |
 | `ClaimChoice` | `passengerId` |
 | `ChangeRequestChoice` | `passengerId`, `notePiasters` |
 | `DisputeChoice` | `disputeId`, `a`, `b` |
@@ -178,7 +178,7 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 | `LogLine` | `kind` (`speech`, `fareArrived`, `breakDone`, `dropped`, `lost`, `fareUp`), `speaker?`, `text?` (a passenger's line, resolved), `amountPiasters?` (a money line; the screen words it) |
 | `HintView` | `key` (the ARB key of بلية's line), `targetPassengerId?` |
 | `BannerView` | `oldPiasters`, `newPiasters`, `shownAtMs` |
-| `FailSummary` | `causes` (the top two by reputation lost), `revive?` |
+| `FailSummary` | `causes` (the top two by reputation lost), `revive?`, `brokeStoryRule` (008.5: a story trip lost to a fight), `angryFaces` (008.5: up to three, for the failure art) |
 | `FailCause` | `cause`, `count?` (when the engine counts it) |
 | `ReviveOffer` | `priceBonat`, `affordable` |
 | `RejectionLine` | `code`, `untilMs` |

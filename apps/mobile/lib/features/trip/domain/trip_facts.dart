@@ -3,7 +3,7 @@
 // line's presentation tunables (data-model.md "TripSession").
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 
 /// When a line shows بلية's hints (`trip_hints_mode_<line_id>`).
 enum HintMode { off, firstTime, always }
@@ -40,7 +40,7 @@ final class TripFacts {
     for (final p in definition.passengers) p.passengerId: p,
   };
 
-  late final Map<String, SkinLook> looks = {
+  late final Map<String, Look> looks = {
     for (final p in definition.passengers)
       p.passengerId: lookFor(p.skin, p.archetype),
   };

@@ -1,19 +1,24 @@
-// The change drawer (ux-spec «التابلوه» rows 2–3): eight slots in two rows,
-// نص، ١، ٥، ١٠ then ٢٠، ٥٠، ١٠٠، ٢٠٠. An empty slot is dashed and faded,
-// and shakes when tapped.
+// «درج الفكة» (HANDOFF §3.4 `ChangeTray`, `C-Trip` boxes 64–80): eight
+// cells in a 4×2 grid, نص، ١، ٥، ١٠ then ٢٠، ٥٠، ١٠٠، ٢٠٠. A cell is a
+// white tile on its lip with the coin or note and «×N»; an empty one is
+// dashed and faded, and shakes when tapped; while a note waits to be broken,
+// the ones that can be ring in `danger`.
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/dashboard/dashed_outline.dart';
+import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-const traySlotGap = 4.0;
+/// The gap between cells, both ways.
+const traySlotGap = SpaceTokens.s6;
 
 class Tray extends StatelessWidget {
   const Tray({super.key});
@@ -24,9 +29,7 @@ class Tray extends StatelessWidget {
   Widget build(BuildContext context) {
     return TripSelector<List<TraySlotView>>(
       select: (model) => model.view?.tray ?? const [],
-      equals: (a, b) =>
-          a.length == b.length &&
-          [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((s) => s),
+      equals: listEquals,
       builder: (context, slots) {
         if (slots.isEmpty) return const SizedBox.shrink();
         final rows = [slots.take(4).toList(), slots.skip(4).toList()];
@@ -39,7 +42,7 @@ class Tray extends StatelessWidget {
                   children: [
                     for (final (j, slot) in row.indexed) ...[
                       if (j > 0) const SizedBox(width: traySlotGap),
-                      Expanded(child: TraySlot(slot: slot)),
+                      Expanded(child: _TraySlot(slot: slot)),
                     ],
                   ],
                 ),
@@ -52,134 +55,184 @@ class Tray extends StatelessWidget {
   }
 }
 
-class TraySlot extends ConsumerWidget {
-  const TraySlot({required this.slot, super.key});
+class _TraySlot extends ConsumerWidget {
+  const _TraySlot({required this.slot});
 
   final TraySlotView slot;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = context.tokens;
     final numbers = ref.watch(numberFormatterProvider);
     final l10n = AppLocalizations.of(context);
     final controls = TripScope.of(context).controls;
     final d = slot.denomination;
     final empty = slot.count == 0;
-    final amount = numbers.piasters(d);
-    final coin = d < 500;
-    final ink = empty ? tokens.waraq : tokens.hibr;
-    final fill = empty
-        ? Color.lerp(tokens.tablouh, tokens.waraq, 0.12)!
+    final state = empty
+        ? TrayCellState.empty
         : slot.breakable
-        ? tokens.gold
-        : tokens.waraq;
+        ? TrayCellState.breakable
+        : TrayCellState.full;
     return Shakeable(
       controlKey: TripControls.trayKey(d),
-      child: Semantics(
-        button: true,
-        label: empty
-            ? l10n.tripTrayEmptySlot(amount)
-            : l10n.tripTraySlot(amount, numbers.integer(slot.count)),
-        excludeSemantics: true,
-        child: GestureDetector(
-          key: Tray.slotKey(d),
-          behavior: HitTestBehavior.opaque,
-          onTap: () => controls.pick(d),
-          child: CustomPaint(
-            painter: empty ? _DashedBorder(color: tokens.waraq) : null,
-            child: Container(
-              constraints: const BoxConstraints(
-                minHeight: ShapeTokens.minTouch,
-                minWidth: ShapeTokens.minTouch,
-              ),
-              decoration: BoxDecoration(
-                color: fill,
-                border: empty
-                    ? null
-                    : Border.all(
-                        color: tokens.hibr,
-                        width: ShapeTokens.borderCard,
-                      ),
-                borderRadius: BorderRadius.circular(
-                  coin ? ShapeTokens.minTouch : ShapeTokens.radiusControl / 2,
+      child: KeyedSubtree(
+        key: Tray.slotKey(d),
+        child: TrayCell(
+          state: state,
+          denomination: d,
+          label: l10n.trayLabel(d, numbers),
+          count: l10n.tripTimes(numbers.integer(slot.count)),
+          semanticLabel: empty
+              ? l10n.tripTrayEmptySlot(numbers.piasters(d))
+              : l10n.tripTraySlot(
+                  d == 100 ? 'pound' : 'other',
+                  l10n.trayLabel(d, numbers),
+                  numbers.integer(slot.count),
                 ),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    l10n.trayLabel(d, numbers),
-                    maxLines: 1,
-                    style: TypeTokens.title.copyWith(color: ink, height: 1.1),
-                  ),
-                  PositionedDirectional(
-                    top: -SpaceTokens.s,
-                    end: -SpaceTokens.s,
-                    child: CountBadge(count: numbers.integer(slot.count)),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // An empty cell still takes the tap: the drawer shakes and says why.
+          onTap: () => controls.pick(d),
         ),
       ),
     );
   }
 }
 
-/// How many are left: a drawer slot's pieces, a booster, the breaks.
-class CountBadge extends StatelessWidget {
-  const CountBadge({required this.count, super.key});
+/// A drawer cell's look (HANDOFF §3.4 `TrayCell`).
+enum TrayCellState {
+  full,
+  empty,
 
+  /// A note the drawer can break, while it waits for one.
+  breakable,
+
+  /// Pushed into its lip; live cells get it from the press itself.
+  pressed,
+}
+
+/// One drawer cell: the coin or note in its colour, then «×N».
+class TrayCell extends StatelessWidget {
+  const TrayCell({
+    required this.state,
+    required this.denomination,
+    required this.label,
+    required this.count,
+    this.semanticLabel,
+    this.onTap,
+    super.key,
+  });
+
+  final TrayCellState state;
+  final int denomination;
+
+  /// The coin's or note's own text: «نص», «١», «٥».
+  final String label;
+
+  /// «×N».
   final String count;
+  final String? semanticLabel;
+  final VoidCallback? onTap;
+
+  static const double _radius = RadiusTokens.tray;
+  static const _corners = BorderRadius.all(Radius.circular(_radius));
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    return Container(
-      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-      padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.xs),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: tokens.hibr,
-        borderRadius: BorderRadius.circular(ShapeTokens.radiusControl),
-        border: Border.all(color: tokens.waraq, width: 1.5),
+    final empty = state == TrayCellState.empty;
+    final ink = empty ? ColorTokens.dashboardText : ColorTokens.ink;
+    final face = SizedBox(
+      height: LayoutTokens.touchMin,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: empty ? null : ColorTokens.paper,
+          borderRadius: _corners,
+          boxShadow: [
+            if (state == TrayCellState.breakable) RingTokens.hot.spread,
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: SpaceTokens.s6,
+          children: [
+            _Glyph(denomination: denomination, label: label, empty: empty),
+            Text(
+              count,
+              maxLines: 1,
+              softWrap: false,
+              style: DesignExtras.compactLabel.copyWith(color: ink, height: 1),
+            ),
+          ],
+        ),
       ),
-      child: Text(
-        count,
-        style: TypeTokens.caption.copyWith(color: tokens.waraq, height: 1.1),
+    );
+    final drawn = switch (state) {
+      TrayCellState.empty => CustomPaint(
+        painter: const DashedOutline(
+          color: ColorTokens.dashboardLine,
+          radius: _radius,
+        ),
+        child: face,
       ),
+      TrayCellState.pressed => Transform.translate(
+        offset: const Offset(0, LipTokens.trayCellDepth),
+        child: face,
+      ),
+      _ => face,
+    };
+    return Pressable(
+      onTap: onTap,
+      haptic: false,
+      semanticLabel: semanticLabel,
+      lip: empty || state == TrayCellState.pressed ? null : LipTokens.trayCell,
+      borderRadius: _corners,
+      child: drawn,
     );
   }
 }
 
-/// The empty slot's dashed outline.
-class _DashedBorder extends CustomPainter {
-  const _DashedBorder({required this.color});
+/// A 26 pt coin or a 34×20 note; an empty cell's is a dashed outline.
+class _Glyph extends StatelessWidget {
+  const _Glyph({
+    required this.denomination,
+    required this.label,
+    required this.empty,
+  });
 
-  final Color color;
+  final int denomination;
+  final String label;
+  final bool empty;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    final outline = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(1),
-          const Radius.circular(ShapeTokens.radiusControl / 2),
-        ),
-      );
-    for (final metric in outline.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 9) {
-        canvas.drawPath(metric.extractPath(d, d + 5), paint);
-      }
-    }
+  Widget build(BuildContext context) {
+    final coin = TripColors.isCoin(denomination);
+    final radius = coin ? 13.0 : DesignExtras.miniNoteRadius;
+    final glyph = Container(
+      width: coin ? 26 : 34,
+      height: coin ? 26 : 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: empty ? null : TripColors.denomination(denomination),
+        borderRadius: BorderRadius.all(Radius.circular(radius)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        softWrap: false,
+        style: TypeTokens.label
+            .weight(700)
+            .copyWith(
+              color: empty ? ColorTokens.dashboardText : ColorTokens.ink,
+              height: 1,
+            ),
+      ),
+    );
+    if (!empty) return glyph;
+    // The cell's own outline is its only painter (the empty-slot check
+    // looks for one); the glyph's is drawn in front instead.
+    return CustomPaint(
+      foregroundPainter: DashedOutline(
+        color: ColorTokens.dashboardLine,
+        radius: radius,
+      ),
+      child: glyph,
+    );
   }
-
-  @override
-  bool shouldRepaint(_DashedBorder old) => old.color != color;
 }

@@ -118,7 +118,7 @@ TripView projectTripView(
     banner: memory.banner,
     storyCondition: facts.storyNoFights ? state.counters.fights == 0 : null,
     failSummary: state.status == TripStatus.failed
-        ? failSummary(state.reputationLost, facts, screen.revive)
+        ? failSummary(state.reputationLost, facts, screen.revive, state: state)
         : null,
     rejection: switch (screen.rejection) {
       final line? when line.untilMs > state.tMs => line,
@@ -188,6 +188,7 @@ List<PassengerView> _passengers(
         dropMeHere: !leaving && p.deadlineMs != null,
         ledgerBadge: peek && !leaving ? _badge(state, facts, p) : null,
         outcome: leaving ? p.outcome : null,
+        claimOpen: state.claims.containsKey(p.passengerId),
       ),
     );
   }
@@ -203,13 +204,14 @@ int _mood(PassengerState p, {required bool failed}) {
   };
 }
 
-/// Paid when their fare (or their group payer's) is sent and nothing is
-/// owed to them.
+/// Paid when their fare is sent and nothing is owed to them; on their
+/// friend when another of their group sent it for them.
 LedgerBadge _badge(TripState state, TripFacts facts, PassengerState p) {
   final sent = facts
       .groupOf(p.passengerId)
       .any((id) => state.passenger(id)?.fareSent ?? false);
-  return sent && !p.isOwed ? LedgerBadge.paid : LedgerBadge.unpaid;
+  if (!sent || p.isOwed) return LedgerBadge.unpaid;
+  return p.fareSent ? LedgerBadge.paid : LedgerBadge.onFriend;
 }
 
 String? _seatOf(TripState state, Holder holder) =>
@@ -270,5 +272,8 @@ BoosterSlotView _booster(
         !screen.disabledBoosters.contains(booster) &&
         (count > 0 || price != null),
     adOffered: false,
+    activeUntilMs: booster == BoosterId.ledgerPeek
+        ? state.ledgerPeekUntilMs
+        : null,
   );
 }

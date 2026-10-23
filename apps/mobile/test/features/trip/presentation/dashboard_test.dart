@@ -171,7 +171,10 @@ void main() {
       await tester.tap(find.byKey(Tray.slotKey(500)));
       await tester.tap(find.byKey(Tray.slotKey(100)));
       await tester.pump();
-      final total = NumberFormatter(digits).piasters(600);
+      // 008.5 draws it as «= ٦».
+      final total = AppLocalizations.of(
+        tester.element(find.byKey(HandSlot.slotKey)),
+      ).tripHandTotal(NumberFormatter(digits).piasters(600));
       final text = tester.widget<Text>(
         find.descendant(
           of: find.byKey(HandSlot.slotKey),
@@ -191,15 +194,15 @@ void main() {
     await tester.pump();
     final view = c.view!;
     expect(view.log, hasLength(2));
-    final l10n = AppLocalizations.of(tester.element(find.byType(TalkLogView)));
+    final l10n = AppLocalizations.of(tester.element(find.byType(LastWordsLog)));
     final scope = tester
-        .element(find.byType(TalkLogView))
+        .element(find.byType(LastWordsLog))
         .getInheritedWidgetOfExactType<TripScope>()!;
     expect(scope.controller, c);
     for (final line in view.log) {
       expect(
         find.descendant(
-          of: find.byType(TalkLogView),
+          of: find.byType(LastWordsLog),
           matching: find.text(
             l10n.logLine(line, const NumberFormatter(DigitStyle.arabicIndic)),
           ),

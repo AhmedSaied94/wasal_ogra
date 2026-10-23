@@ -1,16 +1,19 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/features/trip/application/art_tier.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/playtest/debug_panel.dart';
 import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
 import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
 import '../../../helpers/pump_app.dart';
@@ -68,7 +71,7 @@ void main() {
       advanceMs(c, 2000);
       await tester.pump();
 
-      await tester.tap(find.byKey(TripTopBar.debugKey));
+      await tester.tap(find.byKey(TripHud.debugKey));
       await tester.pumpAndSettle();
       expect(c.phase, TripPhase.paused);
       expect(c.model.pauseReason, PauseReason.debugPanel);
@@ -106,15 +109,37 @@ void main() {
       expect(c.phase, TripPhase.running);
     });
 
+    testWidgets('switches the art tier for the session, and says the file is '
+        'fine', (tester) async {
+      final container = await pumpTrip(tester);
+      await tester.tap(find.byKey(TripHud.debugKey));
+      await tester.pumpAndSettle();
+      final panel = find.byType(DebugPanel);
+      final l10n = lookupAppLocalizations(const Locale('ar'));
+      expect(
+        find.descendant(of: panel, matching: find.text(l10n.tripDebugArtFine)),
+        findsOneWidget,
+      );
+      expect(container.read(artTierSettingProvider), ArtTier.rive);
+
+      await tester.tap(find.byKey(DebugPanel.tierKey(ArtTier.nearRive)));
+      await tester.pumpAndSettle();
+      expect(container.read(artTierSettingProvider), ArtTier.nearRive);
+      expect(
+        find.descendant(of: panel, matching: find.text('near_rive')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('is on staging too, and not on prod', (tester) async {
       await pumpTrip(tester, flavor: Flavor.staging);
-      expect(find.byKey(TripTopBar.debugKey), findsOneWidget);
+      expect(find.byKey(TripHud.debugKey), findsOneWidget);
     });
 
     testWidgets('prod has no debug icon', (tester) async {
       await pumpTrip(tester, flavor: Flavor.prod);
-      expect(find.byKey(TripTopBar.pauseKey), findsOneWidget);
-      expect(find.byKey(TripTopBar.debugKey), findsNothing);
+      expect(find.byKey(TripHud.pauseKey), findsOneWidget);
+      expect(find.byKey(TripHud.debugKey), findsNothing);
     });
   });
 

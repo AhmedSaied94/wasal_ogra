@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_engine/trip_engine.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/talk_log.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 
@@ -32,7 +32,7 @@ void main() {
     );
     expect(
       speakerOf(hajja.passengerId, engine.state, facts).labelKey,
-      skinLooks['hajja_black']!.labelKey,
+      looks[skinAliases['hajja_black']]!.labelKey,
     );
   });
 
@@ -54,7 +54,7 @@ void main() {
     if (aboard.length == 2) {
       for (final id in aboard) {
         final label = speakerOf(id, engine.state, facts);
-        expect(label.labelKey, 'tripLookWorker');
+        expect(label.labelKey, looks[skinAliases['worker_blue']]!.labelKey);
         expect(label.slot, facts.slotOf(id));
       }
     }

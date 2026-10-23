@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
-import 'package:wassal/core/theme/components/wassal_bottom_bar.dart';
+import 'package:wassal/core/theme/components/nav.dart';
 
 /// Presses the phone's back button.
 Future<void> pressBack(WidgetTester tester) async {
@@ -58,9 +58,7 @@ Destination tabFor(Section section) => destinations.firstWhere(
 
 /// Taps the bottom-bar cell for [section].
 Future<void> tapTab(WidgetTester tester, Section section) async {
-  await tester.tap(
-    find.byKey(WassalBottomBar.cellKey(tabSections.indexOf(section))),
-  );
+  await tester.tap(find.byKey(BottomNav.cellKey(tabSections.indexOf(section))));
   await tester.pumpAndSettle();
 }
 

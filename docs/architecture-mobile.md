@@ -7,6 +7,7 @@
 | Companion | [`architecture-backend.md`](./architecture-backend.md) — read both together |
 | Product spec | `docs/product-spec.md` (export of the product & business doc) |
 | UX spec | `docs/ux-spec.md` (export of the UI/UX doc) |
+| Design | [`docs/design/HANDOFF.md`](./design/HANDOFF.md): Style C «كرتون ناعم», every screen, token and component. Read [`docs/design/README.md`](./design/README.md) first: its project overrides win. |
 | Status | Draft v1 for `/speckit.plan` |
 | Date | 2026-10-17 |
 
@@ -19,6 +20,7 @@
 3. Create one spec per feature listed in §23 (mobile) and backend §20. Each feature ID (`M01`…, `B01`…) is meant to become one `specs/NNN-*` folder.
 4. When running `/speckit.plan` for a feature, give the agent both architecture documents as context. Technical Context (§2), Project Structure (§5), data model (§7, §11) and contracts (§3, backend §6) map directly to `plan.md`, `data-model.md` and `contracts/`.
 5. Items marked **NEEDS CLARIFICATION** must be resolved in `research.md` before tasks are generated. They are collected in §24.
+6. For a feature with screens, also give `/speckit.specify` and `/speckit.plan` the design: `docs/design/README.md`, then the HANDOFF sections of the feature's artboards (`docs/delivery-plan.md`, "Design sources"). The design decides how screens look; this document decides how the app is built.
 
 ---
 
@@ -26,7 +28,7 @@
 
 The mobile app is a portrait, one-handed, offline-first casual puzzle game for Android first and iOS second. The player is a microbus driver who collects fares, returns exact change before each passenger's stop, and saves money to furnish an apartment and get married.
 
-The client is built as **Flutter** for all screens, **Flame** for the trip scene, and **Rive** for expressive characters. All gameplay rules live in a **pure-Dart trip engine package** with no Flutter dependency, so the same rules can be unit-tested, replayed deterministically, and checked for parity against the backend's Python solver.
+The client is built as **Flutter** for all screens, **Flame** for the trip scene, and **Rive** for expressive characters. Every screen follows the visual design in `docs/design/` (Style C «كرتون ناعم», from feature 008.5 on). All gameplay rules live in a **pure-Dart trip engine package** with no Flutter dependency, so the same rules can be unit-tested, replayed deterministically, and checked for parity against the backend's Python solver.
 
 The backend (see [`architecture-backend.md`](./architecture-backend.md)) is authoritative for identity, premium currency, purchases, content packs and the daily challenge. The client is authoritative for moment-to-moment gameplay and can play every regular trip offline.
 
@@ -37,7 +39,7 @@ The backend (see [`architecture-backend.md`](./architecture-backend.md)) is auth
 | Field | Value |
 | --- | --- |
 | Language/Version | Dart 3.x, Flutter stable channel. Exact version pinned at kickoff with FVM (`.fvmrc`). |
-| Primary dependencies | `flame` (trip scene), `rive` (character animation, 0.14 with `rive_native`) drawn in the scene by `flame_rive`, `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio`. Tests add `flame_test` (M02). |
+| Primary dependencies | `flame` (trip scene), `rive` (character animation, 0.14 with `rive_native`) drawn in the scene by `flame_rive`, `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio`, `flutter_svg` (the design's icons and illustrations, from 008.5). Tests add `flame_test` (M02). |
 | Storage | Local SQLite via `drift` (game state, ledger, sync queue, content cache). Secure storage for auth tokens. Bundled assets for the initial content pack. |
 | Testing | `test` for the pure-Dart engine, `flutter_test` + golden tests for widgets, `integration_test` for end-to-end trip flows, shared JSON fixtures for engine ↔ solver parity |
 | Target platform | Android first (minSdk 24, targetSdk 36), iOS second (iOS 15.0). Portrait only. Decided in M03: `specs/001-m03-app-shell/research.md` R1. |
@@ -101,7 +103,7 @@ The backend (see [`architecture-backend.md`](./architecture-backend.md)) is auth
 | `trip_id` | `<line_id>.<nn>`, e.g. `line_gamaa.12` |
 | `station_id` | lowercase slug unique within a line, e.g. `kobri`, `mostashfa`, `gamaa` |
 | `archetype` (passenger behavior) | `regular`, `hajja`, `sleeper`, `hurry`, `big_note`, `student`, `headphones`, `false_claimer`, `group_payer`, `chatty`, `money_changer`, `bags_lady`, `dodger`, `mother_kids`, `big_family`, `traveler`, `regular_customer`, `honest` |
-| `skin` (passenger look) | free slug referencing a Rive artboard, e.g. `effendi_suit`, `student_cap` |
+| `skin` (passenger look) | free slug naming a passenger look drawn in Rive, e.g. `effendi_suit`, `student_cap`. The looks are the design's passenger types (`docs/design/HANDOFF.md` §5.3); 008.5 maps slugs to them. |
 | `chapter_id` | `ch1_first_job`, `ch2_her_father`, `ch3_shabka`, `ch4_salon`, `ch5_kitchen`, `ch6_bedroom`, `ch7_wedding` |
 | `room_id` / `item_id` | `salon`, `kitchen`, `bedroom` / `<room_id>.<slug>`, e.g. `salon.nish` |
 | `event_id` (in-trip) | `bump`, `traffic`, `open_road`, `fare_increase`, `drop_me_here`, `payment_dispute`, `change_request`, `roadside_pickup` |
@@ -166,7 +168,10 @@ wassal/
 │       │   ├── bootstrap/          # app start, flavors, DI overrides
 │       │   ├── core/
 │       │   │   ├── routing/        # go_router config (§9)
-│       │   │   ├── theme/          # tokens from UX doc «النظام البصري»
+│       │   │   ├── theme/
+│       │   │   │   ├── tokens/     # generated from docs/design/tokens.json by tool/design/ (008.5), plus design_extras.dart
+│       │   │   │   └── components/ # the shared components of design HANDOFF §3 (AppButton, AppDialog, BottomNav, …)
+│       │   │   ├── art/            # wassal.riv: loaded at boot, checked against its contract, RiveArtView (008.5)
 │       │   │   ├── l10n/           # ARB files, digit formatting
 │       │   │   ├── network/        # dio client, API base per flavor (M04); auth interceptor, API DTOs
 │       │   │   ├── storage/        # drift database, DAOs
@@ -194,12 +199,16 @@ wassal/
 │       │       ├── daily/          # daily reward, tasks, daily challenge
 │       │       ├── leagues/        # ملك الخط (public launch)
 │       │       ├── events/         # seasonal events + season pass (public launch)
-│       │       └── settings/       # settings, account, referral, welcome back
+│       │       ├── settings/       # settings, account, referral, welcome back
+│       │       └── dev/gallery/    # dev and staging only: every component, icon and Rive artboard (008.5)
 │       ├── assets/
 │       │   ├── content/            # bundled pack: dev/ (the sample), release/ (content/source)
-│       │   ├── rive/               # *.riv characters, UI animations
+│       │   ├── rive/               # wassal.riv: every person, vehicle and UI animation (008.5)
+│       │   ├── icons/              # SVG icons from docs/design/icons (008.5)
+│       │   ├── illustrations/      # SVG art from docs/design/illustrations, the static fallback (008.5)
 │       │   ├── audio/
-│       │   └── fonts/
+│       │   └── fonts/              # Marhey, Readex Pro (008.5; Lalezar and Baloo Bhaijaan 2 before it)
+│       ├── tool/design/            # gen_tokens.dart (tokens.json → tokens), sync_assets.dart (design icons and art → assets/)
 │       ├── test/  integration_test/
 │       └── pubspec.yaml
 ├── packages/
@@ -394,13 +403,21 @@ Per line, from Remote Config (§14.3): `trip_hop_ms_<line_id>` (1300 / 1100 / 90
 | Layer | Technology | Content |
 | --- | --- | --- |
 | Scene | Flame `GameWidget` filling the scene band. Scene coordinates are screen points: one world unit is one logical point, with no fixed resolution, so no letterboxing and every minimum size is measured in points. One pure function, `SceneLayout`, gives every seat's rectangle, face, token and bubble anchors to the Flame components and the Flutter overlays alike (M02 [research R3](../specs/008-m02-trip-screen/research.md#r3-the-scene-its-coordinates-and-flames-role)). | cabin, windows with their street, benches, passengers, driver's hand, effects (shake, glints). Flame draws only; it handles no touch and draws no text. |
-| Characters | One Rive file (`assets/rive/passenger.riv`), one artboard instance per passenger, drawn by `flame_rive` with `Factory.flutter` (the only factory that works inside Flame and in Linux `flutter test`). States through data binding: view-model properties `mood` (0 calm → 3 angry), `talking`, `asleep`, `headphones`, `alight`, `shirt`, `accessory` ([contracts/rive-character.md](../specs/008-m02-trip-screen/contracts/rive-character.md)) | driven from the trip view each step; a stand-in drawing until the file exists |
+| Characters | One Rive file (`assets/rive/wassal.riv`) whose `Person` artboard draws all 24 people by its `look` number, one instance per passenger with its `Passenger` state machine and view model, drawn by Flame with `Factory.flutter` (the only factory that works inside Flame and in Linux `flutter test`). The same file holds the vehicles (`Vehicle`) and the UI animations (`CoachHand`, `LoadingWheel`, `Stars`, …), drawn by `RiveWidget` ([contracts/rive-characters.md](../specs/008.5-m21-design-refresh/contracts/rive-characters.md)) | each passenger's pose from the trip view (`poseFor`, first match: fight, claim, change due, sleep, headphones, frowning, impatient, talking, idle) set as its one input, the others off; one-shots (`board`, `call`, `happy`, `targeted`) fired from the engine's events as `CharacterCue`s, `alight` from the view |
 | Touch and text overlays | Flutter widgets in a `Stack` over the `GameWidget`, positioned from `SceneLayout` | passenger hit areas, money tokens with their amounts (moved by a `Flow`), dropped notes, choice answers, bubbles, ledger badges, hints, banners (Arabic shaping, semantics and test finders) |
 | HUD & dashboard | Flutter widgets | top bar, station strip, hand, tray, «حد معاه فكة؟», boosters, «آخر كلام» log |
 
+**The design (from 008.5).** The trip screen's look is `docs/design/HANDOFF.md` §3.4 and §4, built in M21 to [contracts/trip-layout.md](../specs/008.5-m21-design-refresh/contracts/trip-layout.md):
+
+- **Zones.** A 114 pt HUD under the top inset, an 8 pt gap, the scene, and a 258 pt dashboard drawn over the scene's last 16. The HUD and dashboard never shrink; the scene takes what is left.
+- **The crop.** With less room than the design's 444 pt scene, the scene's top is cropped (at most 36 pt: the wall and the back window, never a face or a tag). Below that, the cabin, faces, tags and hit areas scale down.
+- **The threshold.** A screen keeps every minimum when its height is at least `inset + 764` pt (788 with a 24 pt inset). The Galaxy A06 does, with a 24 pt crop. Below it, M02's approved exception to constitution XI continues until M07: only the scene's faces and drawn sizes shrink; hit areas stay 44×44.
+- **Width.** Design x values scale with the width, except the front seat's, kept 40 pt from the end edge.
+- **Art.** Rive draws the people, the static SVGs of `assets/illustrations/` stand in wherever it doesn't: without the file, for an artboard that failed its contract check (each falls back alone), under reduced motion, and in every trip golden. `ArtTier` decides which seats use Rive: `rive` (all), `near_rive` (the front seat and row A), or `static`; the A06 measurement sets the default, and dev builds switch it from the debug panel. The Lottie files in `docs/design/lottie/` show the motion only; the runtime stays Rive (`docs/design/README.md`).
+
 Rules from the UX doc that the renderer must enforce:
 
-- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt. Every minimum holds from 744 pt of screen height; below that only the faces shrink, until M07's short-screen layout (M02 [research R15](../specs/008-m02-trip-screen/research.md#r15-layout-screen-sizes-and-text-scale)).
+- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt. Every minimum holds from `inset + 764` pt of screen height (008.5; M02's was 744); below that only the faces shrink, until M07's short-screen layout (M02 [research R15](../specs/008-m02-trip-screen/research.md#r15-layout-screen-sizes-and-text-scale), 008.5 [trip-layout.md](../specs/008.5-m21-design-refresh/contracts/trip-layout.md#height)).
 - At most 2 bubbles visible; others queue. Bubble duration ≥ `trip_bubble_min_ms_<line_id>`.
 - Bubbles are clamped inside the scene bounds; the tail points to the speaker.
 - Reduced-motion setting disables shake and bubble pop.
@@ -429,8 +446,16 @@ Rules from the UX doc that the renderer must enforce:
 | `/leagues` | ملك الخط | Public launch |
 | `/events/:seasonKey` | المناسبات + تذكرة الموسم | Public launch |
 | `/settings`, `/settings/account`, `/settings/referral` | الإعدادات, الحساب, ادعي صاحبك | MVP (referral: public launch) |
+| `/home/notif-ask` (dialog) | طلب الإشعارات, after the first trips | MVP (M14) |
+| `/story/album` | ألبوم المشاهد | MVP (M10) |
+| `/shop/purchase-done` (dialog) | الشرا تمّ | MVP (M12) |
+| `/shop/starter` (dialog) | باقة البداية, once after خط الحي | Phase 2 (M17) |
+| `/settings/account/delete`, `/settings/account/delete/confirm` | حذف الحساب: خطوة ١ و ٢ | MVP (M14) |
+| `/welcome-back` (dialog) | رجوع الغايب, at boot after a long absence | MVP (M13) |
 
-Global rules: back button top-right; Android system back on the trip route opens the pause overlay; sheets dismiss by swipe-down.
+The last six routes come from the design (`docs/design/HANDOFF.md` §7), which shows each screen's presentation (shell tab, sheet, dialog or full screen) and where each tap goes (§11). Each owning feature adds its route.
+
+Global rules: back button top-right; Android system back on the trip route opens the pause overlay; sheets dismiss by swipe-down; no Material ripples, so tappables press down onto their lip (HANDOFF §2.3).
 
 ---
 
@@ -625,7 +650,7 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 | --- | --- |
 | Trip scene | 60 fps target, never below 45 fps on the reference device, a Samsung Galaxy A06 (`specs/001-m03-app-shell/research.md` R14) |
 | Cold start | < 3 s to Home on reference device |
-| Install size | Android download < 80 MB (initial content + Rive + audio) |
+| Install size | Android download < 80 MB (initial content + Rive + fonts + SVG art + audio) |
 | Memory | < 300 MB during a trip |
 | Battery | No background work except FCM and scheduled local notifications |
 | Network | Bootstrap < 20 KB; content pack delta < 2 MB typical |
@@ -639,7 +664,8 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 | --- | --- | --- |
 | Engine unit | every rule in §7, every archetype, every event | `test` (pure Dart) |
 | Parity | shared fixtures vs Python solver | Dart test + pytest in CI |
-| Widget/golden | each screen in RTL, both digit settings, min sizes | `flutter_test` goldens |
+| Widget/golden | each screen in RTL, both digit settings, min sizes; from 008.5, each artboard's golden at 390×844 beside `docs/design/png/<Artboard>.png`, and a layout test against `docs/design/boxes/<Artboard>.json` (±2 px, design HANDOFF §10) | `flutter_test` goldens |
+| Design | from 008.5, per artboard: a sample builder in `test/design/samples/`, its golden in both digit styles, a layout test that matches every tap box within ±2 pt (and every app tappable to a box), and compare images with `--dart-define=DESIGN_COMPARE=true` ([contracts/design-checks.md](../specs/008.5-m21-design-refresh/contracts/design-checks.md)). Guards: tokens generated from `tokens.json`, assets as `sync_assets` copies them, no raw colors, radii, font sizes, shadows, durations or curves in UI code, no Material ink, nothing of the retired design. The Rive file has its contract test and golden sheets (tag `rive`). | `flutter_test`, `test/repo/` |
 | Integration | onboarding → first 5 trips; fuel empty → ad/bonat; purchase → verify (fake backend) | `integration_test` |
 | Playtest builds | internal track with debug overlay (seed, state) | flavor `staging` |
 | Performance | trip scene profiling on reference device per release | DevTools, Firebase Performance (optional) |
@@ -691,8 +717,9 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 | M18 | Leagues (phase 3) | M06 | B13 |
 | M19 | Seasonal events + season pass (phase 3) | M12 | B14 |
 | M20 | Referral + share clips (phase 3) | M06, M01 | B15 |
+| M21 | Design refresh: the Style C design (`docs/design/`) applied to what M02 and M03 built: tokens, components, shell, boot screen, trip screen, Rive art in the new style. Spec `008.5`. | M02, M03 | — |
 
-Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 → M06 → M09 → M10 → M15 → M11 → M12 → M13 → M14.
+Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M21 → M07 → M08 → M06 → M09 → M10 → M15 → M11 → M12 → M13 → M14.
 
 ---
 
@@ -703,7 +730,7 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 3. AdMob mediation networks for Egypt and the Gulf.
 4. **Resolved in M01:** a trip killed mid-way resumes exactly where it was left, rebuilt from its replay record, and fuel is untouched. See [research R10](../specs/004-m01-trip-engine/research.md#r10-the-replay-record-and-resuming-resolves-mobile-244). **UI side, M02:** at launch the boot screen opens the unfinished trip instead of Home, and the trip comes back paused with the pause card (or the failure card, or its result). See [M02 research R8](../specs/008-m02-trip-screen/research.md#r8-resuming-at-launch-the-ui-side-of-mobile-244).
 5. **Resolved in M05:** every trip start costs a liter, replays of completed trips included. See [research R20](../specs/007-m05-local-economy/research.md#r20-fuel-for-replays-resolves-mobile-245).
-6. **Resolved in M02:** `rive 0.14` with `rive_native`, drawn in Flame by `flame_rive` with `Factory.flutter`; the runtimes are MIT with no runtime fee, and exporting without a splash needs a paid editor seat. See [M02 research R1](../specs/008-m02-trip-screen/research.md#r1-the-character-runtime-and-its-license-resolves-mobile-246).
+6. **Resolved in M02:** `rive 0.14` with `rive_native`, drawn in Flame by `flame_rive` with `Factory.flutter`; the runtimes are MIT with no runtime fee, and exporting without a splash needs a paid editor seat. The owner exports from the free plan, whose splash is artboards the app never draws (008.5 research R15). See [M02 research R1](../specs/008-m02-trip-screen/research.md#r1-the-character-runtime-and-its-license-resolves-mobile-246).
 
 ---
 
@@ -712,6 +739,7 @@ Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M07 → M08 →
 | Decision | Rationale | Alternatives rejected |
 | --- | --- | --- |
 | Flutter + Flame + Rive | Game is ~80% screens; official Google ads/IAP plugins; native Arabic RTL; visual quality comes from Rive art, not the engine | Godot 4 (community ads/IAP plugins), Unity 6 (heavier; RTL only in UI Toolkit with the new text generator) |
+| Style C «كرتون ناعم» (`docs/design/`), owner decision 2026-10-23 | The design canvas covers every MVP screen with measured boxes, tokens and components, so screens are built and tested against it | «ستيكر الميكروباص» (M03's style); Lottie for animation, as the handoff proposes, because the constitution locks Rive |
 | Pure-Dart engine package | Deterministic, testable, shareable with replay and parity | Logic inside Flame components |
 | Python solver mirror | Validates solvability, generates daily challenges, owner is a Python expert | Solver in Dart only |
 | Integer piasters | Avoids float errors with 0.5 EGP coins | `double` amounts |

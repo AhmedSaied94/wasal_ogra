@@ -1,7 +1,7 @@
 // «آخر كلام»: the last two things said or sent (contracts/trip-view.md).
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';

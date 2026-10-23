@@ -4,11 +4,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
 import 'package:wassal/core/routing/routes.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/components/secondary_button.dart';
-import 'package:wassal/core/theme/components/sticker_card.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/buttons.dart';
+import 'package:wassal/core/theme/components/containers.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// Stands in for a destination whose real content arrives in a later
@@ -38,148 +36,99 @@ class PlaceholderScreen extends StatelessWidget {
       params: params,
       extra: extra,
     );
+    final title = destination.title(AppLocalizations.of(context));
     return switch (destination.presentation) {
       Presentation.sheet => _SheetLayout(child: content),
-      Presentation.tab => _TabLayout(child: content),
+      Presentation.tab => _PageLayout(title: title, child: content),
       _ when destination.name == RouteNames.trip => _TripLayout(child: content),
-      _ => _PageLayout(child: content),
+      _ => _PageLayout(
+        title: title,
+        // A page opened on its own has nothing under it.
+        onBack: () => context.canPop() ? context.pop() : context.go('/home'),
+        child: content,
+      ),
     };
   }
 }
 
-class _TabLayout extends StatelessWidget {
-  const _TabLayout({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(SpaceTokens.l),
-          child: StickerCard(child: child),
-        ),
-      ),
-    );
-  }
-}
-
-/// A full-screen page with the back control at the top right (FR-019).
+/// A page or a tab on the `ground`: the `ScreenHeader` (with the back
+/// control at the top right on a page, M03 FR-019; none on a tab), then the
+/// content.
 class _PageLayout extends StatelessWidget {
-  const _PageLayout({required this.child});
+  const _PageLayout({required this.title, required this.child, this.onBack});
 
+  final String title;
+  final VoidCallback? onBack;
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: IconButton(
-                // Icons.arrow_back mirrors itself, so it points right in RTL.
-                icon: const Icon(Icons.arrow_back),
-                tooltip: l10n.backLabel,
-                color: context.tokens.hibr,
-                // A page opened on its own has nothing under it.
-                onPressed: () =>
-                    context.canPop() ? context.pop() : context.go('/home'),
-              ),
+  Widget build(BuildContext context) => Scaffold(
+    body: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ScreenHeader(title: title, onBack: onBack),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              LayoutTokens.gutter,
+              SpaceTokens.s8,
+              LayoutTokens.gutter,
+              SpaceTokens.s24,
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  SpaceTokens.l,
-                  0,
-                  SpaceTokens.l,
-                  SpaceTokens.l,
-                ),
-                child: StickerCard(child: child),
-              ),
-            ),
-          ],
+            child: child,
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 /// The trip keeps every control in the bottom third, for one-handed play,
 /// and has no top-right back control: back opens the pause instead
-/// (constitution XI, FR-020).
+/// (constitution XI, M03 FR-020).
 class _TripLayout extends StatelessWidget {
   const _TripLayout({required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.all(SpaceTokens.l),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 2 * SpaceTokens.l,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [StickerCard(child: child)],
-              ),
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          padding: const EdgeInsets.all(LayoutTokens.gutter),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - 2 * LayoutTokens.gutter,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [AppCard(child: child)],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// Sheet content, with a close button at the top right (FR-018).
+/// Sheet content. `AppSheet` draws the title and the close button
+/// (M03 FR-018).
 class _SheetLayout extends StatelessWidget {
   const _SheetLayout({required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          SpaceTokens.l,
-          SpaceTokens.s,
-          SpaceTokens.l,
-          SpaceTokens.l,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: l10n.closeLabel,
-                color: context.tokens.hibr,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.only(bottom: SpaceTokens.s8),
+    child: child,
+  );
 }
 
+/// The «still being built» note, the parameters, the sample numbers, any
+/// real content, and the links. The title is the header's or the sheet's.
 class _Content extends StatelessWidget {
   const _Content({
     required this.destination,
@@ -194,37 +143,20 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final ink = context.tokens.hibr;
+    final style = TypeTokens.body.copyWith(color: ColorTokens.ink);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: SpaceTokens.s12,
       children: [
-        Semantics(
-          header: true,
-          child: Text(
-            destination.title(l10n),
-            style: TypeTokens.headline.copyWith(color: ink),
-          ),
-        ),
-        const SizedBox(height: SpaceTokens.s),
-        Text(l10n.placeholderNote, style: TypeTokens.body.copyWith(color: ink)),
+        EmptyState(message: l10n.placeholderNote),
         for (final MapEntry(:key, :value) in params.entries)
           // Parameters are Latin identifiers; read them left to right.
-          Text(
-            '$key: $value',
-            textDirection: TextDirection.ltr,
-            style: TypeTokens.body.copyWith(color: ink),
-          ),
-        const SizedBox(height: SpaceTokens.s),
+          Text('$key: $value', textDirection: TextDirection.ltr, style: style),
         const _SampleNumbers(),
-        if (extra case final extra?) ...[
-          const SizedBox(height: SpaceTokens.l),
-          extra,
-        ],
-        for (final name in destination.links) ...[
-          const SizedBox(height: SpaceTokens.m),
+        ?extra,
+        for (final name in destination.links)
           _Link(from: destination, to: destinationNamed(name)),
-        ],
       ],
     );
   }
@@ -238,10 +170,10 @@ class _Link extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SecondaryButton(
+    return AppButton.secondary(
       key: PlaceholderScreen.linkKey(to.name),
       label: to.title(AppLocalizations.of(context)),
-      onPressed: () => _open(context),
+      onTap: () => _open(context),
     );
   }
 
@@ -277,7 +209,8 @@ class _SampleNumbers extends ConsumerWidget {
         format.ratio(4, 5),
         format.countdown(const Duration(seconds: 750)),
       ),
-      style: TypeTokens.body.copyWith(color: context.tokens.hibr),
+      textAlign: TextAlign.center,
+      style: TypeTokens.body.copyWith(color: ColorTokens.ink),
     );
   }
 }

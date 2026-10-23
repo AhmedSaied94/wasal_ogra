@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/home_arrival.dart';
@@ -83,7 +84,11 @@ class _WassalAppState extends ConsumerState<WassalApp> {
       builder: (context, child) => MediaQuery.withClampedTextScaling(
         minScaleFactor: minTextScale,
         maxScaleFactor: maxTextScale,
-        child: child ?? const SizedBox.shrink(),
+        // The Rive file once boot has decoded it; static art until then.
+        child: RiveArtScope(
+          art: ref.watch(riveArtProvider).value,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }

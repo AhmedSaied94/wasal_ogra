@@ -1,43 +1,56 @@
-// A story trip's condition (FR-041, ux-spec «مشاوير القصة»): under the
-// station strip for the whole trip, «أي خناقة والمشوار يتعاد». Broken, it
-// turns red as the trip fails.
+// A story trip's condition (HANDOFF `StoryTrip` block 3, research R11): a
+// dark strip at the scene's top for the whole trip, the shield over
+// «أي خناقة والمشوار يتعاد». Broken, it turns `danger` as the trip fails.
+// Bubbles keep below its band (`storyBand`).
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class StoryStrip extends StatelessWidget {
   const StoryStrip({super.key});
 
+  static const iconKey = ValueKey('trip-story-shield');
+
+  static const double height = 40;
+  static const double _radius = 14;
+  static const double _icon = 20;
+
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
     return TripSelector<bool?>(
       select: (model) => model.view?.storyCondition,
       builder: (context, kept) {
         if (kept == null) return const SizedBox.shrink();
-        return Center(
+        return Semantics(
+          container: true,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SpaceTokens.m,
-              vertical: SpaceTokens.xs,
-            ),
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s12),
             decoration: BoxDecoration(
-              color: kept ? tokens.gold : tokens.danger,
-              borderRadius: BorderRadius.circular(ShapeTokens.radiusControl),
-              border: Border.all(
-                color: tokens.hibr,
-                width: ShapeTokens.borderCard,
-              ),
+              color: kept ? ColorTokens.dashboardBg : ColorTokens.danger,
+              borderRadius: BorderRadius.circular(_radius),
             ),
-            child: Text(
-              l10n.tripStoryNoFights,
-              textAlign: TextAlign.center,
-              style: TypeTokens.label.copyWith(color: tokens.hibr),
+            child: Row(
+              spacing: SpaceTokens.s8,
+              children: [
+                const AppIcon('shield_check', key: iconKey, size: _icon),
+                Expanded(
+                  child: Text(
+                    l10n.tripStoryNoFights,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TypeTokens.caption
+                        .weight(600)
+                        .copyWith(
+                          color: kept ? ColorTokens.paper : ColorTokens.ink,
+                        ),
+                  ),
+                ),
+              ],
             ),
           ),
         );

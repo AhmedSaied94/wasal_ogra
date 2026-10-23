@@ -56,11 +56,13 @@ import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
-import 'package:wassal/features/trip/presentation/scene/passenger_art.dart';
+import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/features/trip/presentation/scene/svg_passenger_art.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/features/trip/trip_providers.dart';
 
+import '../design/design_check.dart';
 import 'economy.dart';
 import 'memory_settings_store.dart';
 import 'pump_app.dart';
@@ -199,23 +201,25 @@ void playWithMemory(
   }
 }
 
-/// The trip screen's test frames, in logical points (contracts/scene-layout.md
-/// "Goldens and size checks"). M03's [Surface] stays as it is.
+/// The trip screen's test frames, in logical points, each with the status
+/// bar the phone reports (specs/008.5-m21-design-refresh,
+/// contracts/trip-layout.md "Golden surfaces"). M03's [Surface] stays as it
+/// is. [compliant] surfaces keep every minimum size; [small] is the
+/// exception, where only the scene's faces shrink.
 enum TripSurface {
-  reference(Size(390, 844)),
-  a06(Size(360, 800)),
-  compact(Size(360, 744));
+  reference(Size(390, 844), inset: designTopInset, compliant: true),
+  a06(Size(360, 800), inset: 24, compliant: true),
+  small(Size(360, 640), inset: 24, compliant: false);
 
-  const TripSurface(this.size);
+  const TripSurface(this.size, {required this.inset, required this.compliant});
 
   final Size size;
+  final double inset;
+  final bool compliant;
 }
 
-void applyTripSurface(WidgetTester tester, TripSurface surface) {
-  tester.view.physicalSize = surface.size;
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-}
+void applyTripSurface(WidgetTester tester, TripSurface surface) =>
+    applyDesignSurface(tester, surface.size, topInset: surface.inset);
 
 /// Records every effect played, in order.
 final class FakeSfxPlayer implements SfxPlayer {
@@ -241,6 +245,9 @@ final class FakeHaptics implements Haptics {
 
   @override
   void heavy() => felt.add('heavy');
+
+  @override
+  void selection() => felt.add('selection');
 }
 
 /// A settings store holding the trip's preferences.
@@ -538,7 +545,8 @@ Future<void> playCommands(
 Economy economyOf(TestEconomy economy) => economy.service;
 
 /// The trip screen's platform edges as fakes, for every app test: no
-/// sound or vibration plugins, the stand-in passengers, no ads, and a
+/// sound or vibration plugins, no Rive file (the static art everywhere), no
+/// ads, and a
 /// clock the test moves itself (the scene steps once per change).
 List<Override> tripTestOverrides({
   FakeSfxPlayer? sfx,
@@ -548,8 +556,8 @@ List<Override> tripTestOverrides({
   sfxPlayerProvider.overrideWithValue(sfx ?? FakeSfxPlayer()),
   hapticsProvider.overrideWithValue(haptics ?? FakeHaptics()),
   tripFrameDrivenProvider.overrideWithValue(false),
-  passengerRiveProvider.overrideWith((ref) async => null),
-  passengerArtProvider.overrideWithValue(const StandInPassengerArtFactory()),
+  riveArtProvider.overrideWith((ref) async => const RiveArt.none()),
+  passengerArtProvider.overrideWithValue(const SvgPassengerArtFactory()),
   tripAdOffersProvider.overrideWithValue(ads),
 ];
 
@@ -569,6 +577,11 @@ List<Override> economyOverridesOf(TestEconomy economy) => [
 ];
 
 /// Pumps the app on the trip screen of [tripId], on [surface]. [fixed]
+/// Decodes the passengers' static art for real, outside the fake clock, so
+/// the first frame draws them.
+Future<void> preloadTripArt(WidgetTester tester) =>
+    tester.runAsync(SvgPassengerArtFactory.preload);
+
 /// opens a fixture's trip instead of the pack's (the scripted player).
 Future<ProviderContainer> pumpTrip(
   WidgetTester tester, {
@@ -585,22 +598,26 @@ Future<ProviderContainer> pumpTrip(
   Flavor flavor = Flavor.dev,
   List<Override> overrides = const [],
   bool settle = true,
-}) => pumpWassalApp(
-  tester,
-  flavor: flavor,
-  settle: settle,
-  size: surface.size,
-  digits: digits,
-  textScale: textScale,
-  settingsStore: settingsStore,
-  economy: economy == null ? null : economyOverridesOf(economy),
-  initialLocation: '/trip/$tripId',
-  trip: tripTestOverrides(sfx: sfx, haptics: haptics, ads: ads),
-  overrides: [
-    if (fixed != null) tripFixedProvider.overrideWithValue(fixed),
-    ...overrides,
-  ],
-);
+}) async {
+  applyTripSurface(tester, surface);
+  await preloadTripArt(tester);
+  return pumpWassalApp(
+    tester,
+    flavor: flavor,
+    settle: settle,
+    size: surface.size,
+    digits: digits,
+    textScale: textScale,
+    settingsStore: settingsStore,
+    economy: economy == null ? null : economyOverridesOf(economy),
+    initialLocation: '/trip/$tripId',
+    trip: tripTestOverrides(sfx: sfx, haptics: haptics, ads: ads),
+    overrides: [
+      if (fixed != null) tripFixedProvider.overrideWithValue(fixed),
+      ...overrides,
+    ],
+  );
+}
 
 /// The controller of the trip screen on screen.
 TripController controllerOf(WidgetTester tester) => tester
@@ -802,7 +819,7 @@ final class ScriptedPlayer {
       case CollectDropped(:final tokenId):
         await _tap(find.byKey(DroppedLayer.noteKey(tokenId)));
       case RequestBreak(:final denomination):
-        await _tap(find.byKey(BreakButton.buttonKey));
+        await _tap(find.byKey(CallChangeButton.buttonKey));
         await tester.pump();
         expect(controller.view!.breakMode, isTrue);
         await _tap(find.byKey(Tray.slotKey(denomination)));
@@ -820,7 +837,7 @@ final class ScriptedPlayer {
         await tester.pumpAndSettle();
         expect(controller.engine!.state.revived, isTrue);
       case Abandon():
-        await _tap(find.byKey(TripTopBar.pauseKey));
+        await _tap(find.byKey(TripHud.pauseKey));
         await tester.pump();
         await _tap(find.byKey(PauseCard.homeKey));
       case ResolveDispute():

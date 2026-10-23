@@ -56,7 +56,7 @@ jobs:
             exit 0
           fi
           if git diff --name-only "$base" HEAD \
-              | grep -qE '^(apps/mobile/|packages/|content/|fixtures/|\.fvmrc$|\.github/workflows/mobile\.yml$)'; then
+              | grep -qE '^(apps/mobile/|packages/|content/|fixtures/|docs/design/|\.fvmrc$|\.github/workflows/mobile\.yml$)'; then
             echo "mobile=true" >> "$GITHUB_OUTPUT"
           else
             echo "mobile=false" >> "$GITHUB_OUTPUT"
@@ -241,7 +241,7 @@ jobs:
         run: dart run rive_native:setup --verbose --clean --platform linux
       - run: >-
           flutter test --update-goldens test/goldens
-          test/features/trip/rive_character_goldens_test.dart
+          test/features/trip/rive_art_goldens_test.dart
       - uses: actions/upload-artifact@v7
         with:
           name: goldens

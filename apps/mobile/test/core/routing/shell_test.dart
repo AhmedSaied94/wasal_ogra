@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
-import 'package:wassal/core/theme/components/wassal_bottom_bar.dart';
+import 'package:wassal/core/theme/components/nav.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -10,7 +10,7 @@ void main() {
   testWidgets('a cold start lands on الموقف inside the shell', (tester) async {
     await pumpWassalApp(tester);
     expect(currentLocation(tester), '/home');
-    final bar = tester.widget<WassalBottomBar>(find.byType(WassalBottomBar));
+    final bar = tester.widget<BottomNav>(find.byType(BottomNav));
     expect(bar.currentIndex, 0);
     expect(
       find.descendant(
@@ -32,9 +32,7 @@ void main() {
       await pumpWassalApp(tester, initialLocation: path);
       expect(currentLocation(tester), path);
       expect(
-        tester
-            .widget<WassalBottomBar>(find.byType(WassalBottomBar))
-            .currentIndex,
+        tester.widget<BottomNav>(find.byType(BottomNav)).currentIndex,
         tab.index,
       );
       expect(
@@ -52,9 +50,6 @@ void main() {
     await tester.tap(find.text('الشقة'));
     await tester.pumpAndSettle();
     expect(currentLocation(tester), '/apartment');
-    expect(
-      tester.widget<WassalBottomBar>(find.byType(WassalBottomBar)).currentIndex,
-      2,
-    );
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).currentIndex, 2);
   });
 }

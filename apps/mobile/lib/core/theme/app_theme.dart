@@ -1,141 +1,48 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/tokens/colors.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
-/// The palette as a theme extension, so widgets read colors through the
-/// theme (`context.tokens`) rather than from constants.
-@immutable
-class WassalTokens extends ThemeExtension<WassalTokens> {
-  const WassalTokens({
-    required this.shams,
-    required this.hibr,
-    required this.waraq,
-    required this.tablouh,
-    required this.primary,
-    required this.danger,
-    required this.gold,
-    required this.badgeNew,
-    required this.stations,
-    required this.fare,
-    required this.bubbleWarn,
-    required this.bubbleFight,
-    required this.bubbleThanks,
-    required this.shirts,
-  });
-
-  static const standard = WassalTokens(
-    shams: ColorTokens.shams,
-    hibr: ColorTokens.hibr,
-    waraq: ColorTokens.waraq,
-    tablouh: ColorTokens.tablouh,
-    primary: ColorTokens.primary,
-    danger: ColorTokens.danger,
-    gold: ColorTokens.gold,
-    badgeNew: ColorTokens.badgeNew,
-    stations: ColorTokens.stations,
-    fare: ColorTokens.fare,
-    bubbleWarn: ColorTokens.bubbleWarn,
-    bubbleFight: ColorTokens.bubbleFight,
-    bubbleThanks: ColorTokens.bubbleThanks,
-    shirts: ColorTokens.shirts,
-  );
-
-  final Color shams;
-  final Color hibr;
-  final Color waraq;
-  final Color tablouh;
-  final Color primary;
-  final Color danger;
-  final Color gold;
-  final Color badgeNew;
-  final List<StationColor> stations;
-  final Color fare;
-  final Color bubbleWarn;
-  final Color bubbleFight;
-  final Color bubbleThanks;
-  final ShirtColors shirts;
-
-  @override
-  WassalTokens copyWith({
-    Color? shams,
-    Color? hibr,
-    Color? waraq,
-    Color? tablouh,
-    Color? primary,
-    Color? danger,
-    Color? gold,
-    Color? badgeNew,
-    List<StationColor>? stations,
-    Color? fare,
-    Color? bubbleWarn,
-    Color? bubbleFight,
-    Color? bubbleThanks,
-    ShirtColors? shirts,
-  }) => WassalTokens(
-    shams: shams ?? this.shams,
-    hibr: hibr ?? this.hibr,
-    waraq: waraq ?? this.waraq,
-    tablouh: tablouh ?? this.tablouh,
-    primary: primary ?? this.primary,
-    danger: danger ?? this.danger,
-    gold: gold ?? this.gold,
-    badgeNew: badgeNew ?? this.badgeNew,
-    stations: stations ?? this.stations,
-    fare: fare ?? this.fare,
-    bubbleWarn: bubbleWarn ?? this.bubbleWarn,
-    bubbleFight: bubbleFight ?? this.bubbleFight,
-    bubbleThanks: bubbleThanks ?? this.bubbleThanks,
-    shirts: shirts ?? this.shirts,
-  );
-
-  /// The app has a single theme (FR-009), so there is nothing to blend.
-  @override
-  WassalTokens lerp(WassalTokens? other, double t) =>
-      t < 0.5 || other == null ? this : other;
-}
-
-extension WassalTokensContext on BuildContext {
-  WassalTokens get tokens =>
-      Theme.of(this).extension<WassalTokens>() ?? WassalTokens.standard;
-}
-
-/// The only theme: light, on شمس, in the app's two faces.
+/// The only theme: light, on the `ground`, in Readex Pro with Marhey for
+/// display (specs/008.5-m21-design-refresh, contracts/design-tokens.md
+/// "Theme"). Presses show the lip, not an ink splash.
 ThemeData buildAppTheme() {
-  const t = WassalTokens.standard;
   final textTheme = const TextTheme(
-    displayLarge: TypeTokens.display,
-    displayMedium: TypeTokens.display,
-    displaySmall: TypeTokens.display,
-    headlineLarge: TypeTokens.headline,
-    headlineMedium: TypeTokens.headline,
-    headlineSmall: TypeTokens.headline,
-    titleLarge: TypeTokens.title,
-    titleMedium: TypeTokens.title,
+    displayLarge: TypeTokens.displayXl,
+    displayMedium: TypeTokens.displayL,
+    displaySmall: TypeTokens.displayM,
+    headlineLarge: TypeTokens.displayL,
+    headlineMedium: TypeTokens.displayM,
+    headlineSmall: TypeTokens.displayS,
+    titleLarge: TypeTokens.displayS,
+    titleMedium: TypeTokens.row,
     titleSmall: TypeTokens.label,
-    bodyLarge: TypeTokens.body,
+    bodyLarge: TypeTokens.row,
     bodyMedium: TypeTokens.body,
     bodySmall: TypeTokens.caption,
-    labelLarge: TypeTokens.button,
+    labelLarge: TypeTokens.buttonL,
     labelMedium: TypeTokens.label,
-    labelSmall: TypeTokens.caption,
-  ).apply(bodyColor: t.hibr, displayColor: t.hibr);
+    labelSmall: TypeTokens.label,
+  ).apply(bodyColor: ColorTokens.ink, displayColor: ColorTokens.ink);
+  final clear = ColorTokens.ink.withValues(alpha: 0);
 
   return ThemeData(
     brightness: Brightness.light,
-    colorScheme: ColorScheme(
+    colorScheme: const ColorScheme(
       brightness: Brightness.light,
-      primary: t.primary,
-      onPrimary: t.waraq,
-      secondary: t.gold,
-      onSecondary: t.hibr,
-      error: t.danger,
-      onError: t.hibr,
-      surface: t.waraq,
-      onSurface: t.hibr,
+      primary: ColorTokens.primary,
+      onPrimary: ColorTokens.paper,
+      secondary: ColorTokens.gold,
+      onSecondary: ColorTokens.ink,
+      error: ColorTokens.danger,
+      onError: ColorTokens.ink,
+      surface: ColorTokens.paper,
+      onSurface: ColorTokens.ink,
     ),
-    scaffoldBackgroundColor: t.shams,
-    fontFamily: TypeTokens.baloo,
+    scaffoldBackgroundColor: ColorTokens.ground,
+    fontFamily: TypeTokens.readexPro,
     textTheme: textTheme,
-    extensions: const [t],
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: clear,
+    hoverColor: clear,
+    extensions: const [WassalTokens.standard],
   );
 }

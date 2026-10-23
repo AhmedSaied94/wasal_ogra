@@ -93,13 +93,14 @@ void main() {
     final scene = sceneRect(tester);
     final layout = SceneLayout(
       c.session!.facts.definition.seats,
+      vehicle: c.session!.facts.definition.vehicleId,
       width: scene.width,
       height: scene.height,
     );
     final seatId = c.view!.passengers
         .firstWhere((p) => p.passengerId == 'p1')
         .seatId;
-    final face = layout.seats[seatId]!.face;
+    final face = layout.seats[seatId]!.head;
     final row = tester.getRect(find.byKey(ChoicesLayer.rowKey('p1')));
     expect(row.left, lessThan(scene.left + face.left + face.width));
     expect(row.right, greaterThan(scene.left + face.left));

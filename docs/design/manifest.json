@@ -1,0 +1,434 @@
+[
+ {
+  "file": "screens/Loading.html",
+  "png": "png/Loading.png",
+  "artboard": "Loading",
+  "title": "١ · التحميل",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Intro.html",
+  "png": "png/Intro.png",
+  "artboard": "Intro",
+  "title": "٢ · المشهد الافتتاحي",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Name.html",
+  "png": "png/Name.png",
+  "artboard": "Name",
+  "title": "٣ · اسم الأسطى",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Tutorial.html",
+  "png": "png/Tutorial.png",
+  "artboard": "Tutorial",
+  "title": "٤ · التعليم داخل المشوار",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/NotifAsk.html",
+  "png": "png/NotifAsk.png",
+  "artboard": "NotifAsk",
+  "title": "٥ · طلب الإشعارات",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/C-Home.html",
+  "png": "png/C-Home.png",
+  "artboard": "C-Home",
+  "title": "الموقف",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/HomeStates.html",
+  "png": "png/HomeStates.png",
+  "artboard": "HomeStates",
+  "title": "الموقف · البنزين خلص وأوفلاين",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PreTrip.html",
+  "png": "png/PreTrip.png",
+  "artboard": "PreTrip",
+  "title": "كارت ما قبل المشوار",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/C-Trip.html",
+  "png": "png/C-Trip.png",
+  "artboard": "C-Trip",
+  "title": "المشوار",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/TripEvents.html",
+  "png": "png/TripEvents.png",
+  "artboard": "TripEvents",
+  "title": "المشوار · أحداث واختيارات",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/StoryTrip.html",
+  "png": "png/StoryTrip.png",
+  "artboard": "StoryTrip",
+  "title": "مشوار قصة",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Pause.html",
+  "png": "png/Pause.png",
+  "artboard": "Pause",
+  "title": "نافذة الإيقاف",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Fail.html",
+  "png": "png/Fail.png",
+  "artboard": "Fail",
+  "title": "فشل المشوار",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Result.html",
+  "png": "png/Result.png",
+  "artboard": "Result",
+  "title": "النتيجة",
+  "page": "v1",
+  "w": 390,
+  "h": 1100
+ },
+ {
+  "file": "screens/ShareCard.html",
+  "png": "png/ShareCard.png",
+  "artboard": "ShareCard",
+  "title": "صورة المشاركة",
+  "page": "v1",
+  "w": 360,
+  "h": 360
+ },
+ {
+  "file": "screens/Lines.html",
+  "png": "png/Lines.png",
+  "artboard": "Lines",
+  "title": "الخطوط",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/LineDetails.html",
+  "png": "png/LineDetails.png",
+  "artboard": "LineDetails",
+  "title": "تفاصيل الخط",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/BuyVehicle.html",
+  "png": "png/BuyVehicle.png",
+  "artboard": "BuyVehicle",
+  "title": "شراء العربية",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptGoal.html",
+  "png": "png/AptGoal.png",
+  "artboard": "AptGoal",
+  "title": "الشقة · الفصول ١–٣",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptRooms.html",
+  "png": "png/AptRooms.png",
+  "artboard": "AptRooms",
+  "title": "الشقة · من الفصل ٤",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Piece.html",
+  "png": "png/Piece.png",
+  "artboard": "Piece",
+  "title": "لوح القطعة",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/SceneViewer.html",
+  "png": "png/SceneViewer.png",
+  "artboard": "SceneViewer",
+  "title": "عارض المشاهد",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Chapters.html",
+  "png": "png/Chapters.png",
+  "artboard": "Chapters",
+  "title": "خط الفصول",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Requests.html",
+  "png": "png/Requests.png",
+  "artboard": "Requests",
+  "title": "طلبات أهل العروسة",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptGoalReady.html",
+  "png": "png/AptGoalReady.png",
+  "artboard": "AptGoalReady",
+  "title": "الشقة · الهدف جاهز",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/RoomDone.html",
+  "png": "png/RoomDone.png",
+  "artboard": "RoomDone",
+  "title": "الغرفة خلصت",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Album.html",
+  "png": "png/Album.png",
+  "artboard": "Album",
+  "title": "ألبوم المشاهد",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Shop.html",
+  "png": "png/Shop.png",
+  "artboard": "Shop",
+  "title": "المحل",
+  "page": "v1",
+  "w": 390,
+  "h": 1240
+ },
+ {
+  "file": "screens/Fuel.html",
+  "png": "png/Fuel.png",
+  "artboard": "Fuel",
+  "title": "نافذة البنزين",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PurchaseDone.html",
+  "png": "png/PurchaseDone.png",
+  "artboard": "PurchaseDone",
+  "title": "الشرا تمّ",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Daily.html",
+  "png": "png/Daily.png",
+  "artboard": "Daily",
+  "title": "المكافأة اليومية",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Tasks.html",
+  "png": "png/Tasks.png",
+  "artboard": "Tasks",
+  "title": "مهام اليوم",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Challenge.html",
+  "png": "png/Challenge.png",
+  "artboard": "Challenge",
+  "title": "تحدي اليوم",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Settings.html",
+  "png": "png/Settings.png",
+  "artboard": "Settings",
+  "title": "الإعدادات",
+  "page": "v1",
+  "w": 390,
+  "h": 1420
+ },
+ {
+  "file": "screens/DeleteStep1.html",
+  "png": "png/DeleteStep1.png",
+  "artboard": "DeleteStep1",
+  "title": "حذف الحساب · خطوة ١",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/DeleteAccount.html",
+  "png": "png/DeleteAccount.png",
+  "artboard": "DeleteAccount",
+  "title": "حذف الحساب · خطوة ٢",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Returning.html",
+  "png": "png/Returning.png",
+  "artboard": "Returning",
+  "title": "رجوع الغايب",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/States.html",
+  "png": "png/States.png",
+  "artboard": "States",
+  "title": "الحالات العامة",
+  "page": "v1",
+  "w": 390,
+  "h": 1400
+ },
+ {
+  "file": "screens/Garage.html",
+  "png": "png/Garage.png",
+  "artboard": "Garage",
+  "title": "الجراج",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Starter.html",
+  "png": "png/Starter.png",
+  "artboard": "Starter",
+  "title": "عرض باقة البداية",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/King.html",
+  "png": "png/King.png",
+  "artboard": "King",
+  "title": "ملك الخط",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Event.html",
+  "png": "png/Event.png",
+  "artboard": "Event",
+  "title": "المناسبة وتذكرة الموسم",
+  "page": "later",
+  "w": 390,
+  "h": 1200
+ },
+ {
+  "file": "screens/Invite.html",
+  "png": "png/Invite.png",
+  "artboard": "Invite",
+  "title": "ادعي صاحبك",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/Tokens.html",
+  "png": "png/Tokens.png",
+  "artboard": "Tokens",
+  "title": "الألوان والخطوط والمسافات",
+  "page": "system",
+  "w": 1200,
+  "h": 1220
+ },
+ {
+  "file": "screens/Components.html",
+  "png": "png/Components.png",
+  "artboard": "Components",
+  "title": "المكوّنات وحالاتها",
+  "page": "system",
+  "w": 1200,
+  "h": 1700
+ },
+ {
+  "file": "screens/Passengers.html",
+  "png": "png/Passengers.png",
+  "artboard": "Passengers",
+  "title": "أنواع الركاب الـ١٨",
+  "page": "system",
+  "w": 1200,
+  "h": 1100
+ },
+ {
+  "file": "screens/Characters.html",
+  "png": "png/Characters.png",
+  "artboard": "Characters",
+  "title": "الشخصيات وحالات الراكب",
+  "page": "system",
+  "w": 1200,
+  "h": 1100
+ },
+ {
+  "file": "screens/Vehicles.html",
+  "png": "png/Vehicles.png",
+  "artboard": "Vehicles",
+  "title": "العربيات",
+  "page": "system",
+  "w": 1200,
+  "h": 620
+ }
+]

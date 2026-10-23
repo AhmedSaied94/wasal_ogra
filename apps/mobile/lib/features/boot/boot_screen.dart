@@ -1,28 +1,59 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/components/primary_button.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/containers.dart';
+import 'package:wassal/core/theme/components/overlays.dart';
+import 'package:wassal/core/theme/components/vehicle_sprite.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/trip_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// The first Flutter frame: شمس like the native splash, so there is no flash
-/// between them (FR-012). Hands over once startup completes.
+/// The cloud's two bumps (`Loading` block 0), in points.
+const _cloudBigBump = 18.0;
+const _cloudSmallBump = 15.0;
+
+/// The lines the loading screen picks from, one per launch (research R6).
+/// More are copy for the owner.
+List<String> loadingLines(AppLocalizations l10n) => [l10n.loadingLine1];
+
+/// The first Flutter frame, the `Loading` artboard (HANDOFF `Loading`,
+/// research R6): on `sun` like the native splash, so there is no flash
+/// between them (M03 FR-012). The road bar follows the boot steps, a failure
+/// offers M03's retry, and it hands over once startup completes.
 class BootScreen extends ConsumerStatefulWidget {
   const BootScreen({super.key});
+
+  static const vehicleKey = Key('BootScreen.vehicle');
+  static const vehicleIn = DesignExtras.loadingVehicleIn;
 
   @override
   ConsumerState<BootScreen> createState() => _BootScreenState();
 }
 
-class _BootScreenState extends ConsumerState<BootScreen> {
+class _BootScreenState extends ConsumerState<BootScreen>
+    with SingleTickerProviderStateMixin {
   bool _handedOver = false;
+
+  /// Which loading line this launch shows.
+  final int _pick = math.Random().nextInt(1 << 16);
+
+  late final _drive = AnimationController(
+    vsync: this,
+    duration: BootScreen.vehicleIn,
+  );
+  late final _driveCurve = CurvedAnimation(
+    parent: _drive,
+    curve: DesignExtras.loadingVehicleCurve,
+  );
+  bool _driveStarted = false;
 
   @override
   void initState() {
@@ -30,6 +61,25 @@ class _BootScreenState extends ConsumerState<BootScreen> {
     ref.listenManual(appStartupProvider, (_, next) {
       if (next is AsyncData<void>) unawaited(_handOver());
     }, fireImmediately: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_driveStarted) return;
+    _driveStarted = true;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _drive.value = 1;
+    } else {
+      _drive.forward().ignore();
+    }
+  }
+
+  @override
+  void dispose() {
+    _driveCurve.dispose();
+    _drive.dispose();
+    super.dispose();
   }
 
   /// To الموقف, or back into the trip a kill interrupted
@@ -41,8 +91,6 @@ class _BootScreenState extends ConsumerState<BootScreen> {
     // navigating would rebuild the router mid-frame.
     final economy = await ref.read(economyProvider.future);
     await ref.read(appDatabaseProvider.future);
-    // The character too, so the first trip doesn't open with the stand-in.
-    await ref.read(passengerRiveProvider.future);
     if (!mounted) return;
     final unfinished = economy.view.unfinished;
     // Stale records go before a trip can open.
@@ -54,41 +102,216 @@ class _BootScreenState extends ConsumerState<BootScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final tokens = context.tokens;
     final startup = ref.watch(appStartupProvider);
     final failed = startup.hasError && !startup.isLoading;
+    final lines = loadingLines(l10n);
     return Scaffold(
-      backgroundColor: tokens.shams,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(SpaceTokens.l),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.appName,
-                  textAlign: TextAlign.center,
-                  style: TypeTokens.display.copyWith(color: tokens.hibr),
-                ),
-                if (failed) ...[
-                  const SizedBox(height: SpaceTokens.xl),
-                  Text(
-                    l10n.bootErrorMessage,
-                    textAlign: TextAlign.center,
-                    style: TypeTokens.body.copyWith(color: tokens.hibr),
-                  ),
-                  const SizedBox(height: SpaceTokens.l),
-                  PrimaryButton(
-                    label: l10n.bootRetry,
-                    onPressed: () => retryAppStartup(ref),
+      backgroundColor: ColorTokens.sun,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: CustomPaint(painter: _Backdrop())),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // The board's 844 points; shorter screens close the gaps.
+              final scale = math.min(1.0, constraints.maxHeight / _frame);
+              return CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Column(
+                      children: [
+                        SizedBox(height: _wordmarkTop * scale),
+                        Text(
+                          l10n.appName,
+                          textAlign: TextAlign.center,
+                          style: DesignExtras.loadingWordmark.copyWith(
+                            color: ColorTokens.ink,
+                            shadows: const [DesignExtras.loadingWordmarkShadow],
+                          ),
+                        ),
+                        const SizedBox(height: _taglineGap),
+                        Text(
+                          l10n.loadingTagline,
+                          textAlign: TextAlign.center,
+                          style: DesignExtras.loadingTagline.copyWith(
+                            color: ColorTokens.ink2,
+                          ),
+                        ),
+                        SizedBox(height: _vehicleGap * scale),
+                        AnimatedBuilder(
+                          animation: _driveCurve,
+                          builder: (context, child) => Transform.translate(
+                            offset: Offset(
+                              (1 - _driveCurve.value) * constraints.maxWidth,
+                              0,
+                            ),
+                            child: child,
+                          ),
+                          child: _Vehicle(sign: l10n.destHome),
+                        ),
+                        const Spacer(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: _barInset,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            spacing: _lineGap,
+                            children: [
+                              ProgressBar.road(
+                                value: ref.watch(bootProgressProvider).value,
+                                semanticLabel: l10n.loadingProgressLabel,
+                              ),
+                              if (failed)
+                                InlineAlert(
+                                  icon: 'warning',
+                                  message: l10n.bootErrorMessage,
+                                  action: l10n.bootRetry,
+                                  onAction: () => retryAppStartup(ref),
+                                )
+                              else
+                                Center(
+                                  child: Text(
+                                    lines[_pick % lines.length],
+                                    textAlign: TextAlign.center,
+                                    style: DesignExtras.loadingLine.copyWith(
+                                      color: ColorTokens.ink,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: _barBottom * scale),
+                      ],
+                    ),
                   ),
                 ],
-              ],
-            ),
+              );
+            },
           ),
-        ),
+        ],
       ),
     );
   }
+
+  // HANDOFF `Loading` blocks 1 – 5 on the 390×844 board.
+  static const double _frame = 844;
+  static const double _wordmarkTop = 210;
+  static const double _taglineGap = 6;
+  static const double _vehicleGap = 40;
+  static const double _barInset = 45;
+  static const double _lineGap = 14;
+  static const double _barBottom = 118;
+}
+
+/// The vehicle with its roof sign (block 3): `wassal.riv`'s old microbus
+/// driving, or without it the design's drawing, 300×170; and the sign
+/// «الموقف» laid over either in the drawing's own units, so its text comes
+/// from the ARB.
+class _Vehicle extends StatelessWidget {
+  const _Vehicle({required this.sign});
+
+  final String sign;
+
+  static const _asset = 'assets/illustrations/screens/Loading_01.svg';
+  static const Size _size = Size(300, 170);
+
+  /// The drawing's view box, and the sign in it.
+  static const Size _art = Size(358, 210);
+  static const Rect _sign = Rect.fromLTWH(114, 4, 96, 26);
+
+  /// Where the Rive microbus covers the drawn one, in the drawing's units:
+  /// body, wheels and shadow, x 30 to 326, down to y 205.
+  static const Rect _bus = Rect.fromLTWH(30, 17, 296, 188);
+
+  @override
+  Widget build(BuildContext context) => SizedBox.fromSize(
+    key: BootScreen.vehicleKey,
+    size: _size,
+    child: FittedBox(
+      child: SizedBox.fromSize(
+        size: _art,
+        child: Stack(
+          children: [
+            Positioned.fromRect(
+              rect: _bus,
+              child: VehicleSprite(
+                vehicle: VehicleId.microOld,
+                driving: true,
+                fallback: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: -_bus.left,
+                      top: -_bus.top,
+                      width: _art.width,
+                      height: _art.height,
+                      child: SvgPicture.asset(
+                        _asset,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned.fromRect(
+              rect: _sign,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: ColorTokens.ink,
+                  borderRadius: BorderRadius.circular(RadiusTokens.pill),
+                ),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      sign,
+                      style: DesignExtras.loadingSign.copyWith(
+                        color: ColorTokens.sun,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Block 0: the two `sun.glow` circles, one by the top-end corner and one
+/// by the bottom-start, and the small cloud.
+class _Backdrop extends CustomPainter {
+  const _Backdrop();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glow = Paint()..color = ColorTokens.sunGlow;
+    canvas
+      ..drawCircle(Offset(size.width - 60, 120), 70, glow)
+      ..drawCircle(Offset(40, size.height - 144), 110, glow);
+    final cloud = Path()
+      ..moveTo(44, 160)
+      ..arcToPoint(
+        const Offset(78, 152),
+        radius: const Radius.circular(_cloudBigBump),
+      )
+      ..arcToPoint(
+        const Offset(104, 162),
+        radius: const Radius.circular(_cloudSmallBump),
+      )
+      ..lineTo(44, 162)
+      ..close();
+    canvas.drawPath(
+      cloud,
+      Paint()..color = ColorTokens.paper.withValues(alpha: 0.7),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_Backdrop oldDelegate) => false;
 }

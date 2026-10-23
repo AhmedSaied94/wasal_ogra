@@ -1,6 +1,7 @@
-// The trip screen (contracts/scene-layout.md): the top bar, the scene with
-// its overlays, and the dashboard, with the cards over them by phase. It
-// hides the system bars, clamps text scale to 1.3, plays the cues the
+// The trip screen (specs/008.5-m21-design-refresh, contracts/trip-layout.md):
+// the HUD under the top inset, the scene with its overlays, and the
+// dashboard over the scene's last 16 pt, with the cards over them by phase.
+// It hides the system bars, clamps text scale to 1.3, plays the cues the
 // player has switched on, pauses when the app leaves the foreground, and
 // leaves when the trip ends.
 import 'dart:async';
@@ -15,13 +16,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/audio_haptics/audio_haptics_providers.dart';
 import 'package:wassal/core/audio_haptics/sfx.dart';
 import 'package:wassal/core/routing/trip_pause_overlay.dart';
-import 'package:wassal/core/theme/app_theme.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/bootstrap/flavor.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
 import 'package:wassal/features/trip/presentation/cards/booster_card.dart';
 import 'package:wassal/features/trip/presentation/cards/dispute_card.dart';
 import 'package:wassal/features/trip/presentation/cards/failure_card.dart';
@@ -195,7 +195,8 @@ class _TripScreenState extends ConsumerState<TripScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
+    // The debug panel's tier switch redraws the seats in this trip.
+    ref.listen(passengerArtProvider, (_, art) => _game?.art = art);
     return TripBackGuard(
       onBack: _onBack,
       child: TripScope(
@@ -205,29 +206,40 @@ class _TripScreenState extends ConsumerState<TripScreen> {
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: tripMaxTextScale,
           child: Material(
-            color: tokens.tablouh,
+            color: ColorTokens.ground,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final padding = MediaQuery.paddingOf(context);
-                final bands = bandHeights(
-                  constraints.maxHeight - padding.bottom,
-                  topInset: padding.top,
+                final bottom = MediaQuery.paddingOf(context).bottom;
+                final zones = TripZones(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight - bottom,
+                  viewPaddingTop: MediaQuery.viewPaddingOf(context).top,
                 );
                 return Stack(
                   children: [
+                    // Over 430 wide the zones keep 390, centred, and the
+                    // cabin's wall reaches the screen's edges behind them.
+                    if (zones.left > 0)
+                      Positioned(
+                        top: zones.sceneTop,
+                        left: 0,
+                        right: 0,
+                        height: zones.scene,
+                        child: const ColoredBox(color: ColorTokens.sceneWall),
+                      ),
                     Positioned(
-                      top: bands.top,
-                      left: 0,
-                      right: 0,
-                      height: bands.scene,
+                      top: zones.sceneTop,
+                      left: zones.left,
+                      width: zones.width,
+                      height: zones.scene,
                       child: _scene(),
                     ),
                     Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: bands.top,
-                      child: TripTopBar(
+                      top: zones.inset,
+                      left: zones.left,
+                      width: zones.width,
+                      height: zones.hud,
+                      child: TripHud(
                         onPause: () => _controller.pause(PauseReason.button),
                         onDebug: ref.read(flavorProvider) == Flavor.prod
                             ? null
@@ -235,10 +247,10 @@ class _TripScreenState extends ConsumerState<TripScreen> {
                       ),
                     ),
                     Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: bands.dashboard + padding.bottom,
+                      top: zones.dashboardTop,
+                      left: zones.left,
+                      width: zones.width,
+                      height: zones.dashboard + bottom,
                       child: const TripDashboard(),
                     ),
                     Positioned.fill(child: _card()),
@@ -253,16 +265,18 @@ class _TripScreenState extends ConsumerState<TripScreen> {
   }
 
   Widget _scene() {
-    final seats = _controller.session?.facts.definition.seats;
-    if (seats == null) return const SizedBox.expand();
+    final definition = _controller.session?.facts.definition;
+    if (definition == null) return const SizedBox.expand();
+    final seats = definition.seats;
     return LayoutBuilder(
       builder: (context, constraints) {
         final layout = SceneLayout(
           seats,
+          vehicle: definition.vehicleId,
           width: constraints.maxWidth,
           height: constraints.maxHeight,
         );
-        final game = _gameFor(seats, context);
+        final game = _gameFor(definition, context);
         return Stack(
           children: [
             Positioned.fill(
@@ -275,20 +289,17 @@ class _TripScreenState extends ConsumerState<TripScreen> {
             Positioned.fill(child: DroppedLayer(layout: layout)),
             Positioned.fill(child: ChoicesLayer(layout: layout)),
             Positioned.fill(
-              child: IgnorePointer(child: LedgerBadgesLayer(layout: layout)),
-            ),
-            Positioned.fill(
               child: IgnorePointer(child: BubblesLayer(layout: layout)),
             ),
             Positioned.fill(
               child: IgnorePointer(child: HintLayer(layout: layout)),
             ),
             const Positioned.fill(child: IgnorePointer(child: FareBanner())),
-            // Under the station strip, over the windows.
+            // At the scene's top, over the back window.
             const Positioned(
-              top: SpaceTokens.xs,
-              left: SpaceTokens.s,
-              right: SpaceTokens.s,
+              top: SpaceTokens.s8,
+              left: SpaceTokens.s10,
+              right: SpaceTokens.s10,
               child: IgnorePointer(child: StoryStrip()),
             ),
           ],
@@ -297,21 +308,18 @@ class _TripScreenState extends ConsumerState<TripScreen> {
     );
   }
 
-  TripGame _gameFor(List<Seat> seats, BuildContext context) {
-    final tokens = context.tokens;
+  TripGame _gameFor(TripDefinition definition, BuildContext context) {
     final reduced = MediaQuery.disableAnimationsOf(context);
-    final game = _game ??= _newGame(seats, tokens, reduced);
-    game
-      ..tokens = tokens
-      ..reduceMotion = reduced;
+    final game = _game ??= _newGame(definition, reduced);
+    game.reduceMotion = reduced;
     return game;
   }
 
-  TripGame _newGame(List<Seat> seats, WassalTokens tokens, bool reduced) {
+  TripGame _newGame(TripDefinition definition, bool reduced) {
     final game = TripGame(
       controller: _controller,
-      seats: seats,
-      tokens: tokens,
+      seats: definition.seats,
+      vehicle: definition.vehicleId,
       art: ref.read(passengerArtProvider),
       reduceMotion: reduced,
       drivesClock: _drivesClock,

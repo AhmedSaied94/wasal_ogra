@@ -24,6 +24,7 @@ left, in what order, and where to look.
 | [006 M04 content loader](#006-m04-content-loader) | 1 | 1 now, 2 after production's first promotion | Merged in #7 on 2026-10-21. |
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
 | [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Built 2026-10-22 on `008-m02-trip-screen`. Open as #9. Character file in on 2026-10-23. |
+| [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Built 2026-10-23 on `008.5-m21-design-refresh`. Not committed yet. |
 
 ## Every month
 
@@ -606,6 +607,9 @@ silent during a trip.
   *Done on 2026-10-23, except naming the plan: Claude made the file with Rive's MCP in the owner's
   Rive account (still named "Untitled" there) and committed it with its 14 goldens. Name the plan
   in the PR, then tick this.*
+
+  *Superseded by 008.5: `passenger.riv` and its tests are gone; the owner's `wassal.riv` replaces it
+  (M21 item 1).*
 - [ ] **2. The frame rate on the Galaxy A06 (T065, quickstart "Owner checks" 1 and 2).** Once the
   file is in, with the phone on `adb`:
 
@@ -642,6 +646,83 @@ Then tick M02 in the [delivery plan's Progress list](delivery-plan.md#progress).
   (research R2).
 - [ ] **2. Playtest (T101, SC-009).** Five testers from outside the team play `line_hay.01` on a
   staging build, without instructions. Record who finishes it and who replays by choice.
+
+## 008.5 M21 design refresh
+
+Built and tested on 2026-10-23, on branch `008.5-m21-design-refresh`
+([tasks.md](../specs/008.5-m21-design-refresh/tasks.md),
+[quickstart](../specs/008.5-m21-design-refresh/quickstart.md)). Everything built so far is in the
+«كرتون ناعم» design: the generated tokens and shared components, the bottom nav, sheets and dialogs,
+the `Loading` boot screen, the trip screen and its cards, and every person, vehicle and UI animation
+from `assets/rive/wassal.riv`, with the static SVGs as the fallback. The launcher icon is direction
+أ. Each artboard has its golden, its layout test and a compare image.
+
+### Before merge, in this order
+
+- [ ] **1. The Rive file (T110, contracts/rive-characters.md "Open").** It stays on Rive's free
+  plan (your decision of 2026-10-23, research R15). The free export's splash artboards stay in the
+  file, and the app never draws them. In your Rive account:
+  - add the Boolean `reducedMotion` to the `Passenger` view model (true holds the z's, sweat,
+    sparks, hearts and notes still), and say whether you want a `skinTone` colour;
+  - replace `apps/mobile/assets/rive/wassal.riv` with the export, then, in `apps/mobile`:
+
+    ```bash
+    fvm dart run rive_native:setup --verbose --clean --platform linux
+    fvm flutter test --tags rive
+    fvm flutter test --update-goldens test/features/trip/rive_art_goldens_test.dart
+    ```
+
+  - review the sheets it writes in `test/features/trip/goldens/rive_*.png` (each look in seven
+    poses at 84 and 52.5 pt, the six characters, the vehicles, the UI loops), and commit them with
+    the file;
+
+  Until then, under reduced motion people are drawn with the static art; nothing else changes.
+- [ ] **2. Frame rate and memory on the Galaxy A06 (T111, quickstart "Owner checks" 2).** With the
+  phone on `adb`:
+
+  ```bash
+  cd apps/mobile
+  fvm dart run rive_native:setup --platform android
+  tool/perf/trip_fps.sh com.wassalogra.app.dev line_gamaa.02
+  ```
+
+  Pass: average ≥ 55 fps, no one-second window under 45 fps, memory under 300 MB; record the p90
+  frame time. If it misses on the `rive` tier, switch the debug panel's «الرسم» to `near_rive`, run
+  it again, and tell Claude both results: they go in research.md R18, and `near_rive` becomes the
+  default.
+- [ ] **3. Cold start on the A06 (T124, SC-006).** `tool/perf/cold_start.sh com.wassalogra.app.dev 10`:
+  no white frame, and Home within 3 s. Paste the output in the PR.
+- [ ] **4. Side by side (T126, SC-010).** Run, in `apps/mobile`:
+
+  ```bash
+  fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true
+  ```
+
+  and open each image in `apps/mobile/build/design_compare/` (ten artboards, both digit styles).
+  Accept each, or list what to change. The expected differences are in
+  [design-checks.md](../specs/008.5-m21-design-refresh/contracts/design-checks.md#what-a-golden-may-differ-in)
+  and the PR.
+- [ ] **5. Short screens (plan.md, Complexity Tracking).** Approve, or not, that on screens shorter
+  than `inset + 764` pt (such as 360×640) the dashboard's top rows sit above the bottom third, until
+  M07's short-screen layout. On the reference frame and the A06 every control is in the bottom
+  third.
+- [ ] **6. The launcher icon (T131).** On a dev build on the A06, check the icon on the home screen
+  in each shape the launcher offers (circle, squircle, rounded square), and the themed (monochrome)
+  icon with Android's themed icons on.
+- [ ] **7. The device runs Claude couldn't do.** No phone or emulator was available. Run
+  quickstart.md's scenarios on a dev build.
+
+### After merge
+
+Then tick Step 5.5 in the [delivery plan's Progress list](delivery-plan.md#progress) with the PR
+number.
+
+- [ ] **1. Download size (T125, SC-009).** Build the release app bundle
+  (`fvm flutter build appbundle --flavor prod --release`) and check the arm64 download with
+  `bundletool get-size total`: under 80 MB.
+- [ ] **2. The Play listing (T131).** Upload `docs/design/brand/store_icon_512.png` as the app icon
+  and `docs/design/brand/feature_graphic_1024x500.png` as the feature graphic in the Play Console's
+  store listing.
 
 ## Known for later features
 

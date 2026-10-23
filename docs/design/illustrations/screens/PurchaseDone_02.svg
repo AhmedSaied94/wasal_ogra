@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="120" viewBox="0 0 170 120">
+<g fill="#FFD23F"><path d="M85 4 l4 14 l-8 0 z"></path><path d="M150 30 l-12 8 l-4 -7 z"></path><path d="M20 30 l12 8 l4 -7 z"></path><path d="M160 84 l-14 -2 l2 -8 z"></path><path d="M10 84 l14 -2 l-2 -8 z"></path></g>
+<g transform="translate(85 70)">
+<path d="M-46 -6 a6 6 0 0 1 6 -6 h80 a6 6 0 0 1 6 6 v8 a8 8 0 0 0 0 16 v8 a6 6 0 0 1 -6 6 h-80 a6 6 0 0 1 -6 -6 v-8 a8 8 0 0 0 0 -16 z" fill="#7CA7D8" transform="rotate(-8) translate(-6 -10)"></path>
+<path d="M-46 -6 a6 6 0 0 1 6 -6 h80 a6 6 0 0 1 6 6 v8 a8 8 0 0 0 0 16 v8 a6 6 0 0 1 -6 6 h-80 a6 6 0 0 1 -6 -6 v-8 a8 8 0 0 0 0 -16 z" fill="#1A4B8C"></path>
+<path d="M18 -12 v44" stroke="#A9DDF3" stroke-width="3" stroke-dasharray="4 4"></path>
+<text x="-14" y="16" text-anchor="middle" font-family="Marhey, sans-serif" font-weight="700" font-size="22" fill="#FFD23F">بون</text>
+</g>
+</svg>

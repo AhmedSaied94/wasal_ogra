@@ -6,7 +6,9 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
+import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 
@@ -56,24 +58,17 @@ class HighlightComponent extends Component with HasGameReference<TripGame> {
     if (elapsed < 0 || elapsed >= highlightMs) return;
     final seat = layout.seats[view.passenger(id)?.seatId];
     if (seat == null) return;
-    final face = seat.face;
     final pulse = game.reduceMotion
         ? 1.0
         : 0.6 + 0.4 * math.sin(elapsed / highlightMs * math.pi * 2);
-    final rect = Rect.fromLTWH(
-      face.left,
-      face.top,
-      face.width,
-      face.height,
-    ).inflate(face.width * 0.06);
-    final glow = Paint()
-      ..color = game.tokens.gold.withValues(alpha: 0.85 * pulse)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(4, face.width * 0.08)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(face.width * 0.3)),
-      glow,
+    // A `sun.glow` ring around the head (HANDOFF §5.4 `targeted`).
+    canvas.drawCircle(
+      Offset(seat.face.x, seat.face.y),
+      seat.faceWidth / 2 + 4,
+      Paint()
+        ..color = ColorTokens.sunGlow.withValues(alpha: 0.9 * pulse)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4,
     );
   }
 }
@@ -101,8 +96,8 @@ class GlintComponent extends Component with HasGameReference<TripGame> {
       _star(
         canvas,
         Offset(at.x, at.y),
-        layout.faceA * 0.45 * twinkle,
-        Paint()..color = game.tokens.gold.withValues(alpha: 0.9 * fade),
+        rigHeadRadius * layout.scale * 0.9 * twinkle,
+        Paint()..color = ColorTokens.sun.withValues(alpha: 0.9 * fade),
       );
     }
   }

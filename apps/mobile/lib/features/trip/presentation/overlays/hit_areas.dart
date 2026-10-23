@@ -1,6 +1,7 @@
-// The passengers' tap and drop areas (layer 6): transparent, at least 44×44,
-// never overlapping, each a button for screen readers that names the look,
-// the seat and the station letter, and nothing about payment (FR-033).
+// The passengers' tap and drop areas (layer 6): `SeatLayout.hit`,
+// transparent, at least 44×44, never overlapping, each a button for screen
+// readers that names the look, the seat and the stop, and «ليه باقي» while
+// their stop is next and they're owed (spec FR-036, M02 FR-033).
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
@@ -15,7 +16,15 @@ final class HandDrag {
   const HandDrag();
 }
 
-typedef _Seated = ({String id, String seatId, String labelKey, int? slot});
+typedef _Seated = ({
+  String id,
+  String seatId,
+  String labelKey,
+  int? slot,
+  String? stopName,
+  bool owed,
+  LedgerBadge? ledger,
+});
 
 class HitAreas extends StatelessWidget {
   const HitAreas({required this.layout, super.key});
@@ -28,17 +37,25 @@ class HitAreas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TripSelector<List<_Seated>>(
-      select: (model) => [
-        for (final p in model.view?.passengers ?? const <PassengerView>[])
-          if (p.presence == PresenceView.aboard ||
-              p.presence == PresenceView.boarding)
-            (
-              id: p.passengerId,
-              seatId: p.seatId,
-              labelKey: p.look.labelKey,
-              slot: p.slot,
-            ),
-      ],
+      select: (model) {
+        final chips = model.view?.strip.chips ?? const <StationChip>[];
+        String? stopOf(int? slot) =>
+            chips.where((c) => c.slot == slot).firstOrNull?.name;
+        return [
+          for (final p in model.view?.passengers ?? const <PassengerView>[])
+            if (p.presence == PresenceView.aboard ||
+                p.presence == PresenceView.boarding)
+              (
+                id: p.passengerId,
+                seatId: p.seatId,
+                labelKey: p.look.labelKey,
+                slot: p.slot,
+                stopName: stopOf(p.slot),
+                owed: p.nearStopPulse,
+                ledger: p.ledgerBadge,
+              ),
+        ];
+      },
       equals: listEquals,
       builder: (context, seated) => Stack(
         children: [
@@ -59,16 +76,20 @@ class HitAreas extends StatelessWidget {
     );
   }
 
-  String _label(AppLocalizations l10n, _Seated p, SeatGeometry seat) {
-    final look = l10n.lookLabel(p.labelKey);
-    final where = l10n.seatName(seat.row, seat.col);
-    return switch (p.slot) {
-      final slot? => l10n.tripSemanticsPassenger(
-        look,
-        where,
-        l10n.stationLetter(slot),
-      ),
-      null => l10n.tripSemanticsPassengerNoStation(look, where),
+  /// While the ledger is open, its word ends the label (`TripEvents`
+  /// accessibility).
+  String _label(AppLocalizations l10n, _Seated p, SeatLayout seat) {
+    final label = l10n.passengerLabel(
+      lookKey: p.labelKey,
+      row: seat.row,
+      col: seat.col,
+      slot: p.slot,
+      stopName: p.stopName,
+      owed: p.owed,
+    );
+    return switch (p.ledger) {
+      final badge? => l10n.pairLabel(label, l10n.ledgerWord(badge)),
+      null => label,
     };
   }
 }

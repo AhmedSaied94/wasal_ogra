@@ -1,14 +1,14 @@
-// The start refused for an empty tank: when the next free liter comes, on
-// trusted time, and the way to the fuel sheet or back to the stand.
+// The start refused for an empty tank (008.5 `States` spend confirmation
+// layout): when the next free liter comes, on trusted time, and the way to
+// the fuel sheet or back to the stand.
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
-import 'package:wassal/core/theme/components/primary_button.dart';
-import 'package:wassal/core/theme/components/secondary_button.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/features/trip/presentation/cards/trip_card.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -55,6 +55,7 @@ class _NoFuelCardState extends ConsumerState<NoFuelCard> {
     final now = ref.watch(trustedClockProvider).value?.nowMs();
     return TripCard(
       title: l10n.tripNoFuelTitle,
+      art: const AppIcon('fuel', size: DesignExtras.confirmArt),
       children: [
         if (next != null && now != null)
           CardText(
@@ -62,9 +63,13 @@ class _NoFuelCardState extends ConsumerState<NoFuelCard> {
               numbers.countdown(Duration(milliseconds: next - now)),
             ),
           ),
-        PrimaryButton(label: l10n.tripNoFuelShop, onPressed: widget.onFuel),
-        const SizedBox(height: SpaceTokens.m),
-        SecondaryButton(label: l10n.tripNoFuelHome, onPressed: widget.onHome),
+        CardActions(
+          confirm: CardConfirm(
+            label: l10n.tripNoFuelShop,
+            onTap: widget.onFuel,
+          ),
+          dismiss: CardTile(label: l10n.tripNoFuelHome, onTap: widget.onHome),
+        ),
       ],
     );
   }

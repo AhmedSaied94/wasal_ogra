@@ -1,30 +1,39 @@
-// The answers next to a passenger (layer 7, FR-031), under their face while
-// the trip runs: a claim's «ماشي» and «لأ، ما دفعتش!», and a change
-// request's note held out with «فكّله» and «معلش». Each row stays inside
-// the scene, clear of the dashboard's overlap and of the other rows. While
-// the ledger is open, each face wears «دافع» or «لسه».
+// The answers next to a passenger (layer 7, HANDOFF `TripEvents` block 6,
+// FR-031): a `ChoicePopover` under their face while the trip runs, a
+// claim's «ماشي» and «لأ، ما دفعتش!», or a change request's note held out
+// with «فكّله» and «معلش». Each popover stays inside the scene, clear of the
+// dashboard's overlap and of the others. Also the ledger's `LedgerBadge`,
+// which the patches layer draws in place of a tag.
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/l10n/digit_style_provider.dart';
+import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
+import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// Space between a row and the face, an edge or another row.
-const _gap = SpaceTokens.xs;
+/// Space between a popover and the tag above it, or another popover.
+const _gap = SpaceTokens.s2;
 
-/// A row keeps this far from the scene's edges.
-const _margin = SpaceTokens.s;
+/// A popover keeps this far from the scene's edges.
+const _margin = SpaceTokens.s10;
 
-/// A question being asked: a claim, or a change request for [note].
-typedef _Asked = ({String passengerId, String seatId, int? note});
+/// A question being asked: a claim, or a change request for [note], by the
+/// one wearing [lookKey].
+typedef _Asked = ({
+  String passengerId,
+  String seatId,
+  String lookKey,
+  int? note,
+});
 
 class ChoicesLayer extends StatelessWidget {
   const ChoicesLayer({required this.layout, super.key});
@@ -51,24 +60,26 @@ class ChoicesLayer extends StatelessWidget {
       select: (model) {
         final view = model.view;
         if (view == null) return const [];
-        final seats = {
-          for (final p in view.passengers) p.passengerId: p.seatId,
-        };
         return [
           for (final choice in view.choices)
             if (_askedOf(choice) case (final passengerId, final note))
-              if (seats[passengerId] case final seatId?)
-                (passengerId: passengerId, seatId: seatId, note: note),
+              if (view.passenger(passengerId) case final p?)
+                (
+                  passengerId: passengerId,
+                  seatId: p.seatId,
+                  lookKey: p.look.labelKey,
+                  note: note,
+                ),
         ];
       },
       equals: listEquals,
       builder: (context, asked) {
         final placed = [
           for (final a in asked)
-            if (layout.seats[a.seatId] case final seat?) (a, seat.face),
+            if (layout.seats[a.seatId] case final seat?) (a, _anchorOf(seat)),
         ];
         return CustomMultiChildLayout(
-          delegate: _UnderFaces([for (final (_, face) in placed) face]),
+          delegate: _UnderFaces([for (final (_, at) in placed) at]),
           children: [
             for (final (i, (a, _)) in placed.indexed)
               LayoutId(
@@ -77,6 +88,7 @@ class ChoicesLayer extends StatelessWidget {
                   null => _ClaimAnswers(
                     key: rowKey(a.passengerId),
                     passengerId: a.passengerId,
+                    lookKey: a.lookKey,
                   ),
                   final note => _ChangeRequestAnswers(
                     key: changeRequestRowKey(a.passengerId),
@@ -103,28 +115,38 @@ class ChoicesLayer extends StatelessWidget {
   DisputeChoice() => null,
 };
 
-/// Puts row `i` under `faces[i]`, inside the scene and above the
-/// dashboard's overlap; a row that would cover an earlier one moves above
+/// Where a popover hangs: under the face's middle, below the face and its
+/// tag (`TripEvents`: the effendi's popover starts where his tag ends).
+Offset _anchorOf(SeatLayout seat) {
+  final head = seat.head;
+  return Offset(
+    head.left + head.width / 2,
+    math.max(head.top + head.height, seat.tag.y + seat.tagSize / 2),
+  );
+}
+
+/// Puts popover `i` centred under `anchors[i]`, inside the scene and above
+/// the dashboard's overlap; one that would cover an earlier one moves above
 /// it, or below when there is no room above.
 class _UnderFaces extends MultiChildLayoutDelegate {
-  _UnderFaces(this.faces);
+  _UnderFaces(this.anchors);
 
-  final List<math.Rectangle<double>> faces;
+  final List<Offset> anchors;
 
   @override
   void performLayout(Size size) {
     final bottom = size.height - dashboardOverlap - _gap;
     final placed = <Rect>[];
-    for (var i = 0; i < faces.length; i++) {
-      final face = faces[i];
+    for (var i = 0; i < anchors.length; i++) {
+      final anchor = anchors[i];
       final row = layoutChild(
         i,
         BoxConstraints.loose(Size(size.width - 2 * _margin, size.height)),
       );
-      final left = (face.left + face.width / 2 - row.width / 2)
+      final left = (anchor.dx - row.width / 2)
           .clamp(_margin, math.max(_margin, size.width - _margin - row.width))
           .toDouble();
-      var top = math.min(face.top + face.height + _gap, bottom - row.height);
+      var top = math.min(anchor.dy + _gap, bottom - row.height);
       var rect = Offset(left, top) & row;
       for (final other in placed) {
         if (!rect.overlaps(other.inflate(_gap / 2))) continue;
@@ -139,13 +161,18 @@ class _UnderFaces extends MultiChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_UnderFaces oldDelegate) =>
-      !listEquals(faces, oldDelegate.faces);
+      !listEquals(anchors, oldDelegate.anchors);
 }
 
 class _ClaimAnswers extends StatelessWidget {
-  const _ClaimAnswers({required this.passengerId, super.key});
+  const _ClaimAnswers({
+    required this.passengerId,
+    required this.lookKey,
+    super.key,
+  });
 
   final String passengerId;
+  final String lookKey;
 
   @override
   Widget build(BuildContext context) {
@@ -153,18 +180,18 @@ class _ClaimAnswers extends StatelessWidget {
     final controls = TripScope.of(context).controls;
     return Shakeable(
       controlKey: TripControls.claimKey(passengerId),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: ChoicePopover(
+        semanticLabel: l10n.tripClaimAsks(l10n.lookLabel(lookKey)),
         children: [
-          _Answer(
+          ChoiceButton(
             key: ChoicesLayer.claimKey(passengerId, insist: false),
             label: l10n.tripClaimAccept,
             onTap: () => controls.answerClaim(passengerId, insist: false),
           ),
-          const SizedBox(width: SpaceTokens.s),
-          _Answer(
+          ChoiceButton(
             key: ChoicesLayer.claimKey(passengerId, insist: true),
             label: l10n.tripClaimInsist,
+            danger: true,
             onTap: () => controls.answerClaim(passengerId, insist: true),
           ),
         ],
@@ -189,25 +216,29 @@ class _ChangeRequestAnswers extends StatelessWidget {
     final controls = TripScope.of(context).controls;
     return Shakeable(
       controlKey: TripControls.changeRequestKey(passengerId),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: ChoicePopover(
         children: [
           // The note they hold out.
           ExcludeSemantics(
-            child: TokenChip(
-              kind: TokenTint.fare,
-              amountPiasters: notePiasters,
-              blocked: false,
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: Consumer(
+                builder: (context, ref, _) => MoneyNote(
+                  kind: MoneyNoteKind.fare,
+                  amount: ref
+                      .watch(numberFormatterProvider)
+                      .piasters(notePiasters),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: SpaceTokens.s),
-          _Answer(
+          ChoiceButton(
             key: ChoicesLayer.changeRequestKey(passengerId, agree: true),
             label: l10n.tripChangeRequestAgree,
             onTap: () => controls.answerChangeRequest(passengerId, agree: true),
           ),
-          const SizedBox(width: SpaceTokens.s),
-          _Answer(
+          ChoiceButton(
             key: ChoicesLayer.changeRequestKey(passengerId, agree: false),
             label: l10n.tripChangeRequestDecline,
             onTap: () =>
@@ -219,53 +250,36 @@ class _ChangeRequestAnswers extends StatelessWidget {
   }
 }
 
-class _Answer extends StatelessWidget {
-  const _Answer({required this.label, required this.onTap, super.key});
+/// A white popover beside a passenger (`TripEvents` block 6): radius 18,
+/// padding 5, its buttons 6 apart, on the `popover` lip.
+class ChoicePopover extends StatelessWidget {
+  const ChoicePopover({required this.children, this.semanticLabel, super.key});
 
-  final String label;
-  final VoidCallback onTap;
+  final List<Widget> children;
+
+  /// What the group asks, read before its buttons.
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
     return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: ShapeTokens.minTouch,
-            minHeight: ShapeTokens.minTouch,
+      container: true,
+      explicitChildNodes: true,
+      label: semanticLabel,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: ColorTokens.paper,
+          borderRadius: BorderRadius.all(
+            Radius.circular(DesignExtras.popoverRadius),
           ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: tokens.waraq,
-              border: Border.all(
-                color: tokens.hibr,
-                width: ShapeTokens.borderCard,
-              ),
-              borderRadius: BorderRadius.circular(ShapeTokens.radiusControl),
-              boxShadow: [
-                BoxShadow(
-                  color: tokens.hibr,
-                  offset: const Offset(0, ShapeTokens.badgeOutline),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.m),
-              child: Center(
-                widthFactor: 1,
-                heightFactor: 1,
-                child: Text(
-                  label,
-                  style: TypeTokens.label.copyWith(color: tokens.hibr),
-                ),
-              ),
-            ),
+          boxShadow: [LipTokens.popover],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(DesignExtras.popoverPadding),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: SpaceTokens.s6,
+            children: children,
           ),
         ),
       ),
@@ -273,74 +287,84 @@ class _Answer extends StatelessWidget {
   }
 }
 
-/// While the ledger is open (`ledger_peek`), a badge on each face: «دافع»
-/// or «لسه».
-class LedgerBadgesLayer extends StatelessWidget {
-  const LedgerBadgesLayer({required this.layout, super.key});
+/// A popover's answer: 44 high, radius 14, 15/700 ink on `ground`, or on
+/// `danger` with its 3 pt lip.
+class ChoiceButton extends StatelessWidget {
+  const ChoiceButton({
+    required this.label,
+    required this.onTap,
+    this.danger = false,
+    super.key,
+  });
 
-  final SceneLayout layout;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+
+  static const _corners = BorderRadius.all(
+    Radius.circular(DesignExtras.choiceRadius),
+  );
 
   @override
   Widget build(BuildContext context) {
-    return TripSelector<List<(String, String, LedgerBadge)>>(
-      select: (model) => [
-        for (final p in model.view?.passengers ?? const <PassengerView>[])
-          if (p.ledgerBadge case final badge?) (p.passengerId, p.seatId, badge),
-      ],
-      equals: listEquals,
-      builder: (context, badges) => Stack(
-        children: [
-          for (final (passengerId, seatId, badge) in badges)
-            if (layout.seats[seatId] case final seat?)
-              Positioned(
-                // Centered on the face, high on the head.
-                left: seat.face.left + seat.face.width / 2,
-                top: seat.face.top + seat.face.height * 0.12,
-                child: FractionalTranslation(
-                  translation: const Offset(-0.5, -0.5),
-                  child: LedgerBadgeChip(
-                    key: LedgerBadgeChip.badgeKey(passengerId),
-                    paid: badge == LedgerBadge.paid,
-                  ),
-                ),
-              ),
-        ],
+    return Pressable(
+      onTap: onTap,
+      haptic: false,
+      semanticLabel: label,
+      lip: danger ? DesignExtras.choiceDangerLip : null,
+      borderRadius: _corners,
+      child: Container(
+        height: LayoutTokens.touchMin,
+        constraints: const BoxConstraints(minWidth: LayoutTokens.touchMin),
+        padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: danger ? ColorTokens.danger : ColorTokens.ground,
+          borderRadius: _corners,
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          style: DesignExtras.choiceLabel.copyWith(color: ColorTokens.ink),
+        ),
       ),
     );
   }
 }
 
+/// The ledger's word over a passenger (`TripEvents` block 5): an 18 pt
+/// pill at 12/700, «دافع» `primary`/white, «لسه» `danger`/ink, «على
+/// صاحبه» white/ink.
 class LedgerBadgeChip extends StatelessWidget {
-  const LedgerBadgeChip({required this.paid, super.key});
+  const LedgerBadgeChip({required this.badge, super.key});
 
-  final bool paid;
+  final LedgerBadge badge;
 
   static Key badgeKey(String passengerId) =>
       ValueKey('trip-ledger-$passengerId');
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
-    return DecoratedBox(
+    final (fill, ink) = switch (badge) {
+      LedgerBadge.paid => (ColorTokens.primary, ColorTokens.paper),
+      LedgerBadge.unpaid => (ColorTokens.danger, ColorTokens.ink),
+      LedgerBadge.onFriend => (ColorTokens.paper, ColorTokens.ink),
+    };
+    return Container(
+      height: DesignExtras.ledgerBadgeHeight,
+      padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s8),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: paid ? tokens.bubbleThanks : tokens.danger,
-        border: Border.all(color: tokens.hibr, width: 2),
-        borderRadius: BorderRadius.circular(ShapeTokens.radiusControl),
+        color: fill,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(RadiusTokens.pill),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SpaceTokens.s,
-          vertical: 2,
-        ),
-        child: Text(
-          paid ? l10n.tripLedgerPaid : l10n.tripLedgerUnpaid,
-          style: TypeTokens.caption.copyWith(
-            color: tokens.hibr,
-            fontWeight: FontWeight.w700,
-            fontVariations: const [FontVariation('wght', 700)],
-          ),
-        ),
+      child: Text(
+        l10n.ledgerWord(badge),
+        maxLines: 1,
+        style: TypeTokens.label.weight(700).copyWith(color: ink, height: 1),
       ),
     );
   }

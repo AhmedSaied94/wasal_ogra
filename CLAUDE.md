@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `master`). Right now it has:
 
-- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders. Since **M04** (`specs/006-m04-content-loader/`) it loads content packs: the one bundled in the build, newer ones it downloads in the background, and the switch to them at launch or on arrival at Home. Since **M05** (`specs/007-m05-local-economy/`) it keeps its economy offline in drift: the append-only operation log and its projection (wallet, fuel, inventory, ownership, progress), one service that validates and applies every change, fuel, trusted time, and what M06's sync will call. Since **M02** (`specs/008-m02-trip-screen/`) it plays trips: the trip screen (the Flame scene with Rive passengers, the Flutter overlays, HUD and dashboard), `TripController` stepping the engine and charging the economy, the trip's replay record in drift and the resume at launch, the failure card with the BONAT revive, بلية's hints, and the playtest tools on dev and staging.
+- `apps/mobile/`: the Flutter app shell from **M03** (`specs/001-m03-app-shell/`): routing, theme tokens, RTL, digit styles, tunables and CI. Screens are still placeholders. Since **M04** (`specs/006-m04-content-loader/`) it loads content packs: the one bundled in the build, newer ones it downloads in the background, and the switch to them at launch or on arrival at Home. Since **M05** (`specs/007-m05-local-economy/`) it keeps its economy offline in drift: the append-only operation log and its projection (wallet, fuel, inventory, ownership, progress), one service that validates and applies every change, fuel, trusted time, and what M06's sync will call. Since **M02** (`specs/008-m02-trip-screen/`) it plays trips: the trip screen (the Flame scene with Rive passengers, the Flutter overlays, HUD and dashboard), `TripController` stepping the engine and charging the economy, the trip's replay record in drift and the resume at launch, the failure card with the BONAT revive, بلية's hints, and the playtest tools on dev and staging. Since **M21** (`specs/008.5-m21-design-refresh/`) all of it is drawn in the «كرتون ناعم» design: the generated tokens and shared components, the bottom nav, sheets and dialogs, the `Loading` boot screen, the trip screen's zones, and every person, vehicle and UI animation from the owner's `wassal.riv`, with static art as the fallback.
 - `backend/`: the Django skeleton from **B01** (`specs/002-b01-backend-skeleton/`): settings that refuse bad configuration, health endpoints, the error envelope, throttling, the Celery heartbeat, Docker Compose for dev, staging and prod, and the staff-only admin. Plus the content app from **B04** (`specs/003-b04-content-pipeline/`, `backend/apps/content/`): authoring in the admin, zip import and export, builds and validation, publishing on staging, promotion to production, the manifest endpoint and the pack files the edge serves.
 - `content/`, `tools/content_kit/` and `packages/content_models/`: the content schemas from **B04** (`specs/003-b04-content-pipeline/`), with examples, a sample pack, and the server (Pydantic) and app (freezed) models generated from them.
 - `packages/trip_engine/`: the pure-Dart rules engine from **M01** (`specs/004-m01-trip-engine/`): every trip rule, the 13 commands, replay and rebuild, and the fixture tool. Its living rules reference is `packages/trip_engine/RULES.md`.
@@ -16,6 +16,7 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 - `fixtures/parity/`: the parity fixtures from **M01** and **B05**, `{definition, seed, params, command_log, expected_result}`, which both the Dart engine and the Python mirror replay in CI.
 - `content/engine/capabilities.json`: what the engine supports (archetypes, events and their parameters, speech slots, change-request notes). The content kit validates trips against it.
 - `docs/`: the source-of-truth design documents (see below).
+- `docs/design/`: the visual design, Style C «كرتون ناعم» (adopted 2026-10-23): `HANDOFF.md`, `tokens.json`, the artboards as HTML, PNGs and measured boxes, icons, illustrations, and Lottie files as a motion reference. Feature **008.5** (M21) moved what was built to it; every feature after it builds its screens from it, with a sample, a golden and a layout test per artboard (`docs/design/README.md` "Checking a screen against the design").
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
 - `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models` and `packages/trip_engine`).
@@ -70,6 +71,10 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 | Rive's Android library, before the first Android build | `fvm dart run rive_native:setup --platform android` |
 | Rewrite the trip's stand-in sounds (CI checks the committed files match) | `python3 tool/sfx/generate.py` |
 | A trip's frame rate, response and memory on a device | `tool/perf/trip_fps.sh <package> <trip_id>` (see `specs/008-m02-trip-screen/quickstart.md`) |
+| Regenerate the design tokens from `docs/design/tokens.json` | `fvm dart run tool/design/gen_tokens.dart` |
+| Copy the design's icons and illustrations into `assets/` | `fvm dart run tool/design/sync_assets.dart` |
+| The Rive tests only (after `rive_native:setup`) | `fvm flutter test --tags rive` |
+| Rewrite the Rive goldens after a new export | `fvm flutter test --update-goldens test/features/trip/rive_art_goldens_test.dart` |
 
 - Every build needs `--flavor dev|staging|prod`; the app refuses to start without one.
 - Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
@@ -78,10 +83,10 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 - Staging and prod builds bundle the pack production promoted last, so they fail at `checkBundledPack` until `apps/mobile/assets/content/release/` holds one. Committing it is a step of `docs/runbooks/content-publishing.md` §3.
 - The app database is `<app support>/db/wassal.sqlite`, opened during startup. Device backup and phone-to-phone transfer leave it out (`res/xml/data_extraction_rules.xml`, `backup_rules.xml`). Only `lib/core/economy/drift_economy_store.dart` writes the economy's tables, and only through `EconomyService`. Only `lib/features/trip/data/drift_trip_records.dart` writes the trip's (`trip_record`, `trip_record_command`, `trip_intent`: the replay record of the trip in progress and its outbox of economy calls).
 - A table change needs a new `schemaVersion` and its step in `AppDatabase.upgradeSteps`, and `make-migrations` adds its schema to `drift_schemas/app/` and its tests to `test/drift/`. Commit both. `test/drift/app/schema_test.dart` checks that a new file has the current version's exported schema, and `make-migrations`' `test/drift/app/migration_test.dart` checks every step between versions (v2, M02, added the trip's three tables).
-- The trip's character is one Rive file, `assets/rive/passenger.riv`, made to `specs/008-m02-trip-screen/contracts/rive-character.md` (artboard, state machine, view-model properties). Its editable source is in the owner's Rive account. After exporting a new version, run `fvm flutter test --update-goldens test/features/trip/rive_character_goldens_test.dart` and commit the goldens with it. Without the file, the scene draws stand-ins and the tests tagged `rive` fail.
+- Every person, vehicle and UI animation comes from one Rive file, `assets/rive/wassal.riv`, made to `specs/008.5-m21-design-refresh/contracts/rive-characters.md` (artboards, state machines, view models; `Person` draws all 24 people by its `look` number). Its editable source is in the owner's Rive account. Boot decodes it in the step `art` and checks it against the contract; an artboard that fails falls back to the design's static SVGs alone, and the debug panel lists the problems. After exporting a new version, run the Rive golden command above, review the sheets and commit them with it. The tests tagged `rive` need the file and Rive's Linux library.
 - SQLite comes from the `sqlite3` package's build hook, which downloads a prebuilt library on the first build (network needed once). Don't add `sqlite3_flutter_libs`.
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
-- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors or radii outside `lib/core/theme/tokens/`, the palette contrast checks, the tunables registry, no Flutter or plugin import in a `domain/` folder (each folder lists what it may import: in `lib/core/economy/domain/`, only `content_models`, `trip_engine` and the content and economy domains), plain HTTP only in the dev source set, bundled packs that agree with their records, no REAL column, the economy's tables written only by its store with `ledger_ops` rows changing only in their sync columns (and the trip's only by theirs), no `sqlite3_flutter_libs`, the backup exclusion, no text drawn in the trip's Flame canvas, and no ad SDK under `lib/features/trip/`.
+- `flutter test` also runs the repo guards: no Arabic outside comments in `lib/` (player text goes in `lib/l10n/app_ar.arb`), no `double`/`num` money, no raw colors, radii, font sizes, shadows, animation durations or curves outside `lib/core/theme/tokens/` (`trip_motion.dart`'s named constants aside), nothing of the retired «ستيكر الميكروباص» design, no Material ink or stock buttons, the design tokens generated from `docs/design/tokens.json`, the design's assets copied as `tool/design/sync_assets.dart` writes them, the palette contrast checks, the tunables registry, no Flutter or plugin import in a `domain/` folder (each folder lists what it may import: in `lib/core/economy/domain/`, only `content_models`, `trip_engine` and the content and economy domains), plain HTTP only in the dev source set, bundled packs that agree with their records, no REAL column, the economy's tables written only by its store with `ledger_ops` rows changing only in their sync columns (and the trip's only by theirs), no `sqlite3_flutter_libs`, the backup exclusion, no text drawn in the trip's Flame canvas, and no ad SDK under `lib/features/trip/`.
 
 ### Trip engine commands
 
@@ -159,12 +164,19 @@ The schemas in `content/schemas/` are the only definition of content. `tools/con
 | `docs/ux-spec.md` | Egyptian Arabic | Every screen, the visual system, minimum sizes, navigation (the *what/why*) |
 | `docs/architecture-backend.md` | English | Django backend (the *how*) |
 | `docs/architecture-mobile.md` | English | Flutter client (the *how*) |
+| `docs/design/HANDOFF.md` | English | The visual design: tokens, components, the trip screen's geometry, characters, motion, navigation, and every screen (§11). Read `docs/design/README.md` first. |
 
 The two architecture docs are paired, so read both:
 
 - **§3 "Shared Contract Glossary" is duplicated word for word in both.** It defines every identifier: currencies, denominations, `booster_id`, `ad_placement`, `product_id`, `line_id`/`trip_id`/`archetype`/`chapter_id`, and the API conventions. If you change it, change both copies.
 - The Engineering Principles share the same numbering in both docs (backend §17, mobile §18), and the constitution's principles I–XIII use the same numbers. If you add, remove or rename a principle, update both docs and the constitution together.
 - Open questions are tagged **NEEDS CLARIFICATION** and collected in backend §22 and mobile §24. Don't guess the answers. Resolve them in the feature's `research.md` or ask.
+
+The design (`docs/design/`) decides how screens look:
+
+- **Its README's project overrides win over HANDOFF.md.** Animation stays on Rive (the constitution locks it), so `docs/design/lottie/` is a motion reference only. Identifiers come from the glossary, not the art names (`microbus_old` is `micro_old`; HANDOFF §5.3's passenger ids are skins, not archetypes).
+- **Precedence.** For visual values: the artboard HTML, then HANDOFF.md, then the ux-spec. For behaviour: the constitution, then merged features' decisions, then HANDOFF.md, then the ux-spec. HANDOFF was written against the docs as they were before M01.
+- **Which feature builds which artboard,** and which of HANDOFF §9.3's open questions it settles, is in `docs/delivery-plan.md` "Design sources". Each artboard gets a golden beside `docs/design/png/<Artboard>.png` and a layout test against `docs/design/boxes/<Artboard>.json` (HANDOFF §10).
 
 ## Spec-kit workflow
 
@@ -184,8 +196,8 @@ The two architecture docs are paired, so read both:
   - Write tests first for engine rules, ledger/sync validators, entitlements, and purchase/webhook verification.
   - Coverage: ≥ 90% lines in `trip_engine`, ≥ 80% everywhere else.
 - **Owner actions.** When `/speckit-implement` finishes a feature, add its section to `docs/owner-actions.md`. It lists everything only the owner can do (accounts, consoles, secrets, devices, live checks), split into before and after merge, each with its task ID and where its steps are. Keep the "Open now" table current, and tick items as the owner reports them done.
-- Every feature ID becomes one `specs/NNN-<short-name>/` folder (sequential numbering). Backend features are `B01`–`B15` (backend §20) and mobile features are `M01`–`M20` (mobile §23). Plan each B/M pair together so they share `contracts/` content.
-- MVP joint order (backend §21): M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
+- Every feature ID becomes one `specs/NNN-<short-name>/` folder (sequential numbering). Backend features are `B01`–`B15` (backend §20) and mobile features are `M01`–`M21` (mobile §23). The one exception is `specs/008.5-m21-design-refresh/` (M21), which was inserted between 008 and 009; `/speckit-specify` needs its names given explicitly (`docs/delivery-plan.md`, Step 5.5). Plan each B/M pair together so they share `contracts/` content.
+- MVP joint order (backend §21): M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (spec 008.5, the new design) → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
 - `docs/delivery-plan.md` turns that order into spec numbers and branch names (`001-m03-app-shell` …). It also lists the open questions each feature must resolve and each step's "done when". Tick its Progress list when a feature merges.
 - Helper scripts (run from the repo root):
   - `.specify/scripts/bash/create-new-feature.sh --json --short-name <name> [--number N] "<description>"` creates `specs/NNN-name/` and records it in `.specify/feature.json`. That file is machine-local and gitignored.
@@ -207,6 +219,7 @@ contracts/openapi.yaml  Generated by drf-spectacular, committed, consumed by mob
 content/schemas/        JSON Schema 2020-12 for packs (trip, line, item, catalog, …)
 content/examples/       valid/invalid documents, the sample pack and its golden checksums
 fixtures/parity/        {definition, seed, params, command_log, expected_result}
+docs/design/            The visual design: HANDOFF.md, tokens.json, artboards, PNGs, boxes, icons, art
 ```
 
 These invariants cut across both sides, and you need several docs to see them:
@@ -244,7 +257,7 @@ These invariants cut across both sides, and you need several docs to see them:
 - **Backend:** Python 3.13 managed with **`uv`** (not pip). Plain Django + DRF, with Django admin as the content-authoring and live-ops tool (no Wagtail, no React). PostgreSQL 17, Redis/Valkey, Celery with `django-celery-beat`, `simplejwt`, `drf-spectacular`. CI runs `ruff`, `mypy` (django-stubs), `pytest` with real Postgres/Redis, `hypothesis`, `schemathesis` and the parity tests.
 - **Deployment target:** two Oracle Cloud Always Free A1 VMs (ARM64) in `me-jeddah-1`, one per environment: production and staging, each 1 OCPU / 6 GB with its own reserved IP, running Docker Compose behind its own host-network Caddy. `provision.sh --env` fixes each VM's environment. Each VM has its own WireGuard network (`10.66.0.1` prod, `10.67.0.1` staging); its admin is reachable only over it, and so is SSH. Backups run on production, and on staging for its authored content (B04), each into its own Backblaze B2 buckets; the monthly restore drill runs on staging. Build images for `linux/arm64`. Operating it is in `docs/runbooks/`. iOS builds run on Codemagic, because the dev machine is Linux.
 
-## UI rules (from `docs/ux-spec.md`)
+## UI rules (from `docs/ux-spec.md` and `docs/design/`)
 
 - Arabic **RTL on every screen**. Arabic-Indic digits (١٢٣) by default, with a setting for Western digits. Goldens are tested in RTL with both digit settings.
 - Reference frame is portrait 390×844 pt. Gameplay touch targets sit in the bottom third, for one-handed play. The exceptions are the scene's own items (passengers, dropped money, a passenger's answer buttons), the pause button in the top bar and, on internal builds, the debug icon beside it (constitution XI).
@@ -255,7 +268,7 @@ These invariants cut across both sides, and you need several docs to see them:
   - back-row faces ≥ 50 pt
   - near-row faces ≥ 80 pt
   - money tokens ≥ 40×24 pt
-- The visual style is called «ستيكر الميكروباص»: a taxi-yellow base (`#FFD23F`), thick ink borders (`#1D1A2B`) and hard shadows. The full palette is in the ux-spec «الألوان» section and should become theme tokens.
+- The visual style is Style C, «كرتون ناعم» (`docs/design/`, adopted 2026-10-23). It has a pale sky ground (`#E8F4FB`), white cards with no outlines, and depth from solid "lip" shadows that a press pushes down. The fonts are Marhey and Readex Pro. It replaced «ستيكر الميكروباص» (yellow ground, thick ink borders, Lalezar and Baloo Bhaijaan 2), which the app kept until 008.5. Every value comes from `docs/design/tokens.json` through the theme tokens; screens use the shared components of HANDOFF §3, never restyled raw widgets.
 - Every station has both a color and a letter, so color-blind players can tell them apart. Text contrast meets WCAG 2.1 AA (constitution XI).
 - Reduced-motion turns off the shake and the bubble pop.
 - Content limits from the product spec: no real brands, government bodies or clubs; no smoking, harassment or violence; no loot boxes.

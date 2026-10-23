@@ -6,11 +6,10 @@ import 'package:content_models/content_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/shape.dart';
-import 'package:wassal/core/theme/tokens/space.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
-import 'package:wassal/features/trip/domain/skin_looks.dart';
+import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/cards/trip_card.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
@@ -20,9 +19,13 @@ import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/features/trip/trip_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// A face on the card: a near-row face, at the scene's face proportions.
-const _portraitWidth = 88.0;
-const _portraitHeight = 101.0;
+/// A face on the card (`Components` «مين اللي دفع؟»): a 56 pt `ground`
+/// tile, radius 16, with the passenger drawn in it at the scene's
+/// proportions.
+const _faceSize = 56.0;
+const _faceRadius = 16.0;
+const _portraitHeight = 52.0;
+const _portraitWidth = _portraitHeight * 88 / 101;
 
 /// One of the two, where they sit, and what they are saying.
 typedef _Side = ({PassengerView passenger, Seat? seat, String? said});
@@ -69,7 +72,7 @@ class DisputeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(child: _DisputeSide(side: sides[0])),
-                const SizedBox(width: SpaceTokens.m),
+                const SizedBox(width: SpaceTokens.s12),
                 Expanded(child: _DisputeSide(side: sides[1])),
               ],
             ),
@@ -92,7 +95,6 @@ class _DisputeSide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final tokens = context.tokens;
     final passenger = side.passenger;
     final label = l10n.speaker(
       SpeakerLabel(labelKey: passenger.look.labelKey, slot: passenger.slot),
@@ -102,82 +104,55 @@ class _DisputeSide extends StatelessWidget {
       null => null,
     };
     final controls = TripScope.of(context).controls;
+    final caption = TypeTokens.label.copyWith(color: ColorTokens.ink);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (side.said case final said?)
           Padding(
-            padding: const EdgeInsets.only(bottom: SpaceTokens.m),
-            child: LayoutBuilder(
-              builder: (context, constraints) => Bubble(
-                text: said,
-                style: BubbleStyle.fight,
-                tailX: constraints.maxWidth / 2,
-                tailDown: true,
-              ),
-            ),
+            padding: const EdgeInsets.only(bottom: SpaceTokens.s12),
+            child: SpeechBubble(text: said, variant: SpeechBubbleVariant.fight),
           ),
         Shakeable(
           controlKey: TripControls.disputeKey(passenger.passengerId),
-          child: Semantics(
-            button: true,
-            label: l10n.tripDisputePaid(
+          child: Pressable(
+            key: DisputeCard.faceKey(passenger.passengerId),
+            onTap: () => controls.answerDispute(passenger.passengerId),
+            haptic: false,
+            semanticLabel: l10n.tripDisputePaid(
               seatName == null ? label : l10n.tripDisputeSide(label, seatName),
             ),
-            excludeSemantics: true,
-            child: GestureDetector(
-              key: DisputeCard.faceKey(passenger.passengerId),
-              behavior: HitTestBehavior.opaque,
-              onTap: () => controls.answerDispute(passenger.passengerId),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: tokens.waraq,
-                  border: Border.all(
-                    color: tokens.hibr,
-                    width: ShapeTokens.borderCard,
-                  ),
-                  borderRadius: BorderRadius.circular(
-                    ShapeTokens.radiusControl,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: tokens.hibr,
-                      offset: const Offset(0, ShapeTokens.shadowCard),
-                    ),
-                  ],
+            borderRadius: const BorderRadius.all(Radius.circular(_faceRadius)),
+            child: SizedBox.square(
+              dimension: _faceSize,
+              // The art runs past its box (the shoulders); the tile cuts it.
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(_faceRadius),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(SpaceTokens.s),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: _portraitWidth,
-                        height: _portraitHeight,
-                        child: PassengerPortrait(passenger: passenger),
-                      ),
-                      const SizedBox(height: SpaceTokens.xs),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: TypeTokens.label.copyWith(color: tokens.hibr),
-                      ),
-                      if (seatName != null)
-                        Text(
-                          seatName,
-                          textAlign: TextAlign.center,
-                          style: TypeTokens.caption.copyWith(
-                            color: tokens.hibr,
-                          ),
-                        ),
-                    ],
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: ColorTokens.ground,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(_faceRadius),
+                    ),
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: _portraitWidth,
+                      height: _portraitHeight,
+                      child: PassengerPortrait(passenger: passenger),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
+        const SizedBox(height: SpaceTokens.s6),
+        Text(label, textAlign: TextAlign.center, style: caption.weight(700)),
+        if (seatName != null)
+          Text(seatName, textAlign: TextAlign.center, style: caption),
       ],
     );
   }
@@ -198,8 +173,7 @@ class _PassengerPortraitState extends ConsumerState<PassengerPortrait> {
   static const _settle = 0.25;
 
   PassengerArt? _art;
-  SkinLook? _look;
-  WassalTokens? _tokens;
+  Look? _look;
 
   @override
   void didChangeDependencies() {
@@ -214,13 +188,11 @@ class _PassengerPortraitState extends ConsumerState<PassengerPortrait> {
   }
 
   void _sync() {
-    final tokens = context.tokens;
     final look = widget.passenger.look;
-    if (_art == null || look != _look || tokens != _tokens) {
+    if (_art == null || look != _look) {
       _art?.dispose();
-      _art = ref.read(passengerArtProvider).create(look, tokens);
+      _art = ref.read(passengerArtProvider).create(look);
       _look = look;
-      _tokens = tokens;
     }
     _art!
       ..update(widget.passenger)

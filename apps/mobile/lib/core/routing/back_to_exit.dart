@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/theme/app_theme.dart';
-import 'package:wassal/core/theme/tokens/typography.dart';
+import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// How long after the first back press on الموقف a second one leaves.
@@ -52,19 +51,11 @@ class _BackToExitState extends State<BackToExit> {
       return;
     }
     _window = Timer(exitWindow, () {});
-    final tokens = context.tokens;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: exitWindow,
-          backgroundColor: tokens.tablouh,
-          content: Text(
-            AppLocalizations.of(context).pressBackAgainToExit,
-            style: TypeTokens.body.copyWith(color: tokens.waraq),
-          ),
-        ),
-      );
+    showAppToast(
+      context,
+      AppLocalizations.of(context).pressBackAgainToExit,
+      hold: exitWindow,
+    );
   }
 
   @override

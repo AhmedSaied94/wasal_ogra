@@ -1,3 +1,5 @@
+> **Superseded by** [specs/008.5-m21-design-refresh/contracts/design-tokens.md](../../008.5-m21-design-refresh/contracts/design-tokens.md) from M21. This page records what M03 built.
+
 # Contract: Design Tokens («ستيكر الميكروباص»)
 
 The only source of visual values in the app. Widgets read these through the theme; a literal color,

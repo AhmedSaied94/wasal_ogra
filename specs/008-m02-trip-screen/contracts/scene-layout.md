@@ -1,3 +1,5 @@
+> **Superseded by** [specs/008.5-m21-design-refresh/contracts/trip-layout.md](../../008.5-m21-design-refresh/contracts/trip-layout.md) from M21. This page records what M02 built.
+
 # Contract: Layout, Scene and Sizes
 
 Where everything sits on the trip screen, what draws it, and the sizes it guarantees. `SceneLayout`

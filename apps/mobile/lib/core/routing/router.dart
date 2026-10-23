@@ -5,16 +5,19 @@ import 'package:trip_engine/trip_engine.dart' show TripResult;
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
+import 'package:wassal/core/routing/app_page.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
-import 'package:wassal/core/routing/sheet_page.dart';
 import 'package:wassal/core/routing/shell_scaffold.dart';
-import 'package:wassal/core/routing/sticker_page.dart';
+import 'package:wassal/core/theme/components/overlays.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
+import 'package:wassal/features/dev/gallery/gallery_entry.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
 import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
 import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
 import 'package:wassal/features/trip/presentation/trip_screen.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 part 'router.g.dart';
 
@@ -88,9 +91,14 @@ GoRouter router(Ref ref) {
       ),
       route(RouteNames.onboardingIntro),
       route(RouteNames.onboardingName),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (_, _, navigationShell) =>
             ShellScaffold(navigationShell: navigationShell),
+        navigatorContainerBuilder: (_, navigationShell, children) =>
+            TabCrossFade(
+              currentIndex: navigationShell.currentIndex,
+              children: children,
+            ),
         branches: [
           branch(RouteNames.home, [RouteNames.preTrip]),
           // `vehicle/:vehicleId` before `:lineId`, which would match it.
@@ -139,7 +147,11 @@ Page<void> _page(
     RouteNames.home when playtest => PlaceholderScreen(
       destination: d,
       params: state.pathParameters,
-      extra: const TripList(),
+      extra: const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: SpaceTokens.s16,
+        children: [TripList(), GalleryEntry()],
+      ),
     ),
     // M08 replaces it.
     RouteNames.result => PlaceholderScreen(
@@ -163,12 +175,13 @@ Page<void> _page(
           ? ReportFullyDrawn(child: screen)
           : screen,
     ),
-    Presentation.sheet => SheetPage(
+    Presentation.sheet => AppSheetPage(
       key: state.pageKey,
       name: d.name,
+      title: d.title(AppLocalizations.of(context)),
       child: screen,
     ),
-    Presentation.page || Presentation.overlay => StickerPage(
+    Presentation.page || Presentation.overlay => AppPage(
       key: state.pageKey,
       name: d.name,
       reduceMotion: MediaQuery.disableAnimationsOf(context),
