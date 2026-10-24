@@ -90,10 +90,21 @@ def test_create_superuser() -> None:
 
 
 @pytest.mark.django_db
-def test_single_initial_migration_with_uuid_primary_key() -> None:
+def test_user_comes_from_the_initial_migration_with_uuid_primary_key() -> None:
+    """AUTH_USER_MODEL is created by 0001 and no later migration touches it (B02 adds players)."""
     loader = MigrationLoader(connection)
-    names = sorted(name for app, name in loader.disk_migrations if app == "accounts")
-    assert names == ["0001_initial"]
+    migrations = {
+        name: migration
+        for (app, name), migration in loader.disk_migrations.items()
+        if app == "accounts"
+    }
+    assert min(migrations) == "0001_initial"
+    for name, migration in migrations.items():
+        if name != "0001_initial":
+            touched = {
+                getattr(op, "model_name", getattr(op, "name", "")) for op in migration.operations
+            }
+            assert "user" not in {str(model).lower() for model in touched}, name
     with connection.cursor() as cursor:
         cursor.execute(
             "SELECT data_type FROM information_schema.columns "

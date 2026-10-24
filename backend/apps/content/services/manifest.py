@@ -18,6 +18,7 @@ from django.db import transaction
 from redis.exceptions import RedisError
 
 from apps.accounts.models import User
+from apps.common.client import ClientVersion, as_tuple, parse_client_version
 from apps.content.models import ContentAuditRecord, ContentChannel, ContentPack
 from apps.content.models.packs import CLIENT_VERSION_PATTERN, STORED
 from apps.content.services import audit, build, files, permissions
@@ -27,28 +28,9 @@ logger = logging.getLogger(__name__)
 
 CACHE_PREFIX = "content:manifest:"
 GENERATION_KEY = f"{CACHE_PREFIX}generation"
-HEADER = re.compile(r"^([0-9]+)\.([0-9]+)\.([0-9]+)(\+[0-9A-Za-z.-]+)?$")
-MAX_HEADER = 64
 EMPTY: dict[str, Any] = {"version": 0, "packs": []}
 # What a Valkey outage raises through Django's cache: the answer then comes from the database.
 CACHE_ERRORS = (RedisError, OSError)
-
-ClientVersion = tuple[int, int, int]
-
-
-def parse_client_version(header: str | None) -> ClientVersion | None:
-    """`1.4.0+57` → (1, 4, 0). A missing or malformed value is "not stated"."""
-    if not header or len(header) > MAX_HEADER:
-        return None
-    match = HEADER.match(header.strip())
-    if match is None:
-        return None
-    return int(match[1]), int(match[2]), int(match[3])
-
-
-def as_tuple(value: str) -> ClientVersion:
-    major, minor, patch = value.split(".")
-    return int(major), int(minor), int(patch)
 
 
 def select_pack(client: ClientVersion | None) -> ContentPack | None:

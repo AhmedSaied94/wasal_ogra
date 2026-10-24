@@ -5,6 +5,7 @@ from django.urls import include, path, re_path
 from django.views.static import serve
 from rest_framework.routers import SimpleRouter
 
+from apps.accounts.api.views import AnonymousView, LinkView, RefreshView
 from apps.common import errors
 from apps.common.api.views import HealthzView, ReadyzView
 from apps.content.api.views import ManifestView
@@ -15,6 +16,9 @@ urlpatterns = [
     path("healthz", HealthzView.as_view(), name="healthz"),
     path("readyz", ReadyzView.as_view(), name="readyz"),
     path("v1/content/manifest", ManifestView.as_view(), name="content-manifest"),
+    path("v1/auth/anonymous", AnonymousView.as_view(), name="auth-anonymous"),
+    path("v1/auth/refresh", RefreshView.as_view(), name="auth-refresh"),
+    path("v1/auth/link", LinkView.as_view(), name="auth-link"),
     path("v1/", include(router.urls)),
 ]
 

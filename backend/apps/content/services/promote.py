@@ -32,6 +32,7 @@ from wassal_content.packfile import PackFileError, decompress_capped, sha256_hex
 from wassal_content.validate import validate_pack
 
 from apps.accounts.models import User
+from apps.common.client import as_tuple
 from apps.content.models import ContentAuditRecord, ContentChannel, ContentPack
 from apps.content.models.packs import Origin, Status
 from apps.content.services import audit, build, files, http, lookups, manifest, permissions
@@ -199,7 +200,7 @@ def _validate(fetched: Fetched) -> None:
         raise PromotionFailed(
             "pack_invalid", [{"path": "$.schema_version", "message": "unknown schema major"}]
         ) from None
-    if manifest.as_tuple(minimum) < manifest.as_tuple(floor):
+    if as_tuple(minimum) < as_tuple(floor):
         raise PromotionFailed(
             "pack_invalid", [{"path": "min_client_version", "message": f"below the floor {floor}"}]
         )

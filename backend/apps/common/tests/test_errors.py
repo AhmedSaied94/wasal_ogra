@@ -44,6 +44,13 @@ def test_error_codes_are_exactly_the_contract() -> None:
         "server_error",
         "not_ready",
         "dependency_unavailable",
+        # B02 (specs/009-b02-accounts-auth/contracts/api.md "Error codes")
+        "token_expired",
+        "token_invalid",
+        "account_deleted",
+        "provider_in_use",
+        "provider_already_linked",
+        "provider_token_invalid",
     }
     assert set(MESSAGES) == set(ErrorCode)
 
@@ -124,11 +131,66 @@ def test_django_permission_denied_is_the_envelope(client: Client) -> None:
     assert "internal rule 7" not in response.content.decode()
 
 
-def test_unauthenticated_keeps_www_authenticate(client: Client) -> None:
-    response = client.get("/test/needs-auth")
-    assert response.status_code == 401
-    assert json.loads(response.content)["error"]["code"] == "not_authenticated"
-    assert response["WWW-Authenticate"] == 'Bearer realm="api"'
+def test_unauthenticated_is_token_invalid_with_www_authenticate(client: Client) -> None:
+    """DRF's own `not_authenticated` never reaches a client (B02 research R8)."""
+    error = error_of(client.get("/test/needs-auth"), 401, "token_invalid")
+    assert error["message"] == "Token invalid"
+    assert error["details"] == {}
+    assert client.get("/test/needs-auth")["WWW-Authenticate"] == "Bearer"
+
+
+@pytest.mark.parametrize(
+    ("path", "status", "code", "message", "details"),
+    [
+        ("/test/token-expired", 401, "token_expired", "Token expired", {}),
+        ("/test/token-invalid", 401, "token_invalid", "Token invalid", {}),
+        ("/test/account-deleted", 403, "account_deleted", "Account deleted", {}),
+        (
+            "/test/provider-in-use",
+            409,
+            "provider_in_use",
+            "Provider linked to another player",
+            {"current": {"driver_level": 1}, "existing": {"player_id": "p"}},
+        ),
+        (
+            "/test/provider-already-linked",
+            409,
+            "provider_already_linked",
+            "Another account of this provider is already linked",
+            {"provider": "google"},
+        ),
+        (
+            "/test/provider-token-invalid",
+            422,
+            "provider_token_invalid",
+            "Provider token could not be verified",
+            {"provider": "google", "reason": "audience"},
+        ),
+    ],
+)
+def test_auth_errors_render_with_their_details(
+    client: Client, path: str, status: int, code: str, message: str, details: dict[str, Any]
+) -> None:
+    response = client.get(path)
+    error = error_of(response, status, code)
+    assert error["message"] == message
+    assert error["details"] == details
+    if status == 401:
+        assert response["WWW-Authenticate"] == "Bearer"
+    else:
+        assert "WWW-Authenticate" not in response
+
+
+@pytest.mark.parametrize("path", ["/test/authentication-failed", "/test/not-authenticated"])
+def test_drf_auth_exceptions_never_keep_their_own_code(client: Client, path: str) -> None:
+    """Raised from a view with no authenticators, DRF would turn them into a 403 with its codes."""
+    response = client.get(path)
+    error_of(response, 401, "token_invalid")
+    text = response.content.decode()
+    assert "not_authenticated" not in text
+    assert "authentication_failed" not in text
+    assert "leaky detail" not in text
+    assert response["WWW-Authenticate"] == "Bearer"
 
 
 def test_http404_inside_a_view_is_not_found(client: Client) -> None:

@@ -48,6 +48,12 @@ os.environ.setdefault("CONTENT_PACKS_PUBLIC_URL", "https://packs.test.invalid/pa
 os.environ.setdefault("CONTENT_SOLVER_STAGE", "stand_in")
 os.environ.setdefault("CONTENT_MANIFEST_CACHE_SECONDS", "0")
 os.environ.setdefault("CONTENT_HTTP_TIMEOUT_SECONDS", "2")
+# B02: a fixed key (base64url of 32 bytes), a test Google client, no key cache, fast timeouts. The
+# google_jwks fixture points GOOGLE_JWKS_URL at a local server.
+os.environ.setdefault("AUTH_SIGNING_KEYS", "test1:dGVzdC1vbmx5LXNpZ25pbmcta2V5LTAwMDAwMDAwMDA")
+os.environ.setdefault("GOOGLE_OAUTH_CLIENT_IDS", "test-client.apps.googleusercontent.com")
+os.environ.setdefault("GOOGLE_KEYS_CACHE_SECONDS", "0")
+os.environ.setdefault("AUTH_HTTP_TIMEOUT_SECONDS", "2")
 
 from .base import *  # noqa: E402, F403
 from .base import STORAGES  # noqa: E402

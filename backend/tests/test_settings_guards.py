@@ -32,6 +32,11 @@ print(json.dumps({
 }))
 """
 
+# base64url of 32 bytes. Low-entropy on purpose: none of these is a real secret.
+PROD_SIGNING_KEY = "dGVzdC1vbmx5LXByb2Qtc2lnbmluZy1rZXktMDAwMDA"
+OTHER_SIGNING_KEY = "c2Vjb25kLXRlc3Qtc2lnbmluZy1rZXktMDAwMDAwMDA"
+SHORT_SIGNING_KEY = "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA"  # 31 bytes
+
 # Valid production values. Low-entropy on purpose: none of this is a real secret.
 PROD_ENV = {
     "WASSAL_ENV": "prod",
@@ -48,6 +53,9 @@ PROD_ENV = {
     "CONTENT_PACKS_DIR": "/var/lib/wassal/packs",
     "CONTENT_PACKS_PUBLIC_URL": "https://api.example.test/packs/",
     "CONTENT_PROMOTION_SOURCE_URL": "https://api.staging.example.test/packs/",
+    # B02 (specs/009-b02-accounts-auth/contracts/environment.md).
+    "AUTH_SIGNING_KEYS": f"k20261024:{PROD_SIGNING_KEY}",
+    "GOOGLE_OAUTH_CLIENT_IDS": "web-client.apps.googleusercontent.com",
 }
 # Staging (and dev) is a content source: no promotion source, and it reads production's floor file.
 STAGING_CONTENT = {
@@ -64,6 +72,7 @@ SECRETS = [
     "CELERY_BROKER_URL",
     "SENTRY_DSN",
     "HC_PING_HEARTBEAT_URL",
+    "AUTH_SIGNING_KEYS",
 ]
 
 
@@ -445,3 +454,159 @@ def test_more_xdist_workers_than_valkey_databases_are_refused() -> None:
     result = valkey_probe({"PYTEST_XDIST_WORKER": "gw7"})
     assert result.returncode != 0
     assert "at most 7 pytest-xdist workers" in result.stderr
+
+
+# -- Auth settings (B02, specs/009-b02-accounts-auth/contracts/environment.md) --------------------
+
+AUTH_PROBE = """
+import json, django
+django.setup()
+from django.conf import settings
+print(json.dumps({
+    "kids": [key.kid for key in settings.AUTH_SIGNING_KEYS],
+    "retry_seconds": settings.AUTH_REFRESH_RETRY_SECONDS,
+    "max_sessions": settings.AUTH_MAX_SESSIONS_PER_PLAYER,
+    "http_timeout": settings.AUTH_HTTP_TIMEOUT_SECONDS,
+    "google_client_ids": list(settings.GOOGLE_OAUTH_CLIENT_IDS),
+    "google_jwks_url": settings.GOOGLE_JWKS_URL,
+    "google_cache": settings.GOOGLE_KEYS_CACHE_SECONDS,
+    "simple_jwt_key_is_first": settings.SIMPLE_JWT["SIGNING_KEY"]
+        == settings.AUTH_SIGNING_KEYS[0].key,
+    "rates": {
+        scope: settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][scope]
+        for scope in ("player", "anonymous", "refresh", "link")
+    },
+}))
+"""
+
+
+def auth_probe(module: str, env: dict[str, str]) -> dict[str, object]:
+    clean = {
+        "PATH": os.environ["PATH"],
+        "WASSAL_READ_DOTENV": "0",
+        "DJANGO_SETTINGS_MODULE": f"config.settings.{module}",
+        **env,
+    }
+    result = subprocess.run(  # noqa: S603 - fixed interpreter and arguments
+        [sys.executable, "-c", AUTH_PROBE],
+        cwd=BACKEND_DIR,
+        env=clean,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout.strip().splitlines()[-1])  # type: ignore[no-any-return]
+
+
+def without(env: dict[str, str], name: str) -> dict[str, str]:
+    return {key: value for key, value in env.items() if key != name}
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+@pytest.mark.parametrize("name", ["AUTH_SIGNING_KEYS", "GOOGLE_OAUTH_CLIENT_IDS"])
+def test_auth_variables_required_on_the_hosts(module: str, name: str) -> None:
+    env = without(env_for(module), name)
+    result = load(module, env)
+    assert_refused(result, f"{name} is required")
+    assert_no_values_leaked(result, env)
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+@pytest.mark.parametrize(
+    ("value", "reason"),
+    [
+        (f"k1:{SHORT_SIGNING_KEY}", "short key"),
+        (f"K1:{PROD_SIGNING_KEY}", "upper-case kid"),
+        (f"{'k' * 33}:{PROD_SIGNING_KEY}", "kid too long"),
+        (f":{PROD_SIGNING_KEY}", "empty kid"),
+        (PROD_SIGNING_KEY, "no kid"),
+        (f"k1:{PROD_SIGNING_KEY},k1:{OTHER_SIGNING_KEY}", "duplicate kid"),
+        (",", "no entries"),
+        (",".join(f"k{n}:{PROD_SIGNING_KEY}" for n in range(5)), "five entries"),
+        (f"k1:{PROD_SIGNING_KEY[:-1]}!", "not base64url"),
+        (f"k1:{PROD_SIGNING_KEY}+/", "standard base64"),
+        (f"k1:{PROD_SIGNING_KEY}xx", "bad length"),
+    ],
+)
+def test_malformed_signing_keys_refused(module: str, value: str, reason: str) -> None:
+    env = env_for(module, AUTH_SIGNING_KEYS=value)
+    result = load(module, env)
+    assert_refused(result, "AUTH_SIGNING_KEYS is invalid")
+    assert PROD_SIGNING_KEY not in result.stdout + result.stderr, reason
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+def test_signing_key_must_not_be_the_secret_key(module: str) -> None:
+    env = env_for(module, AUTH_SIGNING_KEYS=f"k1:{PROD_ENV['SECRET_KEY']}")
+    result = load(module, env)
+    assert_refused(result, "AUTH_SIGNING_KEYS must not reuse SECRET_KEY")
+    assert_no_values_leaked(result, env)
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("AUTH_REFRESH_RETRY_SECONDS", "301"),
+        ("AUTH_REFRESH_RETRY_SECONDS", "-1"),
+        ("AUTH_MAX_SESSIONS_PER_PLAYER", "0"),
+        ("AUTH_MAX_SESSIONS_PER_PLAYER", "51"),
+        ("AUTH_HTTP_TIMEOUT_SECONDS", "0"),
+        ("AUTH_HTTP_TIMEOUT_SECONDS", "16"),
+        ("GOOGLE_KEYS_CACHE_SECONDS", "21601"),
+        # No cache would let made-up kids make every request fetch (B02 security review).
+        ("GOOGLE_KEYS_CACHE_SECONDS", "0"),
+        ("GOOGLE_KEYS_CACHE_SECONDS", "59"),
+        ("GOOGLE_JWKS_URL", "http://www.googleapis.com/oauth2/v3/certs"),
+        ("THROTTLE_PLAYER_RATE", "120"),
+        ("THROTTLE_ANONYMOUS_RATE", "60/week"),
+        ("THROTTLE_REFRESH_RATE", "x/min"),
+        ("THROTTLE_LINK_RATE", "/min"),
+    ],
+)
+def test_auth_values_out_of_range_refused(name: str, value: str) -> None:
+    result = load("prod", env_for("prod", **{name: value}))
+    assert_refused(result, f"{name} is invalid")
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+def test_auth_settings_on_the_hosts(module: str) -> None:
+    rotated = f"k20261124:{OTHER_SIGNING_KEY},k20261024:{PROD_SIGNING_KEY}"
+    values = auth_probe(module, env_for(module, AUTH_SIGNING_KEYS=rotated))
+    assert values == {
+        "kids": ["k20261124", "k20261024"],
+        "retry_seconds": 60,
+        "max_sessions": 10,
+        "http_timeout": 5,
+        "google_client_ids": ["web-client.apps.googleusercontent.com"],
+        "google_jwks_url": "https://www.googleapis.com/oauth2/v3/certs",
+        "google_cache": 3600,
+        "simple_jwt_key_is_first": True,
+        "rates": {
+            "player": "120/min",
+            "anonymous": "60/hour",
+            "refresh": "30/min",
+            "link": "10/min",
+        },
+    }
+
+
+def test_dev_accepts_the_placeholder_key_and_no_google_client() -> None:
+    example: dict[str, str] = {}
+    for line in (BACKEND_DIR / ".env.example").read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            key, _, value = line.partition("=")
+            example[key] = value
+    values = auth_probe("dev", example)
+    assert values["kids"] == ["dev1"]
+    assert values["google_client_ids"] == []
+
+
+def test_auth_settings_for_tests_need_no_environment() -> None:
+    values = auth_probe("test", {})
+    assert values["kids"] == ["test1"]
+    assert values["google_client_ids"] == ["test-client.apps.googleusercontent.com"]
+    assert values["google_cache"] == 0
+    assert values["http_timeout"] == 2

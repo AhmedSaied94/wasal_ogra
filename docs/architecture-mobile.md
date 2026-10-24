@@ -598,7 +598,10 @@ Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholder
 
 ## 16. Identity, Notifications, Sharing
 
-- **Identity:** first online launch calls `POST /v1/auth/anonymous` with a random install ID; tokens go to secure storage. Linking Google/Apple from Settings calls `POST /v1/auth/link`; on `409 provider_in_use` the app shows both progress summaries and lets the player choose which one to keep (backend §6.4). Accounts are never merged. Account deletion calls `DELETE /v1/account` (store requirement).
+- **Identity:** the app generates a version-4 UUID install id once and keeps it where a re-install on the same phone doesn't wipe it: the iOS keychain (this device only) and Android's Block Store, with Android's backup of that one value as the fallback (backend §22.6, `specs/009-b02-accounts-auth/research.md` R5; M06 picks the mechanism). The first online launch calls `POST /v1/auth/anonymous` with it in the background, and play never waits for it. A re-install gets the same player back, linked or not; where the install id is lost, linking Google is the way back. Tokens go to secure storage, `access` and `refresh` together.
+  - **Renewal:** renew when `access_expires_in` is about to run out, and retry a lost renewal with the same refresh token within 60 s: the same successor comes back. On `token_invalid` or `token_expired` that renewal can't fix, sign in again with the install id. On `403 account_deleted`, stop calling player endpoints. Every rule is in `specs/009-b02-accounts-auth/contracts/tokens.md` "Client obligations".
+  - **Linking:** Google from Settings calls `POST /v1/auth/link`, after sending pending sync ops. On `409 provider_in_use` the app shows both progress summaries and lets the player choose which one to keep, then retries with `resolve` and `details.existing.player_id` (backend §6.4). After `switch_to_existing` the `player_id` changes. A `422 provider_token_invalid` never makes the app renew its own tokens. Accounts are never merged. Apple comes in phase 3.
+  - **Deletion:** account deletion calls `DELETE /v1/account` (store requirement).
 - **Notifications:** «البنزين اتملى» is a local scheduled notification. Daily challenge, Salma, league and comeback pushes come from the backend via FCM (backend §11). The device registers its token with `POST /v1/push-tokens`. The in-game pre-prompt runs before the OS prompt (UX doc).
 - **Sharing:** MVP shares a rendered result image (`share_plus`). The 15-second auto clip is public-launch scope; it will reuse the command log replay (§7.10) to re-render the moment.
 
@@ -636,7 +639,7 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 3. **Parity or it didn't happen.** Any engine rule change ships with updated parity fixtures that pass in Dart and Python.
 4. **Server authority for value.** BONAT, purchases, entitlements and subscriptions are decided by the backend. The client is optimistic only for JENEHAT and progress, within server-validated bounds.
 5. **Offline-first play.** A regular trip must be playable with no network.
-6. **Idempotent everything.** Every state-changing request carries `client_txn_id`.
+6. **Idempotent everything.** Every state-changing request carries `client_txn_id`, except the credential exchanges (account creation, token renewal, provider linking), which are idempotent on their own credential (constitution 1.5.0).
 7. **Content, not code.** Trips, prices, lines, items and lines of dialogue are data in versioned packs.
 8. **Tunable numbers.** Every balancing number has a Remote Config key with a bundled default.
 9. **No ads in a trip.** Ad calls are rejected while a trip is running.

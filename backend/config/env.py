@@ -7,10 +7,12 @@ secrets, short keys, debug mode and a mismatched `WASSAL_ENV` are refused too.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -30,6 +32,12 @@ RATE_PATTERN = re.compile(r"^\d+/[smhd][a-z]*$")
 # CONTENT_SOLVER_STAGE (B04, B05): `solver` (the real stage, the default on staging and prod),
 # `none`, `stand_in` (dev and test only), or the dotted path of a stage class.
 SOLVER_STAGE_PATTERN = re.compile(r"^(solver|none|stand_in|[A-Za-z_]\w*(\.[A-Za-z_]\w*)+)$")
+# AUTH_SIGNING_KEYS (B02 research R13): `kid:key` entries, the key base64url (padding optional).
+SIGNING_KID_PATTERN = re.compile(r"^[a-z0-9-]{1,32}$")
+SIGNING_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
+MIN_SIGNING_KEY_BYTES = 32
+MAX_SIGNING_KEYS = 4
+GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
@@ -232,6 +240,44 @@ class Env:
             ),
         )
 
+    def signing_keys(
+        self, name: str = "AUTH_SIGNING_KEYS", *, forbidden: str = ""
+    ) -> tuple[SigningKey, ...]:
+        """The token key ring: the first entry signs, every entry verifies (B02 research R13).
+
+        `forbidden` is `SECRET_KEY`, which no signing key may reuse outside dev and test.
+        """
+        value = self.secret(name)
+        entries = [entry.strip() for entry in value.split(",")]
+        if not 1 <= len(entries) <= MAX_SIGNING_KEYS:
+            raise ImproperlyConfigured(f"{name} is invalid: give 1 to {MAX_SIGNING_KEYS} entries")
+        keys: list[SigningKey] = []
+        for entry in entries:
+            kid, _, encoded = entry.partition(":")
+            if not SIGNING_KID_PATTERN.match(kid) or any(key.kid == kid for key in keys):
+                raise ImproperlyConfigured(f"{name} is invalid: each kid must be unique, [a-z0-9-]")
+            if self.strict and forbidden and encoded == forbidden:
+                raise ImproperlyConfigured(f"{name} must not reuse SECRET_KEY")
+            keys.append(SigningKey(kid, _base64url(name, encoded)))
+        return tuple(keys)
+
+    def auth(self) -> AuthConfig:
+        """B02's settings (specs/009-b02-accounts-auth/contracts/environment.md)."""
+        client_ids = self.string("GOOGLE_OAUTH_CLIENT_IDS", "", required_outside_dev=True)
+        return AuthConfig(
+            retry_seconds=self.integer("AUTH_REFRESH_RETRY_SECONDS", 60, minimum=0, maximum=300),
+            max_sessions=self.integer("AUTH_MAX_SESSIONS_PER_PLAYER", 10, minimum=1, maximum=50),
+            http_timeout_seconds=self.integer(
+                "AUTH_HTTP_TIMEOUT_SECONDS", 5, minimum=1, maximum=15
+            ),
+            google_client_ids=tuple(part.strip() for part in client_ids.split(",") if part.strip()),
+            google_jwks_url=self.url("GOOGLE_JWKS_URL", GOOGLE_JWKS_URL),
+            # 0 (no cache, as tests use) would let made-up kids make every request fetch.
+            google_keys_cache_seconds=self.integer(
+                "GOOGLE_KEYS_CACHE_SECONDS", 3600, minimum=60 if self.strict else 0, maximum=21600
+            ),
+        )
+
     def check_environment(self) -> None:
         """`WASSAL_ENV` must name the settings module in use, and debug is off outside dev."""
         expected = self.name
@@ -253,6 +299,47 @@ class ContentConfig:
     solver_stage: str
     manifest_cache_seconds: int
     http_timeout_seconds: int
+
+
+@dataclass(frozen=True)
+class SigningKey:
+    """One entry of `AUTH_SIGNING_KEYS`. The key never appears in a repr or a log line."""
+
+    kid: str
+    key: bytes = field(repr=False)
+
+
+@dataclass(frozen=True)
+class AuthConfig:
+    """B02's settings (specs/009-b02-accounts-auth/contracts/environment.md)."""
+
+    retry_seconds: int
+    max_sessions: int
+    http_timeout_seconds: int
+    google_client_ids: tuple[str, ...]
+    google_jwks_url: str
+    google_keys_cache_seconds: int
+
+
+def _base64url(name: str, encoded: str) -> bytes:
+    """Decode a signing key. `urlsafe_b64decode` alone would skip characters it doesn't know."""
+    data = encoded.rstrip("=")
+    padded = encoded != data
+    if (
+        not SIGNING_KEY_PATTERN.match(encoded)
+        or len(data) % 4 == 1
+        or (padded and len(encoded) % 4)
+    ):
+        raise ImproperlyConfigured(f"{name} is invalid: each key must be base64url")
+    try:
+        key = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+    except binascii.Error:
+        raise ImproperlyConfigured(f"{name} is invalid: each key must be base64url") from None
+    if len(key) < MIN_SIGNING_KEY_BYTES:
+        raise ImproperlyConfigured(
+            f"{name} is invalid: each key must decode to at least {MIN_SIGNING_KEY_BYTES} bytes"
+        )
+    return key
 
 
 def with_default_query(url: str, key: str, value: str) -> str:

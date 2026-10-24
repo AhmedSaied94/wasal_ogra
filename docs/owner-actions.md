@@ -25,6 +25,7 @@ left, in what order, and where to look.
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
 | [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Merged in #9 on 2026-10-23. The A06 run and the device runs are open. |
 | [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Merged in #10 on 2026-10-23, before its owner checks: all 7 are still open. |
+| [009 B02 accounts and auth](#009-b02-accounts-auth) | 2 | 2, plus 1 before the closed test | Built and tested on 2026-10-24, PR open. T065: the project, the web client and the Firebase apps are done (2026-10-25). T066 is open, and a deploy fails without it. |
 
 ## Every month
 
@@ -724,6 +725,75 @@ number.
   and `docs/design/brand/feature_graphic_1024x500.png` as the feature graphic in the Play Console's
   store listing.
 
+## 009 B02 accounts and auth
+
+Built and tested on 2026-10-24, on branch `009-b02-accounts-auth`
+([tasks.md](../specs/009-b02-accounts-auth/tasks.md),
+[quickstart](../specs/009-b02-accounts-auth/quickstart.md)). Players get an account from their
+install id, sessions with rotating refresh tokens, Google linking with its conflict choice, and a
+read-only player page in the admin for the `player_support` group. Everything the app does with it
+comes in M06.
+
+### Before merge, in this order
+
+Both go in before the first deploy that carries B02. Without them the settings check stops the new
+release at the migrate step, and the deploy keeps the previous one.
+
+- [ ] **1. Google Cloud (T065).** The project is the Firebase project `wassal-ogra` (number
+  197022799720), so Firebase and the sign-in clients share it. In "Google Auth Platform"
+  (<https://console.cloud.google.com/auth/overview?project=wassal-ogra>):
+  - **Branding:** the app name and a support email. Leave the app in **Testing**, with your Google
+    accounts as test users, until the real domain exists (item 3 below).
+  - **The server (web) client**, done on 2026-10-25:
+    `197022799720-tdrrsi23dpbiqtombflevorurpv2c2aa.apps.googleusercontent.com`, the value of
+    `GOOGLE_OAUTH_CLIENT_IDS` on staging and prod. Add the OAuth Playground
+    (`https://developers.google.com/oauthplayground`) to its authorized redirect URIs, for the live
+    check. Its secret stays in your password manager: no host needs it.
+  - **The Android clients**, which the app's Google sign-in needs (B02 needs only the web client).
+    Each takes one package and one SHA-1, and Firebase doesn't create them: add them under
+    "Clients". `com.wassalogra.app.dev` and `com.wassalogra.app.staging` with the debug keystore's
+    SHA-1 (`15:91:09:F4:48:9B:F9:CF:42:2F:EB:11:4D:EF:60:2D:45:79:68:DD`, which signs every build
+    today), then `com.wassalogra.app` with Play App Signing's SHA-1 once Play Console has it, plus
+    one with the upload key's if you install builds you signed yourself.
+  - **The iOS clients**, one per bundle ID (`com.wassalogra.app.dev`, `.staging`,
+    `com.wassalogra.app`), before iOS sign-in. Until they exist, Firebase's
+    `GoogleService-Info.plist` has no `CLIENT_ID`.
+  - Done on 2026-10-25: the six Firebase apps (Android and iOS; dev, staging and prod), with the
+    debug key's SHA-1 and SHA-256 on the dev and staging Android apps. Their config files go into
+    the repo with the feature that adds Firebase to the app.
+- [ ] **2. Each VM's env file (T066).** Follow
+  [auth-keys.md "Before B02's first deploy"](runbooks/auth-keys.md#before-b02s-first-deploy): make
+  one key per environment with `uv run manage.py auth_signing_key` (in `backend/` on your machine),
+  then add `AUTH_SIGNING_KEYS` and `GOOGLE_OAUTH_CLIENT_IDS` (the web client id) to
+  `/etc/wassal/staging.env` on the staging VM and `/etc/wassal/prod.env` on the prod VM. The two
+  keys must differ. Keep both in your password manager.
+  - Each file holds **one entry**, its own environment's key. A key in both files makes prod accept
+    staging's tokens, and two entries made the same day share a `kid`, which startup refuses.
+  - Check each VM without printing a key. The first line prints one label, and the second gives a
+    different sum on each VM:
+
+    ```bash
+    sudo sed -n 's/^AUTH_SIGNING_KEYS=//p' /etc/wassal/<env>.env | tr ',' '\n' | cut -d: -f1
+    sudo sed -n 's/^AUTH_SIGNING_KEYS=//p' /etc/wassal/<env>.env | sha256sum
+    ```
+
+### After merge
+
+- [ ] **1. The live checks on staging (T067).** Once staging deploys from `master`, run
+  [quickstart Part B](../specs/009-b02-accounts-auth/quickstart.md#b-live-on-staging-owner), B1 to
+  B8. B7 (latency) and B8 (key rotation) follow [auth-keys.md](runbooks/auth-keys.md). Paste the
+  results in the PR, then tick `009-b02-accounts-auth` in the
+  [delivery plan's Progress list](delivery-plan.md#progress) with the PR number.
+- [ ] **2. Key rotation reminders.** A yearly calendar reminder per environment for
+  [auth-keys.md "Rotating"](runbooks/auth-keys.md#rotating). Each rotation sets its own second
+  reminder, 30 days and 15 minutes later.
+
+### Before the closed test
+
+- [ ] **Google sign-in for everyone (T068).** Move the Google Auth Platform app from Testing to
+  **In production**, once the real domain and the privacy policy exist (see "Known for later
+  features"). Until then only the test users can link.
+
 ## Known for later features
 
 - **Solver previews (B05), when the admin gets more users or scripts.** Two things were left out on
@@ -735,5 +805,6 @@ number.
     them. Keep the newest `done` run of each `input_key`, which builds reuse.
 
 - **Register the real domain before the first closed test.** That test is the step 7 option or
-  step 12. B09's account-deletion page needs the domain too. The switch is configuration only: the
+  step 12. B09's account-deletion page needs the domain too, and so does Google sign-in for
+  players who aren't test users (B02 T068). The switch is configuration only: the
   hostnames in each VM's `/etc/wassal/edge.env` and its environment's `API_HOST` and `ADMIN_HOST`.

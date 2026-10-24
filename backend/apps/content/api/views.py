@@ -16,7 +16,7 @@ ERROR = OpenApiResponse(ErrorEnvelopeSerializer)
 
 
 class ManifestView(APIView):
-    # No authentication until B02 (FR-033). B01's address throttle still applies.
+    # Public (B02 FR-035): no token and no client headers. B01's address throttle applies.
     authentication_classes = ()
     permission_classes = (AllowAny,)
     http_method_names = ("get", "head", "options")

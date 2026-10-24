@@ -23,6 +23,7 @@ its own:
 | [staff-accounts.md](staff-accounts.md) | Admin accounts and their second factor, per environment |
 | [restore.md](restore.md) | Restoring a backup into production or staging, rebuilding either VM, the drill's results |
 | [content-publishing.md](content-publishing.md) | Authoring, building and publishing on staging, promoting to production, `content/source`, rollback, the minimum app version |
+| [auth-keys.md](auth-keys.md) | The players' token signing keys: the variables B02 needs, generating, rotating and revoking a key, measuring auth latency |
 | [break-glass.md](break-glass.md) | Getting back into a VM when WireGuard or SSH doesn't work |
 | [ios-test-build.md](ios-test-build.md) | The unsigned iOS dev build on Codemagic, and installing it on an iPhone with a free Apple ID |
 
@@ -117,6 +118,7 @@ Feature-specific checks (task IDs, scenarios to walk) are in [owner-actions.md](
 | The first of the month | [monitoring-setup.md "Monthly routine"](monitoring-setup.md#monthly-routine) |
 | The drill failed | [restore.md "Reading drill-results.jsonl"](restore.md#reading-drill-resultsjsonl) |
 | Publishing or promoting content, rolling it back, or raising the minimum app version | [content-publishing.md](content-publishing.md) |
+| Rotating the players' token signing key, or a key leaked | [auth-keys.md](auth-keys.md) |
 | Data is lost or wrong, and production must go back to a backup | [restore.md "Restore into production"](restore.md#restore-into-production) |
 | Authored content on staging is lost or wrong | [restore.md "Restore staging"](restore.md#restore-staging) |
 | A VM or its disk is gone | [restore.md "Full rebuild on a new host"](restore.md#full-rebuild-on-a-new-host-within-4-h) |

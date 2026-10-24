@@ -16,6 +16,7 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from wassal_content.schemas import default_schema_set
 
 from apps.accounts.models import User
+from apps.common.client import parse_client_version
 from apps.content.api.serializers import ContentManifestPackSerializer, ContentManifestSerializer
 from apps.content.models import ContentPack
 from apps.content.models.packs import Status
@@ -116,10 +117,10 @@ def test_drafts_and_validated_packs_are_never_offered(client: Client) -> None:
 
 
 def test_parse_client_version() -> None:
-    assert manifest.parse_client_version("1.4.0+57") == (1, 4, 0)
-    assert manifest.parse_client_version(" 2.0.1 ") == (2, 0, 1)
+    assert parse_client_version("1.4.0+57") == (1, 4, 0)
+    assert parse_client_version(" 2.0.1 ") == (2, 0, 1)
     for value in (None, "", "abc", "1.4", "1.4.0.1", "v1.4.0", "1." + "1" * 80 + ".0"):
-        assert manifest.parse_client_version(value) is None
+        assert parse_client_version(value) is None
 
 
 def test_urls_come_from_the_public_url(

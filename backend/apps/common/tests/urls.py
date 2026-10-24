@@ -10,12 +10,19 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from rest_framework import serializers
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    NotAuthenticated,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.errors import ApiError, ErrorCode
+from apps.common.permissions import ClientHeaders
 from config.urls import handler404, handler500
 from config.urls import urlpatterns as api_urlpatterns
 
@@ -73,6 +80,14 @@ class NeedsAuthView(APIView):
         return Response({})
 
 
+class ClientHeadersView(APIView):
+    authentication_classes = ()
+    permission_classes = (ClientHeaders,)
+
+    def get(self, request: Request) -> Response:
+        return Response({})
+
+
 def raising(exc: Exception) -> type[APIView]:
     class RaisingView(OpenView):
         def get(self, request: Request) -> NoReturn:
@@ -88,6 +103,31 @@ urlpatterns = [
     path("test/things/<uuid:thing_id>", ThingView.as_view()),
     path("test/nested", NestedView.as_view()),
     path("test/needs-auth", NeedsAuthView.as_view()),
+    path("test/client-headers", ClientHeadersView.as_view()),
+    path("test/token-expired", raising(ApiError(ErrorCode.TOKEN_EXPIRED)).as_view()),
+    path("test/token-invalid", raising(ApiError(ErrorCode.TOKEN_INVALID)).as_view()),
+    path("test/account-deleted", raising(ApiError(ErrorCode.ACCOUNT_DELETED)).as_view()),
+    path(
+        "test/provider-in-use",
+        raising(
+            ApiError(
+                ErrorCode.PROVIDER_IN_USE,
+                {"current": {"driver_level": 1}, "existing": {"player_id": "p"}},
+            )
+        ).as_view(),
+    ),
+    path(
+        "test/provider-already-linked",
+        raising(ApiError(ErrorCode.PROVIDER_ALREADY_LINKED, {"provider": "google"})).as_view(),
+    ),
+    path(
+        "test/provider-token-invalid",
+        raising(
+            ApiError(ErrorCode.PROVIDER_TOKEN_INVALID, {"provider": "google", "reason": "audience"})
+        ).as_view(),
+    ),
+    path("test/authentication-failed", raising(AuthenticationFailed("leaky detail")).as_view()),
+    path("test/not-authenticated", raising(NotAuthenticated("leaky detail")).as_view()),
     path("test/django-forbidden", raising(DjangoPermissionDenied("internal rule 7")).as_view()),
     path("test/db-closed", raising(InterfaceError("connection already closed")).as_view()),
     path("test/boom", raising(RuntimeError("secret internals")).as_view()),
