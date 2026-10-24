@@ -36,6 +36,19 @@ iOS. Staging and prod wait for a pack in `apps/mobile/assets/content/release/`, 
    - **Settings → General → VPN & Device Management**, tap your Apple ID, and **Trust**.
 4. Open `وصّل dev`.
 
+## If the Apple ID sign-in fails
+
+`Authentication SRP error -80046: This action cannot be completed at this time` comes from Apple, not
+from the build. In October 2026 Apple started rejecting the client identity ("anisette" data) that
+sideloaders send with the sign-in, and each tool fixed it by switching its anisette server to
+`mac-ani.jkcoxson.com`:
+
+- **iloader 2.4.0 or later** has the fix (AUR `iloader-bin`, or the AppImage from
+  [its releases](https://github.com/nab138/iloader/releases/latest)). Use **Import IPA**.
+- **Impactor** has it on `main` since 2026-10-23, after v2.7.1. Use a release later than 2.7.1.
+
+The anisette server sees a provisioning identity, not your password, which goes to Apple only.
+
 ## Limits of a free Apple ID
 
 - The install expires after **7 days**: the app no longer opens. Install the same IPA again, or a
