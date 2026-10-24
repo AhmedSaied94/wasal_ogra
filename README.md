@@ -42,7 +42,8 @@ fixtures/parity/          Shared Dart ↔ Python engine fixtures
 - **Mobile:** Flutter (pinned with FVM), Flame, Rive, Riverpod, go_router, drift, dio.
 - **Backend:** Python 3.13 with `uv`, Django 5.2 LTS, DRF, PostgreSQL 17, Redis/Valkey, Celery.
 - **Infrastructure:** one ARM64 Oracle Cloud VM, Docker Compose, Caddy. Android CI on GitHub Actions,
-  iOS builds on Codemagic.
+  iOS builds on Codemagic (`codemagic.yaml`; Swift Packages, no CocoaPods). The
+  [iOS test build runbook](docs/runbooks/ios-test-build.md) covers installing it on an iPhone.
 
 ## Ground rules
 

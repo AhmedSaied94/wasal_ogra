@@ -52,7 +52,9 @@ check. Coverage comes from `flutter test --coverage` (lcov), gated at ≥ 80%. C
 device is measured manually with a script and is not in CI.
 
 **Target Platform**: Android, minSdk 24 (Android 7.0), targetSdk and compileSdk 36. The iOS deployment
-target is declared as 15.0, but iOS builds and CI are deferred to phase 3. Portrait only.
+target is declared as 15.0, but iOS builds and CI are deferred to phase 3. Portrait only. (Since
+2026-10-24, PR #14, Codemagic builds an unsigned iOS dev IPA from `codemagic.yaml`. There is no
+Podfile: the iOS plugins are Swift Packages.)
 
 **Project Type**: mobile app (`apps/mobile`) inside the `wassal` monorepo
 
@@ -181,7 +183,7 @@ apps/mobile/
 │       └── settings/settings_screen.dart# placeholder + the real digit-style control
 ├── android/                             # namespace com.wassalogra.app; flavors dev/staging/prod;
 │   └── app/src/main/kotlin/…/MainActivity.kt   # launch-metrics channel → reportFullyDrawn()
-├── ios/                                 # scaffold only; IPHONEOS_DEPLOYMENT_TARGET 15.0 (no CI until phase 3)
+├── ios/                                 # IPHONEOS_DEPLOYMENT_TARGET 15.0; Swift Packages, no Podfile; built on Codemagic (PR #14)
 ├── test/
 │   ├── core/theme/{palette_test,tokens_test,components_test}.dart
 │   ├── core/l10n/{number_formatter_test,digit_style_test,arb_placeholders_test}.dart
