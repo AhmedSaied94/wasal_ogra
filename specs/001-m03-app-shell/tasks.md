@@ -37,7 +37,7 @@ de-risk the `material_ui` combination.
   - delete any generated sample test.
 - [X] T003 Set the platform levels from research.md R1 in `apps/mobile/android/` and `apps/mobile/ios/`:
   - Android: `minSdk = 24`, `targetSdk = 36`, `compileSdk = 36` in `apps/mobile/android/app/build.gradle.kts`.
-  - iOS: `IPHONEOS_DEPLOYMENT_TARGET = 15.0` for every build configuration in `apps/mobile/ios/Runner.xcodeproj/project.pbxproj`, and `platform :ios, '15.0'` in `apps/mobile/ios/Podfile`.
+  - iOS: `IPHONEOS_DEPLOYMENT_TARGET = 15.0` for every build configuration in `apps/mobile/ios/Runner.xcodeproj/project.pbxproj`, and `platform :ios, '15.0'` in `apps/mobile/ios/Podfile`. (PR #14 removed the Podfile on 2026-10-24: every iOS plugin is a Swift Package.)
   - Portrait only: `android:screenOrientation="portrait"` on the activity in `apps/mobile/android/app/src/main/AndroidManifest.xml`, and `UISupportedInterfaceOrientations` with portrait only in `apps/mobile/ios/Runner/Info.plist` (FR-004, FR-038).
 - [X] T004 Configure `apps/mobile/pubspec.yaml`, then run `fvm flutter pub get`:
   - `environment: sdk: ^3.13.0, flutter: ">=3.47.7"`;

@@ -9,8 +9,11 @@ feature owns, mobile §24.1 and §24.2, are closed in R1 and R14.
 
 - **Decision:**
   - Android: `minSdk 24` (Android 7.0), with `targetSdk 36` and `compileSdk 36`.
-  - iOS: deployment target 15.0, set in the Xcode project and the Podfile. It is declared now, but iOS
-    builds wait for phase 3.
+  - iOS: deployment target 15.0, set in every build configuration of the Xcode project. It is declared
+    now, but iOS builds wait for phase 3.
+  - *Since 2026-10-24 (PR #14):* there is no Podfile. Every iOS plugin is a Swift Package, so Flutter
+    builds iOS without CocoaPods. iOS builds run on Codemagic (`codemagic.yaml`). Until phase 3 the
+    only build is the unsigned dev IPA ([runbook](../../docs/runbooks/ios-test-build.md)).
 - **Rationale:** the floor comes from the toolchain and the MVP dependencies, not from a product choice.
   Nothing allows lower, and nothing requires higher.
 
@@ -293,7 +296,9 @@ feature owns, mobile §24.1 and §24.2, are closed in R1 and R14.
 
   - App names are Android string resources, not Dart.
   - One `main.dart` reads `appFlavor`. A missing or unknown flavor fails a startup assertion and a test.
-  - iOS schemes for the flavors come with phase 3.
+  - iOS: the Xcode schemes `dev`, `staging` and `prod`, each with `Debug-`, `Release-` and
+    `Profile-<flavor>` configurations, use the same bundle IDs and app names (`APP_DISPLAY_NAME`).
+    They were added on 2026-10-24 (PR #14).
 - **Application ID:** chosen by the owner on 2026-10-18. It is permanent once uploaded to Play.
 - **AGP 9:** `resValue` is off by default, so `build.gradle.kts` sets `buildFeatures { resValues = true }`.
   Without it, Gradle fails with "Product Flavor dev contains custom resource values, but the feature is

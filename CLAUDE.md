@@ -20,6 +20,7 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
 - `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
 - `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models` and `packages/trip_engine`).
+- `codemagic.yaml`: the iOS build on Codemagic. Its one workflow, `ios-dev-unsigned`, builds the unsigned dev IPA (`docs/runbooks/ios-test-build.md`).
 
 ## Backend commands
 
@@ -77,6 +78,10 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 | Rewrite the Rive goldens after a new export | `fvm flutter test --update-goldens test/features/trip/rive_art_goldens_test.dart` |
 
 - Every build needs `--flavor dev|staging|prod`; the app refuses to start without one.
+- iOS builds run only on Codemagic (`codemagic.yaml` at the repo root), because the dev machine is Linux.
+  - The flavors are the Xcode schemes `dev`, `staging` and `prod`, with `Debug-`, `Release-` and `Profile-<flavor>` configurations. Each scheme sets its bundle ID and `APP_DISPLAY_NAME`.
+  - Every iOS plugin is a Swift Package, so there is no Podfile. Don't add one: it makes `flutter build ios` run `pod install`, and the build fails.
+  - Until there is a paid Apple Developer account, the only workflow is the unsigned dev IPA, sideloaded with a free Apple ID: `docs/runbooks/ios-test-build.md`.
 - Generated files (`*.g.dart`, `lib/l10n/generated/`) are gitignored. Run `pub get` and `build_runner` after a fresh checkout.
 - The app depends on `packages/content_models`, whose generated parts are gitignored too. After a fresh checkout, build it first (see "Content commands").
 - A dev build calls the local stack over plain HTTP, which only the dev flavor allows (constitution 1.2.0). On a phone or an emulator, run `adb reverse tcp:8000 tcp:8000` and the default `http://localhost:8000` works. `--dart-define=WASSAL_DEV_API_BASE=<url>` points a dev build elsewhere.

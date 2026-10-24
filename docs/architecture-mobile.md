@@ -678,7 +678,10 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 ## 21. Build, Flavors, CI/CD, Release
 
 - Flavors: `dev` (local backend), `staging` (staging API, test ads), `prod`.
-- Android builds and all tests on GitHub Actions; iOS builds on Codemagic (developer machine is Linux, no Mac).
+- Android builds and all tests on GitHub Actions; iOS builds on Codemagic from `codemagic.yaml` (developer machine is Linux, no Mac).
+  - On iOS the flavors are Xcode schemes (`dev`, `staging`, `prod`) with `Debug-`, `Release-` and `Profile-<flavor>` configurations, and the same bundle IDs and names as Android.
+  - Plugins come in as Swift Packages, so there is no Podfile and no CocoaPods.
+  - Until there is a paid Apple Developer account, the only iOS workflow is the unsigned dev IPA, installed with a free Apple ID ([runbook](runbooks/ios-test-build.md)).
 - Code obfuscation and split debug info on release builds; symbols uploaded to Crashlytics.
 - Release tracks: Play internal testing → closed testing (Egypt) → production; TestFlight for iOS.
 - Versioning: `MAJOR.MINOR.PATCH+BUILD`; `X-Client-Version` lets the backend force-update (backend §6).
