@@ -88,3 +88,37 @@ def test_uuidv7_model_passes() -> None:
                 app_label = "common"
 
         assert errors_in(isolated) == []
+
+
+def test_a_one_to_one_key_to_a_uuidv7_model_passes() -> None:
+    """A table keyed by its player holds the player's UUIDv7 (B03 data-model.md)."""
+    with isolate_apps("apps.common") as isolated:
+
+        class Owner(UUIDv7Model):
+            class Meta:
+                app_label = "common"
+
+        class Keyed(models.Model):
+            owner = models.OneToOneField(Owner, primary_key=True, on_delete=models.PROTECT)
+
+            class Meta:
+                app_label = "common"
+
+        assert errors_in(isolated) == []
+
+
+def test_a_one_to_one_key_to_another_kind_of_key_is_reported() -> None:
+    with isolate_apps("apps.common") as isolated:
+
+        class Plain(models.Model):
+            class Meta:
+                app_label = "common"
+
+        class Keyed(models.Model):
+            plain = models.OneToOneField(Plain, primary_key=True, on_delete=models.PROTECT)
+
+            class Meta:
+                app_label = "common"
+
+        errors = errors_in(isolated)
+    assert {e.obj for e in errors} == {Plain, Keyed}

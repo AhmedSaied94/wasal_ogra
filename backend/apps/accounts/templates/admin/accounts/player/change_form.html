@@ -1,0 +1,25 @@
+{% extends "admin/change_form.html" %}
+{% comment %}A player's page with the economy's read-only blocks (B03 contracts/admin.md "On the player page"). No script.{% endcomment %}
+{% block object-tools-items %}
+  {% if can_adjust %}<li><a href="{% url 'admin:accounts_player_adjust' original.pk %}">Adjust balance…</a></li>{% endif %}
+  {{ block.super }}
+{% endblock %}
+{% block after_field_sets %}
+{{ block.super }}
+{% for block in economy_blocks %}
+<fieldset class="module">
+  <h2>{{ block.title }}</h2>
+  {% if block.rows %}
+  <table>
+    {% if block.headers.0 %}<thead><tr>{% for header in block.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead>{% endif %}
+    <tbody>
+    {% for row in block.rows %}<tr>{% for cell in row %}<td>{{ cell|default_if_none:"" }}</td>{% endfor %}</tr>{% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>None.</p>
+  {% endif %}
+  {% for text, url in block.links %}<p><a href="{{ url }}">{{ text }}</a></p>{% endfor %}
+</fieldset>
+{% endfor %}
+{% endblock %}

@@ -30,7 +30,10 @@ class Command(BaseCommand):
             action="append",
             default=[],
             metavar="NAME",
-            help="Add the user to this group, such as content_author. Repeat for several.",
+            help=(
+                "Add the user to this group, such as content_author, player_support or "
+                "economy_ops. Repeat for several."
+            ),
         )
         parser.add_argument(
             "--deactivate", action="store_true", help="Deactivate an existing staff user instead."

@@ -51,6 +51,8 @@ def test_error_codes_are_exactly_the_contract() -> None:
         "provider_in_use",
         "provider_already_linked",
         "provider_token_invalid",
+        # B03 (specs/010-b03-ledger-sync/contracts/api.md)
+        "batch_too_large",
     }
     assert set(MESSAGES) == set(ErrorCode)
 
@@ -166,6 +168,7 @@ def test_unauthenticated_is_token_invalid_with_www_authenticate(client: Client) 
             "Provider token could not be verified",
             {"provider": "google", "reason": "audience"},
         ),
+        ("/test/batch-too-large", 400, "batch_too_large", "Batch too large", {"max": 100}),
     ],
 )
 def test_auth_errors_render_with_their_details(

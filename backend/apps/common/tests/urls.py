@@ -126,6 +126,10 @@ urlpatterns = [
             ApiError(ErrorCode.PROVIDER_TOKEN_INVALID, {"provider": "google", "reason": "audience"})
         ).as_view(),
     ),
+    path(
+        "test/batch-too-large",
+        raising(ApiError(ErrorCode.BATCH_TOO_LARGE, {"max": 100})).as_view(),
+    ),
     path("test/authentication-failed", raising(AuthenticationFailed("leaky detail")).as_view()),
     path("test/not-authenticated", raising(NotAuthenticated("leaky detail")).as_view()),
     path("test/django-forbidden", raising(DjangoPermissionDenied("internal rule 7")).as_view()),

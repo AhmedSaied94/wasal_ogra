@@ -17,6 +17,29 @@ from apps.accounts.models import Device, Identity, Player, PlayerSession
 from apps.accounts.services import linking, sessions
 from apps.accounts.tests.conftest import MakeToken, SignedIn, signed_in
 from apps.accounts.tests.factories import CLIENT, HEADERS, LINK, make_device, renew, sign_in
+from apps.economy.models import Currency
+from apps.economy.tests.conftest import (  # B03's summary reads the published rules
+    author,
+    channel,
+    packs_dir,
+    published_pack,
+    published_packs,
+    publisher,
+    sample_imported,
+    sample_reviewed,
+)
+from apps.economy.tests.helpers import HAY_DONE, give, give_stars, grant
+
+__all__ = [
+    "author",
+    "channel",
+    "packs_dir",
+    "published_pack",
+    "published_packs",
+    "publisher",
+    "sample_imported",
+    "sample_reviewed",
+]
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("google_jwks")]
 
@@ -77,6 +100,41 @@ def test_the_conflict_shows_both_summaries_and_changes_nothing(
     }
     assert str(Identity.objects.get(subject="G").player_id) == existing.player_id
     assert snapshot() == before
+
+
+def test_the_summary_shows_each_players_own_progress(
+    existing: SignedIn, current: SignedIn, make_google_token: MakeToken, published_pack: int
+) -> None:
+    """B03 FR-038, research R16: the level, the wallet's BONAT, and the chapter the player is on.
+    A player with no wallet yet shows the starting values, and nothing is created."""
+    holder = Player.objects.get(pk=existing.player_id)
+    Player.objects.filter(pk=holder.pk).update(driver_level=3)
+    grant(holder, Currency.BONAT, 42)
+    give_stars(holder, HAY_DONE)  # chapter 1 complete
+    give(holder, ("vehicle", "micro_old"))  # chapter 2 complete
+    before = snapshot()
+    error = error_of(current.link(make_google_token("G")), 409)
+    assert error["details"] == {
+        "current": START,
+        "existing": {
+            "player_id": existing.player_id,
+            "driver_level": 3,
+            "chapter_id": "ch3_shabka",
+            "bonat": 42,
+        },
+    }
+    assert snapshot() == before
+
+
+def test_a_player_who_finished_every_chapter_shows_the_last(
+    existing: SignedIn, current: SignedIn, make_google_token: MakeToken, published_pack: int
+) -> None:
+    holder = Player.objects.get(pk=existing.player_id)
+    give_stars(holder, HAY_DONE)
+    give(holder, ("vehicle", "micro_old"), ("chapter", "ch3_shabka"))
+    give(holder, ("item", "salon.nish"), ("item", "salon.sitara"))
+    error = error_of(current.link(make_google_token("G")), 409)
+    assert error["details"]["existing"]["chapter_id"] == "ch4_salon"
 
 
 def test_switch_to_existing(

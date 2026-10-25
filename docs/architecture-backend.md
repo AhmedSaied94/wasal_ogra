@@ -233,7 +233,7 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 
 | HTTP | `code` examples |
 | --- | --- |
-| 400 | `validation_error`, `unknown_op_type`, `batch_too_large` |
+| 400 | `validation_error`, `batch_too_large` |
 | 401 | `token_expired`, `token_invalid` |
 | 403 | `account_deleted`, `forbidden` |
 | 404 | `not_found` |
@@ -248,7 +248,7 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | 500 | `server_error` (any unhandled exception; the request id is in the `X-Request-ID` header) |
 | 503 | `maintenance`, `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
 
-B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). Any DRF exception code that ships must be listed here first.
+B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). B03 added `batch_too_large`: a `POST /v1/sync` with more than 100 operations, with `details.max` = 100. The same endpoint answers `413 payload_too_large` above its own 256 KB limit, with `details.limit_bytes` = 262144, and `400 validation_error` for a malformed body or operation envelope, with `details.fields` naming the problem in dotted names (`ops.3.client_txn_id`). An operation the server refuses is not an HTTP error: the request answers 200, and the operation's `reason` (`unknown_op_type`, `insufficient_funds`, …) comes from the table in B03 contracts/operations.md (§7.3). Any DRF exception code that ships must be listed here first.
 
 ### 6.3 Endpoints
 
@@ -314,14 +314,45 @@ Accounts are never merged, so currency can never be duplicated.
 {
   "server_time": "2026-10-17T09:00:00Z",
   "player": { "player_id": "…", "display_name": "الأسطى حمادة", "driver_level": 4, "country": "EG", "providers": ["google"] },
-  "wallet": { "jenehat": 1240, "bonat": 35, "fuel": 3, "fuel_updated_at": "2026-10-17T08:41:00Z", "fuel_unlimited_until": null },
+  "wallet": { "jenehat": 1240, "bonat": 35, "fuel": 3, "fuel_max": 5, "fuel_updated_at": "2026-10-17T08:41:00Z", "fuel_unlimited_until": null },
   "entitlements": { "remove_ads": false, "subscription": null, "season_passes": [], "flags": { "no_interstitials": false, "fuel_max_bonus": 0 } },
   "state_version": 42,
   "content": { "version": 7, "manifest_url": "/v1/content/manifest" },
-  "client": { "min_version": "1.0.0", "latest_version": "1.4.0", "force_update": false },
-  "daily": { "game_date": "2026-10-17", "challenge_available": true, "reward_claimable": true }
+  "client": { "min_version": "1.0.0", "latest_version": "1.0.0", "force_update": false },
+  "daily": { "game_date": "2026-10-17", "challenge_available": false, "reward_claimable": false },
+  "comeback": { "claimable": false }
 }
 ```
+
+The shapes of bootstrap, state and sync are in B03 contracts/api.md.
+
+- The first bootstrap, state or sync request creates the player's wallet.
+- `wallet.fuel` is the liters now, recounted to the server's time without writing it. `fuel_updated_at` is the countdown anchor, M05's `countedFrom`: when the current countdown started, or when the tank last became full. The app rebuilds its countdown from it and `fuel_max`. Times carry milliseconds when they have them.
+- `entitlements` is neutral until B06, and `daily` until B08 and M13. `client` comes from `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION` (both `1.0.0`) until B10. `force_update` is true when `X-Client-Version` is below the minimum, and bootstrap still answers 200.
+- **Sessions and the comeback return** (B03 research R13). Every bootstrap, state and sync request sets `Wallet.last_active_at`. A bootstrap after `SYNC_SESSION_GAP_MINUTES` (30) without activity starts a new session. If the player was also away at least `SYNC_COMEBACK_AWAY_DAYS` (7) Cairo calendar days, and no comeback gift was granted within `SYNC_COMEBACK_COOLDOWN_DAYS` (30), it sets `Wallet.comeback_return_at` to now. A claim keeps the return and records `GrantRecord(comeback, <return time>)`; a later return replaces it.
+- `comeback.claimable` is true when a return is set, it has no grant, and the cooldown has passed. It stays true until the claim has synced, so the app never sends a second `comeback_gift` while one is pending (§7.4).
+
+**`GET /v1/state`**
+
+```json
+{
+  "state_version": 42,
+  "server_time": "2026-10-17T09:00:00Z",
+  "player": { "display_name": "…", "driver_level": 4, "settings": { "digits": "arabic" } },
+  "wallet": { "jenehat": 1240, "bonat": 35, "fuel": 3, "fuel_max": 5, "fuel_updated_at": "…", "fuel_unlimited_until": null },
+  "inventory": { "change_bag": 2, "wake_all": 0, "ledger_peek": 1, "traffic_jam": 0 },
+  "ownership": [ { "kind": "vehicle", "sku_id": "micro_old", "variant": "" }, { "kind": "item", "sku_id": "salon.nish", "variant": "classic" } ],
+  "trips": [ { "trip_id": "line_hay.01", "best_stars": 3, "best_time_ms": 91200, "plays": 4 } ],
+  "open_trip": { "start_txn": "…", "trip_id": "line_hay.05", "content_version": 7, "revived": false, "traffic_jam_ads": 0 },
+  "last_result": { "start_txn": "…", "outcome": "finished", "earnings_jenehat": 46, "doubled": false },
+  "story": { "chapters": [ { "chapter_id": "ch1_first_job", "status": "open", "scenes_seen": ["intro"] } ], "requests_claimed": ["req_chandelier"] },
+  "grants": { "tutorial": true },
+  "stats": { "trips_played": 31, "stars_total": 58, "longest_streak": 0 },
+  "comeback": { "claimable": false }
+}
+```
+
+A full snapshot at one `state_version`, read under a shared lock on the wallet row, so no batch applies in the middle. It is what M05's `replaceBase` needs, plus the profile. `open_trip` and `last_result` are `null` when there is none. `trips_played` is the sum of `TripProgress.plays`; `longest_streak` stays 0 until B08 and M13 write `DailyState`. `ownership` and `trips` may name ids the active pack lacks, and readers skip them.
 
 **`GET /v1/content/manifest`**
 
@@ -364,13 +395,14 @@ Accounts are never merged, so currency can never be duplicated.
 ### 6.5 Versioning, force update, rate limits
 
 - Breaking changes go to `/v2`; `/v1` stays until active clients below the new version are < 2%.
-- `min_client_version` per platform lives in `liveops` settings. Requests from older clients get `426 client_outdated`, except `/v1/bootstrap`, which returns `force_update: true` so the app can show the update screen.
+- `min_client_version` per platform lives in `liveops` settings. Requests from older clients get `426 client_outdated`, except `/v1/bootstrap`, which returns `force_update: true` so the app can show the update screen. Until B10, bootstrap reads the versions from `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION`, and nothing answers 426.
 - DRF throttles backed by Redis, each rate an environment setting:
   - **Default:** 120/min per player on every request authenticated as a player, and 120/min per client address on the rest.
   - **`auth/anonymous`:** 60/hour per client address. Egyptian carriers put many subscribers behind each public address (carrier-grade NAT). At the 100k DAU design point, launch day brings about 10,000 installs an hour nationwide, a handful per carrier address. Returns through the install id count too, and a request costs only a few rows, with no currency (B02 research R9).
   - **`auth/refresh`:** 30/min per session, keyed by the refresh token's session, never by address: 1,000 players behind one address renew in the same minute without a refusal. A token that doesn't verify is limited by address instead.
   - **`auth/link`:** 10/min per player, besides the player default.
-  - **Later:** `sync` 60/min/player, `purchases/verify` 30/min/player, `daily-challenge/result` 10/min/player.
+  - **`sync`:** 60/min per player (`THROTTLE_SYNC_RATE`), besides the player default. A queue of 5,000 offline operations is 50 batches (B03 research R18).
+  - **Later:** `purchases/verify` 30/min/player, `daily-challenge/result` 10/min/player.
   - "Per client address" counts an IPv6 client by its /64, the block a phone or home network picks its addresses from.
   - On a cache outage the throttles let requests through.
 
@@ -391,11 +423,12 @@ Accounts are never merged, so currency can never be duplicated.
 
 ### 7.2 Ledger
 
-- Every balance change is a `LedgerEntry` row (§12). `Wallet` holds the materialized balance and is updated in the same transaction.
+- Every balance change is a `LedgerEntry` row (§12). `Wallet` holds the materialized balance and is updated in the same transaction, by `economy.services.ledger.apply_entry` only (§17.1).
 - Invariant (property-tested): `wallet.<currency> == sum(ledger.delta where currency)` for every player.
 - Ledger rows are never updated or deleted, except when a player's account is anonymized (§14.1).
+- Fuel and boosters are not currencies and have no ledger entries.
 
-`reason` enum: `trip_earnings`, `ad_result_double`, `ad_fuel_refill`, `item_purchase`, `vehicle_purchase`, `chapter_purchase`, `upgrade_purchase`, `cosmetic_purchase`, `booster_purchase`, `fuel_purchase`, `fuel_unlimited_purchase`, `revive_purchase`, `iap_grant`, `ssv_grant`, `daily_reward`, `task_reward`, `challenge_reward`, `subscriber_grant`, `season_reward`, `referral_reward`, `refund_reversal`, `admin_adjustment`. M05 added `chapter_purchase` and `fuel_unlimited_purchase`, which its client ops carry (`specs/007-m05-local-economy/research.md` R7).
+`reason` enum: `trip_earnings`, `ad_result_double`, `ad_fuel_refill`, `item_purchase`, `vehicle_purchase`, `chapter_purchase`, `upgrade_purchase`, `cosmetic_purchase`, `booster_purchase`, `fuel_purchase`, `fuel_unlimited_purchase`, `revive_purchase`, `iap_grant`, `ssv_grant`, `daily_reward`, `task_reward`, `challenge_reward`, `subscriber_grant`, `season_reward`, `referral_reward`, `refund_reversal`, `admin_adjustment`, `request_reward`, `story_reward`. M05 added `chapter_purchase` and `fuel_unlimited_purchase`, which its client ops carry (`specs/007-m05-local-economy/research.md` R7). B03 added `request_reward` (a claimed family request: `ref_type` `request`, source `system`) and `story_reward` (a room's or a chapter's `completion_bonat`, source `system`, §7.4).
 
 ### 7.3 `POST /v1/sync`
 
@@ -407,9 +440,9 @@ Accounts are never merged, so currency can never be duplicated.
     { "client_txn_id": "0192f1d0-…", "op_type": "trip_start", "occurred_at": "2026-10-17T09:12:03Z",
       "payload": { "trip_id": "line_gamaa.12", "content_version": 7, "fuel_mode": "fuel" } },
     { "client_txn_id": "0192f1d4-…", "op_type": "trip_result", "occurred_at": "2026-10-17T09:13:55Z",
-      "payload": { "trip_start_txn": "0192f1d0-…", "result": { "trip_id": "line_gamaa.12", "stars": 3, "earnings_jenehat": 46, "fights": 0, "mistakes": [], "duration_ms": 104200, "revived": false, "boosters_used": [], "command_log_hash": "9f2c…" } } },
+      "payload": { "trip_start_txn": "0192f1d0-…", "result": { "trip_id": "line_gamaa.12", "rev": 1, "outcome": "finished", "stars": 3, "earnings_jenehat": 46, "fights": 0, "mistakes": [], "duration_ms": 104200, "revived": false, "boosters_used": [], "command_log_hash": "9f2c…" } } },
     { "client_txn_id": "0192f1d9-…", "op_type": "spend_bonat", "occurred_at": "2026-10-17T09:14:20Z",
-      "payload": { "sku_kind": "booster", "sku_id": "change_bag", "price": 10 } }
+      "payload": { "sku_kind": "booster", "sku_id": "change_bag", "price": 10, "content_version": 7 } }
   ]
 }
 // 200
@@ -421,49 +454,65 @@ Accounts are never merged, so currency can never be duplicated.
     { "client_txn_id": "0192f1d4-…", "status": "accepted" },
     { "client_txn_id": "0192f1d9-…", "status": "rejected", "reason": "insufficient_funds" }
   ],
-  "wallet": { "jenehat": 1286, "bonat": 4, "fuel": 2, "fuel_updated_at": "…", "fuel_unlimited_until": null }
+  "wallet": { "jenehat": 1286, "bonat": 4, "fuel": 2, "fuel_max": 5, "fuel_updated_at": "…", "fuel_unlimited_until": null }
 }
 ```
 
-Processing rules:
+Processing rules (the checks in order and every reason are in B03 contracts/operations.md):
 
-1. Batch ≤ 100 ops and ≤ 256 KB; ops are processed **in array order**.
-2. One database transaction per batch, serialized per player with `SELECT … FOR UPDATE` on the `Wallet` row.
-3. For each op: if `(player, client_txn_id)` exists in `ProcessedOp`, return the stored result (idempotent replay). Otherwise validate (§7.4), apply, store the result.
-4. A rejected op does not stop the batch. Later ops that depended on it (e.g. `use_booster` after a rejected `spend_bonat`) are rejected with `dependency_rejected`.
+1. Batch ≤ 100 ops and ≤ 256 KB; ops are processed **in array order**. More ops is `400 batch_too_large`, a larger body `413 payload_too_large`, and a malformed body or envelope `400 validation_error` (§6.2). The request and each op's envelope are closed objects: an unknown key is a `validation_error`. An empty `ops` list answers 200 with the current values.
+2. One database transaction per batch, serialized per player with `SELECT … FOR UPDATE` on the `Wallet` row. It is the only row a batch locks.
+3. For each op: if `(player, client_txn_id)` exists in `ProcessedOp`, or earlier in the same batch, return the stored result (idempotent replay). A repeat with another `op_type` or payload also raises a `txn_payload_mismatch` flag. Otherwise, an op whose `client_txn_id` is older than `SYNC_OP_RETENTION_DAYS` (180) or more than a day ahead, by the creation time in the UUIDv7's first 48 bits, is rejected `op_expired`. `ProcessedOp` rows are pruned at that age, so a pruned id can never apply twice. Then validate (§7.4), apply, store the result.
+4. A rejected op changes nothing and does not stop the batch. Its outcome is stored, so a repeat returns it. `dependency_rejected` is for an op whose payload names an earlier op that was rejected, in this batch or before: `trip_result` (`trip_start_txn`), and a revive, an in-trip ad or a booster use (`ref`). An id the server never accepted gives `no_trip_start` or `no_trip`. A booster use has no link to the purchase that stocked it, so after a rejected `spend_bonat` it is `none_left`.
 5. `state_version` increments once per batch that changed anything.
 6. If `base_state_version` ≠ the version before the batch, ops are still validated against server state, and the response sets `state_stale: true`; the client then calls `GET /v1/state` (mobile §12 step 6).
-7. `occurred_at` is informational (analytics, fuel reconciliation); validation uses server time.
+7. **Effective time.** Each op runs at `t = clamp(occurred_at, timeline_at, now)`. `timeline_at` is the effective time of the last op accepted, kept on the wallet across batches, and `now` is read once per batch. So time never goes backward and never passes the server's clock. Fuel (§7.5) and the game-day counters use `t`, and every instant the server stores for fuel and the timeline is truncated to whole milliseconds. An op moved by more than `SYNC_CLOCK_CLAMP_FLAG_MINUTES` (10) raises a `clock_clamped` flag. A game day is the calendar day of `t` in `Africa/Cairo` (`SYNC_GAME_TIMEZONE`, §22.2).
 
 ### 7.4 Operation types
 
 | `op_type` | Payload | Server validation | Effect |
 | --- | --- | --- | --- |
-| `trip_start` | `trip_id`, `content_version`, `fuel_mode` (`fuel` \| `unlimited` \| `challenge`) | trip exists in that pack; line, vehicle and previous trip unlocked; fuel reconciliation (§7.5) | fuel −1 unless `unlimited` window active |
-| `trip_result` | `trip_start_txn`, `TripResult` (mobile §7.2) | matching accepted `trip_start`; `0 ≤ stars ≤ 3`; `earnings_jenehat ≤ trip.max_earnings_jenehat`; `duration_ms ≥ 0.85 × last station time`; one result per start | JENEHAT +; `TripProgress` best; `TripRun` row; task/league counters |
-| `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}; `ref` (trip start txn), except for `fuel_refill`, which belongs to no trip. `morning_piggy` is never a client op: it grants BONAT, which only SSV does (§8) | caps from §3.4 (per trip / per game day) | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded for caps only |
-| `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `chapter`, `upgrade`}, `sku_id`, `variant?`, `price` | price equals catalog price in the client's `content_version`; prerequisites (chapter, line); not owned; balance | JENEHAT −; `Ownership` + |
-| `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price`; a revive adds `ref` (its trip start txn) | catalog price; **authoritative balance check** | BONAT −; inventory / fuel / unlimited window / ownership |
-| `use_booster` | `booster_id`, `ref` | inventory count > 0 | inventory −1 |
-| `claim_daily_reward` | `day_index` | server game date; not yet claimed today; streak rules | grants per streak table |
-| `claim_task` | `task_id` | task completed per server-side counters | grants |
-| `story_progress` | `chapter_id`, `scene_id` | chapter unlocked by owned items | `StoryState` update; chapter completion grants |
-| `settings_update` | `display_name?`, `settings{}` | name length/profanity filter | `Player` update |
+| `trip_start` | `trip_id`, `content_version`, `fuel_mode` (`fuel` \| `unlimited` \| `challenge`) | trip exists in that pack; `unlimited` needs the window running at the op's time, and `challenge` is `not_eligible` until B08; line, vehicle and previous trip unlocked; fuel reconciliation (§7.5) | an open start with no result is closed as abandoned; fuel −1 unless `unlimited` window active (an empty tank is an overdraft); the start opens with the trip's `max_earnings_jenehat` and last station time copied from the declared pack |
+| `trip_result` | `trip_start_txn`, `result` (M01's `TripResult`, mobile §7.2, ≤ 8 KB) | the start was accepted and is the open one; one result per start; the same `trip_id`; `0 ≤ stars ≤ 3` and `0 ≤ earnings_jenehat ≤` the start's `max_earnings_jenehat`, both 0 unless the outcome is `finished`; for `finished`, `duration_ms ≥ SYNC_MIN_DURATION_PERCENT` (85) % of the last station time | JENEHAT + (`trip_earnings`); `TripProgress` best; `TripRun` row; room and chapter rewards; task/league counters later |
+| `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}; `ref` (trip start txn), except for `fuel_refill`, which belongs to no trip and sends no `ref`. `morning_piggy` is never a client op: it grants BONAT, which only SSV does (§8), and is rejected `server_only` | caps from §3.4: `result_double` once, for the last result if `finished` with earnings; `fuel_refill` refused on a full tank and after `ECONOMY_FUEL_REFILL_DAILY_CAP` (3) a game day; `trip_revive` once a trip; `traffic_jam` `ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP` (1) a trip | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded on the open trip, for caps only |
+| `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `chapter`, `upgrade`}, `sku_id`, `variant` (items only), `price`, `content_version` | known in that pack; a JENEHAT catalog price, else `not_for_sale` (a BONAT-priced or unpriced sku); price equals it; the variant is the item's; not owned; prerequisites (an item's chapter unlocked, a chapter's predecessor complete); balance | JENEHAT −; `Ownership` +; room and chapter rewards |
+| `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price`, `content_version`; a revive adds `ref` (its trip start txn) | a BONAT catalog price in that pack, else `not_for_sale`; price equals it; the row's own checks (`tank_full`, the open trip, `already_owned`); **authoritative balance check** last | BONAT −; inventory / fuel / unlimited window / revive / ownership |
+| `use_booster` | `booster_id`, `ref` | `ref` is the open start; inventory count > 0 | inventory −1 |
+| `story_progress` | `chapter_id`, `scene_id`, `content_version` | the scene is the chapter's in that pack; chapter unlocked | `StoryState` update; room and chapter rewards |
+| `settings_update` | `display_name?`, `settings?` (at least one) | name: 2–20 characters after normalizing, with none of the name filter's terms (`NameFilterEntry`, edited by staff); settings: the app's known keys only, ≤ 2 KB. A refusal is `validation_error` with `details.field` | `Player.display_name`, `Player.settings` |
+| `tutorial_gift` | `{}` | once per player (`already_granted`) | fuel to max (a full tank is accepted and unchanged); `GrantRecord`; no ledger entry |
+| `comeback_gift` | `{}` | in order: no comeback return (§6.4) → `not_eligible`; a grant for this return → `already_granted`; a gift within `SYNC_COMEBACK_COOLDOWN_DAYS` (30) → `not_eligible` | fuel to max and one `change_bag`; `GrantRecord(comeback, <return time>)`; the return stays on the wallet; no ledger entry |
+| `claim_request` | `request_id`, `content_version` | in order: a family request of that pack (`unknown_sku`); not claimed before (`already_granted`); its item, and its variant when it names one, owned (`not_eligible`) | BONAT + `reward_bonat` (`request_reward`, `ref_type` `request`, source `system`); `GrantRecord` |
+| `claim_daily_reward` | `day_index` | server game date; not yet claimed today; streak rules | grants per streak table. **B08/M13**: rejected `unknown_op_type` until then |
+| `claim_task` | `task_id` | task completed per server-side counters | grants. **B08/M13**: rejected `unknown_op_type` until then |
 
-Hard violations are rejected. Soft anomalies (fuel overdraft within tolerance, unusually fast 3-star runs, impossible trip rate) are **accepted and recorded as `PlayerFlag`**. Flagged players are excluded from leagues and reviewed in admin. Offline play must never feel punished for honest players.
+`content_version` is a payload field of every op that reads the pack: `trip_start`, `spend_jenehat`, `spend_bonat`, `story_progress` and `claim_request`. Prices, trips and rules are read from that version's pack. A version no pack ever had is `unknown_content_version`. One retired from the index, or not the current version and published more than `SYNC_CONTENT_MAX_AGE_DAYS` (45) days ago, is `content_version_unsupported` (§9.1).
+
+**Room and chapter rewards** are not an op. After an accepted `spend_jenehat`, `trip_result` or `story_progress`, every room that is now complete and every chapter whose goal is now met pays its `completion_bonat` once, in the same batch: BONAT + (`story_reward`, source `system`) and a `GrantRecord`, rooms before chapters. They appear in that op's `granted`. These and `claim_request` are the only BONAT a sync op can raise, and no op lowers BONAT while raising JENEHAT (property-tested).
+
+Hard violations are rejected. Soft anomalies are **accepted and recorded as `PlayerFlag`**, one row per kind, player and game day, with a count:
+
+- `fuel_overdraft`: a start with an empty tank (§7.5);
+- `fast_three_star`: a finished 3-star run whose `duration_ms` is below `SYNC_FAST_RUN_PERCENT` (95) % of the last station time, between the hard bound (85 %) and the schedule;
+- `trip_rate`: accepted starts in a game day above `SYNC_TRIPS_PER_DAY_FLAG` (400);
+- `txn_payload_mismatch` (§7.3 rule 3) and `clock_clamped` (§7.3 rule 7).
+
+Flagged players are excluded from leagues and reviewed in admin. Offline play must never feel punished for honest players.
 
 ### 7.5 Fuel reconciliation
 
-- Server fuel state: `fuel`, `fuel_updated_at`, `fuel_unlimited_until`, `fuel_max` (5, or 7 with the subscription flag).
-- On each `trip_start`, the server first regenerates: `fuel = min(fuel_max, fuel + floor((now − fuel_updated_at) / 20 min))`.
-- If `fuel == 0` and no unlimited window: accept with `fuel = 0`, record `fuel_overdraft` flag. Three overdrafts in a game day exceed tolerance and the op is rejected with `cap_reached`.
-- Regeneration minutes and caps come from the same values as the Remote Config keys in mobile §14.3, stored server-side in `liveops` settings.
-- **M05's rules, which B03 confirms** (`specs/007-m05-local-economy/contracts/fuel-and-time.md`, research R8 and R20). The client applies them offline; the server recomputes with its own clock:
+- Server fuel state, on `Wallet`: `fuel`, `fuel_updated_at` (M05's `countedFrom`: when the current countdown started, or when the tank last became full), `fuel_unlimited_until`, and `timeline_at` (§7.3 rule 7). `fuel_max` is 5, or 7 with the subscription flag at the op's time.
+- **The timeline rule** (B03 research R7). Each op recounts fuel at its own effective time `t`, not at the server's `now`: it regenerates, `fuel = min(fuel_max, fuel + floor((t − fuel_updated_at) / 20 min))` in integer milliseconds, then applies its own step. A late sync gives the liters the phone had when it played, and a phone with a wrong clock gains nothing beyond the time that really passed on the server since the previous op. Reads (bootstrap, state, the sync answer) show the tank recounted to `now` without writing it.
+- If `fuel == 0` after the recount and no unlimited window: accept with `fuel = 0`, record a `fuel_overdraft` flag, and count it for the game day of `t`. `ECONOMY_FUEL_OVERDRAFT_PER_DAY` (2) overdrafts are accepted in a game day; the next start is rejected with `cap_reached`.
+- The tank, the subscriber's tank, the regeneration minutes and the daily refill ad cap are env settings (`ECONOMY_FUEL_MAX`, `ECONOMY_FUEL_MAX_SUBSCRIBER`, `ECONOMY_FUEL_REGEN_MINUTES`, `ECONOMY_FUEL_REFILL_DAILY_CAP`) whose defaults a CI test keeps equal to the Remote Config defaults in mobile §14.3. The overdraft limit and the other server-only numbers have no Remote Config key (mobile §14.3). B10 moves all of them into `liveops.LiveSetting`.
+- **M05's rules, which B03 applies** (`specs/007-m05-local-economy/contracts/fuel-and-time.md`, research R8 and R20; B03 contracts/fuel.md). The client applies them offline; the server replays them at the ops' effective times:
   - a start from a full tank starts the countdown to the next liter at that moment; below full, the time already counted is kept; when the tank fills, counting stops;
   - liters above `fuel_max` (after it is lowered) are kept, and nothing regenerates until the tank is below the maximum;
   - a full refill (`refuel_full`, or the `fuel_refill` ad) is refused on a full tank (`tank_full`), so no BONAT or ad is spent for nothing;
   - `fuel_unlimited_1h` adds 60 minutes from the end of a window still running, or from now;
-  - every start costs a liter, replays of completed trips included (mobile §24.5).
+  - every start costs a liter, replays of completed trips included (mobile §24.5);
+  - the tutorial and comeback gifts fill the tank and are never refused on a full one.
+- The shared cases are in `fixtures/economy/fuel.json`, replayed by pytest and, for the cases that don't use the server's clock, by one Dart test.
 
 ---
 
@@ -555,7 +604,7 @@ flowchart LR
 - **Two environments, one source of numbers.** Only staging builds and publishes (`CONTENT_ROLE=source`). Production only promotes (`target`): it fetches the exact files staging published, anchored by the **promotion code** `core-<v>:<sha256 of the release record>`, checks them again against its own schemas, and serves them from its own edge. Staging numbers each build above production's floor file (`core.floor.json`), so no version is ever reused (B04 contracts/pack-delivery.md).
 - **The release record** (`core-<v>.release.json`) is written next to each pack: its sha256, size, schema version, minimum app version, stage results and warnings, with no staff names.
 - `trip_id` is stable forever. A trip whose rules change keeps its id and gets a new `rev`; players keep their stars.
-- Catalog prices for JENEHAT/BONAT items are part of the pack, so `spend_*` ops validate against the pack version the client declares (§7.4). The server keeps the last 5 published versions indexed for validation (`PackTripIndex`, `PackPriceIndex`, read through `apps.content.services.lookups`).
+- Catalog prices for JENEHAT/BONAT items are part of the pack, so `spend_*` ops validate against the pack version the client declares (§7.4). The server keeps the last `CONTENT_INDEX_KEEP` (10) published versions indexed for validation (`PackTripIndex`, `PackPriceIndex`, `PackRulesIndex`, read through `apps.content.services.lookups`). B04 kept 5; B03 raised it so the index covers the 45-day support window (§7.4).
 - Publishing requires a staff user with `content.publish_pack`, a `validated` pack whose solver stage is `passed` or `warning`, and a version above the current one. Promoting requires `content.promote_pack`. Every publish, promotion, rollback and minimum-version change is in the append-only `ContentAuditRecord`.
 - **A solver warning blocks nothing.** A score outside the line's band (`V-Z5`, §10.4) is a `warning`: the pack still publishes and promotes, and the release record lists the warning. Every other solver finding is an error and fails the build (B05).
 
@@ -675,7 +724,7 @@ The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends
 ### 11.1 Daily challenge
 
 - Pre-generated 3 days ahead by `generate_daily_challenge`: pick a template (line band rotating through unlocked content), generate passengers and tray with the solver's generator, keep candidates whose difficulty score falls in the target band and whose solver run gets 3 stars.
-- The same challenge for every player on a game date. **NEEDS CLARIFICATION:** game-day timezone; proposed `Africa/Cairo` for all regions in MVP.
+- The same challenge for every player on a game date. The game day is the calendar day in `Africa/Cairo` for every region in the MVP (§22.2, resolved in B03).
 - First attempt is free (UX doc). Additional attempts cost fuel per product spec.
 - Results are verified by replaying `command_log` in the solver engine. If the recomputed result differs from `claimed_result`, the server keeps the recomputed one and flags the player when the difference is large.
 
@@ -693,7 +742,7 @@ The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends
 | `process_account_deletions` | daily | B09 |
 | `expire_offers` | hourly | B10 |
 | `league_rollover` | weekly | B13 |
-| `prune_trip_runs` | monthly (drop partitions older than 90 days) | B03 |
+| `economy.tasks.prune` | daily 04:45 Cairo: deletes `ProcessedOp` older than `SYNC_OP_RETENTION_DAYS` (180), `TripRun` older than 90 days and `DayCounter` older than 40 days, in chunks of 10,000 | B03 |
 
 ### 11.3 Push notifications
 
@@ -715,10 +764,11 @@ All primary keys are UUIDv7 unless noted. All tables have `created_at`; mutable 
 
 | Model | Fields |
 | --- | --- |
-| `Player` | `id`, `display_name`, `country`, `locale`, `platform`, `driver_level`, `status` (`active`, `pending_deletion`, `deleted`), `install_first_at`, `last_seen_at`, `client_version`, `is_tester` |
+| `Player` | `id`, `display_name`, `country`, `locale`, `platform`, `driver_level`, `status` (`active`, `pending_deletion`, `deleted`), `install_first_at`, `last_seen_at`, `client_version`, `is_tester`, `settings` (JSON, the app's settings, written only by B03's `settings_update`) |
 | `Identity` | `player`, `provider` (`google`; `apple` in phase 3, with its encrypted refresh token for revocation), `subject` (the provider's `sub`, never shown or logged), `linked_at`; unique(`provider`, `subject`), unique(`player`, `provider`). Providers only: the anonymous sign-in is the device's install id. |
 | `Device` | `player`, `install_id_hash` (SHA-256 of the lowercase install id, unique), `platform`, `app_version`, `last_seen_at` |
 | `PlayerSession` | `player`, `device`, `status` (`active`, `ended`), `end_reason` (`reuse`, `switch`, `limit`), the current refresh token's claims (`current_jti`, `current_issued_at`, `current_expires_at`, `current_kid`), the previous one's (`previous_jti`, `previous_spent_at`), `last_renewed_at`. It stores claims, never a token. |
+| `NameFilterEntry` | `term`, `normalized` (unique, computed on save by the same normalizer the display-name check uses), `added_by` (staff user; empty for the seed list a data migration inserts). Edited by staff in the admin (B03). |
 
 `PlayerSession` replaces simplejwt's blacklist tables: one row per sign-in, rotated under a row lock. A renewal repeated within the retry window returns the same successor, and any other reuse ends the session (B02 research R3). Sessions that ended or lapsed more than 30 days ago are pruned daily.
 
@@ -726,21 +776,27 @@ All primary keys are UUIDv7 unless noted. All tables have `created_at`; mutable 
 
 | Model | Fields |
 | --- | --- |
-| `Wallet` | `player` (PK/FK), `jenehat`, `bonat`, `fuel`, `fuel_updated_at`, `fuel_unlimited_until`, `state_version` |
-| `LedgerEntry` | `id`, `player`, `currency`, `delta`, `balance_after`, `reason`, `ref_type`, `ref_id`, `op` (FK `ProcessedOp`, nullable), `source` (`client_op`, `purchase`, `ssv`, `system`, `admin`), index(`player`, `created_at`) |
-| `ProcessedOp` | `player`, `client_txn_id`, `op_type`, `status`, `reason`, `result` (JSON), `processed_at`, unique(`player`, `client_txn_id`) |
+| `Wallet` | `player` (PK/FK), `jenehat`, `bonat` (both written only by `ledger.apply_entry`), `fuel`, `fuel_updated_at`, `fuel_unlimited_until`, `timeline_at` (the effective time of the last op accepted, §7.3), `state_version`, `last_active_at`, `session_started_at`, `comeback_return_at` (§6.4). Checks: no balance and no fuel below 0. Every batch locks this row. |
+| `LedgerEntry` | `id`, `player`, `currency`, `delta` (never 0), `balance_after`, `reason`, `ref_type`, `ref_id`, `op_id` (the op's `client_txn_id` as a plain UUID, nullable; not a foreign key, because `ProcessedOp` rows are pruned and the ledger is kept), `source` (`client_op`, `purchase`, `ssv`, `system`, `admin`), index(`player`, `created_at`), index(`player`, `currency`). Append-only: `save()` refuses an update, and the queryset refuses `update()` and `delete()`. |
+| `ProcessedOp` | `player`, `client_txn_id`, `op_type`, `payload_hash` (sha256 of the canonical payload), `status`, `reason`, `result` (JSON: the grants made, never the wallet), `processed_at`, unique(`player`, `client_txn_id`). Kept `SYNC_OP_RETENTION_DAYS` (180). |
 | `Inventory` | `player`, `booster_id`, `count`, unique(`player`, `booster_id`) |
-| `PlayerFlag` | `player`, `kind`, `details`, `created_at`, `reviewed_by`, `resolution` |
+| `PlayerFlag` | `player`, `kind` (`fuel_overdraft`, `fast_three_star`, `trip_rate`, `txn_payload_mismatch`, `clock_clamped`), `game_date`, `details` (ids and numbers only, with `count`), `created_at`, `reviewed_by`, `reviewed_at`, `resolution`, unique(`player`, `kind`, `game_date`). A review is set once. |
+| `DayCounter` | `player`, `game_date`, `kind` (`overdraft`, `fuel_refill_ad`, `trips_started`), `count`, unique(`player`, `game_date`, `kind`). Kept 40 days. |
+| `GrantRecord` | `player`, `kind` (`tutorial`, `comeback`, `request`, `room`, `chapter`), `key` (`""` for the tutorial, the return time for a comeback, else the content id), `op_id`, `granted_at`, unique(`player`, `kind`, `key`) |
+| `WalletAdjustment` | `actor` (staff user), `player`, `currency`, `delta`, `reason`, `ledger_entry`, `at`. Append-only: the audit record of a staff adjustment (§13). |
+
+The daily `economy.tasks.prune` (§11.2) deletes old `ProcessedOp`, `TripRun` and `DayCounter` rows. Ledger entries, progress, ownership and inventory are never pruned. At about 100k DAU, `ProcessedOp` (about 50 GB at 180 days) and `TripRun` need range partitioning by time, with a composite key (B03 research R11, R12).
 
 ### progress
 
 | Model | Fields |
 | --- | --- |
 | `TripProgress` | `player`, `trip_id`, `best_stars`, `best_time_ms`, `plays`, `first_completed_at`, unique(`player`, `trip_id`) |
-| `TripRun` | `id`, `player`, `trip_id`, `rev`, `start_op`, `stars`, `fights`, `mistakes_count`, `earnings_jenehat`, `duration_ms`, `revived`, `boosters_used`, `command_log_hash`, `content_version`, `client_version`. Range-partitioned by month, 90-day retention. |
-| `Ownership` | `player`, `kind` (`vehicle`, `upgrade`, `cosmetic`, `item`, `chapter`), `sku_id`, `variant`, `acquired_at`, unique(`player`, `kind`, `sku_id`). M05 owns chapters too, bought with `spend_jenehat` |
-| `StoryState` | `player`, `chapter_id`, `status`, `scenes_seen` (array), `completed_at` |
-| `DailyState` | `player`, `streak`, `last_claim_game_date`, `task_counters` (JSON), `tasks_game_date` |
+| `TripRun` | `id`, `player`, `trip_id`, `rev`, `start_op`, `outcome` (`finished`, `failed`, `abandoned`), `stars`, `fights`, `mistakes_count`, `earnings_jenehat`, `duration_ms`, `revived`, `boosters_used`, `command_log_hash`, `content_version`, `client_version`, unique(`player`, `start_op`). An ordinary table, not partitioned: PostgreSQL needs the partition key in every unique key, which a UUIDv7 primary key doesn't allow without a composite key. Kept 90 days by the daily prune; partitioned by `created_at` at about 100k DAU (B03 research R12). |
+| `TripSession` | one row per player: the open start (`open_start`, its trip, `rev` and pack version, and the `max_earnings_jenehat` and last station time copied from that pack, `open_revived`, `open_traffic_jam_ads`) and the last result (`last_start`, `last_outcome`, `last_earnings`, `last_doubled`). Mirrors M05's `trip_session`. |
+| `Ownership` | `player`, `kind` (`vehicle`, `upgrade`, `cosmetic`, `item`, `chapter`), `sku_id`, `variant`, `acquired_at`, `acquired_by`, unique(`player`, `kind`, `sku_id`). M05 owns chapters too, bought with `spend_jenehat` |
+| `StoryState` | `player`, `chapter_id`, `status` (`open`, `completed`), `scenes_seen` (array), `completed_at`, unique(`player`, `chapter_id`). Claimed family requests are `GrantRecord`s. |
+| `DailyState` | `player`, `streak`, `longest_streak`, `last_claim_game_date`, `task_counters` (JSON), `tasks_game_date`. B03 reads it; B08 and M13 write it. |
 
 ### content
 
@@ -750,7 +806,7 @@ All primary keys are UUIDv7 unless noted. All tables have `created_at`; mutable 
 | `ContentChannel` | `pack_id` (`core`), `last_assigned_version`, `imported_version`, `current` (FK `ContentPack`). A database check keeps `current` the highest published pack. |
 | `ContentPack` | `pack_id`, `version` (unique per `pack_id`), `origin` (`built`, `promoted`), `status` (`draft`, `validated`, `published`, `retired`), `build_state`, `schema_version`, `sha256`, `size`, `file` (the gzip bytes), `validation_report` (JSON), `release_sha256`, `release_file`, `min_client_version`, `rollback_of`, who and when it was built, published and promoted. Immutable once validated, except `min_client_version`. The URL is built per response, never stored. |
 | `PublishedIdentifier` | `kind`, `identifier`, `first_version`: every identifier a published pack contained, which is then permanent |
-| `PackTripIndex`, `PackPriceIndex` | Trip definitions and catalog prices of the last 5 published versions, for `spend_*` and trip-result validation |
+| `PackTripIndex`, `PackPriceIndex`, `PackRulesIndex` | Trip definitions, catalog prices and the rules document (each line's unlock and trips, starter vehicles, chapters, rooms, items and family requests) of the last `CONTENT_INDEX_KEEP` (10) published versions, for sync's validation. `content_index --rebuild` writes the rows of packs published before B03. |
 | `ContentAuditRecord` | `action` (`publish`, `promote`, `rollback`, `min_client_version_change`), `outcome`, `actor`, `at`, the pack, `details`. Append-only. |
 
 ### purchases & liveops
@@ -783,7 +839,6 @@ erDiagram
   Player ||--o{ Identity : "logs in with"
   Player ||--o{ LedgerEntry : records
   Player ||--o{ ProcessedOp : sent
-  ProcessedOp ||--o{ LedgerEntry : produces
   Player ||--o{ TripProgress : has
   Player ||--o{ TripRun : played
   Player ||--o{ Ownership : owns
@@ -807,7 +862,7 @@ erDiagram
 | Webhooks | Pub/Sub OIDC token check; Apple JWS chain verification; AdMob ECDSA signature; all webhooks idempotent on notification id |
 | Input | DRF serializers with strict schemas; batch and body size limits; `command_log` ≤ 64 KB |
 | Rate limiting | §6.5 throttles; Caddy connection limits |
-| Admin | Separate hostname, reachable only over its VM's WireGuard (the admin hostname binds `10.66.0.1` on prod, `10.67.0.1` on staging); staff-only, 2FA (`django-otp`, TOTP) on every view, lockout after 5 failed sign-ins for 15 min (`django-axes`); audit log of content publishes and wallet adjustments |
+| Admin | Separate hostname, reachable only over its VM's WireGuard (the admin hostname binds `10.66.0.1` on prod, `10.67.0.1` on staging); staff-only, 2FA (`django-otp`, TOTP) on every view, lockout after 5 failed sign-ins for 15 min (`django-axes`); audit log of content publishes and wallet adjustments. The `economy_ops` group adjusts balances (a reason each, recorded in the append-only `WalletAdjustment`) and edits the display-name filter; `player_support` sees a player's economy and reviews flags (B03 contracts/admin.md). |
 | Secrets | Env files on each environment's host (`/etc/wassal/*.env`, mode 0400; OCI Vault later): Django secret, JWT key, Google service account, Apple `.p8` key, Firebase service account, Sentry DSN, Healthchecks ping URLs, and the Backblaze B2 application keys (each host's own write-only backup key, and the read-only drill key on the staging host) in their own files that the API and worker never see. The B2 admin key never goes on either host. |
 | Anti-cheat | Server-authoritative BONAT; bounds on JENEHAT and progress (§7.4); replay verification for competitive surfaces; `PlayerFlag` review queue; flagged players excluded from leagues |
 | Device attestation | **NEEDS CLARIFICATION** (phase 3): Play Integrity / App Attest tokens on daily challenge and league submissions |
@@ -894,7 +949,7 @@ erDiagram
 ### 17.1 Backend-specific practices
 
 - Business logic lives in `services/`; views and serializers stay thin.
-- Every money or currency mutation goes through `economy.services.apply_entry()`; direct `Wallet` updates are forbidden (enforced by a test that scans for them).
+- Every money or currency mutation goes through `economy.services.ledger.apply_entry()`; direct `Wallet` updates are forbidden (enforced by a test that scans for them).
 - Migrations are backward-compatible for one release (expand/contract).
 - External calls (stores, FCM) run with timeouts and retries in Celery, except purchase verification, which is synchronous with a 10 s timeout and a retry path through RTDN.
 
@@ -972,7 +1027,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 ## 22. Open Questions (NEEDS CLARIFICATION)
 
 1. ~~OCI free-tier capacity in the chosen region, or the paid fallback provider.~~ **Resolved (B01):** two Always Free A1 VMs in `me-jeddah-1`, one per environment, each 1 OCPU / 6 GB (together the whole allowance), with no paid fallback. The owner chose this on 2026-10-19 over one shared 2 OCPU / 12 GB VM. See `specs/002-b01-backend-skeleton/research.md` R1.
-2. Game-day timezone for daily reset and daily challenge (proposed `Africa/Cairo` for all regions in MVP).
+2. ~~Game-day timezone for daily reset and daily challenge (proposed `Africa/Cairo` for all regions in MVP).~~ **Resolved (B03):** `Africa/Cairo` for every region in the MVP (`SYNC_GAME_TIMEZONE`). A game day is that zone's calendar day, so it follows Egypt's daylight saving without a release, and every daily counter uses the day of the operation's effective time. See `specs/010-b03-ledger-sync/research.md` R3.
 3. ~~CDN in front of content packs.~~ **Resolved (B04):** no CDN for the MVP; each host's edge serves its own immutable pack files, and Cloudflare in front of `cdn.<domain>` later is a configuration change. See `specs/003-b04-content-pipeline/research.md` R5.
 4. iOS purchase payload: StoreKit 2 JWS vs app receipt in the chosen Flutter plugin version.
 5. Refund handling for already-spent BONAT (negative balance proposal in §8.2).

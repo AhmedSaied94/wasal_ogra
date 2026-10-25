@@ -38,6 +38,7 @@ edge:
 | HTTP | `code` | Raised by | `details` |
 | --- | --- | --- | --- |
 | 400 | `validation_error` | DRF `ValidationError`, `ParseError` | `{fields?: {name: [message]}}` |
+| 400 | `batch_too_large` | B03: `POST /v1/sync` with more than 100 operations | `{max: 100}` |
 | 404 | `not_found` | Unknown path (the API urlconf's last, catch-all route, so dev's `DEBUG` doesn't swap in Django's HTML page), `Http404` (`handler404`), DRF `NotFound` | `{}` |
 | 405 | **`method_not_allowed`** | DRF `MethodNotAllowed` | `{allowed: ["GET"]}` |
 | 406 | **`not_acceptable`** | DRF `NotAcceptable` | `{}` |
@@ -51,6 +52,11 @@ edge:
 B02 adds `409 provider_already_linked` and `422 provider_token_invalid`, and maps DRF's
 `NotAuthenticated` and `AuthenticationFailed` to `401 token_invalid`
 (`specs/009-b02-accounts-auth/contracts/api.md` "Error codes").
+
+B03 adds `400 batch_too_large` (the row above). `POST /v1/sync` also answers
+`413 payload_too_large` with `{limit_bytes: 262144}` above its own 256 KB limit, under the edge's.
+An operation the server refuses inside a batch is not an error code: the request answers 200 with
+the operation's reason (`specs/010-b03-ledger-sync/contracts/api.md`).
 
 - Mapping rule: an explicit table entry wins. Any other DRF `APIException` uses its `default_code`,
   which must then be added to §6.2 before it ships. Django's `Http404` and `PermissionDenied` are

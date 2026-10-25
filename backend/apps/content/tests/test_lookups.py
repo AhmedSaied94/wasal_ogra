@@ -1,10 +1,12 @@
-"""Lookups by pack version (tasks.md T080, FR-035, research R12)."""
+"""Lookups by pack version (tasks.md T080, FR-035, research R12). B03 made the number of indexed
+versions a setting (`CONTENT_INDEX_KEEP`); these tests pin B04's 5."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
+from pytest_django import Settings
 
 from apps.accounts.models import User
 from apps.content.models import CatalogPrice, PackPriceIndex, PackTripIndex, Trip
@@ -21,8 +23,9 @@ def _packs(packs_dir: Path) -> Path:
 
 
 @pytest.fixture
-def six(sample_reviewed: User, publisher: User) -> list[int]:
+def six(sample_reviewed: User, publisher: User, settings: Settings) -> list[int]:
     """Six published versions. Each raises the first price by 1, so each version differs."""
+    settings.CONTENT_INDEX_KEEP = 5
     price = CatalogPrice.objects.order_by("sku_kind", "sku_id").first()
     assert price is not None
     amounts = []

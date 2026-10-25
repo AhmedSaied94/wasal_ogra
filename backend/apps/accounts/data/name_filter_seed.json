@@ -1,0 +1,26 @@
+{
+  "about": "The name filter's starting entries (B03 research R10). The owner reviews them in the admin after the first deploy; the admin is where entries change from then on. Each term is matched after apps.accounts.services.names.normalize, anywhere in a name.",
+  "terms": [
+    "admin",
+    "moderator",
+    "support",
+    "wassal",
+    "الادارة",
+    "الدعم",
+    "خول",
+    "شرموط",
+    "متناك",
+    "منيوك",
+    "عرص",
+    "معرص",
+    "وسخ",
+    "زبي",
+    "كسم",
+    "كس امك",
+    "ابن الكلب",
+    "يا حمار",
+    "fuck",
+    "shit",
+    "bitch"
+  ]
+}

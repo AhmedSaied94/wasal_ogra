@@ -45,3 +45,4 @@ def no_throttle(settings: Settings) -> None:
     settings.THROTTLE_ANONYMOUS_RATE = None
     settings.THROTTLE_REFRESH_RATE = None
     settings.THROTTLE_LINK_RATE = None
+    settings.THROTTLE_SYNC_RATE = None

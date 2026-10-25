@@ -30,8 +30,11 @@ def registry() -> Iterator[None]:
 
 
 def test_the_registered_invariants() -> None:
-    # B01 registers none. B04 adds the content one; B03 will add economy.wallet_equals_ledger.
-    assert set(invariants.registered()) == {"content.published_packs_intact"}
+    # B01 registers none. B04 adds the content one, B03 the ledger one.
+    assert set(invariants.registered()) == {
+        "content.published_packs_intact",
+        "economy.wallet_equals_ledger",
+    }
 
 
 def test_a_name_can_be_registered_once(registry: None) -> None:

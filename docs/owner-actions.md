@@ -26,6 +26,7 @@ left, in what order, and where to look.
 | [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Merged in #9 on 2026-10-23. The A06 run and the device runs are open. |
 | [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Merged in #10 on 2026-10-23, before its owner checks: all 7 are still open. |
 | [009 B02 accounts and auth](#009-b02-accounts-auth) | 2 | 2, plus 1 before the closed test | Built and tested on 2026-10-24, PR open. T065: the project, the web client and the Firebase apps are done (2026-10-25). T066 is open, and a deploy fails without it. |
+| [010 B03 ledger and sync](#010-b03-ledger-and-sync) | 1 | 2, plus 1 after the closed test starts | Built and tested on 2026-10-25, on branch `010-b03-ledger-sync`. The approval of its one constitution deviation is open. |
 
 ## Every month
 
@@ -793,6 +794,49 @@ release at the migrate step, and the deploy keeps the previous one.
 - [ ] **Google sign-in for everyone (T068).** Move the Google Auth Platform app from Testing to
   **In production**, once the real domain and the privacy policy exist (see "Known for later
   features"). Until then only the test users can link.
+
+## 010 B03 ledger and sync
+
+Built and tested on 2026-10-25, on branch `010-b03-ledger-sync`
+([tasks.md](../specs/010-b03-ledger-sync/tasks.md),
+[quickstart](../specs/010-b03-ledger-sync/quickstart.md)). The server keeps every player's money in
+an append-only ledger, applies the app's offline operations through `POST /v1/sync` once each,
+answers `GET /v1/bootstrap` and `GET /v1/state`, grants the gifts and story rewards, and notes odd
+play as flags that staff review. Staff in `economy_ops` can adjust a balance. The app's side comes
+in M06.
+
+### Before merge
+
+- [ ] **1. Approve the constitution VIII deviation (plan, Complexity Tracking).** The server-only
+  numbers (the overdraft limit, the traffic-jam ad cap, the comeback gaps, the two flag thresholds
+  and the hard duration bound) are environment settings with no Remote Config key and no
+  `LiveSetting` copy until B10 moves them there. Their defaults are in
+  [mobile §14.3](architecture-mobile.md) and
+  [contracts/environment.md](../specs/010-b03-ledger-sync/contracts/environment.md). Say "approved"
+  (or what to change) and Claude records it in the plan.
+
+### After merge
+
+- [ ] **1. The rules index and the live checks (T099).** Once staging deploys from `master`, run
+  [economy.md "Before B03's first deploy"](runbooks/economy.md#before-b03s-first-deploy) on staging
+  (the `content_index --rebuild` step), then
+  [quickstart Part B](../specs/010-b03-ledger-sync/quickstart.md), B1 to B5: B3 is `economy_check`,
+  B4 the load script (raise `THROTTLE_ADDRESS_RATE` and `THROTTLE_ANONYMOUS_RATE` in the staging
+  env file for the run, then set them back). Then B1 and B3 on production. Paste the results in the
+  PR, then tick `010-b03-ledger-sync` in the
+  [delivery plan's Progress list](delivery-plan.md#progress).
+- [ ] **2. Staff and the name filter (T100).** Create the `economy_ops` members
+  (`create_staff <name> --group economy_ops`,
+  [staff-accounts.md](runbooks/staff-accounts.md)), and read the name filter's seed list in the
+  admin (Accounts → Name filter): delete what blocks honest names, add what is missing. A term is
+  matched in any common Arabic spelling, but Latin terms must be entered in Latin too.
+
+### After the closed test starts
+
+- [ ] **Tune the flag thresholds (T100).** Read the first `fast_three_star` and `trip_rate` flags in
+  the admin. If honest players are flagged, change `SYNC_FAST_RUN_PERCENT` or
+  `SYNC_TRIPS_PER_DAY_FLAG` in the env file as
+  [economy.md "Tuning the flag thresholds"](runbooks/economy.md#tuning-the-flag-thresholds) says.
 
 ## Known for later features
 

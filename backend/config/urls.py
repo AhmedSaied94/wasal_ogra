@@ -9,6 +9,7 @@ from apps.accounts.api.views import AnonymousView, LinkView, RefreshView
 from apps.common import errors
 from apps.common.api.views import HealthzView, ReadyzView
 from apps.content.api.views import ManifestView
+from apps.economy.api.views import BootstrapView, StateView, SyncView
 
 router = SimpleRouter()
 
@@ -19,6 +20,9 @@ urlpatterns = [
     path("v1/auth/anonymous", AnonymousView.as_view(), name="auth-anonymous"),
     path("v1/auth/refresh", RefreshView.as_view(), name="auth-refresh"),
     path("v1/auth/link", LinkView.as_view(), name="auth-link"),
+    path("v1/bootstrap", BootstrapView.as_view(), name="bootstrap"),
+    path("v1/state", StateView.as_view(), name="state"),
+    path("v1/sync", SyncView.as_view(), name="sync"),
     path("v1/", include(router.urls)),
 ]
 

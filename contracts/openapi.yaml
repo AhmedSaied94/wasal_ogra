@@ -324,6 +324,84 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: The database is down
+  /v1/bootstrap:
+    get:
+      operationId: bootstrap
+      description: 'Where the player stands: the wallet with its fuel recounted to
+        now, the state version, the current content version, and whether this app
+        must update. The first call creates the wallet. It answers 200 for any valid
+        player, even an app below the minimum version.'
+      summary: Start or continue a session
+      parameters:
+      - in: header
+        name: X-Client-Version
+        schema:
+          type: string
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9A-Za-z.-]+)?$
+          maxLength: 32
+        description: MAJOR.MINOR.PATCH with an optional +BUILD, such as 1.4.0+57.
+        required: true
+      - in: header
+        name: X-Platform
+        schema:
+          type: string
+          enum:
+          - android
+          - ios
+        required: true
+      tags:
+      - economy
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bootstrap'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: A client header is missing or malformed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'token_expired or token_invalid: the access token'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: account_deleted
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Method not allowed
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Not acceptable
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests from this player
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The database or the cache is down
   /v1/content/manifest:
     get:
       operationId: content_manifest
@@ -365,6 +443,180 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: The database is down
+  /v1/state:
+    get:
+      operationId: state
+      description: 'A full snapshot at one state_version, read so that no batch applies
+        in the middle: what a phone replaces its local state with (M05''s replaceBase)
+        before it re-sends what it still holds. The first call creates the wallet.'
+      summary: Everything the server holds of the player
+      parameters:
+      - in: header
+        name: X-Client-Version
+        schema:
+          type: string
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9A-Za-z.-]+)?$
+          maxLength: 32
+        description: MAJOR.MINOR.PATCH with an optional +BUILD, such as 1.4.0+57.
+        required: true
+      - in: header
+        name: X-Platform
+        schema:
+          type: string
+          enum:
+          - android
+          - ios
+        required: true
+      tags:
+      - economy
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: A client header is missing or malformed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'token_expired or token_invalid: the access token'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: account_deleted
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Method not allowed
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Not acceptable
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests from this player
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The database or the cache is down
+  /v1/sync:
+    post:
+      operationId: sync
+      description: Applies up to 100 operations in array order, in one transaction.
+        Each is accepted or rejected with a reason; a rejection is not an error and
+        doesn't stop the batch. Sending the same batch again returns the same results
+        and changes nothing. The payload of each op_type and every reason are in contracts/operations.md.
+      summary: Apply a batch of operations
+      parameters:
+      - in: header
+        name: X-Client-Version
+        schema:
+          type: string
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9A-Za-z.-]+)?$
+          maxLength: 32
+        description: MAJOR.MINOR.PATCH with an optional +BUILD, such as 1.4.0+57.
+        required: true
+      - in: header
+        name: X-Platform
+        schema:
+          type: string
+          enum:
+          - android
+          - ios
+        required: true
+      tags:
+      - economy
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: validation_error (details.fields names the first problem) or
+            batch_too_large (details.max)
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'token_expired or token_invalid: the access token'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: account_deleted
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Method not allowed
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Not acceptable
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Over 256 KB (details.limit_bytes)
+        '415':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Unsupported media type
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many batches from this player
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The database or the cache is down; nothing was applied
 components:
   schemas:
     AnonymousRequest:
@@ -411,6 +663,85 @@ components:
       - player_id
       - providers
       - refresh
+    Bootstrap:
+      type: object
+      properties:
+        server_time:
+          type: string
+          format: date-time
+        player:
+          $ref: '#/components/schemas/BootstrapPlayer'
+        wallet:
+          $ref: '#/components/schemas/Wallet'
+        entitlements:
+          $ref: '#/components/schemas/Entitlements'
+        state_version:
+          type: integer
+          minimum: 0
+        content:
+          $ref: '#/components/schemas/ContentRef'
+        client:
+          $ref: '#/components/schemas/ClientBlock'
+        daily:
+          $ref: '#/components/schemas/Daily'
+        comeback:
+          $ref: '#/components/schemas/Comeback'
+      required:
+      - client
+      - comeback
+      - content
+      - daily
+      - entitlements
+      - player
+      - server_time
+      - state_version
+      - wallet
+    BootstrapPlayer:
+      type: object
+      properties:
+        player_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        driver_level:
+          type: integer
+          minimum: 1
+        country:
+          type: string
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderEnum'
+      required:
+      - country
+      - display_name
+      - driver_level
+      - player_id
+      - providers
+    ChapterState:
+      type: object
+      properties:
+        chapter_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/ChapterStateStatusEnum'
+        scenes_seen:
+          type: array
+          items:
+            type: string
+      required:
+      - chapter_id
+      - scenes_seen
+      - status
+    ChapterStateStatusEnum:
+      enum:
+      - open
+      - completed
+      type: string
+      description: |-
+        * `open` - open
+        * `completed` - completed
     CheckResultEnum:
       enum:
       - pass
@@ -419,6 +750,21 @@ components:
       description: |-
         * `pass` - pass
         * `fail` - fail
+    ClientBlock:
+      type: object
+      properties:
+        min_version:
+          type: string
+        latest_version:
+          type: string
+        force_update:
+          type: boolean
+          description: X-Client-Version is below min_version. The answer is still
+            complete.
+      required:
+      - force_update
+      - latest_version
+      - min_version
     CodeEnum:
       enum:
       - provider_in_use
@@ -427,6 +773,13 @@ components:
       description: |-
         * `provider_in_use` - provider_in_use
         * `provider_already_linked` - provider_already_linked
+    Comeback:
+      type: object
+      properties:
+        claimable:
+          type: boolean
+      required:
+      - claimable
     ConflictDetails:
       type: object
       description: |-
@@ -515,6 +868,69 @@ components:
       - size
       - url
       - version
+    ContentRef:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: The current core pack; null before the first.
+        manifest_url:
+          type: string
+      required:
+      - manifest_url
+      - version
+    Daily:
+      type: object
+      properties:
+        game_date:
+          type: string
+          format: date
+          description: The Africa/Cairo calendar day.
+        challenge_available:
+          type: boolean
+          description: false until B08.
+        reward_claimable:
+          type: boolean
+          description: false until B08.
+      required:
+      - challenge_available
+      - game_date
+      - reward_claimable
+    EntitlementFlags:
+      type: object
+      properties:
+        no_interstitials:
+          type: boolean
+        fuel_max_bonus:
+          type: integer
+          minimum: 0
+      required:
+      - fuel_max_bonus
+      - no_interstitials
+    Entitlements:
+      type: object
+      properties:
+        remove_ads:
+          type: boolean
+        subscription:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: null until B06.
+        season_passes:
+          type: array
+          items:
+            type: string
+          description: Empty until B12.
+        flags:
+          $ref: '#/components/schemas/EntitlementFlags'
+      required:
+      - flags
+      - remove_ads
+      - season_passes
+      - subscription
     Error:
       type: object
       properties:
@@ -553,6 +969,65 @@ components:
       - chapter_id
       - driver_level
       - player_id
+    Grants:
+      type: object
+      properties:
+        tutorial:
+          type: boolean
+      required:
+      - tutorial
+    Inventory:
+      type: object
+      properties:
+        change_bag:
+          type: integer
+          minimum: 0
+        wake_all:
+          type: integer
+          minimum: 0
+        ledger_peek:
+          type: integer
+          minimum: 0
+        traffic_jam:
+          type: integer
+          minimum: 0
+      required:
+      - change_bag
+      - ledger_peek
+      - traffic_jam
+      - wake_all
+    KindEnum:
+      enum:
+      - vehicle
+      - upgrade
+      - cosmetic
+      - item
+      - chapter
+      type: string
+      description: |-
+        * `vehicle` - vehicle
+        * `upgrade` - upgrade
+        * `cosmetic` - cosmetic
+        * `item` - item
+        * `chapter` - chapter
+    LastResult:
+      type: object
+      properties:
+        start_txn:
+          type: string
+          format: uuid
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+        earnings_jenehat:
+          type: integer
+          minimum: 0
+        doubled:
+          type: boolean
+      required:
+      - doubled
+      - earnings_jenehat
+      - outcome
+      - start_txn
     LinkRequest:
       type: object
       properties:
@@ -610,6 +1085,146 @@ components:
       - ok
       type: string
       description: '* `ok` - ok'
+    OpRequest:
+      type: object
+      description: One operation's envelope. A malformed envelope refuses the whole
+        batch.
+      properties:
+        client_txn_id:
+          type: string
+          format: uuid
+          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+        op_type:
+          type: string
+          pattern: ^[a-z][a-z0-9_]{0,39}$
+        occurred_at:
+          type: string
+          format: date-time
+          pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$
+        payload:
+          type: object
+          additionalProperties: true
+          description: 'The operation''s payload: a closed object whose keys depend
+            on op_type (contracts/operations.md). A payload of the wrong shape rejects
+            that operation with validation_error; the batch goes on.'
+      required:
+      - client_txn_id
+      - occurred_at
+      - op_type
+      - payload
+      additionalProperties: false
+    OpResult:
+      type: object
+      properties:
+        client_txn_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OpResultStatusEnum'
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          description: |-
+            Only when rejected. A phone treats a reason it doesn't know as a rejection.
+
+            * `validation_error` - validation_error
+            * `unknown_op_type` - unknown_op_type
+            * `op_expired` - op_expired
+            * `unknown_content_version` - unknown_content_version
+            * `content_version_unsupported` - content_version_unsupported
+            * `dependency_rejected` - dependency_rejected
+            * `unknown_trip` - unknown_trip
+            * `unknown_sku` - unknown_sku
+            * `unknown_variant` - unknown_variant
+            * `not_for_sale` - not_for_sale
+            * `price_mismatch` - price_mismatch
+            * `not_unlocked` - not_unlocked
+            * `already_owned` - already_owned
+            * `already_revived` - already_revived
+            * `already_doubled` - already_doubled
+            * `already_granted` - already_granted
+            * `result_exists` - result_exists
+            * `insufficient_funds` - insufficient_funds
+            * `tank_full` - tank_full
+            * `none_left` - none_left
+            * `no_trip` - no_trip
+            * `no_trip_start` - no_trip_start
+            * `no_result` - no_result
+            * `not_doublable` - not_doublable
+            * `trip_mismatch` - trip_mismatch
+            * `stars_out_of_bounds` - stars_out_of_bounds
+            * `earnings_out_of_bounds` - earnings_out_of_bounds
+            * `duration_out_of_bounds` - duration_out_of_bounds
+            * `cap_reached` - cap_reached
+            * `not_eligible` - not_eligible
+            * `server_only` - server_only
+        granted:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: What the server granted that the phone did not propose (operations.md).
+        details:
+          type: object
+          additionalProperties: {}
+          description: 'For validation_error: the payload''s field, as details.field.'
+      required:
+      - client_txn_id
+      - status
+    OpResultStatusEnum:
+      enum:
+      - accepted
+      - rejected
+      type: string
+      description: |-
+        * `accepted` - accepted
+        * `rejected` - rejected
+    OpenTrip:
+      type: object
+      properties:
+        start_txn:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+        content_version:
+          type: integer
+          minimum: 1
+        revived:
+          type: boolean
+        traffic_jam_ads:
+          type: integer
+          minimum: 0
+      required:
+      - content_version
+      - revived
+      - start_txn
+      - traffic_jam_ads
+      - trip_id
+    OutcomeEnum:
+      enum:
+      - finished
+      - failed
+      - abandoned
+      type: string
+      description: |-
+        * `finished` - finished
+        * `failed` - failed
+        * `abandoned` - abandoned
+    Owned:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        sku_id:
+          type: string
+          description: 'May name an id the active pack lacks: skip it.'
+        variant:
+          type: string
+      required:
+      - kind
+      - sku_id
+      - variant
     PlatformEnum:
       enum:
       - android
@@ -651,6 +1266,72 @@ components:
       - ready
       type: string
       description: '* `ready` - ready'
+    ReasonEnum:
+      enum:
+      - validation_error
+      - unknown_op_type
+      - op_expired
+      - unknown_content_version
+      - content_version_unsupported
+      - dependency_rejected
+      - unknown_trip
+      - unknown_sku
+      - unknown_variant
+      - not_for_sale
+      - price_mismatch
+      - not_unlocked
+      - already_owned
+      - already_revived
+      - already_doubled
+      - already_granted
+      - result_exists
+      - insufficient_funds
+      - tank_full
+      - none_left
+      - no_trip
+      - no_trip_start
+      - no_result
+      - not_doublable
+      - trip_mismatch
+      - stars_out_of_bounds
+      - earnings_out_of_bounds
+      - duration_out_of_bounds
+      - cap_reached
+      - not_eligible
+      - server_only
+      type: string
+      description: |-
+        * `validation_error` - validation_error
+        * `unknown_op_type` - unknown_op_type
+        * `op_expired` - op_expired
+        * `unknown_content_version` - unknown_content_version
+        * `content_version_unsupported` - content_version_unsupported
+        * `dependency_rejected` - dependency_rejected
+        * `unknown_trip` - unknown_trip
+        * `unknown_sku` - unknown_sku
+        * `unknown_variant` - unknown_variant
+        * `not_for_sale` - not_for_sale
+        * `price_mismatch` - price_mismatch
+        * `not_unlocked` - not_unlocked
+        * `already_owned` - already_owned
+        * `already_revived` - already_revived
+        * `already_doubled` - already_doubled
+        * `already_granted` - already_granted
+        * `result_exists` - result_exists
+        * `insufficient_funds` - insufficient_funds
+        * `tank_full` - tank_full
+        * `none_left` - none_left
+        * `no_trip` - no_trip
+        * `no_trip_start` - no_trip_start
+        * `no_result` - no_result
+        * `not_doublable` - not_doublable
+        * `trip_mismatch` - trip_mismatch
+        * `stars_out_of_bounds` - stars_out_of_bounds
+        * `earnings_out_of_bounds` - earnings_out_of_bounds
+        * `duration_out_of_bounds` - duration_out_of_bounds
+        * `cap_reached` - cap_reached
+        * `not_eligible` - not_eligible
+        * `server_only` - server_only
     RefreshRequest:
       type: object
       properties:
@@ -668,6 +1349,145 @@ components:
       description: |-
         * `switch_to_existing` - switch_to_existing
         * `keep_current` - keep_current
+    State:
+      type: object
+      properties:
+        state_version:
+          type: integer
+          minimum: 0
+        server_time:
+          type: string
+          format: date-time
+        player:
+          $ref: '#/components/schemas/StatePlayer'
+        wallet:
+          $ref: '#/components/schemas/Wallet'
+        inventory:
+          $ref: '#/components/schemas/Inventory'
+        ownership:
+          type: array
+          items:
+            $ref: '#/components/schemas/Owned'
+        trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStanding'
+        open_trip:
+          allOf:
+          - $ref: '#/components/schemas/OpenTrip'
+          nullable: true
+        last_result:
+          allOf:
+          - $ref: '#/components/schemas/LastResult'
+          nullable: true
+        story:
+          $ref: '#/components/schemas/Story'
+        grants:
+          $ref: '#/components/schemas/Grants'
+        stats:
+          $ref: '#/components/schemas/Stats'
+        comeback:
+          $ref: '#/components/schemas/Comeback'
+      required:
+      - comeback
+      - grants
+      - inventory
+      - last_result
+      - open_trip
+      - ownership
+      - player
+      - server_time
+      - state_version
+      - stats
+      - story
+      - trips
+      - wallet
+    StatePlayer:
+      type: object
+      properties:
+        display_name:
+          type: string
+        driver_level:
+          type: integer
+          minimum: 1
+        settings:
+          type: object
+          additionalProperties: {}
+          description: What settings_update stored.
+      required:
+      - display_name
+      - driver_level
+      - settings
+    Stats:
+      type: object
+      properties:
+        trips_played:
+          type: integer
+          minimum: 0
+          description: Every accepted result, abandoned ones too.
+        stars_total:
+          type: integer
+          minimum: 0
+          description: The sum of best_stars.
+        longest_streak:
+          type: integer
+          minimum: 0
+          description: 0 until B08.
+      required:
+      - longest_streak
+      - stars_total
+      - trips_played
+    Story:
+      type: object
+      properties:
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChapterState'
+        requests_claimed:
+          type: array
+          items:
+            type: string
+      required:
+      - chapters
+      - requests_claimed
+    SyncRequest:
+      type: object
+      description: |-
+        A batch of up to 100 operations, applied in array order, and the state version the phone
+        last saw.
+      properties:
+        base_state_version:
+          type: integer
+          minimum: 0
+        ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpRequest'
+          maxItems: 100
+      required:
+      - base_state_version
+      - ops
+      additionalProperties: false
+    SyncResult:
+      type: object
+      properties:
+        state_version:
+          type: integer
+          minimum: 0
+        state_stale:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpResult'
+        wallet:
+          $ref: '#/components/schemas/Wallet'
+      required:
+      - results
+      - state_stale
+      - state_version
+      - wallet
     TokenPair:
       type: object
       properties:
@@ -691,6 +1511,59 @@ components:
       - player_id
       - providers
       - refresh
+    TripStanding:
+      type: object
+      properties:
+        trip_id:
+          type: string
+          description: 'May name an id the active pack lacks: skip it.'
+        best_stars:
+          type: integer
+          maximum: 3
+          minimum: 0
+        best_time_ms:
+          type: integer
+          minimum: 0
+          nullable: true
+        plays:
+          type: integer
+          minimum: 0
+      required:
+      - best_stars
+      - best_time_ms
+      - plays
+      - trip_id
+    Wallet:
+      type: object
+      properties:
+        jenehat:
+          type: integer
+          minimum: 0
+        bonat:
+          type: integer
+          minimum: 0
+        fuel:
+          type: integer
+          minimum: 0
+          description: Liters at the server's time, regenerated.
+        fuel_max:
+          type: integer
+          minimum: 1
+        fuel_updated_at:
+          type: string
+          format: date-time
+          description: The countdown's anchor (M05's countedFrom).
+        fuel_unlimited_until:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - bonat
+      - fuel
+      - fuel_max
+      - fuel_unlimited_until
+      - fuel_updated_at
+      - jenehat
   securitySchemes:
     bearerAuth:
       type: http

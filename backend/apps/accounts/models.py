@@ -94,6 +94,8 @@ class Player(UUIDv7Model):
     client_version = models.CharField(max_length=32)
     driver_level = models.PositiveSmallIntegerField(default=1)
     is_tester = models.BooleanField(default=False)
+    # The app's settings, written only by B03's `settings_update` (B03 research R10).
+    settings = models.JSONField(default=dict, blank=True)
     # Set only when tokens are issued or renewed (FR-018).
     last_seen_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -206,3 +208,31 @@ class PlayerSession(UUIDv7Model):
 
     def __str__(self) -> str:
         return str(self.id)
+
+
+class NameFilterEntry(UUIDv7Model):
+    """A term display names may not contain, edited by staff in the admin (B03 research R10).
+
+    `normalized` is the term after `apps.accounts.services.names.normalize`, the same function the
+    name check uses, so spelling variants of a term match too.
+    """
+
+    term = models.CharField(max_length=40)
+    normalized = models.CharField(max_length=40, unique=True, editable=False)
+    added_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "name filter entry"
+        verbose_name_plural = "name filter"
+
+    def __str__(self) -> str:
+        return self.term
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        from apps.accounts.services.names import normalize  # the service imports this module
+
+        self.normalized = normalize(self.term)[:40]
+        super().save(*args, **kwargs)

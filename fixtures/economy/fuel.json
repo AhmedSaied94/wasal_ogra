@@ -1,0 +1,235 @@
+{
+  "about": "Shared fuel cases (specs/010-b03-ledger-sync/contracts/fuel.md, research R15). The server's backend/apps/economy/tests/test_fuel_fixtures.py replays every case; the app's apps/mobile/test/core/economy/fuel_fixtures_test.dart replays the scope 'both' cases through M05's fuel functions. A step is trip_start (with mode), refill, ad_refill (server: with the daily cap), unlimited_1h, set_max (with max) or read. expected[i] is the state after step i: a refused step changes nothing, and a read shows the tank at its time without changing it. Server cases clamp each step's t between timeline_at and server_now, and count overdrafts and refill ads per Cairo game day.",
+  "cases": [
+    {
+      "name": "start from a full tank counts from the start",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 5, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:00:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:07:00Z", "mode": "fuel" },
+        { "op": "read", "t": "2026-10-17T09:45:00Z" }
+      ],
+      "expected": [
+        { "liters": 4, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 5, "counted_from": "2026-10-17T09:40:00Z", "unlimited_until": null, "accepted": true }
+      ]
+    },
+    {
+      "name": "a lowered maximum keeps the liters and nothing counts until below it",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "set_max", "t": "2026-10-17T09:00:00Z", "max": 4 },
+        { "op": "read", "t": "2026-10-17T10:00:00Z" },
+        { "op": "trip_start", "t": "2026-10-17T10:00:00Z", "mode": "fuel" },
+        { "op": "read", "t": "2026-10-17T11:00:00Z" },
+        { "op": "trip_start", "t": "2026-10-17T11:00:00Z", "mode": "fuel" },
+        { "op": "read", "t": "2026-10-17T11:20:00Z" }
+      ],
+      "expected": [
+        { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 4, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 4, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 3, "counted_from": "2026-10-17T11:00:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 4, "counted_from": "2026-10-17T11:20:00Z", "unlimited_until": null, "accepted": true }
+      ]
+    },
+    {
+      "name": "a refill fills a part-full tank and is refused on a full one",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 2, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "refill", "t": "2026-10-17T09:10:00Z" },
+        { "op": "refill", "t": "2026-10-17T09:11:00Z" }
+      ],
+      "expected": [
+        { "liters": 5, "counted_from": "2026-10-17T09:10:00Z", "unlimited_until": null, "accepted": true },
+        { "liters": 5, "counted_from": "2026-10-17T09:10:00Z", "unlimited_until": null, "accepted": false, "reason": "tank_full" }
+      ]
+    },
+    {
+      "name": "a tank that regenerated to full refuses a refill",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 4, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "refill", "t": "2026-10-17T09:30:00Z" },
+        { "op": "read", "t": "2026-10-17T09:30:00Z" }
+      ],
+      "expected": [
+        { "liters": 4, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": false, "reason": "tank_full" },
+        { "liters": 5, "counted_from": "2026-10-17T09:20:00Z", "unlimited_until": null, "accepted": true }
+      ]
+    },
+    {
+      "name": "a window extended while running, and an unlimited start costs no liter",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "unlimited_1h", "t": "2026-10-17T09:00:00Z" },
+        { "op": "unlimited_1h", "t": "2026-10-17T09:30:00Z" },
+        { "op": "trip_start", "t": "2026-10-17T10:30:00Z", "mode": "unlimited" }
+      ],
+      "expected": [
+        { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": "2026-10-17T10:00:00Z", "accepted": true },
+        { "liters": 4, "counted_from": "2026-10-17T09:20:00Z", "unlimited_until": "2026-10-17T11:00:00Z", "accepted": true },
+        { "liters": 5, "counted_from": "2026-10-17T09:40:00Z", "unlimited_until": "2026-10-17T11:00:00Z", "accepted": true }
+      ]
+    },
+    {
+      "name": "an ended window restarts from now",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": "2026-10-17T08:30:00Z" },
+      "steps": [
+        { "op": "unlimited_1h", "t": "2026-10-17T09:00:00Z" }
+      ],
+      "expected": [
+        { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": "2026-10-17T10:00:00Z", "accepted": true }
+      ]
+    },
+    {
+      "name": "a start after a long gap regenerates to full first",
+      "scope": "both",
+      "settings": { "max": 5, "regen_minutes": 20 },
+      "initial": { "liters": 0, "counted_from": "2026-10-17T06:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:00:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 4, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true }
+      ]
+    },
+    {
+      "name": "a backward occurred_at is clamped to the timeline",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T10:00:00Z",
+      "timeline_at": "2026-10-17T09:30:00Z",
+      "initial": { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:10:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 3, "counted_from": "2026-10-17T09:20:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:30:00Z" }
+      ]
+    },
+    {
+      "name": "a future occurred_at is clamped to the server's now",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T10:00:00Z",
+      "timeline_at": "2026-10-17T09:00:00Z",
+      "initial": { "liters": 0, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T12:00:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:45:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 2, "counted_from": "2026-10-17T10:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T10:00:00Z" },
+        { "liters": 1, "counted_from": "2026-10-17T10:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T10:00:00Z" }
+      ]
+    },
+    {
+      "name": "a late sync of five starts played over two hours gives the liters the phone had",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T14:00:00Z",
+      "timeline_at": "2026-10-17T08:00:00Z",
+      "initial": { "liters": 5, "counted_from": "2026-10-17T08:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:00:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:05:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:10:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:15:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T11:00:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 4, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:00:00Z" },
+        { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:05:00Z" },
+        { "liters": 2, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:10:00Z" },
+        { "liters": 1, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:15:00Z" },
+        { "liters": 4, "counted_from": "2026-10-17T11:00:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T11:00:00Z" }
+      ]
+    },
+    {
+      "name": "the third overdraft of a game day is refused",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T09:10:00Z",
+      "timeline_at": "2026-10-17T09:00:00Z",
+      "initial": { "liters": 0, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:01:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:02:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T09:03:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 0, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "overdraft": true, "effective_t": "2026-10-17T09:01:00Z" },
+        { "liters": 0, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": true, "overdraft": true, "effective_t": "2026-10-17T09:02:00Z" },
+        { "liters": 0, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null, "accepted": false, "reason": "cap_reached", "effective_t": "2026-10-17T09:03:00Z" }
+      ]
+    },
+    {
+      "name": "overdrafts are counted per Cairo game day",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T21:10:00Z",
+      "timeline_at": "2026-10-17T20:50:00Z",
+      "initial": { "liters": 0, "counted_from": "2026-10-17T20:50:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T20:50:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T20:55:00Z", "mode": "fuel" },
+        { "op": "trip_start", "t": "2026-10-17T21:05:00Z", "mode": "fuel" }
+      ],
+      "expected": [
+        { "liters": 0, "counted_from": "2026-10-17T20:50:00Z", "unlimited_until": null, "accepted": true, "overdraft": true, "effective_t": "2026-10-17T20:50:00Z" },
+        { "liters": 0, "counted_from": "2026-10-17T20:50:00Z", "unlimited_until": null, "accepted": true, "overdraft": true, "effective_t": "2026-10-17T20:55:00Z" },
+        { "liters": 0, "counted_from": "2026-10-17T20:50:00Z", "unlimited_until": null, "accepted": true, "overdraft": true, "effective_t": "2026-10-17T21:05:00Z" }
+      ]
+    },
+    {
+      "name": "a refill ad on a full tank, and past its daily cap",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 1 },
+      "server_now": "2026-10-17T10:00:00Z",
+      "timeline_at": "2026-10-17T09:00:00Z",
+      "initial": { "liters": 2, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": null },
+      "steps": [
+        { "op": "ad_refill", "t": "2026-10-17T09:05:00Z" },
+        { "op": "ad_refill", "t": "2026-10-17T09:06:00Z" },
+        { "op": "trip_start", "t": "2026-10-17T09:07:00Z", "mode": "fuel" },
+        { "op": "ad_refill", "t": "2026-10-17T09:08:00Z" }
+      ],
+      "expected": [
+        { "liters": 5, "counted_from": "2026-10-17T09:05:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:05:00Z" },
+        { "liters": 5, "counted_from": "2026-10-17T09:05:00Z", "unlimited_until": null, "accepted": false, "reason": "tank_full", "effective_t": "2026-10-17T09:06:00Z" },
+        { "liters": 4, "counted_from": "2026-10-17T09:07:00Z", "unlimited_until": null, "accepted": true, "effective_t": "2026-10-17T09:07:00Z" },
+        { "liters": 4, "counted_from": "2026-10-17T09:07:00Z", "unlimited_until": null, "accepted": false, "reason": "cap_reached", "effective_t": "2026-10-17T09:08:00Z" }
+      ]
+    },
+    {
+      "name": "an unlimited start outside a window is refused",
+      "scope": "server",
+      "settings": { "max": 5, "regen_minutes": 20, "overdraft_per_day": 2, "refill_daily_cap": 3 },
+      "server_now": "2026-10-17T10:00:00Z",
+      "timeline_at": "2026-10-17T09:00:00Z",
+      "initial": { "liters": 3, "counted_from": "2026-10-17T09:00:00Z", "unlimited_until": "2026-10-17T09:30:00Z" },
+      "steps": [
+        { "op": "trip_start", "t": "2026-10-17T09:29:00Z", "mode": "unlimited" },
+        { "op": "trip_start", "t": "2026-10-17T09:30:00Z", "mode": "unlimited" }
+      ],
+      "expected": [
+        { "liters": 4, "counted_from": "2026-10-17T09:20:00Z", "unlimited_until": "2026-10-17T09:30:00Z", "accepted": true, "effective_t": "2026-10-17T09:29:00Z" },
+        { "liters": 4, "counted_from": "2026-10-17T09:20:00Z", "unlimited_until": "2026-10-17T09:30:00Z", "accepted": false, "reason": "not_eligible", "effective_t": "2026-10-17T09:30:00Z" }
+      ]
+    }
+  ]
+}

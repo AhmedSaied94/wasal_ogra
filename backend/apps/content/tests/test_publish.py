@@ -93,8 +93,9 @@ def test_a_publish_writes_the_files_and_commits(
 
 
 def test_the_sixth_newest_is_retired_and_keeps_its_file(
-    sample_reviewed: User, publisher: User, packs_dir: Path
+    sample_reviewed: User, publisher: User, packs_dir: Path, settings: Settings
 ) -> None:
+    settings.CONTENT_INDEX_KEEP = 5  # B04's number; B03 made it a setting
     packs = [published(built(sample_reviewed), publisher) for _ in range(6)]
 
     first = ContentPack.objects.get(pk=packs[0].pk)
