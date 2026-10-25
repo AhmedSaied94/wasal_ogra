@@ -18,6 +18,7 @@ from django_otp.oath import TOTP
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from apps.accounts.models import User
+from apps.accounts.tests.factories import make_device, make_player
 
 pytestmark = [pytest.mark.django_db, pytest.mark.urls("config.urls_admin")]
 
@@ -98,6 +99,8 @@ def admin_pages() -> list[str]:
     user = User.objects.get(username="csp")
     task = PeriodicTask.objects.get(name="heartbeat")
     totp = TOTPDevice.objects.get(user=user)
+    player = make_player()
+    make_device(player)
     return [
         "/admin/",
         "/admin/password_change/",
@@ -116,6 +119,9 @@ def admin_pages() -> list[str]:
         f"/admin/otp_totp/totpdevice/{totp.pk}/change/",
         "/admin/axes/accessattempt/",
         "/admin/axes/accesslog/",
+        "/admin/accounts/player/",
+        f"/admin/accounts/player/{player.pk}/change/",
+        f"/admin/accounts/player/{player.pk}/history/",
     ]
 
 

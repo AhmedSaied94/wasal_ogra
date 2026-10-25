@@ -16,3 +16,10 @@ regexes = ['''^change-me-''']
 [[allowlists]]
 description = "sslip.io hostnames"
 regexes = ['''^[a-z0-9.-]+\.sslip\.io$''']
+
+# The backend tests' signing keys are base64url of readable text ("test-only-…",
+# "second-test-…"), never secrets: the prefixes below are those words encoded. Scoped by value only,
+# for the same reason as above.
+[[allowlists]]
+description = "test signing keys"
+regexes = ['''^dGVzdC1vbmx5LX''', '''^c2Vjb25kLXRlc3Qt''']

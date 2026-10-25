@@ -143,3 +143,70 @@ def test_rate_accepted(raw: str) -> None:
 def test_rate_refused(raw: str) -> None:
     with pytest.raises(ImproperlyConfigured, match="RATE is invalid"):
         lenient(RATE=raw).rate("RATE", "120/min")
+
+
+# -- Signing keys and auth settings (B02 research R13, contracts/environment.md) -----------------
+
+KEY_A = "dGVzdC1vbmx5LXNpZ25pbmcta2V5LTAwMDAwMDAwMDA"  # base64url of 32 bytes
+KEY_B = "c2Vjb25kLXRlc3Qtc2lnbmluZy1rZXktMDAwMDAwMDA"
+
+
+def test_signing_keys_keep_their_order_and_decode() -> None:
+    keys = strict(AUTH_SIGNING_KEYS=f"new-1:{KEY_B}, old-1:{KEY_A}=").signing_keys()
+    assert [key.kid for key in keys] == ["new-1", "old-1"]
+    assert keys[1].key == b"test-only-signing-key-0000000000"
+
+
+def test_signing_key_repr_hides_the_key() -> None:
+    (key,) = strict(AUTH_SIGNING_KEYS=f"k1:{KEY_A}").signing_keys()
+    assert KEY_A not in repr(key)
+    assert "test-only" not in repr(key)
+
+
+def test_placeholder_signing_key_only_when_lenient() -> None:
+    value = "dev1:change-me-dev-signing-key-0000000000000000000000000"
+    assert lenient(AUTH_SIGNING_KEYS=value).signing_keys()[0].kid == "dev1"
+    with pytest.raises(ImproperlyConfigured, match="AUTH_SIGNING_KEYS is a placeholder"):
+        strict(AUTH_SIGNING_KEYS=value).signing_keys()
+
+
+def test_signing_key_may_equal_the_secret_key_only_when_lenient() -> None:
+    assert lenient(AUTH_SIGNING_KEYS=f"k1:{KEY_A}").signing_keys(forbidden=KEY_A)
+    with pytest.raises(ImproperlyConfigured, match="must not reuse SECRET_KEY"):
+        strict(AUTH_SIGNING_KEYS=f"k1:{KEY_A}").signing_keys(forbidden=KEY_A)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "k1:eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA",  # 31 bytes
+        f"k_1:{KEY_A}",
+        f"k1:{KEY_A},k1:{KEY_B}",
+        f"k1:{KEY_A},",
+        ",".join(f"k{n}:{KEY_A}" for n in range(5)),
+        f"k1:{KEY_A}==",
+        f"k1:{KEY_A}xx",
+    ],
+)
+def test_malformed_signing_keys_refused_without_the_value(value: str) -> None:
+    with pytest.raises(ImproperlyConfigured, match="AUTH_SIGNING_KEYS is invalid") as excinfo:
+        lenient(AUTH_SIGNING_KEYS=value).signing_keys()
+    assert KEY_A not in str(excinfo.value)
+
+
+def test_signing_keys_required_everywhere() -> None:
+    with pytest.raises(ImproperlyConfigured, match="AUTH_SIGNING_KEYS is required"):
+        lenient().signing_keys()
+
+
+def test_auth_config_defaults_and_google_ids() -> None:
+    config = lenient(GOOGLE_OAUTH_CLIENT_IDS=" a.apps , b.apps ").auth()
+    assert config.google_client_ids == ("a.apps", "b.apps")
+    assert config.retry_seconds == 60
+    assert config.max_sessions == 10
+    assert config.http_timeout_seconds == 5
+    assert config.google_jwks_url == "https://www.googleapis.com/oauth2/v3/certs"
+    assert config.google_keys_cache_seconds == 3600
+    assert lenient().auth().google_client_ids == ()
+    with pytest.raises(ImproperlyConfigured, match="GOOGLE_OAUTH_CLIENT_IDS is required"):
+        strict().auth()

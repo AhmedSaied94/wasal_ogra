@@ -16,7 +16,6 @@ from django.http import Http404, HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import exceptions
 from rest_framework.settings import api_settings
-from rest_framework.views import set_rollback
 
 
 class ErrorCode(StrEnum):
@@ -30,6 +29,13 @@ class ErrorCode(StrEnum):
     SERVER_ERROR = "server_error"
     NOT_READY = "not_ready"
     DEPENDENCY_UNAVAILABLE = "dependency_unavailable"
+    # B02 (specs/009-b02-accounts-auth/contracts/api.md "Error codes")
+    TOKEN_EXPIRED = "token_expired"  # noqa: S105 - an error code, not a secret
+    TOKEN_INVALID = "token_invalid"  # noqa: S105
+    ACCOUNT_DELETED = "account_deleted"
+    PROVIDER_IN_USE = "provider_in_use"
+    PROVIDER_ALREADY_LINKED = "provider_already_linked"
+    PROVIDER_TOKEN_INVALID = "provider_token_invalid"  # noqa: S105
 
 
 MESSAGES: dict[ErrorCode, str] = {
@@ -43,6 +49,12 @@ MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.SERVER_ERROR: "Server error",
     ErrorCode.NOT_READY: "Service not ready",
     ErrorCode.DEPENDENCY_UNAVAILABLE: "Service temporarily unavailable",
+    ErrorCode.TOKEN_EXPIRED: "Token expired",
+    ErrorCode.TOKEN_INVALID: "Token invalid",
+    ErrorCode.ACCOUNT_DELETED: "Account deleted",
+    ErrorCode.PROVIDER_IN_USE: "Provider linked to another player",
+    ErrorCode.PROVIDER_ALREADY_LINKED: "Another account of this provider is already linked",
+    ErrorCode.PROVIDER_TOKEN_INVALID: "Provider token could not be verified",
 }
 
 STATUSES: dict[ErrorCode, int] = {
@@ -56,7 +68,16 @@ STATUSES: dict[ErrorCode, int] = {
     ErrorCode.SERVER_ERROR: 500,
     ErrorCode.NOT_READY: 503,
     ErrorCode.DEPENDENCY_UNAVAILABLE: 503,
+    ErrorCode.TOKEN_EXPIRED: 401,
+    ErrorCode.TOKEN_INVALID: 401,
+    ErrorCode.ACCOUNT_DELETED: 403,
+    ErrorCode.PROVIDER_IN_USE: 409,
+    ErrorCode.PROVIDER_ALREADY_LINKED: 409,
+    ErrorCode.PROVIDER_TOKEN_INVALID: 422,
 }
+
+# Every 401 tells the client which scheme to use (B02 research R8).
+WWW_AUTHENTICATE = "Bearer"
 
 # The explicit table wins over a DRF exception's own `default_code` (contracts/api.md).
 DRF_CODES: tuple[tuple[type[exceptions.APIException], ErrorCode], ...] = (
@@ -67,7 +88,24 @@ DRF_CODES: tuple[tuple[type[exceptions.APIException], ErrorCode], ...] = (
     (exceptions.NotAcceptable, ErrorCode.NOT_ACCEPTABLE),
     (exceptions.UnsupportedMediaType, ErrorCode.UNSUPPORTED_MEDIA_TYPE),
     (exceptions.Throttled, ErrorCode.RATE_LIMITED),
+    # DRF's `not_authenticated` and `authentication_failed` never reach a client (B02 R8).
+    (exceptions.NotAuthenticated, ErrorCode.TOKEN_INVALID),
+    (exceptions.AuthenticationFailed, ErrorCode.TOKEN_INVALID),
 )
+
+
+class ApiError(exceptions.APIException):
+    """An error with one of our codes, raised from a view, a service or an authenticator.
+
+    It is not DRF's `AuthenticationFailed`, which DRF turns into a 403 on a view with no
+    authenticators (the auth endpoints have none): the status is always the code's own.
+    """
+
+    def __init__(self, code: ErrorCode, details: dict[str, Any] | None = None) -> None:
+        super().__init__(MESSAGES[code], code.value)
+        self.status_code = STATUSES[code]
+        self.error_code = code
+        self.details = details or {}
 
 
 def body(code: str, message: str, details: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -97,12 +135,18 @@ def exception_handler(exc: Exception, context: dict[str, Any]) -> JsonResponse |
     if not isinstance(exc, exceptions.APIException):
         return None
 
+    # Imported here: DRF imports the default authentication class, which raises these errors,
+    # while it is still defining rest_framework.views.
+    from rest_framework.views import set_rollback
+
     set_rollback()
     if isinstance(exc, exceptions.Throttled):
         retry_after = max(1, math.ceil(getattr(exc, "wait", None) or 1))
         response = envelope(ErrorCode.RATE_LIMITED, {"retry_after_s": retry_after})
         response["Retry-After"] = str(retry_after)
         return response
+    if isinstance(exc, ApiError):
+        return _with_auth_header(envelope(exc.error_code, exc.details))
     code = next((code for cls, code in DRF_CODES if isinstance(exc, cls)), None)
     if code is None:
         # Any other DRF exception keeps its own code, which must be in backend §6.2 first.
@@ -112,7 +156,13 @@ def exception_handler(exc: Exception, context: dict[str, Any]) -> JsonResponse |
         if auth_header:
             response["WWW-Authenticate"] = auth_header
         return response
-    return envelope(code, _details(code, exc, context))
+    return _with_auth_header(envelope(code, _details(code, exc, context)))
+
+
+def _with_auth_header(response: JsonResponse) -> JsonResponse:
+    if response.status_code == 401:
+        response["WWW-Authenticate"] = WWW_AUTHENTICATE
+    return response
 
 
 def _details(

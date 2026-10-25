@@ -45,6 +45,7 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.dev \
     DJANGO_DEBUG=false \
     WASSAL_READ_DOTENV=0 \
     SECRET_KEY=build-only-not-a-secret \
+    AUTH_SIGNING_KEYS=build:build-only-not-a-signing-key-00000000000000000 \
     DATABASE_URL=postgres://build@build.invalid/build \
     CACHE_URL=locmem:// \
     CELERY_BROKER_URL=memory:// \

@@ -105,6 +105,12 @@ sessions that work anywhere.
 
 - Every state-changing request MUST carry a client-generated UUIDv7 `client_txn_id`. The server
   MUST store each result in `ProcessedOp` and return the stored result on replay.
+  - Credential exchanges are idempotent on their own credential instead: account creation, token
+    renewal and provider linking (`POST /v1/auth/anonymous`, `/v1/auth/refresh`, `/v1/auth/link`).
+    The install id, the refresh token's session and `jti`, and the provider account make a
+    repeated request give the same outcome. Their results hold tokens, so they MUST NOT be stored
+    in `ProcessedOp`.
+  - Every other state-changing request keeps `client_txn_id` and `ProcessedOp`.
 - `POST /v1/sync` MUST process ops in array order inside one transaction per batch, serialized per
   player with `SELECT … FOR UPDATE` on `Wallet`, and return an accepted or rejected result for each
   op. A rejected op MUST NOT abort the batch.
@@ -122,9 +128,11 @@ sessions that work anywhere.
 - A property test MUST prove that applying the same batch twice yields the same state.
 
 **Rationale:** Mobile networks retry and offline queues replay. Without idempotency, every retry
-risks a double grant or a double spend. Offline play (Principle V) needs a clock before any server
-contact and after a restart. Counting uptime from an anchor means a clock change gains nothing while
-the phone stays on, and the server's recomputation keeps any device-side gain provisional.
+risks a double grant or a double spend. A credential exchange already carries a unique credential,
+and storing its result would keep bearer tokens at rest. Offline play (Principle V) needs a clock
+before any server contact and after a restart. Counting uptime from an anchor means a clock change
+gains nothing while the phone stays on, and the server's recomputation keeps any device-side gain
+provisional.
 
 ### VII. Content, Not Code
 
@@ -296,6 +304,11 @@ hand-testing the whole game.
   come from host-mounted env files or a secret manager.
 - Tokens are stored only in `flutter_secure_storage`, never in SharedPreferences.
 - Access JWTs last 15 min. Refresh tokens last 30 days and are rotated and blacklisted on use.
+  - A renewal repeated with the same refresh token within a short retry window (seconds, a server
+    setting) MUST return the same successor, not a new one. That way a lost answer or two racing
+    renewals don't fork the session.
+  - Any other use of a spent refresh token MUST be refused, and MUST end every token renewed from
+    the same sign-in.
 - The server MUST verify Google and Apple ID tokens, and every webhook signature (Pub/Sub OIDC,
   Apple JWS, AdMob ECDSA).
 - Input is validated with strict serializers and size limits, and every endpoint is rate-limited.
@@ -404,4 +417,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.4.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-22
+**Version**: 1.5.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-24

@@ -220,7 +220,7 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 ### 6.1 Conventions
 
 - REST over HTTPS, JSON, UTF-8, `snake_case`. Base path `/v1`.
-- Auth header `Authorization: Bearer <access_jwt>` on all endpoints except auth bootstrap, store/ad callbacks and health.
+- Auth header `Authorization: Bearer <access_jwt>` on all endpoints except account creation and renewal, the content manifest and pack files, store/ad callbacks and health. It is the default: a new `/v1` endpoint needs a player token and the two headers below, and is limited per player, unless its view opts out explicitly (B02 FR-032–FR-035).
 - Required headers: `X-Client-Version` (e.g. `1.4.0+57`), `X-Platform` (`android` | `ios`).
 - Timestamps are ISO-8601 UTC. Money/currency values are integers (§3.1).
 - The OpenAPI document is generated from code with `drf-spectacular` and committed to `contracts/openapi.yaml`. CI fails if it changes without being committed.
@@ -239,16 +239,16 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | 404 | `not_found` |
 | 405 | `method_not_allowed` |
 | 406 | `not_acceptable` |
-| 409 | `provider_in_use`, `already_granted`, `state_conflict` |
+| 409 | `provider_in_use`, `provider_already_linked`, `already_granted`, `state_conflict` |
 | 413 | `payload_too_large` (the edge's 512 KB limit, with a backstop in Django) |
 | 415 | `unsupported_media_type` |
-| 422 | `insufficient_funds`, `not_eligible`, `price_mismatch`, `cap_reached`, `trip_locked` |
+| 422 | `provider_token_invalid`, `insufficient_funds`, `not_eligible`, `price_mismatch`, `cap_reached`, `trip_locked` |
 | 426 | `client_outdated` (below `min_client_version`) |
 | 429 | `rate_limited` |
 | 500 | `server_error` (any unhandled exception; the request id is in the `X-Request-ID` header) |
 | 503 | `maintenance`, `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
 
-B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. Any DRF exception code that ships must be listed here first.
+B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). Any DRF exception code that ships must be listed here first.
 
 ### 6.3 Endpoints
 
@@ -261,7 +261,7 @@ B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsuppor
 | `GET /v1/bootstrap` | Session start snapshot | access | MVP | B03 |
 | `GET /v1/state` | Full progression snapshot | access | MVP | B03 |
 | `POST /v1/sync` | Apply batched client operations | access | MVP | B03 |
-| `GET /v1/content/manifest` | Current content packs | access | MVP | B04 |
+| `GET /v1/content/manifest` | Current content packs | none (B02 FR-035) | MVP | B04 |
 | `GET /v1/offers` | Active offers & store product display data | access | MVP | B10 |
 | `POST /v1/purchases/verify` | Verify a store purchase and grant | access | MVP | B06 |
 | `POST /v1/purchases/google/rtdn` | Google Play RTDN (Pub/Sub push) | OIDC | MVP | B06 |
@@ -281,13 +281,13 @@ B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsuppor
 **`POST /v1/auth/anonymous`**
 
 ```json
-// request
-{ "install_id": "c0a8…", "platform": "android", "locale": "ar-EG" }
-// 201
-{ "player_id": "0192f1c3-…", "access": "<jwt>", "refresh": "<jwt>", "created": true }
+// request (install_id: a v4 UUID, kept by the app across re-installs)
+{ "install_id": "3b0b9d3e-…", "platform": "android", "locale": "ar-EG" }
+// 201 (200 with "created": false for a known install id)
+{ "player_id": "0192f1c3-…", "access": "<jwt>", "refresh": "<jwt>", "access_expires_in": 900, "providers": [], "created": true }
 ```
 
-The same `install_id` returns the same player while it is not linked to a provider and not deleted (re-install on the same device with app data cleared creates a new player — **NEEDS CLARIFICATION**: acceptable for MVP).
+The install id leads to its device's player, linked to a provider or not, for as long as that player is active. Each call opens a new session and leaves the older ones (B02 FR-005, FR-010). A player pending deletion or deleted gets replaced: the device moves to a new player. The app keeps the install id where a re-install doesn't wipe it (§22.6, B02 research R5). Every token answer (`TokenPair`) carries `access_expires_in` (seconds, 900) and `providers` (`[]` or `["google"]`). Renewal and the rest of the token rules are in B02 contracts/tokens.md.
 
 **`POST /v1/auth/link`**
 
@@ -299,9 +299,11 @@ The same `install_id` returns the same player while it is not linked to a provid
 // 409 provider already linked to another player
 { "error": { "code": "provider_in_use", "details": {
   "current": { "driver_level": 3, "chapter_id": "ch1_first_job", "bonat": 40 },
-  "existing": { "driver_level": 11, "chapter_id": "ch3_shabka", "bonat": 220 } } } }
-// retry with "resolve": "switch_to_existing" (device signs into the existing player)
+  "existing": { "player_id": "0192e0aa-…", "driver_level": 11, "chapter_id": "ch3_shabka", "bonat": 220 } } } }
+// retry with "resolve" and "existing_player_id": the details.existing.player_id it answers:
+// "resolve": "switch_to_existing" (the device signs into the existing player; 200 is its TokenPair)
 // or "resolve": "keep_current" (provider is moved to the current player; the old player keeps its data but loses this login)
+// a retry whose existing_player_id no longer holds the provider gets a new 409 with the new holder
 ```
 
 Accounts are never merged, so currency can never be duplicated.
@@ -363,7 +365,14 @@ Accounts are never merged, so currency can never be duplicated.
 
 - Breaking changes go to `/v2`; `/v1` stays until active clients below the new version are < 2%.
 - `min_client_version` per platform lives in `liveops` settings. Requests from older clients get `426 client_outdated`, except `/v1/bootstrap`, which returns `force_update: true` so the app can show the update screen.
-- DRF throttles backed by Redis: `auth/anonymous` 10/hour/IP, `sync` 60/min/player, `purchases/verify` 30/min/player, `daily-challenge/result` 10/min/player, default 120/min/player.
+- DRF throttles backed by Redis, each rate an environment setting:
+  - **Default:** 120/min per player on every request authenticated as a player, and 120/min per client address on the rest.
+  - **`auth/anonymous`:** 60/hour per client address. Egyptian carriers put many subscribers behind each public address (carrier-grade NAT). At the 100k DAU design point, launch day brings about 10,000 installs an hour nationwide, a handful per carrier address. Returns through the install id count too, and a request costs only a few rows, with no currency (B02 research R9).
+  - **`auth/refresh`:** 30/min per session, keyed by the refresh token's session, never by address: 1,000 players behind one address renew in the same minute without a refusal. A token that doesn't verify is limited by address instead.
+  - **`auth/link`:** 10/min per player, besides the player default.
+  - **Later:** `sync` 60/min/player, `purchases/verify` 30/min/player, `daily-challenge/result` 10/min/player.
+  - "Per client address" counts an IPv6 client by its /64, the block a phone or home network picks its addresses from.
+  - On a cache outage the throttles let requests through.
 
 ---
 
@@ -707,10 +716,11 @@ All primary keys are UUIDv7 unless noted. All tables have `created_at`; mutable 
 | Model | Fields |
 | --- | --- |
 | `Player` | `id`, `display_name`, `country`, `locale`, `platform`, `driver_level`, `status` (`active`, `pending_deletion`, `deleted`), `install_first_at`, `last_seen_at`, `client_version`, `is_tester` |
-| `Identity` | `player`, `provider` (`anonymous`, `google`, `apple`), `subject` (install id hash for anonymous), `apple_refresh_token` (encrypted, for revocation), unique(`provider`, `subject`) |
-| `Device` | `player`, `install_id_hash`, `platform`, `app_version`, `last_seen_at` |
+| `Identity` | `player`, `provider` (`google`; `apple` in phase 3, with its encrypted refresh token for revocation), `subject` (the provider's `sub`, never shown or logged), `linked_at`; unique(`provider`, `subject`), unique(`player`, `provider`). Providers only: the anonymous sign-in is the device's install id. |
+| `Device` | `player`, `install_id_hash` (SHA-256 of the lowercase install id, unique), `platform`, `app_version`, `last_seen_at` |
+| `PlayerSession` | `player`, `device`, `status` (`active`, `ended`), `end_reason` (`reuse`, `switch`, `limit`), the current refresh token's claims (`current_jti`, `current_issued_at`, `current_expires_at`, `current_kid`), the previous one's (`previous_jti`, `previous_spent_at`), `last_renewed_at`. It stores claims, never a token. |
 
-Refresh-token rotation and blacklist use simplejwt's token blacklist tables.
+`PlayerSession` replaces simplejwt's blacklist tables: one row per sign-in, rotated under a row lock. A renewal repeated within the retry window returns the same successor, and any other reuse ends the session (B02 research R3). Sessions that ended or lapsed more than 30 days ago are pruned daily.
 
 ### economy
 
@@ -792,8 +802,8 @@ erDiagram
 | Area | Measure |
 | --- | --- |
 | Transport | TLS everywhere (Caddy auto-HTTPS), HSTS |
-| Auth | Access JWT 15 min, refresh 30 days, rotated and blacklisted on use; signing key from secrets with `kid` for rotation |
-| Third-party sign-in | Google ID tokens verified with `google-auth` (audience = our client IDs); Apple ID tokens verified against Apple JWKS (`iss`, `aud`, `nonce`) |
+| Auth | Access JWT 15 min, refresh 30 days, rotated on use: a renewal repeated within the retry window gets the same successor, and any other reuse ends the session (constitution 1.5.0). HS256 keys come from the `AUTH_SIGNING_KEYS` ring of `kid:key` entries: the first signs, every entry verifies, and each token's `kid` header picks its key. Rotation puts a new key first and drops the old one 30 days and 15 minutes later (`docs/runbooks/auth-keys.md`, B02 research R13). |
+| Third-party sign-in | Google ID tokens verified with PyJWT against Google's cached key set (RS256, `iss`, `aud` = our client IDs, 60 s leeway; only `sub` is kept, B02 research R6); Apple ID tokens verified against Apple JWKS (`iss`, `aud`, `nonce`) |
 | Webhooks | Pub/Sub OIDC token check; Apple JWS chain verification; AdMob ECDSA signature; all webhooks idempotent on notification id |
 | Input | DRF serializers with strict schemas; batch and body size limits; `command_log` ≤ 64 KB |
 | Rate limiting | §6.5 throttles; Caddy connection limits |
@@ -816,7 +826,7 @@ erDiagram
 
 | Data | Where | Purpose | Retention |
 | --- | --- | --- | --- |
-| `player_id`, install id hash | backend | account | until deletion |
+| `player_id`, install id hash (on the device record) | backend | account | until deletion |
 | Google/Apple subject id | backend | sign-in | until deletion |
 | Purchase history | backend | fulfilment, refunds | 7 years (tombstoned after deletion) — **NEEDS CLARIFICATION** with legal |
 | Gameplay progress, trip runs | backend | game service, anti-cheat | progress until deletion; runs 90 days |
@@ -872,7 +882,7 @@ erDiagram
 3. **Parity or it didn't happen.** Any engine rule change ships with updated parity fixtures that pass in Dart and Python.
 4. **Server authority for value.** BONAT, purchases, entitlements and subscriptions are decided by the backend. The client is optimistic only for JENEHAT and progress, within server-validated bounds.
 5. **Offline-first play.** A regular trip must be playable with no network.
-6. **Idempotent everything.** Every state-changing request carries `client_txn_id`.
+6. **Idempotent everything.** Every state-changing request carries `client_txn_id`, except the credential exchanges (account creation, token renewal, provider linking), which are idempotent on their own credential (constitution 1.5.0).
 7. **Content, not code.** Trips, prices, lines, items and lines of dialogue are data in versioned packs.
 8. **Tunable numbers.** Every balancing number has a Remote Config key with a bundled default.
 9. **No ads in a trip.** Ad calls are rejected while a trip is running.
@@ -966,7 +976,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 3. ~~CDN in front of content packs.~~ **Resolved (B04):** no CDN for the MVP; each host's edge serves its own immutable pack files, and Cloudflare in front of `cdn.<domain>` later is a configuration change. See `specs/003-b04-content-pipeline/research.md` R5.
 4. iOS purchase payload: StoreKit 2 JWS vs app receipt in the chosen Flutter plugin version.
 5. Refund handling for already-spent BONAT (negative balance proposal in §8.2).
-6. Re-install on the same device without a linked provider creates a new player — acceptable for MVP?
+6. ~~Re-install on the same device without a linked provider creates a new player — acceptable for MVP?~~ **Resolved (B02):** no. The same phone gets the same player back without linking: the app keeps its install id where a re-install doesn't wipe it (the iOS keychain, Android's Block Store), and linking Google is the way back where neither works. See `specs/009-b02-accounts-auth/research.md` R5.
 7. Device attestation for competitive features (phase 3).
 8. Store target age group and ad content rating.
 9. Legal review: Egypt PDPL and Gulf data protection; purchase record retention period.

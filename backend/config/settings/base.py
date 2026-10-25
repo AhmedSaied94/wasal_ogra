@@ -142,17 +142,65 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
+# -- Player accounts and tokens (B02, specs/009-b02-accounts-auth/contracts/environment.md) --------
+
+AUTH_SIGNING_KEYS = env.signing_keys(forbidden=SECRET_KEY)
+_auth = env.auth()
+AUTH_REFRESH_RETRY_SECONDS = _auth.retry_seconds
+AUTH_MAX_SESSIONS_PER_PLAYER = _auth.max_sessions
+AUTH_HTTP_TIMEOUT_SECONDS = _auth.http_timeout_seconds
+GOOGLE_OAUTH_CLIENT_IDS = _auth.google_client_ids
+GOOGLE_JWKS_URL = _auth.google_jwks_url
+GOOGLE_KEYS_CACHE_SECONDS = _auth.google_keys_cache_seconds
+# Fixed by the constitution ("Security & privacy"): access 15 min, refresh 30 days. Not settings.
+ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)
+REFRESH_TOKEN_LIFETIME = timedelta(days=30)
+# simplejwt's own reading of the tokens. apps.accounts.tokens signs and verifies through the
+# AUTH_SIGNING_KEYS ring by `kid`; SIGNING_KEY is only its fallback. The token_blacklist app is not
+# installed: sessions live in accounts.PlayerSession (B02 research R1, R3).
+SIMPLE_JWT = {
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": AUTH_SIGNING_KEYS[0].key,
+    "ACCESS_TOKEN_LIFETIME": ACCESS_TOKEN_LIFETIME,
+    "REFRESH_TOKEN_LIFETIME": REFRESH_TOKEN_LIFETIME,
+    "LEEWAY": 0,
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "sub",
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "JTI_CLAIM": "jti",
+    "AUTH_TOKEN_CLASSES": ("apps.accounts.tokens.PlayerAccessToken",),
+    "UPDATE_LAST_LOGIN": False,
+}
+
 # -- API conventions (contracts/api.md, research R4) -----------------------------------------------
 
+# Each limit is read on every request, so `None` (the `no_throttle` fixture) turns it off.
 THROTTLE_ADDRESS_RATE: str | None = env.rate("THROTTLE_ADDRESS_RATE", "120/min")
+THROTTLE_PLAYER_RATE: str | None = env.rate("THROTTLE_PLAYER_RATE", "120/min")
+THROTTLE_ANONYMOUS_RATE: str | None = env.rate("THROTTLE_ANONYMOUS_RATE", "60/hour")
+THROTTLE_REFRESH_RATE: str | None = env.rate("THROTTLE_REFRESH_RATE", "30/min")
+THROTTLE_LINK_RATE: str | None = env.rate("THROTTLE_LINK_RATE", "10/min")
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
-    # Later endpoints must opt out of authentication explicitly.
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_THROTTLE_CLASSES": ["apps.common.throttles.AddressRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"address": THROTTLE_ADDRESS_RATE},
+    # Every endpoint needs a player token and the client headers, and is limited per player,
+    # unless its view opts out explicitly (B02 FR-019, FR-032, FR-034).
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.accounts.authentication.PlayerAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+        "apps.common.permissions.ClientHeaders",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "apps.common.throttles.AddressRateThrottle",
+        "apps.common.throttles.PlayerRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "address": THROTTLE_ADDRESS_RATE,
+        "player": THROTTLE_PLAYER_RATE,
+        "anonymous": THROTTLE_ANONYMOUS_RATE,
+        "refresh": THROTTLE_REFRESH_RATE,
+        "link": THROTTLE_LINK_RATE,
+    },
     "NUM_PROXIES": NUM_PROXIES,
     "EXCEPTION_HANDLER": "apps.common.errors.exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -166,7 +214,12 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     # The three readiness checks share one choice set; name it once.
-    "ENUM_NAME_OVERRIDES": {"CheckResultEnum": "apps.common.api.serializers.CHECK_RESULTS"},
+    "ENUM_NAME_OVERRIDES": {
+        "CheckResultEnum": "apps.common.api.serializers.CHECK_RESULTS",
+        "PlatformEnum": "apps.common.client.PLATFORMS",
+        "ProviderEnum": "apps.accounts.api.serializers.PROVIDERS",
+        "ResolveEnum": "apps.accounts.api.serializers.RESOLUTIONS",
+    },
 }
 
 # -- Content pipeline (B04, specs/003-b04-content-pipeline/contracts/environment.md) ---------------

@@ -48,6 +48,10 @@ edge:
 | 503 | **`not_ready`** | `/readyz` when a check fails | `{checks: {database, cache, migrations}}` |
 | 503 | **`dependency_unavailable`** | Database or cache unreachable during a request (fails within 5 s, spec edge case) | `{}` |
 
+B02 adds `409 provider_already_linked` and `422 provider_token_invalid`, and maps DRF's
+`NotAuthenticated` and `AuthenticationFailed` to `401 token_invalid`
+(`specs/009-b02-accounts-auth/contracts/api.md` "Error codes").
+
 - Mapping rule: an explicit table entry wins. Any other DRF `APIException` uses its `default_code`,
   which must then be added to §6.2 before it ships. Django's `Http404` and `PermissionDenied` are
   treated as DRF's `NotFound` and `PermissionDenied`, and a 401 keeps its `WWW-Authenticate` header.
