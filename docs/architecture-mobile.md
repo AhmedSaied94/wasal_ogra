@@ -515,7 +515,10 @@ Protocol owned by backend §7; the client side:
 5. Rejected ops are rolled back locally; the UI shows a neutral message only if a visible balance changed.
 6. If `base_state_version` is stale (another device), the client pulls `GET /v1/state`, replaces local state, and re-applies still-pending ops.
 
-A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying the `TripResult` (§7.2). The server validates earnings against the trip's `max_earnings_jenehat`. The full op list (`ad_reward`, `spend_jenehat`, `spend_bonat`, `use_booster`, `claim_daily_reward`, `claim_task`, `story_progress`, `settings_update`) and validation rules are in backend §7.4.
+A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying the `TripResult` (§7.2). The server validates earnings against the trip's `max_earnings_jenehat`. The full op list (`ad_reward`, `spend_jenehat`, `spend_bonat`, `use_booster`, `story_progress`, `settings_update`, `tutorial_gift`, `comeback_gift`, `claim_request`, and `claim_daily_reward` and `claim_task` from B08 and M13) and validation rules are in backend §7.4; the checks in order and every reason are in `specs/010-b03-ledger-sync/contracts/operations.md`.
+
+- **The three grants** (B03). `tutorial_gift` fills the tank once per player (M07). `comeback_gift` fills the tank and adds a `change_bag` once per return: send it only when bootstrap answers `comeback.claimable`, and never a second while one is pending, because bootstrap keeps answering `claimable` until the claim has synced. `claim_request` collects a family request's BONAT once its item is owned (M10). Room and chapter BONAT is not an op: the server pays it in the batch of the op that completes them, in that op's `granted`.
+- **`content_version` in the payload.** Every op that reads the pack (`trip_start`, `spend_jenehat`, `spend_bonat`, `story_progress`, `claim_request`) carries `content_version` in its payload, from the version its `ledger_ops` row recorded. The server reads prices, trips and rules from that version's pack, and accepts the current version and any published in the last 45 days.
 
 ---
 
@@ -572,6 +575,20 @@ Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholder
 | `ads_interstitial_every_n_trips`, `ads_interstitial_grace_trips`, `ads_fuel_refill_daily_cap` | 3, 10, 3 |
 | `pre_trip_card_mode` | `always` |
 | `notif_daily_max` | 2 |
+
+The backend keeps its own copies of `fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes` and `ads_fuel_refill_daily_cap` as env settings, and a CI test fails when their defaults differ from `tunables.json` (B03 research R14).
+
+**Server-only numbers (no Remote Config key until B10).** The phone never reads these: the server alone applies them (constitution IV). They are env settings with these defaults (`backend/config/env.py`, `specs/010-b03-ledger-sync/contracts/environment.md`), the deviation from constitution VIII tracked in B03's plan (Complexity Tracking). B10 moves each into `liveops.LiveSetting`.
+
+| Server setting | Default | Meaning |
+| --- | --- | --- |
+| `ECONOMY_FUEL_OVERDRAFT_PER_DAY` | 2 | starts with an empty tank accepted in a game day; the next is `cap_reached` |
+| `ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP` | 1 | `traffic_jam` rewarded ads a trip (glossary §3.4) |
+| `SYNC_COMEBACK_AWAY_DAYS` | 7 | Cairo calendar days away that offer the comeback gift |
+| `SYNC_COMEBACK_COOLDOWN_DAYS` | 30 | the least time between two comeback gifts |
+| `SYNC_MIN_DURATION_PERCENT` | 85 | a finished trip shorter than this % of its last station time is rejected |
+| `SYNC_FAST_RUN_PERCENT` | 95 | a 3-star run shorter than this % of its last station time is flagged `fast_three_star` |
+| `SYNC_TRIPS_PER_DAY_FLAG` | 400 | accepted trip starts in a game day above this raise `trip_rate` |
 
 ---
 

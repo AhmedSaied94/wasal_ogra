@@ -24,6 +24,7 @@ its own:
 | [restore.md](restore.md) | Restoring a backup into production or staging, rebuilding either VM, the drill's results |
 | [content-publishing.md](content-publishing.md) | Authoring, building and publishing on staging, promoting to production, `content/source`, rollback, the minimum app version |
 | [auth-keys.md](auth-keys.md) | The players' token signing keys: the variables B02 needs, generating, rotating and revoking a key, measuring auth latency |
+| [economy.md](economy.md) | Balances and sync: the rules index after B03's deploy, checking the books, flags and their review, adjusting a balance, tuning the flag thresholds, retention |
 | [break-glass.md](break-glass.md) | Getting back into a VM when WireGuard or SSH doesn't work |
 | [ios-test-build.md](ios-test-build.md) | The unsigned iOS dev build on Codemagic, and installing it on an iPhone with a free Apple ID |
 

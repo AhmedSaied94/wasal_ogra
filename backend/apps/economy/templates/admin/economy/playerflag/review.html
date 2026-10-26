@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% comment %}"Mark reviewed" (B03 contracts/admin.md "Flags"). No script.{% endcomment %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:economy_playerflag_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<p>A review is final: it records you, the time and your resolution, and can't be changed.</p>
+<table>
+  <thead><tr><th>Player</th><th>Kind</th><th>Date</th><th>Details</th><th>Reviewed</th></tr></thead>
+  <tbody>
+  {% for flag in flags %}
+    <tr><td>{{ flag.player_id }}</td><td>{{ flag.kind }}</td><td>{{ flag.game_date }}</td><td>{{ flag.details }}</td><td>{% if flag.reviewed_at %}yes{% else %}no{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% for pk in selected %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ pk }}">{% endfor %}
+  <input type="hidden" name="action" value="mark_reviewed">
+  <input type="submit" name="apply" value="Mark reviewed">
+  <a href="{% url 'admin:economy_playerflag_changelist' %}" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

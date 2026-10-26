@@ -230,7 +230,8 @@ class PublishedIdentifier(UUIDv7Model):
 
 
 class PackTripIndex(UUIDv7Model):
-    """A trip of one of the last 5 published packs, for B02's lookups (FR-035, R12)."""
+    """A trip of one of the last `CONTENT_INDEX_KEEP` published packs, for B03's sync validators
+    (FR-035, R12)."""
 
     pack = models.ForeignKey(ContentPack, on_delete=models.CASCADE, related_name="trip_index")
     version = models.PositiveIntegerField()
@@ -248,7 +249,7 @@ class PackTripIndex(UUIDv7Model):
 
 
 class PackPriceIndex(UUIDv7Model):
-    """A catalog price of one of the last 5 published packs (FR-035, R12)."""
+    """A catalog price of one of the last `CONTENT_INDEX_KEEP` published packs (FR-035, R12)."""
 
     pack = models.ForeignKey(ContentPack, on_delete=models.CASCADE, related_name="price_index")
     version = models.PositiveIntegerField()
@@ -264,6 +265,20 @@ class PackPriceIndex(UUIDv7Model):
                 fields=["version", "sku_kind", "sku_id"], name="content_price_index_key"
             ),
         ]
+
+
+class PackRulesIndex(UUIDv7Model):
+    """What B03's validators need of an indexed pack and the trip index lacks: unlock rules,
+    chapters, rooms, items and family requests, as one document (B03 data-model.md, research R2).
+    Written by `lookups.index_pack` and read only by `lookups.rules`."""
+
+    pack = models.ForeignKey(ContentPack, on_delete=models.CASCADE, related_name="rules_index")
+    version = models.PositiveIntegerField(unique=True)
+    rules = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"rules of version {self.version}"
 
 
 class ContentAuditRecord(UUIDv7Model):

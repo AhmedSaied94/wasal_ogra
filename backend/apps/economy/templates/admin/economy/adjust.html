@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% comment %}"Adjust balance…" (B03 contracts/admin.md "Adjusting a balance"). No script.{% endcomment %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_player_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_player_change' original.pk %}">{{ original }}</a>
+  &rsaquo; {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<p>Balances now: JENEHAT {{ balances.JENEHAT }}, BONAT {{ balances.BONAT }}.</p>
+{% if preview %}<p><strong>After this adjustment: {{ preview }}</strong></p>{% endif %}
+<p>An adjustment adds one ledger entry and one adjustment record. Neither can be edited or deleted; a mistake is corrected by another adjustment.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" value="Adjust">
+  <a href="{% url 'admin:accounts_player_change' original.pk %}" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

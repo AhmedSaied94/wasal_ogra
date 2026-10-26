@@ -610,3 +610,168 @@ def test_auth_settings_for_tests_need_no_environment() -> None:
     assert values["google_client_ids"] == ["test-client.apps.googleusercontent.com"]
     assert values["google_cache"] == 0
     assert values["http_timeout"] == 2
+
+
+# -- Economy settings (B03, specs/010-b03-ledger-sync/contracts/environment.md) --------------------
+
+ECONOMY_PROBE = """
+import json, django
+django.setup()
+from django.conf import settings as s
+print(json.dumps({
+    name: getattr(s, name)
+    for name in (
+        "ECONOMY_FUEL_MAX", "ECONOMY_FUEL_MAX_SUBSCRIBER", "ECONOMY_FUEL_REGEN_MINUTES",
+        "ECONOMY_FUEL_REFILL_DAILY_CAP", "ECONOMY_FUEL_OVERDRAFT_PER_DAY",
+        "ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP", "ECONOMY_NAME_MIN_LENGTH", "ECONOMY_NAME_MAX_LENGTH",
+        "SYNC_GAME_TIMEZONE", "SYNC_OP_RETENTION_DAYS", "SYNC_CONTENT_MAX_AGE_DAYS",
+        "SYNC_MIN_DURATION_PERCENT", "SYNC_FAST_RUN_PERCENT", "SYNC_TRIPS_PER_DAY_FLAG",
+        "SYNC_CLOCK_CLAMP_FLAG_MINUTES", "SYNC_SESSION_GAP_MINUTES", "SYNC_COMEBACK_AWAY_DAYS",
+        "SYNC_COMEBACK_COOLDOWN_DAYS", "THROTTLE_SYNC_RATE", "CLIENT_MIN_VERSION",
+        "CLIENT_LATEST_VERSION", "CONTENT_INDEX_KEEP",
+    )
+}))
+"""
+
+ECONOMY_DEFAULTS = {
+    "ECONOMY_FUEL_MAX": 5,
+    "ECONOMY_FUEL_MAX_SUBSCRIBER": 7,
+    "ECONOMY_FUEL_REGEN_MINUTES": 20,
+    "ECONOMY_FUEL_REFILL_DAILY_CAP": 3,
+    "ECONOMY_FUEL_OVERDRAFT_PER_DAY": 2,
+    "ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP": 1,
+    "ECONOMY_NAME_MIN_LENGTH": 2,
+    "ECONOMY_NAME_MAX_LENGTH": 20,
+    "SYNC_GAME_TIMEZONE": "Africa/Cairo",
+    "SYNC_OP_RETENTION_DAYS": 180,
+    "SYNC_CONTENT_MAX_AGE_DAYS": 45,
+    "SYNC_MIN_DURATION_PERCENT": 85,
+    "SYNC_FAST_RUN_PERCENT": 95,
+    "SYNC_TRIPS_PER_DAY_FLAG": 400,
+    "SYNC_CLOCK_CLAMP_FLAG_MINUTES": 10,
+    "SYNC_SESSION_GAP_MINUTES": 30,
+    "SYNC_COMEBACK_AWAY_DAYS": 7,
+    "SYNC_COMEBACK_COOLDOWN_DAYS": 30,
+    "THROTTLE_SYNC_RATE": "60/min",
+    "CLIENT_MIN_VERSION": "1.0.0",
+    "CLIENT_LATEST_VERSION": "1.0.0",
+    "CONTENT_INDEX_KEEP": 10,
+}
+
+
+def economy_probe(module: str, env: dict[str, str]) -> dict[str, object]:
+    clean = {
+        "PATH": os.environ["PATH"],
+        "WASSAL_READ_DOTENV": "0",
+        "DJANGO_SETTINGS_MODULE": f"config.settings.{module}",
+        **env,
+    }
+    result = subprocess.run(  # noqa: S603 - fixed interpreter and arguments
+        [sys.executable, "-c", ECONOMY_PROBE],
+        cwd=BACKEND_DIR,
+        env=clean,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout.strip().splitlines()[-1])  # type: ignore[no-any-return]
+
+
+@pytest.mark.parametrize("module", ["prod", "staging"])
+def test_economy_defaults_on_the_hosts(module: str) -> None:
+    assert economy_probe(module, env_for(module)) == ECONOMY_DEFAULTS
+
+
+def test_economy_defaults_for_tests_need_no_environment() -> None:
+    assert economy_probe("test", {}) == ECONOMY_DEFAULTS
+
+
+# (variable, a value outside its range or not an integer)
+ECONOMY_OUT_OF_RANGE = [
+    ("ECONOMY_FUEL_MAX", "0"),
+    ("ECONOMY_FUEL_MAX", "21"),
+    ("ECONOMY_FUEL_MAX", "five"),
+    ("ECONOMY_FUEL_MAX", "5.5"),
+    ("ECONOMY_FUEL_MAX_SUBSCRIBER", "21"),
+    ("ECONOMY_FUEL_REGEN_MINUTES", "0"),
+    ("ECONOMY_FUEL_REGEN_MINUTES", "241"),
+    ("ECONOMY_FUEL_REFILL_DAILY_CAP", "-1"),
+    ("ECONOMY_FUEL_REFILL_DAILY_CAP", "51"),
+    ("ECONOMY_FUEL_OVERDRAFT_PER_DAY", "21"),
+    ("ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP", "11"),
+    ("ECONOMY_NAME_MIN_LENGTH", "0"),
+    ("ECONOMY_NAME_MAX_LENGTH", "33"),
+    ("SYNC_OP_RETENTION_DAYS", "29"),
+    ("SYNC_OP_RETENTION_DAYS", "731"),
+    ("SYNC_CONTENT_MAX_AGE_DAYS", "0"),
+    ("SYNC_CONTENT_MAX_AGE_DAYS", "366"),
+    ("SYNC_MIN_DURATION_PERCENT", "0"),
+    ("SYNC_FAST_RUN_PERCENT", "101"),
+    ("SYNC_TRIPS_PER_DAY_FLAG", "9"),
+    ("SYNC_TRIPS_PER_DAY_FLAG", "5001"),
+    ("SYNC_CLOCK_CLAMP_FLAG_MINUTES", "0"),
+    ("SYNC_CLOCK_CLAMP_FLAG_MINUTES", "1441"),
+    ("SYNC_SESSION_GAP_MINUTES", "1441"),
+    ("SYNC_COMEBACK_AWAY_DAYS", "0"),
+    ("SYNC_COMEBACK_COOLDOWN_DAYS", "366"),
+    ("CONTENT_INDEX_KEEP", "4"),
+    ("CONTENT_INDEX_KEEP", "51"),
+]
+
+
+@pytest.mark.parametrize(("name", "value"), ECONOMY_OUT_OF_RANGE)
+def test_economy_values_outside_their_range_refuse_to_start(name: str, value: str) -> None:
+    result = load("prod", env_for("prod", **{name: value}))
+    assert_refused(result, f"{name} is invalid")
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        (
+            {"ECONOMY_FUEL_MAX": "8", "ECONOMY_FUEL_MAX_SUBSCRIBER": "7"},
+            "ECONOMY_FUEL_MAX_SUBSCRIBER is invalid",
+        ),
+        (
+            {"SYNC_MIN_DURATION_PERCENT": "90", "SYNC_FAST_RUN_PERCENT": "85"},
+            "SYNC_FAST_RUN_PERCENT is invalid",
+        ),
+        (
+            {"ECONOMY_NAME_MIN_LENGTH": "10", "ECONOMY_NAME_MAX_LENGTH": "5"},
+            "ECONOMY_NAME_MAX_LENGTH is invalid",
+        ),
+        (
+            {"CLIENT_MIN_VERSION": "1.2.0", "CLIENT_LATEST_VERSION": "1.1.9"},
+            "CLIENT_MIN_VERSION is invalid",
+        ),
+        ({"CLIENT_MIN_VERSION": "1.2"}, "CLIENT_MIN_VERSION is invalid"),
+        ({"CLIENT_LATEST_VERSION": "1.2.0+5"}, "CLIENT_LATEST_VERSION is invalid"),
+        ({"SYNC_GAME_TIMEZONE": "Mars/Olympus"}, "SYNC_GAME_TIMEZONE is invalid"),
+        ({"SYNC_GAME_TIMEZONE": "../etc/passwd"}, "SYNC_GAME_TIMEZONE is invalid"),
+        ({"THROTTLE_SYNC_RATE": "60"}, "THROTTLE_SYNC_RATE is invalid"),
+    ],
+)
+def test_economy_cross_checks_refuse_to_start(overrides: dict[str, str], message: str) -> None:
+    result = load("prod", env_for("prod", **overrides))
+    assert_refused(result, message)
+
+
+def test_economy_values_inside_their_range_start() -> None:
+    env = env_for(
+        "prod",
+        ECONOMY_FUEL_MAX="7",
+        ECONOMY_FUEL_MAX_SUBSCRIBER="7",
+        SYNC_GAME_TIMEZONE="Asia/Riyadh",
+        SYNC_MIN_DURATION_PERCENT="90",
+        SYNC_FAST_RUN_PERCENT="90",
+        CLIENT_MIN_VERSION="1.1.0",
+        CLIENT_LATEST_VERSION="1.10.0",
+        CONTENT_INDEX_KEEP="5",
+    )
+    values = economy_probe("prod", env)
+    assert values["ECONOMY_FUEL_MAX"] == values["ECONOMY_FUEL_MAX_SUBSCRIBER"] == 7
+    assert values["SYNC_GAME_TIMEZONE"] == "Asia/Riyadh"
+    assert values["CLIENT_LATEST_VERSION"] == "1.10.0"
+    assert values["CONTENT_INDEX_KEEP"] == 5

@@ -9,6 +9,7 @@ from apps.content.models.packs import (
     ContentChannel,
     ContentPack,
     PackPriceIndex,
+    PackRulesIndex,
     PackTripIndex,
     PublishedIdentifier,
 )
@@ -73,6 +74,7 @@ __all__ = [
     "ItemVariant",
     "Line",
     "PackPriceIndex",
+    "PackRulesIndex",
     "PackTripIndex",
     "PermanentModel",
     "PublishedIdentifier",

@@ -1,4 +1,8 @@
-"""System check `common.E001`: every project model's primary key is the UUIDv7 id (FR-016)."""
+"""System check `common.E001`: every project model's primary key is the UUIDv7 id (FR-016).
+
+A one-to-one primary key to a model whose own key passes counts too: a table keyed by its player
+(B03's wallet, trip session and daily state) holds the player's UUIDv7.
+"""
 
 from __future__ import annotations
 
@@ -34,4 +38,7 @@ def check_uuid7_primary_keys(
 
 
 def _is_uuid7_pk(field: models.Field[Any, Any] | None) -> bool:
+    if isinstance(field, models.OneToOneField):
+        target = field.related_model
+        return not isinstance(target, str) and _is_uuid7_pk(target._meta.pk)
     return isinstance(field, models.UUIDField) and field.default is uuid7 and not field.editable

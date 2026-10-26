@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.accounts",
     "apps.content",
+    # `economy` imports `progress`, never the reverse (B03 research R1).
+    "apps.progress",
+    "apps.economy",
 ]
 
 # The request id comes first, so every line, the access line included, carries it (FR-036).
@@ -180,9 +183,10 @@ THROTTLE_PLAYER_RATE: str | None = env.rate("THROTTLE_PLAYER_RATE", "120/min")
 THROTTLE_ANONYMOUS_RATE: str | None = env.rate("THROTTLE_ANONYMOUS_RATE", "60/hour")
 THROTTLE_REFRESH_RATE: str | None = env.rate("THROTTLE_REFRESH_RATE", "30/min")
 THROTTLE_LINK_RATE: str | None = env.rate("THROTTLE_LINK_RATE", "10/min")
+THROTTLE_SYNC_RATE: str | None = env.rate("THROTTLE_SYNC_RATE", "60/min")
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_PARSER_CLASSES": ["apps.common.parsers.JSONParser"],
     # Every endpoint needs a player token and the client headers, and is limited per player,
     # unless its view opts out explicitly (B02 FR-019, FR-032, FR-034).
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.accounts.authentication.PlayerAuthentication"],
@@ -200,6 +204,7 @@ REST_FRAMEWORK = {
         "anonymous": THROTTLE_ANONYMOUS_RATE,
         "refresh": THROTTLE_REFRESH_RATE,
         "link": THROTTLE_LINK_RATE,
+        "sync": THROTTLE_SYNC_RATE,
     },
     "NUM_PROXIES": NUM_PROXIES,
     "EXCEPTION_HANDLER": "apps.common.errors.exception_handler",
@@ -233,6 +238,31 @@ CONTENT_PROMOTION_SOURCE_URL = _content.promotion_url
 CONTENT_SOLVER_STAGE = _content.solver_stage
 CONTENT_MANIFEST_CACHE_SECONDS = _content.manifest_cache_seconds
 CONTENT_HTTP_TIMEOUT_SECONDS = _content.http_timeout_seconds
+CONTENT_INDEX_KEEP = _content.index_keep
+
+# -- Economy, bootstrap and sync (B03, specs/010-b03-ledger-sync/contracts/environment.md) ---------
+
+_economy = env.economy()
+ECONOMY_FUEL_MAX = _economy.fuel_max
+ECONOMY_FUEL_MAX_SUBSCRIBER = _economy.fuel_max_subscriber
+ECONOMY_FUEL_REGEN_MINUTES = _economy.fuel_regen_minutes
+ECONOMY_FUEL_REFILL_DAILY_CAP = _economy.fuel_refill_daily_cap
+ECONOMY_FUEL_OVERDRAFT_PER_DAY = _economy.fuel_overdraft_per_day
+ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP = _economy.traffic_jam_ads_per_trip
+ECONOMY_NAME_MIN_LENGTH = _economy.name_min_length
+ECONOMY_NAME_MAX_LENGTH = _economy.name_max_length
+SYNC_GAME_TIMEZONE = _economy.game_timezone
+SYNC_OP_RETENTION_DAYS = _economy.op_retention_days
+SYNC_CONTENT_MAX_AGE_DAYS = _economy.content_max_age_days
+SYNC_MIN_DURATION_PERCENT = _economy.min_duration_percent
+SYNC_FAST_RUN_PERCENT = _economy.fast_run_percent
+SYNC_TRIPS_PER_DAY_FLAG = _economy.trips_per_day_flag
+SYNC_CLOCK_CLAMP_FLAG_MINUTES = _economy.clock_clamp_flag_minutes
+SYNC_SESSION_GAP_MINUTES = _economy.session_gap_minutes
+SYNC_COMEBACK_AWAY_DAYS = _economy.comeback_away_days
+SYNC_COMEBACK_COOLDOWN_DAYS = _economy.comeback_cooldown_days
+CLIENT_MIN_VERSION = _economy.client_min_version
+CLIENT_LATEST_VERSION = _economy.client_latest_version
 
 # -- Background tasks (FR-006, FR-007) -------------------------------------------------------------
 

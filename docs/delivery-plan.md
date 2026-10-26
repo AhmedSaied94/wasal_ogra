@@ -6,7 +6,7 @@
 | Order from | Joint MVP sequence in `docs/architecture-backend.md` §21; feature tables in backend §20 and mobile §23; step 5.5 added on 2026-10-23 for the new design |
 | Rules | [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) |
 | Design | [`docs/design/`](design/README.md): Style C «كرتون ناعم», for every screen from step 5.5 on |
-| Updated | 2026-10-23 |
+| Updated | 2026-10-25 |
 
 This plan sets the order we build the game in and the Spec Kit routine every feature goes through.
 Tick features off in [Progress](#progress) as they merge.
@@ -228,7 +228,8 @@ pass owned, the Invite redeem code) are designed before those phases start.
     and anchors trusted time on the server's (`anchorOnServer`). It revisits the backup exclusion
     with backend §22.6. M05's review asks it to move those calls to a sync-only interface that
     screens don't get, and to queue lifecycle resyncs behind requests.
-  - M07: the tutorial's gift refill needs an operation type that B03 accepts.
+  - M07: the tutorial's gift refill needs an operation type that B03 accepts. B03 adds
+    `tutorial_gift`.
   - M08 and M12 draw countdowns from `nextLiterAtMs` and the trusted clock. M12 applies a small
     BONAT purchase only after its 3-second undo window (ux-spec «الشرا»).
   - M09 and M10 check unlock order before calling `buy`.
@@ -238,8 +239,10 @@ pass owned, the Invite redeem code) are designed before those phases start.
     `UptimeSource`.
   - M15 reports the refusal codes and `write_failed`.
   - M17 gives subscribers the larger tank (`fuel_max_subscriber`) through the cached entitlements.
-  - B03 confirms the fuel rules (backend §7.5), the reasons `chapter_purchase` and
-    `fuel_unlimited_purchase`, the revive's `ref`, `chapter` ownership, and fuel for replays.
+  - ~~B03 confirms the fuel rules (backend §7.5), the reasons `chapter_purchase` and
+    `fuel_unlimited_purchase`, the revive's `ref`, `chapter` ownership, and fuel for replays.~~
+    Done in B03 (backend §7.4, §7.5): `fixtures/economy/fuel.json` replays the shared fuel cases in
+    pytest and in Dart (research R7, R15).
 - **Handed over from M03** (research R1): in M05, use drift with the native-assets `sqlite3` 3.x
   package. Don't add `sqlite3_flutter_libs`, which is end-of-life.
 - **Handed over from M04** (research "Handed to later features"):
@@ -378,19 +381,52 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 
 - **Resolve:**
   - backend §22.6 (a re-install without a linked provider creates a new player) in B02 and M06;
-  - backend §22.2 (the game-day timezone) in B03;
-  - confirm that B03 matches the M05 answer to mobile §24.5;
-  - from the design (HANDOFF §9.3 #8), in B03: how the comeback gift (`Returning`) and the
+  - ~~backend §22.2 (the game-day timezone) in B03;~~ **Resolved in B03:** `Africa/Cairo` for
+    every region in the MVP (`SYNC_GAME_TIMEZONE`, research R3);
+  - ~~confirm that B03 matches the M05 answer to mobile §24.5;~~ **Confirmed in B03:** every start
+    costs a liter, replays included (backend §7.5);
+  - ~~from the design (HANDOFF §9.3 #8), in B03: how the comeback gift (`Returning`) and the
     family-request rewards (`Requests`) are granted, since no operation does it yet, and where the
-    longest streak and the trip count come from.
+    longest streak and the trip count come from.~~ **Resolved in B03** (research R9, R16): the
+    operations `comeback_gift` and `claim_request`, while room and chapter BONAT is paid by the
+    server in the batch of the operation that completes them (clarification Q2). `GET /v1/state`
+    counts trips as the sum of `TripProgress.plays`; its longest streak stays 0 until B08 and M13
+    write `DailyState`.
 - **Handed over from B01** (`specs/002-b01-backend-skeleton/research.md`, "Handed to later
   features"):
   - B02: `accounts.User` is staff-only, so decide how `Player` authenticates with simplejwt (B01
     research R3).
   - B02: per-player throttles replace the per-address default for authenticated traffic. Mind
     carrier-grade NAT: many Egyptian mobile players share one address (B01 research R4).
-  - B03: register the `economy.wallet_equals_ledger` invariant with the restore drill's registry
-    (`apps/common/services/invariants.py`), and add the direct-`Wallet`-write scan to CI.
+  - ~~B03: register the `economy.wallet_equals_ledger` invariant with the restore drill's registry
+    (`apps/common/services/invariants.py`), and add the direct-`Wallet`-write scan to CI.~~ Done in
+    B03 (research R4): the drill and `economy_check` run the invariant, and
+    `test_balance_writers.py` fails on any balance writer outside `ledger.py`.
+- **Handed over from B03** (research "Handed to later features"):
+  - M06 sends the pending operations in `seq` order, in batches of 100 with `base_state_version`,
+    and applies each answer. On `state_stale` it fetches `GET /v1/state` and calls `replaceBase`.
+  - M06 replaces the wallet with the answer's, and takes `fuel_updated_at` as M05's `countedFrom`.
+  - M06 adds `content_version` to the payload of every operation that reads the pack, from the
+    operation's recorded column (backend §7.4).
+  - M06 treats `op_expired`, `content_version_unsupported` and `unknown_content_version` as
+    rejections that roll the operation back and say nothing alarming; M15 reports them.
+  - M06 anchors trusted time on `server_time`.
+  - M06 calls `comeback_gift` only when bootstrap says `comeback.claimable`, and never sends a
+    second while one is in its outbox: bootstrap keeps answering `claimable` until the claim has
+    synced, and a second claim of the same return is `already_granted`.
+  - M07 sends `tutorial_gift` and `settings_update` (the name). A refused name shows `Name`'s error
+    state.
+  - M10 sends `story_progress` and `claim_request`, and shows the unlock and completion rules of
+    research R6. A room's or chapter's BONAT arrives with the next sync.
+  - M11 and B07: `ad_reward` for the four client placements; the SSV grant for `morning_piggy`
+    calls `apply_entry`.
+  - B06, and B12 in phase 2: fill `entitlements.py` (`fuel_max_bonus`) and grant through
+    `apply_entry`.
+  - B08 and M13: register `claim_daily_reward`, `claim_task` and the `challenge` fuel mode; fill
+    `DailyState` and the longest streak; resolve HANDOFF §9.3 #6.
+  - B09: the anonymization path of `LedgerEntry`, and the cleanup of every B03 table on deletion.
+  - B10: see [Step 8](#step-8-ads).
+  - B13 (phase 3): leagues exclude players with open flags.
 - **Done when:**
   - The first online launch creates an anonymous account in the background.
   - Offline trips sync without duplicates.
@@ -452,6 +488,17 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
   `apps/mobile/assets/config/tunables.json`, including M01's 20 new keys and
   `trip_hints_mode_<line_id>`. This ends M01's approved exception to constitution VIII (Complexity
   Tracking in `specs/004-m01-trip-engine/plan.md`).
+- **Handed over from B03** (plan, Complexity Tracking; research R14 and "Handed to later
+  features"):
+  - In B10, move each of B03's server-only numbers into `liveops.LiveSetting` and read it from
+    there: `ECONOMY_FUEL_OVERDRAFT_PER_DAY` (2), `ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP` (1),
+    `SYNC_COMEBACK_AWAY_DAYS` (7), `SYNC_COMEBACK_COOLDOWN_DAYS` (30), `SYNC_MIN_DURATION_PERCENT`
+    (85), `SYNC_FAST_RUN_PERCENT` (95) and `SYNC_TRIPS_PER_DAY_FLAG` (400). They are env settings
+    until then, with no Remote Config key (mobile §14.3). This ends B03's deviation from
+    constitution VIII. Move the rest of B03's economy settings
+    (`specs/010-b03-ledger-sync/contracts/environment.md`) with them.
+  - In B10, answer `426 client_outdated` and make bootstrap's `client` block live, replacing
+    `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION`.
 - **Done when:**
   - Every placement in Glossary §3.4 works, with its caps enforced on the device and on the server.
   - No ad call is ever made while a trip is running.
@@ -622,7 +669,15 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     approval, the launcher icon (T131) and the device runs.
 - [ ] Step 6: Accounts and sync
   - [ ] `009-b02-accounts-auth`
-  - [ ] `010-b03-ledger-sync`
+  - [ ] `010-b03-ledger-sync`. Built on 2026-10-25; ticked after merge and quickstart Part B.
+    Decided in its clarifications: `claim_daily_reward` and `claim_task` wait for B08 and M13; room
+    and chapter BONAT is paid by the
+    server when the operation that completes it syncs; a phone may declare the current content
+    version or any published in the last 45 days; one comeback gift per return, at most one every
+    30 days; the display-name filter is a list staff edit in the admin. Resolved backend §22.2
+    (`Africa/Cairo`, research R3) and HANDOFF §9.3 #8's grants (`comeback_gift`, `claim_request`,
+    research R9). One tracked deviation from constitution VIII: the server-only numbers are env
+    settings until B10.
   - [ ] `011-m06-identity-sync`
 - [ ] Step 7: The full game loop
   - [ ] `012-m07-onboarding`

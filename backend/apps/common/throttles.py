@@ -1,8 +1,9 @@
 """The API's limits, shared by every API process through the cache.
 
 B01 (FR-015, research R4) limits each client address. B02 (research R9) adds the per-player limit
-every player endpoint inherits, and the limits of the three auth endpoints. Each rate is a setting
-read on every request, and every limit fails open when the cache is down.
+every player endpoint inherits, and the limits of the three auth endpoints. B03 (research R18) adds
+the sync limit. Each rate is a setting read on every request, and every limit fails open when the
+cache is down.
 """
 
 from __future__ import annotations
@@ -145,6 +146,18 @@ class LinkThrottle(SettingRateThrottle):
 
     scope = "link"
     rate_setting = "THROTTLE_LINK_RATE"
+
+    def get_cache_key(self, request: Request, view: APIView) -> str | None:
+        if request.auth is None:
+            return None
+        return self.cache_key_for(request.user.pk)
+
+
+class SyncThrottle(SettingRateThrottle):
+    """`POST /v1/sync`, per player, besides the per-player default (B03 research R18)."""
+
+    scope = "sync"
+    rate_setting = "THROTTLE_SYNC_RATE"
 
     def get_cache_key(self, request: Request, view: APIView) -> str | None:
         if request.auth is None:

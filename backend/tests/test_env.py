@@ -210,3 +210,39 @@ def test_auth_config_defaults_and_google_ids() -> None:
     assert lenient().auth().google_client_ids == ()
     with pytest.raises(ImproperlyConfigured, match="GOOGLE_OAUTH_CLIENT_IDS is required"):
         strict().auth()
+
+
+# -- B03's economy settings (specs/010-b03-ledger-sync/contracts/environment.md) -------------------
+
+
+def test_economy_defaults_are_the_same_in_every_environment() -> None:
+    assert strict().economy() == lenient().economy()
+    config = strict().economy()
+    assert (config.fuel_max, config.fuel_max_subscriber, config.fuel_regen_minutes) == (5, 7, 20)
+    assert config.game_timezone == "Africa/Cairo"
+    assert (config.client_min_version, config.client_latest_version) == ("1.0.0", "1.0.0")
+
+
+def test_economy_versions_compare_as_numbers() -> None:
+    config = lenient(CLIENT_MIN_VERSION="1.9.0", CLIENT_LATEST_VERSION="1.10.0").economy()
+    assert config.client_latest_version == "1.10.0"
+    with pytest.raises(ImproperlyConfigured, match="CLIENT_MIN_VERSION is invalid"):
+        lenient(CLIENT_MIN_VERSION="1.10.0", CLIENT_LATEST_VERSION="1.9.0").economy()
+
+
+@pytest.mark.parametrize("zone", ["", "Not/AZone", "UTC+3", "../../etc/passwd"])
+def test_economy_zone_must_resolve(zone: str) -> None:
+    if not zone:  # empty counts as unset: the default applies
+        assert lenient(SYNC_GAME_TIMEZONE=zone).economy().game_timezone == "Africa/Cairo"
+        return
+    with pytest.raises(ImproperlyConfigured, match="SYNC_GAME_TIMEZONE is invalid"):
+        lenient(SYNC_GAME_TIMEZONE=zone).economy()
+
+
+def test_content_index_keep_default_and_bounds() -> None:
+    from pathlib import Path as P
+
+    base = {"CONTENT_ROLE": "source", "CONTENT_PACKS_PUBLIC_URL": "http://localhost/packs/"}
+    assert lenient(**base).content(P("/tmp/p")).index_keep == 10  # noqa: S108 - not opened
+    with pytest.raises(ImproperlyConfigured, match="CONTENT_INDEX_KEEP is invalid"):
+        lenient(**base, CONTENT_INDEX_KEEP="4").content(P("/tmp/p"))  # noqa: S108

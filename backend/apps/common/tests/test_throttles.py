@@ -246,3 +246,49 @@ def test_rotating_ipv6_addresses_within_a_slash_64_share_the_anonymous_limit(
     ]
     assert codes == [201, 201, 429]
     assert sign_in(Client(REMOTE_ADDR="2001:db8:1:3::1"), uuid.uuid4()).status_code == 201
+
+
+# -- Sync (B03 research R18) -----------------------------------------------------------------------
+
+SYNC_BODY = {"base_state_version": 0, "ops": []}
+
+
+def sync_as(token: str, address: str = "127.0.0.1", forwarded: str = "192.0.2.40") -> int:
+    headers = {**bearer(token), "x-forwarded-for": forwarded}
+    response = Client(REMOTE_ADDR=address).post(
+        "/v1/sync", data=SYNC_BODY, content_type="application/json", headers=headers
+    )
+    return response.status_code
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("behind_proxy")
+def test_sync_is_limited_per_player_besides_the_default(settings: Settings) -> None:
+    settings.THROTTLE_SYNC_RATE = "3/min"
+    first, second = access_for(make_player()), access_for(make_player())
+    assert [sync_as(first) for _ in range(4)] == [200, 200, 200, 429]
+    # Another player behind the same address has their own budget.
+    assert sync_as(second) == 200
+    # Bootstrap and state use only the player default.
+    headers = {**bearer(first), "x-forwarded-for": "192.0.2.40"}
+    client = Client(REMOTE_ADDR="127.0.0.1")
+    assert client.get("/v1/bootstrap", headers=headers).status_code == 200
+    assert client.get("/v1/state", headers=headers).status_code == 200
+
+
+@pytest.mark.django_db
+def test_the_sync_rate_defaults_to_60_a_minute() -> None:
+    assert django_settings.THROTTLE_SYNC_RATE == "60/min"
+    token = access_for(make_player())
+    statuses = [sync_as(token, address="203.0.113.80", forwarded="") for _ in range(61)]
+    assert statuses[:60] == [200] * 60
+    assert statuses[60] == 429
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("behind_proxy")
+def test_the_sync_limit_fails_open() -> None:
+    token = access_for(make_player())
+    dead = {**django_settings.CACHES["default"], "LOCATION": "redis://127.0.0.1:1/0"}
+    with override_settings(CACHES={**django_settings.CACHES, "default": dead}):
+        assert sync_as(token) == 200

@@ -269,7 +269,7 @@ def _commit(fetched: Fetched, user: User) -> ContentPack:
             channel.current = pack
             channel.save(update_fields=["current", "updated_at"])
             lookups.index_pack(pack, fetched.pack)
-            lookups.retire_beyond_five(PACK_ID)
+            lookups.retire_beyond_keep(PACK_ID)
             audit.record(Action.PROMOTE, Outcome.SUCCEEDED, user, pack, {"record": record})
             transaction.on_commit(manifest.invalidate)
     except (PromotionFailed, PromotionRefused):

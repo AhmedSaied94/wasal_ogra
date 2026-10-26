@@ -171,7 +171,7 @@ def _commit(pack: ContentPack, user: User) -> None:
         channel.save(update_fields=["current", "updated_at"])
         permanence.record_published(data, version)
         lookups.index_pack(locked, data)
-        lookups.retire_beyond_five(PACK_ID)
+        lookups.retire_beyond_keep(PACK_ID)
         audit.record(
             Action.PUBLISH, Outcome.SUCCEEDED, user, locked, {"report": locked.validation_report}
         )
