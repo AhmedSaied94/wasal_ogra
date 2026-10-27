@@ -11,6 +11,10 @@ publishes it as version 1, the version dev builds bundle, through `apps.content.
 (publishing has no command of its own), and writes the rules index. Dev's solver stage is the
 stand-in. A stack that already has a current pack is left as it is. It prints the current version,
 and exits 1 unless it is 1.
+
+The pack files go to the host's packs directory (`backend/var/packs` by default), which it creates,
+not to the containers' `packs` volume. The server reads packs from the database, so the tests don't
+need the files; only an app downloading a pack would.
 """
 
 import sys
@@ -22,7 +26,7 @@ from django.db import transaction
 from apps.accounts.models import User
 from apps.content.models import SpeechLine
 from apps.content.models.packs import Status
-from apps.content.services import build, importer, lookups, publish, review
+from apps.content.services import build, files, importer, lookups, publish, review
 
 STAFF = "ci"
 SAMPLE = Path.cwd().parent / "content" / "examples" / "sample"
@@ -46,6 +50,7 @@ def seed() -> int:
                 if finding.get("severity") == "error":
                     print(f"  {finding.get('code')} {finding.get('path')}", file=sys.stderr)
             return 1
+        files.packs_dir().mkdir(parents=True, exist_ok=True)
         pack = publish.publish(str(pack.pk), user)
         if pack.failure_reason:
             print(f"publish failed: {pack.failure_reason}", file=sys.stderr)
