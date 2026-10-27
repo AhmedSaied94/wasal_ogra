@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mobile: ${{ steps.diff.outputs.mobile }}
+      sync: ${{ steps.diff.outputs.sync }}
     defaults:
       run:
         working-directory: .
@@ -53,13 +54,23 @@ jobs:
           else
             # First push of a branch, or history rewritten: check everything.
             echo "mobile=true" >> "$GITHUB_OUTPUT"
+            echo "sync=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if git diff --name-only "$base" HEAD \
+          changed="$(git diff --name-only "$base" HEAD)"
+          if echo "$changed" \
               | grep -qE '^(apps/mobile/|packages/|content/|fixtures/|docs/design/|\.fvmrc$|\.github/workflows/mobile\.yml$)'; then
             echo "mobile=true" >> "$GITHUB_OUTPUT"
           else
             echo "mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The app's account and sync, or the server side they call
+          # (specs/011-m06-identity-sync/contracts/ci-checks.md).
+          if echo "$changed" \
+              | grep -qE '^(apps/mobile/lib/core/(account|sync|network|economy)/|apps/mobile/test/backend/|backend/apps/(accounts|economy|progress)/|contracts/openapi\.yaml$|\.github/workflows/mobile\.yml$)'; then
+            echo "sync=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sync=false" >> "$GITHUB_OUTPUT"
           fi
 
   # The app: format, analyze, tests and goldens, and the coverage gate.
@@ -98,7 +109,8 @@ jobs:
       # without copying the library into build/ (research R2).
       - name: rive_native setup
         run: dart run rive_native:setup --verbose --clean --platform linux
-      - run: flutter test --coverage
+      # The backend-tagged tests need the dev stack: `sync-e2e` runs them.
+      - run: flutter test --coverage --exclude-tags backend
       - name: Coverage gate
         run: dart run tool/check_coverage.dart --min 80
       - name: Upload golden failures
@@ -195,10 +207,66 @@ jobs:
           path: apps/mobile/build/app/outputs/flutter-apk/app-dev-debug.apk
           retention-days: 7
 
+  # The app's account and sync against the real backend
+  # (specs/011-m06-identity-sync, contracts/ci-checks.md "The `sync-e2e`
+  # job"): the dev stack, seeded with the sample pack as version 1, the
+  # version dev builds bundle, and the `backend`-tagged tests. Also on a
+  # manual run.
+  sync-e2e:
+    needs: changes
+    if: >-
+      !cancelled() && (github.event_name == 'workflow_dispatch'
+      || needs.changes.outputs.sync == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE: docker compose -f docker/compose.yml -f docker/compose.dev.yml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Start the dev stack (it migrates first)
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          $COMPOSE up -d --build --wait --wait-timeout 180
+      # Publishing has no command of its own, so the script calls
+      # apps.content.services through manage.py shell, on the host.
+      - name: Seed the sample pack as version 1
+        working-directory: backend
+        run: |
+          uv sync --locked
+          uv run manage.py shell < ../apps/mobile/test/backend/seed_backend.py
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+          pub-cache: true
+      - name: content_models build
+        working-directory: packages/content_models
+        run: |
+          dart pub get
+          dart run build_runner build -d
+      - run: flutter pub get
+      - run: dart run build_runner build -d
+      - name: The backend-tagged tests
+        env:
+          WASSAL_E2E_API: http://localhost:8000
+        run: flutter test --tags backend test/backend
+      - if: failure()
+        working-directory: backend
+        run: $COMPOSE logs --no-color
+      - if: always()
+        working-directory: backend
+        run: $COMPOSE down -v
+
   # One status for the whole workflow, as backend.yml's `backend` job: it
   # passes when every job above passed or was skipped by `changes`.
   check:
-    needs: [changes, app, packages, build-android]
+    needs: [changes, app, packages, build-android, sync-e2e]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

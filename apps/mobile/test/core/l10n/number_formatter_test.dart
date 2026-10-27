@@ -31,6 +31,10 @@ void main() {
     ((f) => f.countdown(const Duration(seconds: 65)), '١:٠٥', '1:05'),
     ((f) => f.countdown(const Duration(seconds: 3725)), '١:٠٢:٠٥', '1:02:05'),
     ((f) => f.countdown(const Duration(seconds: -5)), '٠:٠٠', '0:00'),
+    ((f) => f.clockTime(16, 30), '٤:٣٠', '4:30'),
+    ((f) => f.clockTime(9, 5), '٩:٠٥', '9:05'),
+    ((f) => f.clockTime(0, 0), '١٢:٠٠', '12:00'),
+    ((f) => f.clockTime(12, 15), '١٢:١٥', '12:15'),
   ];
 
   test('every golden example, in both styles', () {

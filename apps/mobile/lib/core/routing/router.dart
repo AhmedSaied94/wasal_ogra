@@ -13,6 +13,8 @@ import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
 import 'package:wassal/features/dev/gallery/gallery_entry.dart';
+import 'package:wassal/features/dev/sync_status_card.dart';
+import 'package:wassal/features/home/home_status_area.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
 import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
 import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
@@ -152,6 +154,7 @@ Page<void> _page(
         spacing: SpaceTokens.s16,
         children: [TripList(), GalleryEntry()],
       ),
+      footer: const SyncStatusCard(),
     ),
     // M08 replaces it.
     RouteNames.result => PlaceholderScreen(
@@ -172,7 +175,7 @@ Page<void> _page(
       name: d.name,
       // Cold start ends when الموقف first draws (FR-012a).
       child: d.name == RouteNames.home
-          ? ReportFullyDrawn(child: screen)
+          ? ReportFullyDrawn(child: HomeStatusArea(child: screen))
           : screen,
     ),
     Presentation.sheet => AppSheetPage(

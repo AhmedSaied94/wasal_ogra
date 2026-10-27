@@ -334,7 +334,9 @@ hand-testing the whole game.
 
 - The trip scene targets 60 fps and MUST NOT drop below 45 fps on the reference low-end Android
   device.
-- Cold start to Home: < 3 s.
+- Cold start to Home: < 3 s. The one exception is the first open of an install with a network,
+  which may wait up to 3 s more for a returning player's account and state (M06). Every later
+  launch keeps the budget.
 - Android download size: < 80 MB.
 - Memory during a trip: < 300 MB.
 - No background work except FCM and scheduled local notifications.
@@ -417,4 +419,4 @@ hand-testing the whole game.
 - **Runtime guidance.** `CLAUDE.md` at the repository root carries day-to-day agent guidance and
   MUST stay consistent with this constitution.
 
-**Version**: 1.5.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-24
+**Version**: 1.6.0 | **Ratified**: 2026-10-18 | **Last Amended**: 2026-10-27

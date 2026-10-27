@@ -16,6 +16,7 @@ import 'package:wassal/core/economy/domain/trusted_time.dart';
 import 'package:wassal/core/economy/drift_economy_store.dart';
 import 'package:wassal/core/economy/economy.dart';
 import 'package:wassal/core/economy/economy_service.dart';
+import 'package:wassal/core/economy/economy_sync.dart';
 import 'package:wassal/core/economy/trusted_clock.dart';
 import 'package:wassal/core/platform/clock.dart';
 import 'package:wassal/core/platform/uptime.dart';
@@ -119,3 +120,9 @@ EconomyView economyView(Ref ref) {
   ref.onDispose(() => unawaited(changes.cancel()));
   return economy.view;
 }
+
+/// 7. The sync's way in (specs/011-m06-identity-sync, research R20): the
+/// same service and serial queue as [economyProvider]. Only `lib/core/sync/`
+/// and `lib/core/account/` read it; `economy_sync_access_test.dart` checks.
+@Riverpod(keepAlive: true)
+EconomySync economySync(Ref ref) => ref.watch(economyProvider).requireValue;

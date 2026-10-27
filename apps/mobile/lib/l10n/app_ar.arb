@@ -1379,5 +1379,47 @@
   "loadingProgressLabel": "التحميل",
   "@loadingProgressLabel": {
     "description": "Screen-reader name of the loading screen's road bar (HANDOFF Loading block 4)."
+  },
+  "syncBalanceCorrected": "رصيدك اتظبط على آخر حساب",
+  "@syncBalanceCorrected": {
+    "description": "Toast after a sync took back something the player saw, such as a purchase the server refused (specs/011-m06-identity-sync research R14). Proposed in specs/011 research R14; the owner approves."
+  },
+  "homeOffline": "انت أوفلاين، المشاوير شغالة والتقدم هيتحفظ لما النت يرجع",
+  "@homeOffline": {
+    "description": "Home's offline banner (HANDOFF States 1; specs/011-m06-identity-sync contracts/server-states.md)."
+  },
+  "updateTitle": "فيه نسخة جديدة",
+  "@updateTitle": {
+    "description": "The update card's title, forced or optional (HANDOFF States 7)."
+  },
+  "updateMessage": "فيها خطوط جديدة. حدّث عشان تكمّل.",
+  "@updateMessage": {
+    "description": "The update card's message (HANDOFF States 7)."
+  },
+  "updateCta": "حدّث من المتجر",
+  "@updateCta": {
+    "description": "The update card's button: opens the store listing (HANDOFF States 7)."
+  },
+  "updateLater": "بعدين",
+  "@updateLater": {
+    "description": "The optional update card's second button: closes it until a newer version (HANDOFF States 7's optional variant, not drawn; specs/011 contracts/server-states.md; the owner approves)."
+  },
+  "maintenanceTitle": "الموقف بيتصلّح",
+  "@maintenanceTitle": {
+    "description": "The maintenance card's title (HANDOFF States 8)."
+  },
+  "maintenanceMessageAt": "راجعين الساعة {time}. المشاوير شغالة أوفلاين.",
+  "@maintenanceMessageAt": {
+    "description": "The maintenance card's message when the server gave an end time (HANDOFF States 8). The time is the device's local hours and minutes, in the player's digit style.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "4:30"
+      }
+    }
+  },
+  "maintenanceMessage": "المشاوير شغالة أوفلاين.",
+  "@maintenanceMessage": {
+    "description": "The maintenance card's message without an end time (HANDOFF States 8)."
   }
 }

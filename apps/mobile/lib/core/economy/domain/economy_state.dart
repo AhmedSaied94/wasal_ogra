@@ -153,7 +153,7 @@ final class Owned {
   Owned({
     required this.kind,
     required this.acquiredAtMs,
-    required this.acquiredBy,
+    this.acquiredBy,
     this.variantId,
   }) {
     if (!ownableKinds.contains(kind)) {
@@ -172,8 +172,10 @@ final class Owned {
   final String? variantId;
   final int acquiredAtMs;
 
-  /// The operation that bought it.
-  final TxnId acquiredBy;
+  /// The operation that bought it, or null for a row taken from the
+  /// server's state, which doesn't send it (M06 research R12). Nothing
+  /// decides anything by it.
+  final TxnId? acquiredBy;
 
   @override
   bool operator ==(Object other) =>
@@ -461,7 +463,7 @@ final class EconomyState {
             'sku_id': skuId,
             'variant_id': ?value.variantId,
             'acquired_at_ms': value.acquiredAtMs,
-            'acquired_by': value.acquiredBy.value,
+            'acquired_by': ?value.acquiredBy?.value,
           },
       ],
       'progress': {
@@ -523,7 +525,9 @@ final class EconomyState {
           kind: kind,
           variantId: variantId,
           acquiredAtMs: _int(row, 'acquired_at_ms'),
-          acquiredBy: _txnId(row, 'acquired_by'),
+          acquiredBy: row['acquired_by'] == null
+              ? null
+              : _txnId(row, 'acquired_by'),
         );
       } on ArgumentError catch (e) {
         throw FormatException('bad ownership: ${e.message}', row);

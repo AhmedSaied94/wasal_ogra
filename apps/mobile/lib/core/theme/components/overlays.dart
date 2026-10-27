@@ -309,12 +309,24 @@ Future<T?> showAppDialog<T>({
   required WidgetBuilder builder,
   bool barrierDismissible = true,
 }) => Navigator.of(context).push(
-  _AppDialogRoute<T>(
+  appDialogRoute<T>(
+    context: context,
     builder: builder,
-    dismissible: barrierDismissible,
-    reducedMotion: MediaQuery.disableAnimationsOf(context),
-    barrierLabel: AppLocalizations.of(context).closeLabel,
+    barrierDismissible: barrierDismissible,
   ),
+);
+
+/// [showAppDialog]'s route, for an owner that pushes and removes it itself
+/// (the update card, specs/011-m06-identity-sync).
+Route<T> appDialogRoute<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) => _AppDialogRoute<T>(
+  builder: builder,
+  dismissible: barrierDismissible,
+  reducedMotion: MediaQuery.disableAnimationsOf(context),
+  barrierLabel: AppLocalizations.of(context).closeLabel,
 );
 
 /// Scales 0.92 → 1 with a fade over 220 ms easeOutBack(1.2); leaves with
@@ -770,8 +782,16 @@ void showAppToast(
   BuildContext context,
   String message, {
   Duration hold = MotionTokens.toastHold,
+}) =>
+    showAppToastOn(Overlay.of(context, rootOverlay: true), message, hold: hold);
+
+/// [showAppToast] on [overlay], for code outside the widget tree (the sync's
+/// rollback toast, on the navigator's overlay).
+void showAppToastOn(
+  OverlayState overlay,
+  String message, {
+  Duration hold = MotionTokens.toastHold,
 }) {
-  final overlay = Overlay.of(context, rootOverlay: true);
   if (_toasts[overlay] case final shown?) _closeToast(overlay, shown);
   late final OverlayEntry entry;
   entry = OverlayEntry(

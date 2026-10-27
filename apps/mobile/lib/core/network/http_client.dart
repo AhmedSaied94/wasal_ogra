@@ -1,6 +1,8 @@
 // The app's HTTP client (specs/006-m04-content-loader/contracts/updates.md
-// "Requests"). No token: the content endpoints stay public (B04 FR-033,
-// B02 FR-035), while every other /v1 call needs a player token (M06).
+// "Requests"). No token here: the content endpoints stay public (B04
+// FR-033, B02 FR-035). Every other /v1 call carries the player's token,
+// which `AuthorizedApi` adds per request (specs/011-m06-identity-sync,
+// research R3).
 import 'package:dio/dio.dart';
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/core/network/api_environment.dart';

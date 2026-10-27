@@ -6,6 +6,7 @@ import 'package:trip_engine/trip_engine.dart' show TripOutcome;
 import 'package:wassal/core/economy/domain/fold.dart';
 import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/domain/rules.dart';
+import 'package:wassal/core/economy/drift_economy_store.dart';
 import 'package:wassal/core/economy/economy.dart';
 
 import '../../helpers/economy.dart';
@@ -231,12 +232,22 @@ void main() {
                 final pending = await e.service.pendingOps(limit: 1000);
                 if (pending.isEmpty) break;
                 final id = pending[random.nextInt(pending.length)].op.txnId;
-                await e.service.markRejected({id: 'property'});
+                await e.service.setAside({id: 'property'});
                 rejected.add(id);
               case _Event.rebase:
                 base = e.service.state;
                 afterSeq = stored.isEmpty ? 0 : stored.last.$1;
-                await e.service.replaceBase(base, afterSeq: afterSeq);
+                // The store's rebase: the service's state already is the
+                // fold of this base with nothing after it.
+                await e.store.rebuild(
+                  (state, ops) => fold(state, ops, const ProductionRules()),
+                  newBase: ProjectionBase(
+                    state: base,
+                    afterSeq: afterSeq,
+                    kind: BaseKind.serverSnapshot,
+                    takenAtMs: e.clock.nowMs(),
+                  ),
+                );
               case _Event.request:
                 final request = _request(random, e.service.state);
                 final id = random.nextInt(20) == 0 && stored.isNotEmpty
@@ -304,5 +315,6 @@ Future<OpOutcome?> _send(TestEconomy e, TxnId id, OpRequest request) async {
       id,
       placement: placement,
     ),
+    ComebackGiftRequest() => e.service.grantComebackGift(id),
   };
 }

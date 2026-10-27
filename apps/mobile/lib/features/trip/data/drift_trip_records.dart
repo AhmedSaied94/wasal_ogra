@@ -126,6 +126,15 @@ final class DriftTripRecords implements TripRecords {
   });
 
   @override
+  Future<bool> has(TxnId start) async {
+    await _idle();
+    final record = await (_db.select(
+      _db.tripRecordTable,
+    )..where((r) => r.startTxn.equals(start.value))).getSingleOrNull();
+    return record != null;
+  }
+
+  @override
   Future<StoredTrip?> load(TxnId start) async {
     // Reads wait for the writes asked for before them.
     await _idle();

@@ -14,6 +14,7 @@ import 'package:wassal/core/glossary/ids.dart';
 
 import '../../helpers/content.dart';
 import '../../helpers/economy.dart';
+import '../../helpers/account.dart';
 import '../../helpers/memory_settings_store.dart';
 
 // Reading tunables: overrides first, then the bundled defaults (FR-034,
@@ -36,6 +37,7 @@ ProviderContainer containerWith({
       // flavor-scoped assets. And it opens the economy's database.
       ...contentTestOverrides(),
       ...economyTestOverrides(),
+      ...accountTestOverrides(),
     ],
   );
   addTearDown(container.dispose);
@@ -158,6 +160,7 @@ void main() {
         settingsStoreProvider.overrideWith((ref) => MemorySettingsStore()),
         ...contentTestOverrides(),
         ...economyTestOverrides(),
+        ...accountTestOverrides(),
       ],
     );
     addTearDown(container.dispose);

@@ -6,7 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/bootstrap/boot_progress.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/account/account_providers.dart';
+import 'package:wassal/core/account/account_service.dart';
+import 'package:wassal/core/account/domain/account.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
@@ -28,7 +32,9 @@ List<String> loadingLines(AppLocalizations l10n) => [l10n.loadingLine1];
 /// The first Flutter frame, the `Loading` artboard (HANDOFF `Loading`,
 /// research R6): on `sun` like the native splash, so there is no flash
 /// between them (M03 FR-012). The road bar follows the boot steps, a failure
-/// offers M03's retry, and it hands over once startup completes.
+/// offers M03's retry, and it hands over once startup completes and, on a
+/// first open, the account's work is done or [firstOpenWait] has passed
+/// (specs/011-m06-identity-sync, research R6).
 class BootScreen extends ConsumerStatefulWidget {
   const BootScreen({super.key});
 
@@ -93,11 +99,35 @@ class _BootScreenState extends ConsumerState<BootScreen>
     final economy = await ref.read(economyProvider.future);
     await ref.read(appDatabaseProvider.future);
     if (!mounted) return;
+    await _waitForFirstOpen();
+    if (!mounted) return;
+    ref.read(bootProgressProvider.notifier).markDone(BootStep.account);
     final unfinished = economy.view.unfinished;
     // Stale records go before a trip can open.
     await ref.read(tripRecordsProvider).deleteAllExcept(unfinished?.startTxn);
     if (!mounted) return;
+    // Past this, a returning player's state waits for the sync, off the
+    // trip screen (R6). The account never blocks play.
+    try {
+      (await ref.read(accountServiceProvider.future)).handOver();
+    } on Object {
+      // No account service: nothing can restore past the hand-over either.
+    }
+    if (!mounted) return;
     context.go(unfinished == null ? '/home' : '/trip/${unfinished.tripId}');
+  }
+
+  /// The first open's outcome, up to [firstOpenWait]: at once on a later
+  /// launch, or with no network. The work goes on past it.
+  Future<FirstOpenOutcome> _waitForFirstOpen() async {
+    try {
+      return await ref
+          .read(firstOpenOutcomeProvider.future)
+          .timeout(firstOpenWait, onTimeout: () => FirstOpenOutcome.timedOut);
+    } on Object {
+      // A failure of the account's work never blocks play.
+      return FirstOpenOutcome.timedOut;
+    }
   }
 
   @override

@@ -25,7 +25,11 @@ enum EconomyRefusal {
   unknownVariant('unknown_variant'),
   alreadyOwned('already_owned'),
   insufficientFunds('insufficient_funds'),
-  serverOnly('server_only');
+  serverOnly('server_only'),
+
+  /// A comeback gift the cached bootstrap doesn't offer, or one already
+  /// claimed (specs/011-m06-identity-sync R16).
+  notEligible('not_eligible');
 
   const EconomyRefusal(this.wire);
 

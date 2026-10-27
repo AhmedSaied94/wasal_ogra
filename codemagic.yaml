@@ -13,6 +13,10 @@ workflows:
       # Must equal .fvmrc; the first script checks it.
       flutter: 3.47.7
       xcode: latest
+      vars:
+        # A dev build calls localhost, which on an iPhone is the phone itself: point it at
+        # staging (api_environment.dart's stagingApiBase). Empty keeps localhost.
+        WASSAL_DEV_API_BASE: https://staging-api.141-147-129-92.sslip.io
     scripts:
       - name: Flutter matches .fvmrc
         script: |
@@ -36,7 +40,9 @@ workflows:
         script: dart run rive_native:setup --verbose --platform ios
       # Release mode: a debug build on iOS starts only from Xcode or the flutter tool.
       - name: Build
-        script: flutter build ios --release --flavor dev --no-codesign
+        script: |
+          flutter build ios --release --flavor dev --no-codesign \
+            --dart-define=WASSAL_DEV_API_BASE=$WASSAL_DEV_API_BASE
       - name: Package the IPA
         script: |
           mkdir -p build/ipa/Payload

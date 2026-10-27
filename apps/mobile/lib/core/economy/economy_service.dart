@@ -1,6 +1,9 @@
 // The one economy service (research R10, R11, R17): one writer, one
 // transaction per operation, and a view that changes only after a commit.
+// It is also the sync's way in (`EconomySync`, specs/011-m06-identity-sync
+// research R20), on the same serial queue.
 import 'dart:async';
+import 'dart:math' show max;
 
 import 'package:content_models/content_models.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
@@ -14,10 +17,11 @@ import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/domain/rules.dart';
 import 'package:wassal/core/economy/drift_economy_store.dart';
 import 'package:wassal/core/economy/economy.dart';
+import 'package:wassal/core/economy/economy_sync.dart';
 import 'package:wassal/core/economy/trusted_clock.dart';
 import 'package:wassal/core/economy/txn_ids.dart';
 
-final class EconomyService implements Economy {
+final class EconomyService implements Economy, EconomySync {
   EconomyService._({
     required this._store,
     required this._clock,
@@ -26,7 +30,9 @@ final class EconomyService implements Economy {
     required this._tunables,
     required this._rules,
     required this._state,
-  });
+    required ProjectionBase base,
+    required this._pending,
+  }) : _base = (stateVersion: base.stateVersion, playerId: base.playerId);
 
   /// Reads the materialized tables (never the log, research R18) and arms
   /// the next-liter timer.
@@ -47,6 +53,8 @@ final class EconomyService implements Economy {
       tunables: tunables,
       rules: rules,
       state: stored.state,
+      base: stored.base,
+      pending: await store.pendingCount(),
     ).._rearm();
   }
 
@@ -57,8 +65,11 @@ final class EconomyService implements Economy {
   final ConfigSource Function() _tunables;
   final Rules _rules;
   EconomyState _state;
+  ({int? stateVersion, String? playerId}) _base;
+  int _pending;
 
   final _views = StreamController<EconomyView>.broadcast();
+  final _pendingCounts = StreamController<int>.broadcast();
   Future<void> _tail = Future.value();
   Timer? _timer;
   bool _foreground = true;
@@ -114,61 +125,166 @@ final class EconomyService implements Economy {
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
       _submit(id, AdRewardRequest(placement));
 
+  // The sync (EconomySync).
+
+  @override
+  ({int? stateVersion, String? playerId}) get baseInfo => _base;
+
+  @override
+  int get pendingCount => _pending;
+
+  @override
+  Stream<int> get pendingCounts => _pendingCounts.stream;
+
   @override
   Future<List<LedgerOp>> pendingOps({int limit = 100}) =>
       _serial(() => _store.pendingOps(limit));
 
   @override
-  Future<void> markAccepted(Iterable<TxnId> ids) => _serial(() async {
-    final skipped = await _store.markAccepted(ids);
-    assert(skipped.isEmpty, 'Not pending, left as they were: $skipped');
+  Future<int> highestAnsweredSeq() => _serial(_store.highestAnsweredSeq);
+
+  @override
+  Future<bool> hasPending(OpType type) =>
+      _serial(() => _store.hasPending(type));
+
+  @override
+  Future<AnswerApplied> applyAnswer(
+    SyncAnswer answer, {
+    required List<LedgerOp> batch,
+    required String playerId,
+  }) => _serial(() async {
+    final before = view;
+    final inBatch = {for (final op in batch) op.op.txnId.value: op.op.txnId};
+    final wallet = answer.wallet;
+    final applied = await _store.applyAnswer(
+      _fold,
+      results: {
+        // A result for an id this batch didn't send is ignored.
+        for (final result in answer.results)
+          ?inBatch[result.txnId]: result.reason,
+      },
+      batchMaxSeq: batch.fold(0, (seq, op) => max(seq, op.seq)),
+      balances: answer.stateStale
+          ? null
+          : (
+              jenehat: wallet.jenehat,
+              bonat: wallet.bonat,
+              fuel: wallet.fuelState,
+            ),
+      stateVersion: answer.stateVersion,
+      playerId: playerId,
+      takenAtMs: _clock.nowMs(),
+    );
+    _state = applied.fold.state;
+    _base = (
+      stateVersion: applied.base.stateVersion,
+      playerId: applied.base.playerId,
+    );
+    await _recount();
+    _changed();
+    return AnswerApplied(
+      leftOutAccepted: List.unmodifiable(applied.leftOutAccepted),
+      before: before,
+      after: view,
+    );
   });
 
   @override
-  Future<void> markRejected(Map<TxnId, String> reasons) => _serial(() async {
+  Future<void> replaceFromServer(
+    EconomyState snapshot, {
+    required String playerId,
+    required int stateVersion,
+  }) => _takeServerState(
+    snapshot,
+    playerId: playerId,
+    stateVersion: stateVersion,
+    dropPending: false,
+  );
+
+  @override
+  Future<int> adoptAccount(
+    EconomyState snapshot, {
+    required String playerId,
+    required int stateVersion,
+  }) => _takeServerState(
+    snapshot,
+    playerId: playerId,
+    stateVersion: stateVersion,
+    dropPending: true,
+  );
+
+  Future<int> _takeServerState(
+    EconomyState snapshot, {
+    required String playerId,
+    required int stateVersion,
+    required bool dropPending,
+  }) => _serial(() async {
+    final taken = await _store.takeServerState(
+      _fold,
+      snapshot: snapshot,
+      stateVersion: stateVersion,
+      playerId: playerId,
+      takenAtMs: _clock.nowMs(),
+      dropPending: dropPending,
+    );
+    _state = taken.fold.state;
+    _base = (stateVersion: taken.base.stateVersion, playerId: playerId);
+    await _recount();
+    _changed();
+    return taken.dropped;
+  });
+
+  @override
+  Future<void> setAside(Map<TxnId, String> reasons) => _serial(() async {
     final rebuilt = await _store.rebuild(_fold, rejected: reasons);
     _state = rebuilt.fold.state;
+    await _recount();
     _changed();
-    assert(
-      rebuilt.skipped.isEmpty,
-      'Not pending, left as they were: ${rebuilt.skipped}',
-    );
   });
 
   @override
-  Future<void> replaceBase(
-    EconomyState snapshot, {
-    required int afterSeq,
-    int? stateVersion,
-  }) => _serial(() async {
-    final rebuilt = await _store.rebuild(
-      _fold,
-      newBase: ProjectionBase(
-        state: snapshot,
-        afterSeq: afterSeq,
-        kind: BaseKind.serverSnapshot,
-        stateVersion: stateVersion,
-        takenAtMs: _clock.nowMs(),
+  Future<OpOutcome> grantComebackGift(TxnId id) =>
+      _submit(id, const ComebackGiftRequest());
+
+  @override
+  Future<void> anchorOnServer(
+    int serverTimeMs, {
+    required int elapsedAtResponseMs,
+  }) => _serial(
+    () => _saveAnchor(
+      () => _clock.anchorOnServer(
+        serverTimeMs,
+        elapsedAtResponseMs: elapsedAtResponseMs,
       ),
-    );
-    _state = rebuilt.fold.state;
-    _changed();
-  });
+    ),
+  );
+
+  /// Reads the pending count again, after a change that answered some.
+  Future<void> _recount() async {
+    _pending = await _store.pendingCount();
+    _pendingChanged();
+  }
+
+  void _pendingChanged() {
+    if (!_disposed) _pendingCounts.add(_pending);
+  }
 
   /// Emits a fresh view, after a tunable change.
   void refresh() => _changed();
 
   /// Keeps the next-liter timer to the foreground, and the clock fresh
-  /// (research R9, R17). No timer runs in the background.
+  /// (research R9, R17). No timer runs in the background. The clock's work
+  /// waits behind the requests already queued, so a resync never lands
+  /// between a request's validation and its commit (M06 research R20).
   Future<void> handleLifecycle(AppLifecycleState lifecycle) async {
     switch (lifecycle) {
       case AppLifecycleState.resumed:
         _foreground = true;
-        await _saveAnchor(_clock.resync);
+        await _serial(() => _saveAnchor(_clock.resync));
         _changed();
       case AppLifecycleState.paused:
         _leaveForeground();
-        await _saveAnchor(_clock.saveLatest);
+        await _serial(() => _saveAnchor(_clock.saveLatest));
       case AppLifecycleState.hidden:
         _leaveForeground();
       case AppLifecycleState.inactive || AppLifecycleState.detached:
@@ -190,6 +306,7 @@ final class EconomyService implements Economy {
     _disposed = true;
     _timer?.cancel();
     unawaited(_views.close());
+    unawaited(_pendingCounts.close());
   }
 
   FoldResult _fold(EconomyState base, List<Op> ops) => fold(base, ops, _rules);
@@ -215,7 +332,9 @@ final class EconomyService implements Economy {
           return const OpWriteFailed();
         }
         _state = after;
+        _pending++;
         _changed();
+        _pendingChanged();
         return OpApplied(op: ledgerOp, view: view, repeated: false);
     }
   });

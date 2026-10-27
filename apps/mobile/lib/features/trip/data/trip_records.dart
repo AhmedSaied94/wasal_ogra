@@ -32,6 +32,11 @@ abstract interface class TripRecords {
   /// The full record and its pending intents, or null.
   Future<StoredTrip?> load(TxnId start);
 
+  /// Whether a record for [start] is on this phone: the sync keeps the
+  /// server's open trip only then (specs/011-m06-identity-sync, research
+  /// R12). A read only.
+  Future<bool> has(TxnId start);
+
   /// Deletes one record with its commands and intents.
   Future<bool> delete(TxnId start);
 

@@ -30,6 +30,9 @@ const _tables = {
   'trip_record',
   'trip_record_command',
   'trip_intent',
+  // v3: the account and the last bootstrap (specs/011-m06-identity-sync).
+  'account',
+  'server_info',
 };
 
 final _anchor = firstAnchor(
@@ -60,7 +63,7 @@ String _sha256(File file) => sha256.convert(file.readAsBytesSync()).toString();
 
 void main() {
   group('first open', () {
-    test('creates exactly the 11 tables', () async {
+    test('creates exactly the 13 tables', () async {
       final db = await _opened(tempDbFile());
       final names = await _rows(
         db,
@@ -102,6 +105,7 @@ void main() {
           'kind': 'new_player',
           'state_version': null,
           'taken_at_ms': _anchor.anchorMs,
+          'player_id': null,
         },
       ]);
 
@@ -120,6 +124,16 @@ void main() {
         expect(await _rows(db, 'SELECT * FROM $table'), isEmpty, reason: table);
       }
       expect(await _rows(db, 'SELECT * FROM trip_progress'), isEmpty);
+
+      // No account yet, and no bootstrap (schema_v3_test.dart has the rest).
+      expect(
+        (await _rows(db, 'SELECT status, updated_at_ms FROM account')).single,
+        {'status': 'none', 'updated_at_ms': _anchor.anchorMs},
+      );
+      expect(
+        (await _rows(db, 'SELECT comeback_claimable FROM server_info')).single,
+        {'comeback_claimable': 0},
+      );
     });
 
     test('holds a new player only', () {
@@ -143,10 +157,10 @@ void main() {
       );
     });
 
-    test('stamps schema version 2', () async {
+    test('stamps schema version 3', () async {
       final db = await _opened(tempDbFile());
       expect(await _rows(db, 'PRAGMA user_version'), [
-        {'user_version': 2},
+        {'user_version': 3},
       ]);
     });
   });
@@ -244,13 +258,13 @@ void main() {
   });
 
   group('a file the app cannot open stays as it is', () {
-    test('user_version 3 fails with DatabaseFromNewerApp', () async {
+    test('user_version 4 fails with DatabaseFromNewerApp', () async {
       final file = tempDbFile();
       final first = _open(file);
       await first.customSelect('SELECT 1').get();
       await first.close();
       sqlite3.open(file.path)
-        ..execute('PRAGMA user_version = 3')
+        ..execute('PRAGMA user_version = 4')
         ..close();
       final before = _sha256(file);
 
@@ -260,8 +274,8 @@ void main() {
         db.customSelect('SELECT 1').get(),
         throwsA(
           isA<DatabaseFromNewerApp>()
-              .having((e) => e.fileVersion, 'fileVersion', 3)
-              .having((e) => e.appVersion, 'appVersion', 2),
+              .having((e) => e.fileVersion, 'fileVersion', 4)
+              .having((e) => e.appVersion, 'appVersion', 3),
         ),
       );
       await db.close();

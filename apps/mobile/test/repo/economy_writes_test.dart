@@ -23,6 +23,13 @@ const _tripTables = [
   'tripIntentTable',
 ];
 
+// The account's store (specs/011-m06-identity-sync, data-model.md "Tables
+// (schema v3)"): only it writes the account and the last bootstrap, and it
+// never writes the economy's or the trip's tables.
+const _accountStore = 'lib/core/account/drift_account_store.dart';
+const _accountProviders = 'lib/core/account/account_providers.dart';
+const _accountTables = ['accountTable', 'serverInfoTable'];
+
 const _tables = [
   'ledgerOps',
   'walletTable',
@@ -45,6 +52,9 @@ final _tableWrite = RegExp(
 final _tripTableWrite = RegExp(
   '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_tripTables.join('|')})\\b',
 );
+final _accountTableWrite = RegExp(
+  '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_accountTables.join('|')})\\b',
+);
 final _rawWrite = RegExp(
   r'\.batch\(|\bcustomStatement\(|\bcustomUpdate\(|\bcustomInsert\(',
 );
@@ -59,7 +69,9 @@ bool _mayImportDatabase(String path) =>
     path == _store ||
     path == _providers ||
     path == _tripStore ||
-    path == _tripProviders;
+    path == _tripProviders ||
+    path == _accountStore ||
+    path == _accountProviders;
 
 bool _mayWrite(String path) => path.startsWith(_storage) || path == _store;
 
@@ -69,6 +81,16 @@ List<String> directWrites(String source) {
   return [
     for (var i = 0; i < lines.length; i++)
       if (_tableWrite.hasMatch(lines[i]) || _rawWrite.hasMatch(lines[i]))
+        '${i + 1}: ${lines[i].trim()}',
+  ];
+}
+
+/// Lines of [source] that write an account table.
+List<String> accountTableWrites(String source) {
+  final lines = stripComments(source).split('\n');
+  return [
+    for (var i = 0; i < lines.length; i++)
+      if (_accountTableWrite.hasMatch(lines[i]) || _rawWrite.hasMatch(lines[i]))
         '${i + 1}: ${lines[i].trim()}',
   ];
 }
@@ -183,6 +205,26 @@ void main() {
     expect(directWrites(File(_tripStore).readAsStringSync()), isEmpty);
   });
 
+  test('the account store exists, so the account rules scan real code', () {
+    expect(File(_accountStore).existsSync(), isTrue);
+  });
+
+  test('nothing but storage and the account store writes an account table', () {
+    final violations = [
+      for (final file in files)
+        if (!_path(file).startsWith(_storage) && _path(file) != _accountStore)
+          for (final hit in accountTableWrites(file.readAsStringSync()))
+            '${_path(file)}:$hit',
+    ];
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('the account store writes no economy or trip table', () {
+    final source = File(_accountStore).readAsStringSync();
+    expect(directWrites(source), isEmpty);
+    expect(tripTableWrites(source), isEmpty);
+  });
+
   test('ledger_ops rows change only in their sync columns', () {
     expect(ledgerRuleBreaks(File(_store).readAsStringSync()), isEmpty);
     final deletes = [
@@ -225,6 +267,23 @@ void main() {
     expect(tripTableWrites('// db.into(db.tripIntentTable)'), isEmpty);
     expect(directWrites('db.into(db.tripRecordTable).insert(x);'), isEmpty);
   });
+
+  test(
+    'the account scan catches account-table writes and ignores the rest',
+    () {
+      expect(
+        accountTableWrites('db.into(db.accountTable).insert(x);'),
+        hasLength(1),
+      );
+      expect(
+        accountTableWrites('await _db.update(_db.serverInfoTable).write(x);'),
+        hasLength(1),
+      );
+      expect(accountTableWrites('db.select(db.accountTable).get();'), isEmpty);
+      expect(accountTableWrites('// db.into(db.serverInfoTable)'), isEmpty);
+      expect(directWrites('db.into(db.accountTable).insert(x);'), isEmpty);
+    },
+  );
 
   test('the ledger scan catches every way around _setSyncStatus', () {
     const ok = '''

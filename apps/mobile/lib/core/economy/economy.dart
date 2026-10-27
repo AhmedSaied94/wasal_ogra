@@ -49,15 +49,8 @@ abstract interface class Economy {
   // Rewarded ads, applied after the ad's reward callback (M11).
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement});
 
-  // Sync (M06). Tested in M05, called by M06.
-  Future<List<LedgerOp>> pendingOps({int limit = 100});
-  Future<void> markAccepted(Iterable<TxnId> ids);
-  Future<void> markRejected(Map<TxnId, String> reasons);
-  Future<void> replaceBase(
-    EconomyState snapshot, {
-    required int afterSeq,
-    int? stateVersion,
-  });
+  // The sync's calls are on `EconomySync` (economy_sync.dart), out of the
+  // screens' reach (specs/011-m06-identity-sync, research R20).
 }
 
 /// What a request came to. No method throws for a refusal or a write error.

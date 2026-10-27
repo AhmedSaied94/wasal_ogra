@@ -71,6 +71,12 @@ flutter {
     source = "../.."
 }
 
+dependencies {
+    // Block Store keeps the install id across a re-install, and to a new phone in the restore
+    // flow, when Google backup is on (specs/011-m06-identity-sync, research R1).
+    implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
+}
+
 // Staging and prod bundle only a pack production promoted, so they refuse to build until one is
 // committed. Dev bundles the sample instead (specs/006-m04-content-loader/contracts/bundling.md).
 val checkBundledPack by tasks.registering {

@@ -12,7 +12,10 @@ enum OpType {
   adReward('ad_reward'),
   spendJenehat('spend_jenehat'),
   spendBonat('spend_bonat'),
-  useBooster('use_booster');
+  useBooster('use_booster'),
+
+  /// The comeback gift (specs/011-m06-identity-sync research R16).
+  comebackGift('comeback_gift');
 
   const OpType(this.wire);
 
@@ -120,6 +123,12 @@ final class AdRewardRequest extends OpRequest {
   const AdRewardRequest(this.placement);
 
   final AdPlacement placement;
+}
+
+/// The comeback gift. Only `ComebackGift` asks for it, through
+/// `EconomySync`, behind its guard (specs/011-m06-identity-sync R16).
+final class ComebackGiftRequest extends OpRequest {
+  const ComebackGiftRequest();
 }
 
 /// An operation: what a request became once validated, and what is stored

@@ -12,18 +12,18 @@ import 'generated/schema.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('a new database has the exported v2 schema', () async {
+  test('a new database has the exported v3 schema', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, 3);
   });
 
   test(
-    'a v2 database opens without a migration and keeps its schema',
+    'a v3 database opens without a migration and keeps its schema',
     () async {
-      final db = AppDatabase(await verifier.startAt(2));
+      final db = AppDatabase(await verifier.startAt(3));
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 2);
+      await verifier.migrateAndValidate(db, 3);
     },
   );
 }

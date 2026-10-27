@@ -27,3 +27,29 @@ FoldResult fold(EconomyState base, Iterable<Op> ops, Rules rules) {
   }
   return FoldResult(state, List.unmodifiable(leftOut));
 }
+
+/// What a sync answer's wallet decides (M06 research R11): the balances and
+/// the tank, as the server counted them.
+typedef ServerBalances = ({int jenehat, int bonat, FuelState fuel});
+
+/// The base after an answer (M06 research R11): [base] folded with
+/// [answered], every answered operation up to the batch's last that wasn't
+/// rejected, then the server's balances and tank in place of the fold's.
+/// Ownership, inventory, progress and the trip session stay the fold's.
+FoldResult rebase(
+  EconomyState base,
+  Iterable<Op> answered,
+  ServerBalances balances,
+  Rules rules,
+) => withServerBalances(fold(base, answered, rules), balances);
+
+/// [folded] with [balances] in place of its own.
+FoldResult withServerBalances(FoldResult folded, ServerBalances balances) =>
+    FoldResult(
+      folded.state.copyWith(
+        jenehat: balances.jenehat,
+        bonat: balances.bonat,
+        fuel: balances.fuel,
+      ),
+      folded.leftOut,
+    );

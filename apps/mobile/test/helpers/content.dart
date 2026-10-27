@@ -81,13 +81,20 @@ String sha256Hex(List<int> bytes) => sha256.convert(bytes).toString();
 
 /// An [AppInfo] with a fixed `<version>+<build>`.
 final class FakeAppInfo implements AppInfo {
-  FakeAppInfo(this.versionWithBuild, {this.platform = 'android'});
+  FakeAppInfo(
+    this.versionWithBuild, {
+    this.platform = 'android',
+    this.packageName = 'com.wassalogra.app.dev',
+  });
 
   @override
   final String versionWithBuild;
 
   @override
   final String platform;
+
+  @override
+  final String packageName;
 
   @override
   String get version => versionWithBuild.split('+').first;

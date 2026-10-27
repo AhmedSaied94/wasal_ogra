@@ -43,6 +43,11 @@ PackDecoder packDecoder(Ref ref) => isolatePackDecoder;
 ContentSource contentSource(Ref ref) =>
     ref.watch(activeContentProvider).requireValue.source;
 
+/// The active pack once it has loaded, for what can run before startup
+/// completes: the account restores alongside the content step (M06).
+Future<ContentSource> loadedContentSource(Ref ref) async =>
+    (await ref.read(activeContentProvider.future)).source;
+
 /// The active pack's version, which ops declare (M05, M06).
 @Riverpod(keepAlive: true)
 int contentVersion(Ref ref) =>

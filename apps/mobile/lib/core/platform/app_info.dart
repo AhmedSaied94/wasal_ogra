@@ -18,10 +18,18 @@ abstract interface class AppInfo {
 
   /// `android` or `ios`, as `X-Platform` sends it.
   String get platform;
+
+  /// The flavor's application id (bundle id on iOS), for the store link.
+  String get packageName;
 }
 
 final class PackageInfoAppInfo implements AppInfo {
-  const PackageInfoAppInfo._(this.version, this.buildNumber, this.platform);
+  const PackageInfoAppInfo._(
+    this.version,
+    this.buildNumber,
+    this.platform,
+    this.packageName,
+  );
 
   static Future<PackageInfoAppInfo> load() async {
     final info = await PackageInfo.fromPlatform();
@@ -29,6 +37,7 @@ final class PackageInfoAppInfo implements AppInfo {
       info.version,
       info.buildNumber,
       defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      info.packageName,
     );
   }
 
@@ -40,6 +49,9 @@ final class PackageInfoAppInfo implements AppInfo {
 
   @override
   final String platform;
+
+  @override
+  final String packageName;
 
   @override
   String get versionWithBuild => '$version+$buildNumber';

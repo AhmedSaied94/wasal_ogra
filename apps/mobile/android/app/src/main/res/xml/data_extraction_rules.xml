@@ -2,12 +2,31 @@
 <!-- Android 12 and later. The game database stays out of cloud backup and
      device transfer: before account linking, restored progress would vanish
      at the first sync (specs/007-m05-local-economy, research R14). Its -wal
-     and -shm files live in the same directory. -->
+     and -shm files live in the same directory.
+
+     The session's tokens stay out too (specs/011-m06-identity-sync, research
+     R2): the four sharedpref files flutter_secure_storage 11.2.0 writes with
+     no storageNamespace. A restored copy couldn't unwrap its key on another
+     phone, and the install id signs in again. A plugin upgrade must check
+     these names again.
+
+     Exclude-only, with no include: an include would limit the backup to the
+     files it lists, and drop the settings file and wassal_install.xml, the
+     install id's file, which the backup carries across a re-install
+     (research R1). -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="db/"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="db/"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration.xml"/>
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
     </device-transfer>
 </data-extraction-rules>

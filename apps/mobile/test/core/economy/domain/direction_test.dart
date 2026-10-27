@@ -112,6 +112,7 @@ List<Op> _everyOp() {
     accept(_inTrip, const BuyRequest(kind: SkuKind.revive, skuId: 'revive')),
     for (final booster in inTripBoosters)
       accept(_inTrip, UseBoosterRequest(booster)),
+    accept(_stocked, const ComebackGiftRequest()),
   ];
 }
 

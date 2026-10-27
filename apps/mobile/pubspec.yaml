@@ -27,6 +27,9 @@ dependencies:
   flame_audio: ^2.12.2
   flame_rive: ^1.11.2
   flutter_riverpod: ^3.4.3
+  # The session tokens, and the install id on iOS (specs/011-m06-identity-sync,
+  # research R1, R2). A Swift Package on iOS, so there is still no Podfile.
+  flutter_secure_storage: ^11.2.0
   # The design's icons, illustrations and the passengers' static art
   # (specs/008.5-m21-design-refresh, research R17).
   flutter_svg: ^2.3.0
@@ -38,9 +41,15 @@ dependencies:
   riverpod_annotation: ^4.0.7
   rive: ^0.14.11
   shared_preferences: ^2.5.6
+  # Direct for its Android options: `AndroidInstallIdStore` writes the
+  # install id to its own backed-up file, `wassal_install.xml`
+  # (specs/011-m06-identity-sync, research R1).
+  shared_preferences_android: ^2.5.1
   sqlite3: ^3.7.1
   trip_engine:
     path: ../../packages/trip_engine
+  # The update card's store link (specs/011-m06-identity-sync, research R18).
+  url_launcher: ^6.3.3
   uuid: ^4.6.0
 
 dev_dependencies:

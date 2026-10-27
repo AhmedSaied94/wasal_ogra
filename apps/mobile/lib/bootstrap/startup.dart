@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart' show WidgetRef;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/bootstrap/boot_progress.dart';
+import 'package:wassal/core/account/account_providers.dart';
 import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/pack_store.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
+import 'package:wassal/core/network/api_client.dart';
 import 'package:wassal/core/platform/app_info.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/preferences/shared_prefs_settings_store.dart';
@@ -39,9 +43,19 @@ class BootProgressNotifier extends _$BootProgressNotifier {
 /// content pack (specs/006-m04-content-loader, FR-008) and the opened economy
 /// (specs/007-m05-local-economy, FR-005). Each step reports to
 /// [bootProgressProvider] as it finishes.
+///
+/// The first open's work (specs/011-m06-identity-sync, research R6) starts
+/// here too, once the database is open, and runs beside the rest: it is not
+/// a step startup waits for. The boot screen waits for it, up to
+/// `firstOpenWait`.
 @Riverpod(keepAlive: true)
 Future<void> appStartup(Ref ref) {
   final progress = ref.read(bootProgressProvider.notifier);
+  unawaited(
+    ref
+        .read(firstOpenOutcomeProvider.future)
+        .then<void>((_) {}, onError: (Object _) {}),
+  );
   return trackBootSteps(
     {
       BootStep.settings: ref.watch(settingsStoreProvider.future),
@@ -71,6 +85,10 @@ void retryAppStartup(WidgetRef ref) {
     ..invalidate(economyStoreProvider)
     ..invalidate(trustedClockProvider)
     ..invalidate(economyProvider)
+    ..invalidate(apiClientProvider)
+    ..invalidate(accountStoreProvider)
+    ..invalidate(accountServiceProvider)
+    ..invalidate(firstOpenOutcomeProvider)
     ..invalidate(bootProgressProvider)
     ..invalidate(appStartupProvider);
 }
