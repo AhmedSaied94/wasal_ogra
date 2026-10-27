@@ -37,6 +37,18 @@ bool _tripAllowed(String uri) =>
     uri.startsWith('package:wassal/features/trip/domain/') ||
     _sameFolder(uri);
 
+/// The account's and the sync's domains (specs/011-m06-identity-sync,
+/// contracts/ci-checks.md "Domain imports"): JSON, the generated models, the
+/// economy and content domains, and each other.
+bool _syncAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'dart:convert' ||
+    uri.startsWith('package:wassal/core/content/domain/') ||
+    uri.startsWith('package:wassal/core/economy/domain/') ||
+    uri.startsWith('package:wassal/core/account/domain/') ||
+    uri.startsWith('package:wassal/core/sync/domain/') ||
+    _sameFolder(uri);
+
 /// A file of the same folder, by relative path.
 bool _sameFolder(String uri) =>
     !uri.contains(':') && !uri.contains('/') && !uri.contains('..');
@@ -45,6 +57,8 @@ const _domains = <String, bool Function(String)>{
   'lib/core/content/domain': _contentAllowed,
   'lib/core/economy/domain': _economyAllowed,
   'lib/features/trip/domain': _tripAllowed,
+  'lib/core/account/domain': _syncAllowed,
+  'lib/core/sync/domain': _syncAllowed,
 };
 
 final _directive = RegExp(
@@ -143,6 +157,36 @@ void main() {
       'package:flutter/foundation.dart',
       'dart:io',
       'dart:math',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
+  });
+
+  test('the account and sync scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _syncAllowed);
+    for (final ok in [
+      'pass.dart',
+      'dart:convert',
+      'dart:collection',
+      'package:content_models/content_models.dart',
+      'package:wassal/core/economy/domain/economy_state.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:wassal/core/account/domain/account.dart',
+      'package:wassal/core/sync/domain/wire/reader.dart',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/foundation.dart',
+      'package:dio/dio.dart',
+      'package:drift/drift.dart',
+      'package:uuid/uuid.dart',
+      'package:wassal/core/network/api_client.dart',
+      'package:wassal/core/economy/economy.dart',
+      'package:trip_engine/trip_engine.dart',
+      'dart:io',
+      'dart:async',
     ]) {
       expect(scan(bad), hasLength(1), reason: bad);
     }

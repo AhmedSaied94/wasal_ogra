@@ -21,6 +21,10 @@ abstract interface class TrustedClock {
     required int elapsedAtResponseMs,
   });
 
+  /// The uptime counter now, as [anchorOnServer] takes it: what the API
+  /// client stamps a request and its answer with (M06, research R15).
+  int elapsedMs();
+
   /// The latest trusted time handed out.
   int get latestMs;
 
@@ -93,6 +97,13 @@ final class UptimeTrustedClock implements TrustedClock {
 
   @override
   int get latestMs => _latest;
+
+  /// The last reading plus the stopwatch since it. Without an uptime
+  /// channel, the stopwatch alone: trusted time then follows the device
+  /// clock, and the anchor isn't read.
+  @override
+  int elapsedMs() =>
+      (_snapshot?.elapsedRealtimeMs ?? 0) + _stopwatch.elapsedMilliseconds;
 
   @override
   Future<void> resync() async {

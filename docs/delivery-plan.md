@@ -103,7 +103,7 @@ glossary, and merged decisions win on behaviour.
 | --- | --- | --- |
 | 008.5 M21 | `Tokens`, `Components`, `Characters`, `Passengers`, `Vehicles` (as Rive art), `Loading`, `C-Trip`, `TripEvents`, `StoryTrip`, `Pause`, `Fail`, `States` 9–10 (empty, loading) | #5 ledger badge 5 s against the 10 s booster |
 | B03 | none | #8 the comeback-gift and family-request grants (no op yet); longest streak and trip count |
-| M06 | `States` 1, 7, 8 (offline, update required, maintenance) | none |
+| M06 | `States` 1, 7, 8 (offline, update required, maintenance): placed with 008.5's components, not redrawn (`test/goldens/server_states_goldens_test.dart`) | none |
 | Before M07 | none | #4 routing money around أبو سمّاعة. If yes, it is a rules change: `RULES.md`, both engines and fixtures in one PR (constitution III), before M07 teaches it and M08's PreTrip mentions it. |
 | M07 | `Intro`, `Name`, `Tutorial` | #3 the coach line of each tutorial trip |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
@@ -380,7 +380,10 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 | `011-m06-identity-sync` | M06 | Identity, bootstrap, sync queue | M05, B02, B03 | mobile §12, §16; design `States` 1, 7, 8 |
 
 - **Resolve:**
-  - backend §22.6 (a re-install without a linked provider creates a new player) in B02 and M06;
+  - ~~backend §22.6 (a re-install without a linked provider creates a new player) in B02 and M06;~~
+    **Resolved in B02 and M06:** the server finds the player by its install id (B02 research R5),
+    and the app keeps the id where a re-install doesn't wipe it: Block Store with a backed-up
+    preference file on Android, the keychain on iOS (M06 research R1);
   - ~~backend §22.2 (the game-day timezone) in B03;~~ **Resolved in B03:** `Africa/Cairo` for
     every region in the MVP (`SYNC_GAME_TIMEZONE`, research R3);
   - ~~confirm that B03 matches the M05 answer to mobile §24.5;~~ **Confirmed in B03:** every start
@@ -668,9 +671,8 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     file (T110), the A06 runs (T111, T124), the side-by-side review (T126), the short-screen
     approval, the launcher icon (T131) and the device runs.
 - [ ] Step 6: Accounts and sync
-  - [ ] `009-b02-accounts-auth`
-  - [ ] `010-b03-ledger-sync`. Built on 2026-10-25; ticked after merge and quickstart Part B.
-    Decided in its clarifications: `claim_daily_reward` and `claim_task` wait for B08 and M13; room
+  - [x] `009-b02-accounts-auth` (merged in #15, 2026-10-26).
+  - [x] `010-b03-ledger-sync` (merged in #16, 2026-10-26). Decided in its clarifications: `claim_daily_reward` and `claim_task` wait for B08 and M13; room
     and chapter BONAT is paid by the
     server when the operation that completes it syncs; a phone may declare the current content
     version or any published in the last 45 days; one comeback gift per return, at most one every
@@ -678,7 +680,12 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     (`Africa/Cairo`, research R3) and HANDOFF §9.3 #8's grants (`comeback_gift`, `claim_request`,
     research R9). One tracked deviation from constitution VIII: the server-only numbers are env
     settings until B10.
-  - [ ] `011-m06-identity-sync`
+  - [ ] `011-m06-identity-sync`. Built on 2026-10-27; ticked after merge. Decided in its
+    clarifications: with a network, the first open waits up to 3 s for a returning player's
+    progress (constitution 1.6.0); a forced update blocks only on a live answer in the session, so
+    an offline launch plays on; M06 builds the link request and M14 its screens; the trip screen
+    holds the sync; one neutral toast when a sync takes back something visible. Resolved the device
+    side of backend §22.6 (research R1).
 - [ ] Step 7: The full game loop
   - [ ] `012-m07-onboarding`
   - [ ] `013-m08-home-result`

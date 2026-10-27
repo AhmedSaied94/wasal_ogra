@@ -258,6 +258,9 @@ final class _SpyRecords implements TripRecords {
   Future<StoredTrip?> load(TxnId start) => _inner.load(start);
 
   @override
+  Future<bool> has(TxnId start) => _inner.has(start);
+
+  @override
   Future<bool> delete(TxnId start) => _inner.delete(start);
 
   @override

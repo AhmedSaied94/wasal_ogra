@@ -25,8 +25,9 @@ left, in what order, and where to look.
 | [007 M05 local economy](#007-m05-local-economy) | 1 | 3 | Merged in #8 on 2026-10-22. |
 | [008 M02 trip screen](#008-m02-trip-screen) | 4 | 2 | Merged in #9 on 2026-10-23. The A06 run and the device runs are open. |
 | [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Merged in #10 on 2026-10-23, before its owner checks: all 7 are still open. |
-| [009 B02 accounts and auth](#009-b02-accounts-auth) | 2 | 2, plus 1 before the closed test | Built and tested on 2026-10-24, PR open. T065: the project, the web client and the Firebase apps are done (2026-10-25). T066 is open, and a deploy fails without it. |
-| [010 B03 ledger and sync](#010-b03-ledger-and-sync) | 1 | 2, plus 1 after the closed test starts | Built and tested on 2026-10-25, on branch `010-b03-ledger-sync`. The approval of its one constitution deviation is open. |
+| [009 B02 accounts and auth](#009-b02-accounts-auth) | 2 | 2, plus 1 before the closed test | Merged in #15 on 2026-10-26. T065: the project, the web client and the Firebase apps are done (2026-10-25). T066 is open, and a deploy fails without it. |
+| [010 B03 ledger and sync](#010-b03-ledger-and-sync) | 1 | 2, plus 1 after the closed test starts | Merged in #16 on 2026-10-26. The approval of its one constitution deviation is open. |
+| [011 M06 identity and sync](#011-m06-identity-and-sync) | 2 | 4 | Built and tested on 2026-10-27, on branch `011-m06-identity-sync`. |
 
 ## Every month
 
@@ -837,6 +838,41 @@ in M06.
   the admin. If honest players are flagged, change `SYNC_FAST_RUN_PERCENT` or
   `SYNC_TRIPS_PER_DAY_FLAG` in the env file as
   [economy.md "Tuning the flag thresholds"](runbooks/economy.md#tuning-the-flag-thresholds) says.
+
+## 011 M06 identity and sync
+
+Built and tested on 2026-10-27, on branch `011-m06-identity-sync`
+([tasks.md](../specs/011-m06-identity-sync/tasks.md),
+[quickstart](../specs/011-m06-identity-sync/quickstart.md)). The app now has an account without a
+sign-up: it creates one in the background with an install id that survives a re-install, keeps its
+tokens in secure storage, and sends the offline operations to the server once each. A re-install on
+the same phone gets its progress back. Home shows the offline banner and the maintenance card, and
+every screen but the trip shows the update card. Internal builds' Home has a «sync» card with
+«sync now». M14 builds the Google linking screens on its link request.
+
+### Before merge
+
+- [ ] **1. Approve two lines (T052, T075).** The toast after a sync takes back something you saw,
+  «رصيدك اتظبط على آخر حساب», and the optional update card's second button, «بعدين», which the
+  design doesn't draw. Say "approved" or give the wording, and Claude changes `app_ar.arb`.
+- [ ] **2. The device checks (T091).** [Quickstart Part B](../specs/011-m06-identity-sync/quickstart.md#part-b-on-a-device)
+  steps 1–14 on the Redmi Note 7, with Google backup on (Settings › Google › Backup), against the
+  local stack. Step 7 is the re-install; step 14 reads `adb logcat` for tokens and the install id.
+  Tell Claude what any step showed that the table doesn't expect.
+
+### After merge
+
+- [ ] **1. Staging (T091).** Quickstart steps 2, 7 and 14 again on a staging build.
+- [ ] **2. The App Store id (T074), once the App Store listing exists.** Until then the iOS update
+  card has no store button (it still blocks when forced). Give Claude the listing's numeric id for
+  `iosAppStoreId` in `apps/mobile/lib/core/platform/store_launcher.dart`.
+- [ ] **3. The iPhone re-install (T093, SC-006).** Run one Codemagic `ios-dev-unsigned` build of the
+  branch (it now points the dev IPA at staging), sideload it as
+  [ios-test-build.md](runbooks/ios-test-build.md) says, then quickstart step 15: note the player id
+  on the «sync» card, delete the app, sideload it again, and check the same player comes back.
+- [ ] **4. The Galaxy A06 (SC-001).** `tool/perf/cold_start.sh com.wassalogra.app.dev 10` with a
+  median of 3,000 ms or less, and one first open of a returning player (a re-install with the
+  network on), at most 3 s longer.
 
 ## Known for later features
 

@@ -61,6 +61,8 @@ typedef UpgradeStep = Future<void> Function(Migrator m);
     TripRecordTable,
     TripRecordCommandTable,
     TripIntentTable,
+    AccountTable,
+    ServerInfoTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -73,12 +75,12 @@ class AppDatabase extends _$AppDatabase {
   final OpenCheck? openCheck;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// The step to each version after 1. A later schema adds its entry here,
   /// calling the step `make-migrations` generates for it.
   @protected
-  Map<int, UpgradeStep> get upgradeSteps => const {2: _toV2};
+  Map<int, UpgradeStep> get upgradeSteps => const {2: _toV2, 3: _toV3};
 
   /// v2 adds the trip's records (specs/008-m02-trip-screen,
   /// contracts/trip-records.md "Schema"), as v2 defines them.
@@ -90,12 +92,38 @@ class AppDatabase extends _$AppDatabase {
     await v2.createTable(schema.tripIntent);
   }
 
+  /// v3 adds the account and the last bootstrap, and the economy's player
+  /// (specs/011-m06-identity-sync, data-model.md "Tables (schema v3)"), as
+  /// v3 defines them. Two tables are rebuilt with every row kept, since
+  /// SQLite can't change a column's constraint in place: `ownership`, whose
+  /// `acquired_by` becomes nullable, and `ledger_ops`, whose `op_type` check
+  /// gains `comeback_gift`. Their indexes are re-created with them.
+  static Future<void> _toV3(Migrator m) async {
+    final schema = Schema3(database: m.database);
+    final v3 = Migrator(m.database, schema);
+    await v3.createTable(schema.account);
+    await v3.createTable(schema.serverInfo);
+    await v3.addColumn(schema.projectionBase, schema.projectionBase.playerId);
+    await v3.alterTable(TableMigration(schema.ownership));
+    await v3.alterTable(TableMigration(schema.ledgerOps));
+    // The account before any sign-in, written at the latest trusted time.
+    await m.database.customStatement(
+      'INSERT INTO account (id, status, providers, updated_at_ms) '
+      "SELECT 1, 'none', '[]', COALESCE(MAX(latest_trusted_ms), 0) "
+      'FROM clock_anchor',
+    );
+    await m.database.customStatement(
+      'INSERT INTO server_info (id, comeback_claimable) VALUES (1, 0)',
+    );
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => transaction(() async {
       await m.createAll();
       final first = firstOpen?.call();
       if (first != null) await _insertFirstRows(first);
+      await _insertAccountRows(first?.anchor.anchorMs ?? 0);
       // With the tables, so a kill can't leave tables at version 0.
       await customStatement('PRAGMA user_version = $schemaVersion');
     }),
@@ -117,6 +145,22 @@ class AppDatabase extends _$AppDatabase {
       await openCheck?.call(this);
     },
   );
+
+  /// The account before any sign-in, and no bootstrap yet. Inserted with
+  /// every new file, and by the v3 upgrade.
+  Future<void> _insertAccountRows(int nowMs) async {
+    await into(accountTable).insert(
+      AccountTableCompanion.insert(
+        id: const Value(1),
+        status: 'none',
+        providers: '[]',
+        updatedAtMs: nowMs,
+      ),
+    );
+    await into(serverInfoTable).insert(
+      ServerInfoTableCompanion.insert(id: const Value(1), comebackClaimable: 0),
+    );
+  }
 
   Future<void> _insertFirstRows(FirstOpen first) async {
     final FirstOpen(:state, :anchor) = first;

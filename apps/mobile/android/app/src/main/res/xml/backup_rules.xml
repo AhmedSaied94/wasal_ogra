@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 and earlier: the same exclusion as data_extraction_rules.xml
-     (specs/007-m05-local-economy, research R14). -->
+<!-- Android 11 and earlier: the same exclusions as data_extraction_rules.xml,
+     the game database (specs/007-m05-local-economy, research R14) and the
+     session's secure storage files (specs/011-m06-identity-sync, research
+     R2). Exclude-only, so wassal_install.xml and the settings file keep
+     their backup (research R1). -->
 <full-backup-content>
     <exclude domain="file" path="db/"/>
+    <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration.xml"/>
+    <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml"/>
 </full-backup-content>

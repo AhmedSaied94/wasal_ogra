@@ -19,14 +19,7 @@ import 'package:wassal/core/config/bundled_config_source.dart';
 import 'package:wassal/core/config/config_source.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/economy.dart'
-    show
-        Economy,
-        EconomyState,
-        EconomyView,
-        FuelState,
-        LedgerOp,
-        OpOutcome,
-        TxnId;
+    show Economy, EconomyState, EconomyView, FuelState, OpOutcome, TxnId;
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
@@ -439,28 +432,6 @@ final class ScriptedEconomy implements Economy {
   @override
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
       inner.applyAdReward(id, placement: placement);
-
-  @override
-  Future<List<LedgerOp>> pendingOps({int limit = 100}) =>
-      inner.pendingOps(limit: limit);
-
-  @override
-  Future<void> markAccepted(Iterable<TxnId> ids) => inner.markAccepted(ids);
-
-  @override
-  Future<void> markRejected(Map<TxnId, String> reasons) =>
-      inner.markRejected(reasons);
-
-  @override
-  Future<void> replaceBase(
-    EconomyState snapshot, {
-    required int afterSeq,
-    int? stateVersion,
-  }) => inner.replaceBase(
-    snapshot,
-    afterSeq: afterSeq,
-    stateVersion: stateVersion,
-  );
 }
 
 /// Advances [controller] by [ms] on the trip clock, one step a frame.

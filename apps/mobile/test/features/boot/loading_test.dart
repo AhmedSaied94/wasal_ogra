@@ -147,9 +147,9 @@ void main() {
     );
     expect(currentLocation(tester), '/boot');
     final bar = tester.getRect(_inBoot(find.byType(ProgressBar)));
-    // Settings, tunables, content and the art are done; the database and
-    // the economy wait.
-    expect(_markerCentre(tester), closeTo(bar.right - 4 / 6 * bar.width, 1));
+    // Settings, tunables, content and the art are done; the database, the
+    // economy and the account wait.
+    expect(_markerCentre(tester), closeTo(bar.right - 4 / 7 * bar.width, 1));
 
     database.complete();
     await tester.pumpAndSettle();

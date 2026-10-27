@@ -12,6 +12,11 @@ enum BootStep {
   /// The Rive file (contracts/rive-characters.md "How the app uses it"). It
   /// never fails: without the file, everything is drawn with static art.
   art,
+
+  /// The first open's wait (specs/011-m06-identity-sync, research R6). Not
+  /// one of `appStartup`'s steps: boot marks it when the wait ends, at once
+  /// on later launches, so the road bar reaches its end.
+  account,
 }
 
 /// How far startup is: the steps finished, and the one that failed. A base

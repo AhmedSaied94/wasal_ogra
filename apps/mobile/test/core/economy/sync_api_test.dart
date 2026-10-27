@@ -1,5 +1,6 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/core/economy/domain/fold.dart';
 import 'package:wassal/core/economy/domain/rules.dart';
 import 'package:wassal/core/economy/domain/trusted_time.dart';
 import 'package:wassal/core/economy/drift_economy_store.dart';
@@ -8,7 +9,9 @@ import 'package:wassal/core/economy/economy.dart';
 import '../../helpers/economy.dart';
 
 // What M06 calls (contracts/economy-api.md "For M06"): the pending ops,
-// marking them, and replacing the base.
+// marking them, and replacing the base. Since M06 (specs/011-m06-identity-
+// sync, research R20) the reads and the local rejection go through
+// `EconomySync` and the marks through the store, so these test both.
 
 EconomyState _rich(int nowMs) => EconomyState.newPlayer(
   fuelMax: 5,
@@ -24,6 +27,9 @@ Future<OpApplied> _buyBooster(TestEconomy e, String skuId) async =>
 
 Future<List<Map<String, Object?>>> _ledger(TestEconomy e) async =>
     (await dumpTables(e.db))['ledger_ops']!;
+
+FoldResult _fold(EconomyState base, List<Op> ops) =>
+    fold(base, ops, const ProductionRules());
 
 void main() {
   test('pendingOps gives the oldest pending ops, in seq order', () async {
@@ -46,7 +52,7 @@ void main() {
       expect(p.syncReason, isNull);
     }
 
-    await e.service.markAccepted([first.op.op.txnId]);
+    await e.store.markAccepted([first.op.op.txnId]);
     expect(
       [for (final p in await e.service.pendingOps(limit: 2)) p.seq],
       [2, 3],
@@ -62,7 +68,7 @@ void main() {
     final before = await dumpTables(e.db);
     final state = e.service.state;
 
-    await e.service.markAccepted([bought.op.op.txnId]);
+    expect(await e.store.markAccepted([bought.op.op.txnId]), isEmpty);
     await pumpEventQueue();
 
     final after = await dumpTables(e.db);
@@ -79,7 +85,7 @@ void main() {
   });
 
   test(
-    'markRejected stores the reason, rebuilds and emits the rebuilt view',
+    'setAside stores the reason, rebuilds and emits the rebuilt view',
     () async {
       final e = await testEconomy(firstState: _rich);
       final bought = await _buyBooster(e, 'change_bag');
@@ -94,7 +100,7 @@ void main() {
       final subscription = e.service.views.listen(views.add);
       addTearDown(subscription.cancel);
 
-      await e.service.markRejected({bought.op.op.txnId: 'insufficient_funds'});
+      await e.service.setAside({bought.op.op.txnId: 'insufficient_funds'});
       await pumpEventQueue();
 
       final row = (await _ledger(e)).first;
@@ -113,41 +119,30 @@ void main() {
   );
 
   group('a status never goes back to pending', () {
-    test(
-      'marking an accepted op again is ignored, with an assertion',
-      () async {
-        final e = await testEconomy(firstState: _rich);
-        final id = (await _buyBooster(e, 'change_bag')).op.op.txnId;
-        await e.service.markAccepted([id]);
-
-        await expectLater(
-          e.service.markAccepted([id]),
-          throwsA(isA<AssertionError>()),
-        );
-        await expectLater(
-          e.service.markRejected({id: 'late'}),
-          throwsA(isA<AssertionError>()),
-        );
-        final row = (await _ledger(e)).single;
-        expect(row['sync_status'], 'accepted');
-        expect(row['sync_reason'], isNull);
-        expect(e.service.view.inventory[BoosterId.changeBag], 1);
-      },
-    );
-
-    test('marking a rejected op again is ignored, with an assertion', () async {
+    test('marking an accepted op again is skipped', () async {
       final e = await testEconomy(firstState: _rich);
       final id = (await _buyBooster(e, 'change_bag')).op.op.txnId;
-      await e.service.markRejected({id: 'first'});
+      expect(await e.store.markAccepted([id]), isEmpty);
 
-      await expectLater(
-        e.service.markAccepted([id]),
-        throwsA(isA<AssertionError>()),
-      );
-      await expectLater(
-        e.service.markRejected({id: 'second'}),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(await e.store.markAccepted([id]), [id]);
+      expect((await e.store.rebuild(_fold, rejected: {id: 'late'})).skipped, [
+        id,
+      ]);
+      final row = (await _ledger(e)).single;
+      expect(row['sync_status'], 'accepted');
+      expect(row['sync_reason'], isNull);
+      expect((await e.store.load()).state.inventory[BoosterId.changeBag], 1);
+    });
+
+    test('marking a rejected op again is skipped', () async {
+      final e = await testEconomy(firstState: _rich);
+      final id = (await _buyBooster(e, 'change_bag')).op.op.txnId;
+      await e.service.setAside({id: 'first'});
+
+      expect(await e.store.markAccepted([id]), [id]);
+      expect((await e.store.rebuild(_fold, rejected: {id: 'second'})).skipped, [
+        id,
+      ]);
       final row = (await _ledger(e)).single;
       expect(row['sync_status'], 'rejected');
       expect(row['sync_reason'], 'first');
@@ -155,13 +150,13 @@ void main() {
     });
   });
 
-  test('replaceBase folds the snapshot and the ops after it', () async {
+  test('a new base folds the snapshot and the ops after it', () async {
     var e = await testEconomy(dbFile: tempDbFile(), firstState: _rich);
     await _buyBooster(e, 'change_bag');
     await _buyBooster(e, 'wake_all');
     final third = await _buyBooster(e, 'ledger_peek');
     final rejected = await _buyBooster(e, 'traffic_jam');
-    await e.service.markRejected({rejected.op.op.txnId: 'test'});
+    await e.service.setAside({rejected.op.op.txnId: 'test'});
 
     // The server's state after op 2: different balances, one booster.
     final snapshot = EconomyState(
@@ -170,28 +165,43 @@ void main() {
       fuel: const FuelState(liters: 3, countedFromMs: testEpochMs),
       inventory: const {BoosterId.wakeAll: 4},
     );
-    await e.service.replaceBase(snapshot, afterSeq: 2, stateVersion: 7);
+    final rebuilt = await e.store.rebuild(
+      _fold,
+      newBase: ProjectionBase(
+        state: snapshot,
+        afterSeq: 2,
+        kind: BaseKind.serverSnapshot,
+        takenAtMs: e.clock.nowMs(),
+        stateVersion: 7,
+        playerId: '0192f1c3-7d1e-7a4b-9c11-000000000001',
+      ),
+    );
 
-    final view = e.service.view;
-    expect(view.jenehat, 500);
-    expect(view.bonat, 60 + third.op.op.bonatDelta);
-    expect(view.inventory, {BoosterId.wakeAll: 4, BoosterId.ledgerPeek: 1});
-    expect(view.fuel.liters, 3);
+    final state = rebuilt.fold.state;
+    expect(state.jenehat, 500);
+    expect(state.bonat, 60 + third.op.op.bonatDelta);
+    expect(state.inventory, {BoosterId.wakeAll: 4, BoosterId.ledgerPeek: 1});
+    expect(state.fuel.liters, 3);
 
     final base = (await dumpTables(e.db))['projection_base']!.single;
     expect(base['kind'], 'server_snapshot');
     expect(base['after_seq'], 2);
     expect(base['state_version'], 7);
+    expect(base['player_id'], '0192f1c3-7d1e-7a4b-9c11-000000000001');
     expect(base['state'], canonicalJson(snapshot.toJson()));
 
     e = await reopen(e);
     expect(e.service.view.bonat, 60 + third.op.op.bonatDelta);
+    expect(e.service.baseInfo, (
+      stateVersion: 7,
+      playerId: '0192f1c3-7d1e-7a4b-9c11-000000000001',
+    ));
     expect((await e.store.load()).base.kind, BaseKind.serverSnapshot);
   });
 
   test('anchorOnServer makes the server the source of time', () async {
     final e = await testEconomy();
-    await e.clock.anchorOnServer(
+    await e.service.anchorOnServer(
       testEpochMs + 5000,
       elapsedAtResponseMs: e.uptime.elapsedRealtimeMs,
     );

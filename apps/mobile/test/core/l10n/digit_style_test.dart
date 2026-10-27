@@ -9,6 +9,7 @@ import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 
 import '../../helpers/content.dart';
+import '../../helpers/account.dart';
 import '../../helpers/economy.dart';
 
 // The digit preference: device-only, persisted, defaulting to Arabic-Indic
@@ -98,6 +99,7 @@ void main() {
         flavorProvider.overrideWithValue(Flavor.dev),
         ...contentTestOverrides(),
         ...economyTestOverrides(),
+        ...accountTestOverrides(),
       ],
     );
     addTearDown(container.dispose);

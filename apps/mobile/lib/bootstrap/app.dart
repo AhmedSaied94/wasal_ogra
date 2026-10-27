@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/bootstrap/status_overlay_host.dart';
 import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/content_providers.dart';
@@ -10,6 +11,8 @@ import 'package:wassal/core/content/home_arrival.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/connectivity.dart';
 import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/core/sync/sync_lifecycle.dart';
+import 'package:wassal/core/sync/sync_providers.dart';
 import 'package:wassal/core/theme/app_theme.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
@@ -33,6 +36,7 @@ class WassalApp extends ConsumerStatefulWidget {
 class _WassalAppState extends ConsumerState<WassalApp> {
   ContentLifecycle? _content;
   AppLifecycleListener? _lifecycle;
+  ProviderSubscription<AsyncValue<SyncLifecycle>>? _sync;
 
   @override
   void initState() {
@@ -59,12 +63,27 @@ class _WassalAppState extends ConsumerState<WassalApp> {
         if (economy != null) unawaited(economy.handleLifecycle(state));
       },
     );
+    // The sync, from here to dispose (specs/011-m06-identity-sync). It never
+    // blocks play: one that can't start is reported, and the app stays
+    // offline.
+    _sync ??= ref.listenManual(syncLifecycleProvider, (_, next) {
+      if (next case AsyncError(:final error, :final stackTrace)) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'sync',
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _content?.dispose();
     _lifecycle?.dispose();
+    _sync?.close();
     super.dispose();
   }
 
@@ -92,7 +111,7 @@ class _WassalAppState extends ConsumerState<WassalApp> {
           // The Rive file once boot has decoded it; static art until then.
           child: RiveArtScope(
             art: ref.watch(riveArtProvider).value,
-            child: child ?? const SizedBox.shrink(),
+            child: StatusOverlayHost(child: child ?? const SizedBox.shrink()),
           ),
         ),
       ),

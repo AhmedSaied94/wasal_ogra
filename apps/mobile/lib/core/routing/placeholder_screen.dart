@@ -18,6 +18,7 @@ class PlaceholderScreen extends StatelessWidget {
     required this.destination,
     this.params = const {},
     this.extra,
+    this.footer,
     super.key,
   });
 
@@ -27,6 +28,9 @@ class PlaceholderScreen extends StatelessWidget {
   /// Real content shown above the links, such as the settings control.
   final Widget? extra;
 
+  /// Content shown below the links, such as internal builds' sync card.
+  final Widget? footer;
+
   static Key linkKey(String name) => ValueKey('placeholder-link-$name');
 
   @override
@@ -35,6 +39,7 @@ class PlaceholderScreen extends StatelessWidget {
       destination: destination,
       params: params,
       extra: extra,
+      footer: footer,
     );
     final title = destination.title(AppLocalizations.of(context));
     return switch (destination.presentation) {
@@ -134,11 +139,13 @@ class _Content extends StatelessWidget {
     required this.destination,
     required this.params,
     required this.extra,
+    required this.footer,
   });
 
   final Destination destination;
   final Map<String, String> params;
   final Widget? extra;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +164,7 @@ class _Content extends StatelessWidget {
         ?extra,
         for (final name in destination.links)
           _Link(from: destination, to: destinationNamed(name)),
+        ?footer,
       ],
     );
   }

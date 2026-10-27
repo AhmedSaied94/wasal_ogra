@@ -1,8 +1,9 @@
-// The app database's tables, schema version 2: the economy's
-// (specs/007-m05-local-economy/data-model.md "Tables") and, since v2, the
-// trip's records (specs/008-m02-trip-screen/data-model.md). Every column is
-// INTEGER or TEXT: a guard forbids REAL (constitution II). Single-row tables
-// hold `id = 1` only.
+// The app database's tables, schema version 3: the economy's
+// (specs/007-m05-local-economy/data-model.md "Tables"), since v2 the trip's
+// records (specs/008-m02-trip-screen/data-model.md), and since v3 the
+// account and the last bootstrap (specs/011-m06-identity-sync/data-model.md
+// "Tables (schema v3)"). Every column is INTEGER or TEXT: a guard forbids
+// REAL (constitution II). Single-row tables hold `id = 1` only.
 //
 // drift's check DSL names a column inside its own getter; drift_dev reads
 // that statically and the getter never calls itself at runtime.
@@ -29,6 +30,8 @@ class LedgerOps extends Table {
       'spend_jenehat',
       'spend_bonat',
       'use_booster',
+      // v3: M06's local gift (research R16).
+      'comeback_gift',
     ]),
   )();
 
@@ -102,8 +105,9 @@ class OwnershipTable extends Table {
   TextColumn get variantId => text().nullable()();
   IntColumn get acquiredAtMs => integer()();
 
-  /// The `txn_id` that bought it.
-  TextColumn get acquiredBy => text()();
+  /// The `txn_id` that bought it. Null since v3 for a row taken from the
+  /// server's state, which doesn't send it (M06 research R12).
+  TextColumn get acquiredBy => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {kind, skuId};
@@ -169,6 +173,11 @@ class ProjectionBaseTable extends Table {
   /// The server's `state_version`, from M06.
   IntColumn get stateVersion => integer().nullable()();
   IntColumn get takenAtMs => integer()();
+
+  /// v3: the player whose server state the base is. Null for a new
+  /// player's base until the first state or the first accepted batch (M06
+  /// research R7).
+  TextColumn get playerId => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -248,4 +257,67 @@ class TripIntentTable extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {requestTxn};
+}
+
+/// The account (M06). Written only by `DriftAccountStore`.
+@DataClassName('AccountRow')
+class AccountTable extends Table {
+  @override
+  String get tableName => 'account';
+
+  /// Always 1.
+  IntColumn get id => integer().check(id.equals(1))();
+  TextColumn get status =>
+      text().check(status.isIn(const ['none', 'active', 'deleted']))();
+
+  /// The session's player, a UUIDv7.
+  TextColumn get playerId => text().nullable()();
+
+  /// A JSON array, `[]` until a token answer says otherwise.
+  TextColumn get providers => text()();
+  TextColumn get displayName => text().nullable()();
+  IntColumn get driverLevel => integer().nullable()();
+
+  /// Trusted time of the first open with M06; set once.
+  IntColumn get firstOpenAtMs => integer().nullable()();
+
+  /// Trusted time a returning player's state was first taken.
+  IntColumn get restoredAtMs => integer().nullable()();
+
+  /// Trusted time of the last write.
+  IntColumn get updatedAtMs => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// The last bootstrap and the comeback gift's lock (M06). Written only by
+/// `DriftAccountStore`.
+@DataClassName('ServerInfoRow')
+class ServerInfoTable extends Table {
+  @override
+  String get tableName => 'server_info';
+
+  /// Always 1.
+  IntColumn get id => integer().check(id.equals(1))();
+
+  /// Trusted time the last bootstrap arrived; null before the first.
+  IntColumn get receivedAtMs => integer().nullable()();
+  IntColumn get serverTimeMs => integer().nullable()();
+  IntColumn get stateVersion => integer().nullable()();
+  IntColumn get contentVersion => integer().nullable()();
+
+  /// Canonical JSON of each block.
+  TextColumn get client => text().nullable()();
+  TextColumn get entitlements => text().nullable()();
+  TextColumn get daily => text().nullable()();
+
+  /// 0 or 1; 0 before the first bootstrap.
+  IntColumn get comebackClaimable =>
+      integer().check(comebackClaimable.isIn(const [0, 1]))();
+  IntColumn get comebackClaimedAtMs => integer().nullable()();
+  IntColumn get comebackAnsweredAtMs => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }

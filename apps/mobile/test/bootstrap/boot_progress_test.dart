@@ -12,6 +12,7 @@ import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/art/rive_art.dart';
 
+import '../helpers/account.dart';
 import '../helpers/content.dart';
 import '../helpers/economy.dart';
 import '../helpers/memory_settings_store.dart';
@@ -28,6 +29,7 @@ ProviderContainer _container(List<Override> extra, {List<Override>? economy}) {
       settingsStoreProvider.overrideWith((ref) async => MemorySettingsStore()),
       ...contentTestOverrides(),
       ...economy ?? economyTestOverrides(),
+      ...accountTestOverrides(),
       ...extra,
     ],
   );
@@ -37,7 +39,7 @@ ProviderContainer _container(List<Override> extra, {List<Override>? economy}) {
 
 void main() {
   group('BootProgress', () {
-    test('six steps, in boot order, the art last', () {
+    test('seven steps, in boot order, the art then the account last', () {
       expect(BootProgress.steps, [
         BootStep.settings,
         BootStep.tunables,
@@ -45,15 +47,16 @@ void main() {
         BootStep.database,
         BootStep.economy,
         BootStep.art,
+        BootStep.account,
       ]);
     });
 
-    test('value is done / 6', () {
+    test('value is done / 7', () {
       const none = BootProgress();
       expect(none.value, 0);
       final two = none.withDone(BootStep.content).withDone(BootStep.settings);
-      expect(two.value, 2 / 6);
-      expect(two.withDone(BootStep.content).value, 2 / 6, reason: 'once');
+      expect(two.value, 2 / 7);
+      expect(two.withDone(BootStep.content).value, 2 / 7, reason: 'once');
       var all = none;
       for (final step in BootProgress.steps) {
         all = all.withDone(step);
@@ -93,6 +96,7 @@ void main() {
           BootStep.economy,
           BootStep.tunables,
           BootStep.database,
+          BootStep.account,
         ];
         for (final (i, step) in order.indexed) {
           gates[step]!.complete();
@@ -119,13 +123,16 @@ void main() {
   });
 
   group('appStartup', () {
-    test('marks all six steps done', () async {
+    test('marks its six steps done, and leaves the account to boot', () async {
       final container = _container([]);
       expect(container.read(bootProgressProvider).value, 0);
       await container.read(appStartupProvider.future);
       final progress = container.read(bootProgressProvider);
-      expect(progress.done, BootProgress.steps.toSet());
-      expect(progress.value, 1);
+      expect(
+        progress.done,
+        BootProgress.steps.toSet().difference({BootStep.account}),
+      );
+      expect(progress.value, 6 / 7);
       expect(progress.failed, isNull);
     });
 
@@ -190,7 +197,7 @@ void main() {
   testWidgets('retryAppStartup resets done', (tester) async {
     final container = _container([]);
     await container.read(appStartupProvider.future);
-    expect(container.read(bootProgressProvider).value, 1);
+    expect(container.read(bootProgressProvider).value, 6 / 7);
     late WidgetRef widgetRef;
     await tester.pumpWidget(
       UncontrolledProviderScope(

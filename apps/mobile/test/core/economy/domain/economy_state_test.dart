@@ -159,6 +159,36 @@ void main() {
     });
   });
 
+  test('Owned without its operation round-trips (M06 research R12)', () {
+    final state = fullState().copyWith(
+      ownership: {
+        (SkuKind.item, 'salon.nish'): Owned(
+          kind: SkuKind.item,
+          variantId: 'classic',
+          acquiredAtMs: 500,
+        ),
+        (SkuKind.vehicle, 'micro_old'): Owned(
+          kind: SkuKind.vehicle,
+          acquiredAtMs: 600,
+        ),
+      },
+    );
+    final json = _json(state);
+    for (final row in json['ownership']! as List<Object?>) {
+      expect(
+        (row! as Map<String, Object?>).containsKey('acquired_by'),
+        isFalse,
+      );
+    }
+    final back = EconomyState.fromJson(json);
+    expect(back, state);
+    expect(back.ownership.values.map((o) => o.acquiredBy), [null, null]);
+    expect(
+      Owned(kind: SkuKind.vehicle, acquiredAtMs: 600),
+      isNot(Owned(kind: SkuKind.vehicle, acquiredAtMs: 600, acquiredBy: _b)),
+    );
+  });
+
   test('Owned requires a variant for an item, and only for an item', () {
     expect(
       () => Owned(kind: SkuKind.item, acquiredAtMs: 1, acquiredBy: _a),

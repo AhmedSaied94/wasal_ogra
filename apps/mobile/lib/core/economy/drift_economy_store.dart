@@ -73,6 +73,7 @@ final class ProjectionBase {
     required this.kind,
     required this.takenAtMs,
     this.stateVersion,
+    this.playerId,
   });
 
   final EconomyState state;
@@ -82,6 +83,10 @@ final class ProjectionBase {
   final BaseKind kind;
   final int? stateVersion;
   final int takenAtMs;
+
+  /// The player whose server state this is (M06 research R7). Null for a
+  /// new player's base until the first state or accepted batch.
+  final String? playerId;
 }
 
 /// What startup reads: the materialized tables, never `ledger_ops`
@@ -99,6 +104,10 @@ final class StoredEconomy {
   final int lastSeq;
   final ClockAnchor anchor;
 }
+
+/// The local reason of the operations another player's state dropped
+/// (M06 research R7).
+const accountChangedReason = 'account_changed';
 
 final class DriftEconomyStore {
   DriftEconomyStore(this._db, {this.onKillPoint});
@@ -214,12 +223,50 @@ final class DriftEconomyStore {
     return [for (final row in rows) _ledgerOpOf(row)];
   }
 
+  /// How many operations are pending.
+  Future<int> pendingCount() async {
+    final count = _db.ledgerOps.seq.count();
+    final row =
+        await (_db.selectOnly(_db.ledgerOps)
+              ..addColumns([count])
+              ..where(_db.ledgerOps.syncStatus.equals(SyncStatus.pending.wire)))
+            .getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  /// Whether an operation of [type] is pending.
+  Future<bool> hasPending(OpType type) async {
+    final row =
+        await (_db.selectOnly(_db.ledgerOps)
+              ..addColumns([_db.ledgerOps.seq])
+              ..where(
+                _db.ledgerOps.syncStatus.equals(SyncStatus.pending.wire) &
+                    _db.ledgerOps.opType.equals(type.wire),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// The highest `seq` with an answer, accepted or rejected; 0 when none.
+  Future<int> highestAnsweredSeq() async {
+    final max = _db.ledgerOps.seq.max();
+    final row =
+        await (_db.selectOnly(_db.ledgerOps)
+              ..addColumns([max])
+              ..where(
+                _db.ledgerOps.syncStatus.equals(SyncStatus.pending.wire).not(),
+              ))
+            .getSingle();
+    return row.read(max) ?? 0;
+  }
+
   /// Marks [ids] accepted. Returns the ids that weren't pending, which are
   /// left as they were: a status never goes back (data-model.md).
   Future<List<TxnId>> markAccepted(Iterable<TxnId> ids) => _write(() async {
     final skipped = <TxnId>[];
     for (final id in ids) {
-      if (!await _setSyncStatus(id, SyncStatus.accepted, null)) {
+      if (await _setSyncStatus(id, SyncStatus.accepted, null) != 1) {
         skipped.add(id);
       }
     }
@@ -237,7 +284,7 @@ final class DriftEconomyStore {
   }) => _write(() async {
     final skipped = <TxnId>[];
     for (final MapEntry(key: id, value: reason) in rejected.entries) {
-      if (!await _setSyncStatus(id, SyncStatus.rejected, reason)) {
+      if (await _setSyncStatus(id, SyncStatus.rejected, reason) != 1) {
         skipped.add(id);
       }
     }
@@ -245,16 +292,101 @@ final class DriftEconomyStore {
     final base = await _loadBase();
     final ops = await _foldableOps(base.afterSeq);
     final result = foldOps(base.state, ops);
-    final lastSeq = await _lastSeq();
-    await _writeWallet(result.state, lastSeq);
-    await _db.delete(_db.inventoryTable).go();
-    await _writeInventory(const {}, result.state.inventory);
-    await _db.delete(_db.ownershipTable).go();
-    await _writeOwnership(const {}, result.state.ownership);
-    await _db.delete(_db.tripProgressTable).go();
-    await _writeProgress(const {}, result.state.progress);
-    await _writeSession(result.state);
+    await _writeTables(result.state, kills: false);
     return (fold: result, skipped: skipped);
+  });
+
+  /// Applies one sync answer in one transaction (M06 research R11):
+  /// 1. marks [results] (a null reason is accepted); an answered row stays
+  ///    as it was;
+  /// 2. unless [balances] is null (a stale answer), rebases: the base folded
+  ///    with the answered operations up to [batchMaxSeq], with the server's
+  ///    balances, becomes the base after [batchMaxSeq], at [stateVersion],
+  ///    for [playerId]. A batch the base already covers changes nothing;
+  /// 3. folds what is still pending on top, and writes the tables.
+  /// Returns the fold, the base, and the accepted operations the rebase's
+  /// fold left out (the divergence check).
+  Future<({FoldResult fold, ProjectionBase base, List<TxnId> leftOutAccepted})>
+  applyAnswer(
+    FoldResult Function(EconomyState base, List<Op> ops) foldOps, {
+    required Map<TxnId, String?> results,
+    required int batchMaxSeq,
+    required ServerBalances? balances,
+    required int stateVersion,
+    required String playerId,
+    required int takenAtMs,
+  }) => _write(() async {
+    for (final MapEntry(key: id, value: reason) in results.entries) {
+      await _setSyncStatus(
+        id,
+        reason == null ? SyncStatus.accepted : SyncStatus.rejected,
+        reason,
+      );
+    }
+    _kill(EconomyKillPoint.afterOpRow);
+    var base = await _loadBase();
+    final leftOutAccepted = <TxnId>[];
+    if (balances != null && batchMaxSeq > base.afterSeq) {
+      final answered = await _foldableOps(base.afterSeq, upTo: batchMaxSeq);
+      final rebased = withServerBalances(
+        foldOps(base.state, answered),
+        balances,
+      );
+      final accepted = {
+        for (final MapEntry(:key, :value) in results.entries)
+          if (value == null) key,
+      };
+      leftOutAccepted.addAll(rebased.leftOut.where(accepted.contains));
+      base = ProjectionBase(
+        state: rebased.state,
+        afterSeq: batchMaxSeq,
+        kind: BaseKind.serverSnapshot,
+        stateVersion: stateVersion,
+        takenAtMs: takenAtMs,
+        playerId: playerId,
+      );
+      await _writeBase(base);
+    }
+    final result = foldOps(base.state, await _foldableOps(base.afterSeq));
+    await _writeTables(result.state, kills: true);
+    return (fold: result, base: base, leftOutAccepted: leftOutAccepted);
+  });
+
+  /// Takes the server's full state in one transaction (M06 research R7,
+  /// R12). With [dropPending] (another player's state), every pending
+  /// operation is first marked rejected `account_changed`. [snapshot] then
+  /// becomes the base after the highest answered `seq`, at [stateVersion],
+  /// for [playerId], and what is still pending folds on top. Returns the
+  /// fold and how many operations were dropped.
+  Future<({FoldResult fold, ProjectionBase base, int dropped})> takeServerState(
+    FoldResult Function(EconomyState base, List<Op> ops) foldOps, {
+    required EconomyState snapshot,
+    required int stateVersion,
+    required String playerId,
+    required int takenAtMs,
+    bool dropPending = false,
+  }) => _write(() async {
+    var dropped = 0;
+    if (dropPending) {
+      dropped = await _setSyncStatus(
+        null,
+        SyncStatus.rejected,
+        accountChangedReason,
+      );
+    }
+    _kill(EconomyKillPoint.afterOpRow);
+    final base = ProjectionBase(
+      state: snapshot,
+      afterSeq: await highestAnsweredSeq(),
+      kind: BaseKind.serverSnapshot,
+      stateVersion: stateVersion,
+      takenAtMs: takenAtMs,
+      playerId: playerId,
+    );
+    await _writeBase(base);
+    final result = foldOps(base.state, await _foldableOps(base.afterSeq));
+    await _writeTables(result.state, kills: true);
+    return (fold: result, base: base, dropped: dropped);
   });
 
   /// Throws [ProjectionMismatch] unless the materialized tables equal the
@@ -282,6 +414,7 @@ final class DriftEconomyStore {
       kind: byWire(BaseKind.values, (k) => k.wire, row.kind)!,
       stateVersion: row.stateVersion,
       takenAtMs: row.takenAtMs,
+      playerId: row.playerId,
     );
   }
 
@@ -309,7 +442,10 @@ final class DriftEconomyStore {
             kind: fromWire(skuKindWire, row.kind)!,
             variantId: row.variantId,
             acquiredAtMs: row.acquiredAtMs,
-            acquiredBy: TxnId.parse(row.acquiredBy),
+            acquiredBy: switch (row.acquiredBy) {
+              final by? => TxnId.parse(by),
+              null => null,
+            },
           ),
       },
       progress: {
@@ -355,13 +491,17 @@ final class DriftEconomyStore {
     );
   }
 
-  /// The operations a fold applies: after the base, not rejected, in order.
-  Future<List<Op>> _foldableOps(int afterSeq) async {
+  /// The operations a fold applies: after the base (up to [upTo] when
+  /// given), not rejected, in order.
+  Future<List<Op>> _foldableOps(int afterSeq, {int? upTo}) async {
     final rows =
         await (_db.select(_db.ledgerOps)
               ..where(
                 (t) =>
                     t.seq.isBiggerThanValue(afterSeq) &
+                    (upTo == null
+                        ? const Constant(true)
+                        : t.seq.isSmallerOrEqualValue(upTo)) &
                     t.syncStatus.equals(SyncStatus.rejected.wire).not(),
               )
               ..orderBy([(t) => OrderingTerm.asc(t.seq)]))
@@ -409,25 +549,43 @@ final class DriftEconomyStore {
   // Writes, each inside a caller's transaction.
 
   /// The one place a `ledger_ops` row changes, and only its sync columns
-  /// (FR-015). Returns false when the row isn't pending.
-  Future<bool> _setSyncStatus(
-    TxnId id,
+  /// (FR-015): [id]'s row, or every pending one when [id] is null. Only
+  /// pending rows change. Returns how many did.
+  Future<int> _setSyncStatus(
+    TxnId? id,
     SyncStatus status,
     String? reason,
   ) async {
-    final changed =
-        await (_db.update(_db.ledgerOps)..where(
-              (t) =>
-                  t.txnId.equals(id.value) &
-                  t.syncStatus.equals(SyncStatus.pending.wire),
-            ))
-            .write(
-              LedgerOpsCompanion(
-                syncStatus: Value(status.wire),
-                syncReason: Value(reason),
-              ),
-            );
-    return changed == 1;
+    final rows = _db.update(_db.ledgerOps)
+      ..where(
+        (t) =>
+            (id == null ? const Constant(true) : t.txnId.equals(id.value)) &
+            t.syncStatus.equals(SyncStatus.pending.wire),
+      );
+    return rows.write(
+      LedgerOpsCompanion(
+        syncStatus: Value(status.wire),
+        syncReason: Value(reason),
+      ),
+    );
+  }
+
+  /// Rewrites every materialized table from [state]. With [kills], at
+  /// M05's kill points, for the tests that cut an answer's transaction.
+  Future<void> _writeTables(EconomyState state, {required bool kills}) async {
+    await _writeWallet(state, await _lastSeq());
+    if (kills) _kill(EconomyKillPoint.afterWallet);
+    await _db.delete(_db.inventoryTable).go();
+    await _writeInventory(const {}, state.inventory);
+    if (kills) _kill(EconomyKillPoint.afterInventory);
+    await _db.delete(_db.ownershipTable).go();
+    await _writeOwnership(const {}, state.ownership);
+    if (kills) _kill(EconomyKillPoint.afterOwnership);
+    await _db.delete(_db.tripProgressTable).go();
+    await _writeProgress(const {}, state.progress);
+    if (kills) _kill(EconomyKillPoint.afterProgress);
+    await _writeSession(state);
+    if (kills) _kill(EconomyKillPoint.afterSession);
   }
 
   Future<void> _writeWallet(EconomyState state, int lastSeq) => _db
@@ -479,7 +637,7 @@ final class DriftEconomyStore {
               skuId: skuId,
               variantId: Value(value.variantId),
               acquiredAtMs: value.acquiredAtMs,
-              acquiredBy: value.acquiredBy.value,
+              acquiredBy: Value(value.acquiredBy?.value),
             ),
           );
     }
@@ -536,6 +694,7 @@ final class DriftEconomyStore {
           kind: Value(base.kind.wire),
           stateVersion: Value(base.stateVersion),
           takenAtMs: Value(base.takenAtMs),
+          playerId: Value(base.playerId),
         ),
       );
 

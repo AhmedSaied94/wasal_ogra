@@ -60,6 +60,15 @@ final class NumberFormatter {
     return _isolate(text);
   }
 
+  /// A time of day on a twelve-hour clock, h:mm, as Egyptian Arabic says
+  /// it without a period: 16:30 → 4:30, 0:00 → 12:00.
+  String clockTime(int hour, int minute) {
+    final twelve = hour % 12 == 0 ? 12 : hour % 12;
+    return _isolate(
+      '${_digits('$twelve')}:${_digits(minute.toString().padLeft(2, '0'))}',
+    );
+  }
+
   String get _decimal => switch (style) {
     DigitStyle.arabicIndic => _arabicDecimal,
     DigitStyle.western => '.',

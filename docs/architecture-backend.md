@@ -1031,7 +1031,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 3. ~~CDN in front of content packs.~~ **Resolved (B04):** no CDN for the MVP; each host's edge serves its own immutable pack files, and Cloudflare in front of `cdn.<domain>` later is a configuration change. See `specs/003-b04-content-pipeline/research.md` R5.
 4. iOS purchase payload: StoreKit 2 JWS vs app receipt in the chosen Flutter plugin version.
 5. Refund handling for already-spent BONAT (negative balance proposal in §8.2).
-6. ~~Re-install on the same device without a linked provider creates a new player — acceptable for MVP?~~ **Resolved (B02):** no. The same phone gets the same player back without linking: the app keeps its install id where a re-install doesn't wipe it (the iOS keychain, Android's Block Store), and linking Google is the way back where neither works. See `specs/009-b02-accounts-auth/research.md` R5.
+6. ~~Re-install on the same device without a linked provider creates a new player — acceptable for MVP?~~ **Resolved (B02):** no. The same phone gets the same player back without linking: the app keeps its install id where a re-install doesn't wipe it (the iOS keychain, Android's Block Store), and linking Google is the way back where neither works. See `specs/009-b02-accounts-auth/research.md` R5. **Device side resolved (M06):** Block Store with a backed-up preference file on Android, the keychain (this device only) on iOS; see `specs/011-m06-identity-sync/research.md` R1.
 7. Device attestation for competitive features (phase 3).
 8. Store target age group and ad content rating.
 9. Legal review: Egypt PDPL and Gulf data protection; purchase record retention period.

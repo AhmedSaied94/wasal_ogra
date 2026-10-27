@@ -4,3 +4,9 @@ tags:
   # these tests need Rive's Linux library (`rive_native:setup`). Run the rest
   # with `--exclude-tags rive`.
   rive:
+  # The app's account and sync against the backend's dev compose stack
+  # (specs/011-m06-identity-sync, contracts/ci-checks.md "The sync-e2e job"):
+  # the dev compose stack must be running; `WASSAL_E2E_API` defaults to
+  # `http://localhost:8000`. CI's `app` job runs everything else with
+  # `--exclude-tags backend`.
+  backend:

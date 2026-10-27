@@ -7,7 +7,10 @@ installs it from Linux over USB.
 
 What it is: the **dev** flavor in release mode (`وصّل dev`, `com.wassalogra.app.dev`). It plays
 offline from the bundled sample pack. It can't reach a local backend: there is no `adb reverse` on
-iOS. Staging and prod wait for a pack in `apps/mobile/assets/content/release/`, as on Android.
+iOS. So since M06 the workflow builds it with `--dart-define=WASSAL_DEV_API_BASE=…` set to staging's
+API (the workflow variable in `codemagic.yaml`), and its account and sync go there; an empty value
+keeps `localhost`. Staging and prod wait for a pack in `apps/mobile/assets/content/release/`, as on
+Android.
 
 ## 1. Build the IPA
 

@@ -10,10 +10,13 @@ import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/core/sync/server_status.dart';
 
+import 'account.dart';
 import 'content.dart';
 import 'economy.dart';
 import 'memory_settings_store.dart';
+import 'server_status.dart';
 import 'surfaces.dart';
 import 'trip.dart';
 
@@ -22,17 +25,23 @@ import 'trip.dart';
 /// [content] replaces the content loader's seams, which default to the
 /// sample pack's bundled assets ([contentTestOverrides]). [economy] replaces
 /// the economy's, which default to a database in memory
-/// ([economyTestOverrides]). [trip] replaces the trip screen's platform
-/// edges, which are always fakes ([tripTestOverrides]). [overrides] come
-/// last. [size]
-/// replaces [surface]'s frame (the trip's surfaces). Without [settle], the
-/// initial location gets a fixed number of frames ([pumpFrames]).
+/// ([economyTestOverrides]). [account] replaces the account's edges, which
+/// default to memory stores and an unreachable server
+/// ([accountTestOverrides]). [trip] replaces the trip screen's platform
+/// edges, which are always fakes ([tripTestOverrides]). [serverStatus] pins
+/// what the player is told of the server, online with nothing due unless
+/// a test says otherwise; null keeps the real one, which follows the
+/// (unreachable) server. [overrides] come last. [size] replaces
+/// [surface]'s frame (the trip's surfaces). Without [settle], the initial
+/// location gets a fixed number of frames ([pumpFrames]).
 Future<ProviderContainer> pumpWassalApp(
   WidgetTester tester, {
   List<Override> overrides = const [],
   List<Override>? content,
   List<Override>? economy,
+  List<Override>? account,
   List<Override>? trip,
+  ServerStatusState? serverStatus = const ServerStatusState(),
   Flavor flavor = Flavor.dev,
   String? initialLocation,
   double textScale = 1.0,
@@ -59,7 +68,12 @@ Future<ProviderContainer> pumpWassalApp(
         ),
         ...content ?? contentTestOverrides(),
         ...economy ?? economyTestOverrides(),
+        ...account ?? accountTestOverrides(),
         ...trip ?? tripTestOverrides(),
+        if (serverStatus != null)
+          serverStatusProvider.overrideWith(
+            () => PinnedServerStatus(serverStatus),
+          ),
         ...overrides,
       ],
       child: const WassalApp(),
