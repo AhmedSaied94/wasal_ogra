@@ -5,11 +5,12 @@ Run from `backend/`, on the host, against the dev compose stack:
 
     uv run manage.py shell < ../apps/mobile/test/backend/seed_backend.py
 
-It creates the staff user `ci`, imports `content/examples/sample`, builds it and publishes it as
-version 1, the version dev builds bundle, through `apps.content.services` (publishing has no
-command of its own), and writes the rules index. Dev's solver stage is the stand-in. A stack that
-already has a current pack is left as it is. It prints the current version, and exits 1 unless it
-is 1.
+It creates the staff user `ci`, imports `content/examples/sample`, reviews its speech lines (an
+import leaves them unreviewed, and the build's review stage refuses those), builds it and
+publishes it as version 1, the version dev builds bundle, through `apps.content.services`
+(publishing has no command of its own), and writes the rules index. Dev's solver stage is the
+stand-in. A stack that already has a current pack is left as it is. It prints the current version,
+and exits 1 unless it is 1.
 """
 
 import sys
@@ -19,8 +20,9 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 
 from apps.accounts.models import User
+from apps.content.models import SpeechLine
 from apps.content.models.packs import Status
-from apps.content.services import build, importer, lookups, publish
+from apps.content.services import build, importer, lookups, publish, review
 
 STAFF = "ci"
 SAMPLE = Path.cwd().parent / "content" / "examples" / "sample"
@@ -36,9 +38,13 @@ def seed() -> int:
 
     if build.current_pack() is None:
         importer.import_dir(SAMPLE, user)
+        review.review_lines(SpeechLine.objects.order_by("pool", "order"), user)
         pack = build.run_build(str(build.new_draft(user).pk))
         if pack.failure_reason or pack.status != Status.VALIDATED:
             print(f"build failed: {pack.failure_reason or pack.status}", file=sys.stderr)
+            for finding in (pack.validation_report or {}).get("findings", []):
+                if finding.get("severity") == "error":
+                    print(f"  {finding.get('code')} {finding.get('path')}", file=sys.stderr)
             return 1
         pack = publish.publish(str(pack.pk), user)
         if pack.failure_reason:
