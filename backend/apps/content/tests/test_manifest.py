@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 import pytest
 from django.core.cache import cache
 from django.core.validators import RegexValidator
 from django.db import OperationalError
-from django.test import Client
+from django.test import Client, RequestFactory
 from pytest_django import DjangoCaptureOnCommitCallbacks, Settings
 from redis.exceptions import ConnectionError as RedisConnectionError
 from wassal_content.schemas import default_schema_set
@@ -22,6 +24,7 @@ from apps.content.models import ContentPack
 from apps.content.models.packs import Status
 from apps.content.services import manifest
 from apps.content.tests.factories import pack
+from config.urls import pack_file
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("no_throttle")]
 
@@ -259,3 +262,21 @@ def test_the_serializers_match_the_schema() -> None:
         assert fields[name].min_value == pack_schema["properties"][name]["minimum"]  # type: ignore[attr-defined]
     packs = ContentManifestSerializer().fields["packs"]
     assert packs.max_length == schema["properties"]["packs"]["maxItems"]  # type: ignore[attr-defined]
+
+
+# -- the dev pack files (contracts/pack-delivery.md) ----------------------------------------------
+
+
+def test_the_dev_route_serves_a_pack_as_the_edge_does(tmp_path: Path, settings: Settings) -> None:
+    settings.CONTENT_PACKS_DIR = tmp_path
+    body = gzip.compress(b'{"pack_id":"core"}')
+    (tmp_path / "core-3.json.gz").write_bytes(body)
+    (tmp_path / "core-3.release.json").write_bytes(b"{}")
+
+    response = pack_file(RequestFactory().get("/packs/core-3.json.gz"), "core-3.json.gz")
+    release = pack_file(RequestFactory().get("/packs/core-3.release.json"), "core-3.release.json")
+
+    assert response["Content-Type"] == "application/gzip"
+    assert "Content-Encoding" not in response
+    assert b"".join(response.streaming_content) == body  # type: ignore[attr-defined]
+    assert release["Content-Type"] == "application/json"
