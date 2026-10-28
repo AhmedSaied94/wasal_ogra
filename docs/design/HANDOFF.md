@@ -1,7 +1,7 @@
 # وصّل الأجرة — Design handoff for Claude Code
 
-> **Project overrides: read [README.md](README.md) first.** In this repo, animation stays on
-> **Rive**, which the constitution locks: §6's Lottie runtime does not apply, and `lottie/` is a
+> **Project overrides: read [README.md](README.md) first.** In this repo, animation is **Rive**
+> only, which the constitution locks: §6.6's Lottie fallback does not apply, and `lottie/` is a
 > motion reference only. Identifiers come from the architecture glossary (§3), not from the art
 > names here. On behaviour, merged features' decisions win over this file.
 
@@ -15,7 +15,7 @@ Style C, "soft cartoon". Covers every screen of the first release (النسخة 
 - 3. Components
 - 4. Trip screen geometry and rendering
 - 5. Characters, passengers, vehicles
-- 6. Animation: Lottie pipeline (replaces Rive)
+- 6. Animation: Rive (Lottie as fallback)
 - 7. Navigation map
 - 8. Accessibility
 - 9. Decisions and open questions
@@ -55,7 +55,9 @@ docs/design/
 ├── boxes/                     # every visible box per artboard, measured: x, y, w, h, colour (+token), font, radius, shadow
 ├── icons/                     # 92 icons as SVG + manifest.json + index.html contact sheet
 ├── illustrations/             # SVG art: passengers/, characters/, passenger_states/, vehicles/, screens/
-├── lottie/                    # 46 Lottie animations (passengers, characters, vehicles, ui) + index.html player
+├── rive/wassal.riv            # THE animation file: 14 artboards with view models (§6)
+├── rive/wassal_scenes.riv     # the six opening comic panels, animated (§6.8); separate file
+├── lottie/                    # 46 Lottie animations, same art: fallback only (§6.6) + index.html player
 └── tools/                     # scripts that regenerate everything above from the canvas (README inside)
 ```
 
@@ -80,7 +82,7 @@ Every number and name in the artboards is **sample data**: player names (أحم�
 | Station colours | one colour per named station | four colours **by stop order** on the line (`station[0..3]`), letter always shown |
 | Cards | white, 2.5 outline, radius 18, shadow 4 | white, radius 22, lip 5 `ground.lip`, no outline |
 | Bottom bar | dark | white, radius 28 top, active tab = primary pill (see `BottomNav`) |
-| Characters | Rive | **Lottie** (§6; architecture §2/§8 updated to match) |
+| Characters | Rive | **Rive**, one file `wassal.riv` driven by view models (§6); Lottie kept only as a fallback |
 | Trip scene | logical 390×470 | **390×444** (min 420), see §4 |
 
 Minimum sizes from the UX test are unchanged and enforced: back-row face ≥ 50, near-row face ≥ 80, bubble text ≥ 15, money note ≥ 40×24 with 15+ digits, touch ≥ 44×44, any text ≥ 12.
@@ -165,7 +167,7 @@ Bundle the fonts as assets (download the TTFs from Google Fonts: *Marhey* and *R
 | `text-overflow: ellipsis; white-space: nowrap` | `maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false` |
 | `position:absolute; top:…` inside a relative box | `Stack` + `PositionedDirectional` |
 | inline `<svg>` icon (24×24) | `icons/<name>.svg` via `flutter_svg`, tinted with `ColorFilter.mode(color, BlendMode.srcIn)` when the icon is mono |
-| large inline `<svg>` art | `illustrations/…svg` via `flutter_svg`, or the Lottie asset named in §6 when it animates |
+| large inline `<svg>` art | `illustrations/…svg` via `flutter_svg`, or the Rive artboard named in §6 when it animates |
 | `<a href>` / `<button>` | `InkWell`-free tappable (`GestureDetector` + the press animation from §2.3); no Material ripples anywhere |
 | `aria-label` | `Semantics(label: …)` |
 
@@ -216,7 +218,7 @@ Build these once in `lib/core/ui/` (or `lib/core/widgets/`), with a widgetbook/g
 | `BottomNav` | h 88, white, radius 28 top, lip `0 -4 outline`, 4 equal tabs: الموقف · الخطوط · الشقة · المحل. Active: `primary` pill 60×34 with white glyph, label `primary` 13/700. Inactive: 24 px `icon.off` glyph, label `ink.muted` 13/600. New-dot on the icon's top-end corner. |
 | `DailyCircle` | 56 circle (white, lip `0 4 ground.lip`; event variant filled `station[0]`) + label chip under it (white, 12/700) + optional `NewDot` or `CountBadge` | 
 | `ComicPanel` | white card radius 22 with art, speaker label (12/700 `ink.2`) and bubble text `quote` |
-| `CoachMark` | scrim `scrim.coach` with a rounded hole (r 18) around the single tappable target, 4 px `sun` ring around the hole, pointing hand (`lottie/ui/coach_hand`), Belya bubble (`SpeechBubble.character`). Only the target receives taps. |
+| `CoachMark` | scrim `scrim.coach` with a rounded hole (r 18) around the single tappable target, 4 px `sun` ring around the hole, pointing hand (Rive `CoachHand`), Belya bubble (`SpeechBubble.character`). Only the target receives taps. |
 
 ### 3.4 Trip components
 
@@ -249,7 +251,7 @@ On other devices: HUD and dashboard keep their heights; the scene gets the rest.
 | Layer | Tech | Content |
 | --- | --- | --- |
 | Cabin & street | Flame (`TripScene`) | wall `scene.wall`, floor, benches (`scene.seat` / `seat.hi`), side windows with parallax street (buildings, next-station sign that grows as it approaches), bump shake |
-| Passengers | Flame + Lottie (`PassengerAvatar`) | one per seat, state segment from the engine every tick (§6) |
+| Passengers | Rive `Person` (`PassengerAvatar`) | one per seat; the engine's passenger state sets the view model every tick (§6.3) |
 | Money in flight | Flame | `MoneyNote` sprites moving seat → seat |
 | Overlays | Flutter widgets positioned from scene coordinates × `s` | `StationTag`, `SpeechBubble`, `LedgerBadge`, `ChoicePopover`, fallen-note hit areas, coach mark |
 | HUD & dashboard | Flutter | as §3.4 |
@@ -291,7 +293,7 @@ Skins `character.skin[0..3]`, hair `character.hair[0..1]`, grey hair `#D9D4E2`.
 
 | id | Name | Look | Role |
 | --- | --- | --- | --- |
-| `usta` | الأسطى | dark quiff, `primary` shirt, white collar | the player; name is the player's |
+| `usta` | الأسطى | dark quiff with a forelock, skin `#E0A97A` (lighter than the default passenger `#C68B5E`), `primary` shirt, white collar | the player; name is the player's |
 | `salma` | سلمى | coral hijab #E8846B with sun dotted trim, `primary` top, yellow pencil | the bride |
 | `bride_father` | أبو العروسة | grey side hair, rectangular glasses, grey moustache, dark suit, blue tie | strict, kind; hardest trips |
 | `bride_mother` | أم العروسة | purple hijab #7C6FB0, gold earrings and necklace, mauve top #B5838D | list details, requests |
@@ -351,108 +353,148 @@ Drawn on `screens/Characters.html` (second row) and exported to `illustrations/p
 
 Side views face left (direction of travel). The line sign on the roof (sun pill with the line name, as on Home) is a Flutter overlay, not baked into the art. Liveries: old = white + `primary` stripe + `danger` pinstripe; new = white + teal #3E9C8F stripe + sun pinstripe; travel = white + `station[0]` stripe + sun pinstripe + gold curtains.
 
-## 6. Animation: Lottie pipeline (replaces Rive)
+## 6. Animation: Rive (Lottie as fallback)
+
+All character, vehicle and UI animation ships as **one Rive file**, `rive/wassal.riv` (copy to `assets/rive/wassal.riv`). It was built in the Rive editor straight from the design SVGs, so it is the exact art of the design. It holds 14 artboards, and each one is driven through a **view model** (Rive data binding): code sets a few numbers, booleans and triggers, and the artboard's state machine picks the animation. Code never plays timelines by name.
+
+The 46 Lottie files in `lottie/` are the same art with marker segments. They stay in the package as the **fallback** (§6.6). Don't ship both: Rive is the default.
 
 ### 6.1 Runtime
 
 | Use | Package | Notes |
 | --- | --- | --- |
-| UI animations in Flutter screens | `lottie` (pure-Dart renderer) | `Lottie.asset(..., controller:)`; play named segments from markers |
-| Passengers, characters in the trip scene | `flame_lottie` (`LottieComponent`) | one component per seat; see the performance gate below |
-| State machines (`.lottie`) | `dotlottie_loader` + `lottie` | **not in MVP**; only for UI after a device test |
+| Every Rive artboard in Flutter screens | `rive` ≥ 0.14 (the native runtime with data binding) | call `await RiveNative.init()` in `main()` before any Rive use |
+| Passengers in the trip scene | `flame_rive` if it supports the pinned `rive` version; otherwise `RiveWidget`s laid over the `GameWidget` at the seat anchors (§4.2) | the seats don't move, so an overlay works; see the performance gate in §6.6 |
 
-Pin exact versions at kickoff and record them in `research.md`. Architecture §2, §5 (`assets/lottie/` replaces `assets/rive/`), §8 and the Rive decision in §25 are updated in `architecture-mobile.md`.
+Pin exact versions at kickoff and record them in `research.md`. Load the file once (`File.asset('assets/rive/wassal.riv', riveFactory: Factory.rive)`), keep it in a provider, and create one controller per widget:
 
-**Segments are Lottie markers.** Each animated asset carries named markers (`"markers": [{"cm": "idle", "tm": 0, "dr": 60}, …]` at 30 fps). Code plays a segment with `composition.getMarker('idle')` and animates the controller between the marker's start and end (loop for loop segments, once for one-shots, then return to `idle`).
+```dart
+final controller = RiveWidgetController(
+  file,
+  artboardSelector: ArtboardSelector.byName('Person'),
+  stateMachineSelector: StateMachineSelector.byName('Passenger'),
+);
+final vm = controller.dataBind(DataBind.auto()); // a fresh instance per widget
+vm.number('look')!.value = 6;          // headphones look
+vm.boolean('headphones')!.value = true;
+vm.trigger('board')!.trigger();         // accessor names: check the pinned version's docs
+```
 
-**The animations already exist.** `lottie/` holds 46 generated Lottie files, built straight from the design SVGs by `tools/gen_people.py` and `tools/gen_ui.py`, and checked frame by frame in a Lottie player (`lottie/index.html` plays every file and every segment). They are production-usable placeholders in the exact art of the design: an animator can later polish any file in Lottie Creator as long as the **marker names and layer names stay the same** (§6.2), so code never changes.
+Every artboard below has its view model set as its default, so `DataBind.auto()` always works. Every artboard is marked **Component** and **Include in export**: the editor only exports marked artboards, so mark any new one or it silently drops out of the `.riv`. The free Rive plan adds a small Rive logo to runtime exports; a paid plan removes it. Each widget needs its own instance: two passengers must never share one. If the pinned runtime turns out to share the default instance between controllers, create one per widget from the view model and bind it with `DataBind.byInstance(...)`.
 
-- One file per passenger type and per character (each type keeps its own drawn clothes, hair, props), all sharing the same rig, layer names and markers.
-- Skin tones can still vary at runtime: `ValueDelegate.color(['**', 'skin', '**'], value: …)`. Hide an accessory with `ValueDelegate.opacity(['**', 'acc_headphones', '**'], value: 0)` (e.g. after أبو سمّاعة takes his headphones off with `call_2`).
-- The content pack's `skin` slug (architecture §3.6) maps to `lottie/passengers/<skin>.json`.
+### 6.2 Artboards
 
-### 6.2 Layer and marker contract
+| Artboard | Size | State machine | View model inputs | Used on |
+| --- | --- | --- | --- | --- |
+| `Person` | 200×240 | `Passenger` | `Passenger` (§6.3) | trip scene, PreTrip card, LineDetails, every story character |
+| `Vehicle` | 236×150 | `Vehicle` | `Vehicle` (§6.4) | Home street, Lines, BuyVehicle, Garage |
+| `Splash` | 236×150 | `Splash` | none to set: it nests `Vehicle` with the instance `splash` (old microbus, driving) over moving road dashes | Loading |
+| `Stars` | 240×100 | `Stars` | `stars` number 0–3 | Result |
+| `CoachHand` | 100×100 | `CoachHand` | none (loops `tap`) | Tutorial, `CoachMark` |
+| `LoadingWheel` | 80×80 | `LoadingWheel` | none (loops) | `States` loading |
+| `CoinsBurst` | 200×200 | `CoinsBurst` | `Fx.play` trigger replays | Result payout, Daily claim |
+| `BonatBurst` | 200×200 | `BonatBurst` | `Fx.play` | PurchaseDone, RoomDone reward |
+| `Confetti` | 390×300 | `Confetti` | `Fx.play` | RoomDone, chapter complete, 3 stars |
+| `FuelGauge` | 156×110 | `FuelGauge` | `level` number 0–100 | Fuel sheet, refill |
+| `GiftOpen` | 160×160 | `GiftOpen` | `Fx.play` | Daily |
+| `SparklePlace` | 120×120 | `SparklePlace` | `Fx.play` | item bought in Piece / placed in AptRooms |
+| `RingShine` | 120×120 | `RingShine` | none (loops) | AptGoal, AptGoalReady |
+| `NotifBell` | 60×60 | `NotifBell` | `Fx.play` | NotifAsk |
 
-Passengers and characters: 30 fps, artboard 200×240, head centre at (100, 100), drawn at near-row scale (head r 42). The main composition holds one precomp layer (`passenger` or `character`, carries bob / board / alight motion) and `fx_halo` under it. Inside the precomp:
+One-shot artboards (bursts, confetti, gift, sparkle, bell) play once as soon as they are mounted; fire `play` to replay without remounting. All artboards have transparent backgrounds. Timelines run at 60 fps.
 
-| Layer | Parent | Content |
+### 6.3 `Person`: passengers and story characters
+
+One artboard draws all 24 people. Head centre at (100, 100), drawn at near-row scale (head r 42); scale the widget per row (§4.2). The view model `Passenger`:
+
+| Property | Type | Meaning |
 | --- | --- | --- |
-| `body`, `head`, `face` | — | null layers: body anchor, head rotation (sleep tilt, shakes), face scale (smaller for hijab faces) |
-| `acc_back` | body | anything drawn behind the torso (kids of العيلة الكبيرة, luggage of المسافر) |
-| `shirt` | body | torso and collar, tie, straps |
-| `acc_hijab` | head | hijab / hood behind the face |
-| `skin` | head | face circle |
-| `fx_flush` | head | red face during `fight` / `angry` |
-| `hair` | head | hair |
-| `blush` | face | cheeks |
-| `acc_face` | head | glasses, moustache, caps, eyebrows, skullcap, sunglasses… |
-| `eyes`, `eyes_closed`, `eyes_sleep`, `eyes_happy`, `eyes_shifty` (+ `eyes_wide` for characters) | face | eye variants, one visible per frame |
-| `brows_angry`, `brow_raised` | face | expression brows |
-| `mouth_smile`, `mouth_talk`, `mouth_frown`, `mouth_teeth`, `mouth_sleep`, `mouth_big`, `mouth_smirk` (+ `mouth_o` for characters) | face | mouth variants, one visible per frame |
-| `acc_headphones` | head | أبو سمّاعة only: lifts on `call_1`, comes off on `call_2` |
-| `acc_front` | body | props in front: bags, notes, coins, kid on the lap, watch |
-| `fx_sweat`, `fx_z`, `fx_sparks`, `fx_heart` | head | effects driven by segments |
+| `look` | number | which person, from the table below; set it once when the widget is created |
+| `mood` | number | 0 calm · 1 `impatient_1` (patience < 50%) · 2 `impatient_2` (< 25%) · 3 `fight` · 4 `angry` (characters) |
+| `talking` | boolean | true while this person's speech bubble is shown |
+| `asleep` | boolean | النايم while asleep; setting it false plays `wake` |
+| `headphones` | boolean | أبو سمّاعة with headphones on (see below) |
+| `changeDue` | boolean | station next and change still owed |
+| `claim` | boolean | after `ClaimRaised`, until resolved |
+| `surprised` | boolean | story characters only |
+| `happy` | trigger | `ChangeDelivered{exact}`: squint smile + heart, once |
+| `call` | trigger | the driver calls أبو سمّاعة the first time |
+| `board` | trigger | `PassengerBoarded`: slides in from the door side (right) |
+| `alight` | trigger | `StationReached`: rises 12 and fades out; remove the widget after 0.4 s |
+| `targeted` | trigger | money aimed at this seat: sun halo, 0.5 s |
 
-Markers:
+`look` index:
 
-| Marker | Frames | Type |
+| # | id | # | id | # | id |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `regular` | 8 | `group_payer` | 16 | `regular_customer` |
+| 1 | `hagga` | 9 | `chatterbox` | 17 | `honest` |
+| 2 | `sleeper` | 10 | `changer` | 18 | `usta` |
+| 3 | `hurried` | 11 | `bags_lady` | 19 | `salma` |
+| 4 | `effendi_200` | 12 | `dodger` | 20 | `bride_father` |
+| 5 | `student` | 13 | `mother_kids` | 21 | `bride_mother` |
+| 6 | `headphones` | 14 | `big_family` | 22 | `moallem` |
+| 7 | `claimer` | 15 | `traveler` | 23 | `belya` |
+
+The content pack's `skin` slug (architecture §3.6) maps to this index; keep the map in one Dart file. Skin tone is part of each look (it can't be changed at runtime as a separate value).
+
+The state machine has three layers:
+
+- **Face** picks one expression. When several inputs are on, the highest wins: `fight` > `angry` > `sleep` > `headphones` > `change_due` > `claim` > `impatient_2` > `impatient_1` > `surprised` > `talk` > `idle`. `happy` is a one-shot that plays from idle, talk, impatient, change due, claim or surprised, then returns. Leaving `sleep` plays `wake` first.
+- **Motion** plays `board`, `alight` and `targeted` on their triggers and rests otherwise.
+- **Headphones** shows the headphones while `headphones` is true, lifts one cup on `call`, and takes them off when `headphones` goes false.
+
+The أبو سمّاعة flow: set `headphones = true` when he boards. First call: fire `call` (cup lifts, eyes open, back to music). Second call: set `headphones = false` (`call_2`: headphones come off, then `idle`). Other looks never set `headphones`.
+
+Segments and lengths (60 fps): `idle` 2 s loop (blink, 1.5 px breathing bob) · `talk` 0.5 s loop · `impatient_1` 1 s loop · `impatient_2` 0.5 s loop · `sleep` 2 s loop · `wake` 0.27 s · `headphones` 1 s loop · `call_1` 0.5 s · `call_2` 0.23 s · `change_due` 0.5 s loop · `fight` 0.5 s loop (add the 300 ms screen shake in code) · `happy` 0.6 s · `claim` 1 s loop · `surprised` 0.27 s · `angry` 1 s loop · `board` 0.35 s · `alight` 0.4 s · `targeted` 0.5 s.
+
+Known simplifications: text inside props is dropped (the ٢٠٠ on the أفندي's note, the ٥٠/٥ notes), بلية's gap tooth uses the shared mouths, and بلية has no `point` segment (the coach uses `CoachHand`).
+
+### 6.4 `Vehicle` and `Splash`
+
+View model `Vehicle`:
+
+| Property | Type | Meaning |
 | --- | --- | --- |
-| `idle` | 0–59 | loop (blink at 40–46, 1.5 px breathing bob) |
-| `talk` | 60–74 | loop (mouth flaps) |
-| `impatient_1` | 75–104 | loop (angry brows, frown, sweat, small head wiggle) |
-| `impatient_2` | 105–134 | loop (stronger shake, dripping sweat) |
-| `sleep` | 135–194 | loop (head tilted 18°, "z z" rising) |
-| `wake` | 195–214 | once → `idle` |
-| `headphones` | 215–274 | loop (eyes closed, nodding to music) |
-| `call_1` | 275–289 | once → `headphones` (headphones lift, eyes open) |
-| `call_2` | 290–304 | once → `idle` (headphones come off) |
-| `change_due` | 305–334 | loop (talking, angry brows, hopping) |
-| `fight` | 335–364 | loop (red face, teeth, sparks, shake) |
-| `happy` | 365–394 | once → `idle` (squint smile, heart pops) |
-| `claim` | 395–424 | loop (shifty eyes, raised brow, smirk) |
-| `targeted` | 425–439 | once (sun halo behind) |
-| `board` | 440–457 | once → `idle` (slides in from the door side) |
-| `alight` | 458–475 | once → remove (rises 12 and fades) |
-| `surprised` | 476–505 | characters only, loop |
-| `angry` | 506–535 | characters only, loop |
+| `look` | number | 0 `tuktuk` · 1 `microbus_old` · 2 `microbus_new` · 3 `microbus_travel` |
+| `driving` | boolean | wheels spin and the body bobs; false = parked idle |
+| `brake` | trigger | nose dips, 0.35 s |
+| `honk` | trigger | squash + horn lines, 0.3 s |
 
-Vehicles: 236×150, markers `idle` (0–35, body bob), `drive` (36–47, wheels spin, loop), `brake` (48–65, nose dips), `honk` (66–83, squash + horn lines). The line sign is a Flutter overlay, not in the file.
+Side views face left (direction of travel). The line sign on the roof is a Flutter overlay, not in the file.
 
-### 6.3 Asset list (in `lottie/`, copy to `assets/lottie/`)
+`Splash` nests `Vehicle` through its `car` property, bound to the instance `splash` (`look` 1, `driving` true), over road dashes that scroll left in a 0.4 s loop. Nothing to set; place it centred on the Loading screen. (Its view model also has an unused `vehicle` property; ignore it.)
 
-| File | Used on | Markers |
-| --- | --- | --- |
-| `passengers/<skin>.json` × 18 (`regular`, `hagga`, `sleeper`, `hurried`, `effendi_200`, `student`, `headphones`, `claimer`, `group_payer`, `chatterbox`, `changer`, `bags_lady`, `dodger`, `mother_kids`, `big_family`, `traveler`, `regular_customer`, `honest`) | trip scene, PreTrip new-passenger card, LineDetails | §6.2 |
-| `characters/<id>.json` × 6 (`usta`, `salma`, `bride_father`, `bride_mother`, `moallem`, `belya`) | Intro, Tutorial coach, StoryTrip front seat, Fail, Result quote, SceneViewer, Requests, Returning, RoomDone | §6.2 + `surprised`, `angry` |
-| `vehicles/<id>.json` × 4 (`tuktuk`, `microbus_old`, `microbus_new`, `microbus_travel`) | Home street scene, Lines, BuyVehicle, Garage | `idle`, `drive`, `brake`, `honk` |
-| `ui/splash_drive.json` | Loading | `loop` |
-| `ui/coach_hand.json` | Tutorial, `CoachMark` | `tap` |
-| `ui/stars.json` | Result | play 0 → end of `one` / `two` / `three` for the stars earned |
-| `ui/coins_burst.json` | Result payout, Daily claim | `burst` |
-| `ui/bonat_burst.json` | PurchaseDone, RoomDone reward | `burst` |
-| `ui/fuel_fill.json` | Fuel sheet, refill | `empty`, `fill` |
-| `ui/gift_open.json` | Daily | `open` |
-| `ui/sparkle_place.json` | item bought in Piece / placed in AptRooms | `place` |
-| `ui/ring_shine.json` | AptGoal, AptGoalReady | `loop` |
-| `ui/confetti.json` | RoomDone, chapter complete, 3 stars | `burst` |
-| `ui/loading_wheel.json` | `States` loading | `loop` |
-| `ui/notif_bell.json` | NotifAsk | `ring` |
+### 6.5 UI artboards
 
-Known simplifications in the generated files: text inside props is dropped (the ٢٠٠ on the أفندي's note, the ٥٠/٥ notes), بلية's gap tooth is replaced by the shared mouths, and بلية has no `point` segment (the coach uses `ui/coach_hand`). Regenerate after art changes with `tools/` (README there).
+| Artboard | Behaviour |
+| --- | --- |
+| `Stars` | three empty slots always show. Set `stars` (0–3) before or after mount; the earned stars pop in one by one (scale 0 → 1.25 → 1 with a −30° → 0 twist, 16 frames apart). Setting it back to 0 clears them |
+| `FuelGauge` | `level` 0–100 drives the needle (−84° → 84° around the hub) and the green arc. It jumps to the value; tween `level` in code (500 ms easeOutCubic) for the fill animation |
+| `CoinsBurst`, `BonatBurst` | 10 coins / tickets fly out from the centre and fade, 0.87 s |
+| `Confetti` | 28 pieces fall from above the top edge and fade out, 1.6 s; lay it over the screen |
+| `GiftOpen` | box squashes, lid pops off, 3 sparks, 1 s, holds open |
+| `SparklePlace` | 5 sparkles twinkle in sequence, 0.8 s |
+| `RingShine` | ring rocks ±4°, a glint flashes once per 1.5 s loop |
+| `NotifBell` | bell swings and the ring waves fade, 1 s |
+| `CoachHand` | ripple grows and fades while the finger taps, 1 s loop |
+| `LoadingWheel` | one turn per second |
 
-**Fallback.** If a Lottie file fails to load, or for the third performance tier below, `PassengerAvatar`, `CharacterAvatar` and `VehicleSprite` render the static SVG from `illustrations/` with code-driven motion (idle bob 2 px / 1.2 s).
+### 6.6 Fallback and performance gate
 
-### 6.4 Performance gate (trip scene)
+**Performance gate (trip scene).** On the cheapest target phone (Galaxy A06 class): 12 passengers animating + 2 bubbles + 3 money notes in flight at 60 fps, p90 frame time < 16 ms (build + raster), memory < 300 MB.
 
-On the cheapest target phone (Galaxy A06 class): 12 passengers animating + 2 bubbles + 3 money notes in flight at 60 fps, p90 frame time < 16 ms (build + raster), memory < 300 MB.
-
-1. Try direct `LottieComponent` rendering first.
-2. If it misses the gate: cache each passenger's current segment as a `SpriteAnimation` rendered at its on-screen size (loops at 15 fps), key = (skin, segment, row). Render on first use, keep an LRU of ~40 animations.
-3. If that still misses: static SVG faces with code-driven transforms (the fallback above) for rows B–D, Lottie only for row A and the front seat.
+1. Try one Rive `Person` per seat first.
+2. If it misses the gate: drop rows B–D to the Lottie fallback cached as `SpriteAnimation`s (key = skin, segment, row; LRU of ~40), keep Rive for row A and the front seat.
+3. If that still misses: static SVG faces with code-driven transforms for rows B–D.
 
 Record the measurements in `research.md`.
 
-### 6.5 UI motion (code)
+**Lottie fallback.** `lottie/` holds the same people, vehicles and UI as Lottie files with named markers (`passengers/<skin>.json` × 18, `characters/<id>.json` × 6, `vehicles/<id>.json` × 4, `ui/*.json` × 12; `lottie/index.html` plays every file and segment). Markers at 30 fps for people: `idle` 0–59, `talk` 60–74, `impatient_1` 75–104, `impatient_2` 105–134, `sleep` 135–194, `wake` 195–214, `headphones` 215–274, `call_1` 275–289, `call_2` 290–304, `change_due` 305–334, `fight` 335–364, `happy` 365–394, `claim` 395–424, `targeted` 425–439, `board` 440–457, `alight` 458–475, `surprised` 476–505, `angry` 506–535. Vehicles: `idle` 0–35, `drive` 36–47, `brake` 48–65, `honk` 66–83. Use them only for step 2 above or if the Rive runtime can't be used on a device; play a marker with the `lottie` package (`composition.getMarker('idle')`). The Lottie `ui/stars.json` pops its stars left → right; wrap it in `Transform.flip(flipX: true)` for the RTL order. Hide أبو سمّاعة's headphones after `call_2` with `ValueDelegate.opacity(['**', 'acc_headphones', '**'], value: 0)`.
+
+**Last resort.** If neither loads, `PassengerAvatar`, `CharacterAvatar` and `VehicleSprite` render the static SVG from `illustrations/` with code-driven motion (idle bob 2 px / 1.2 s).
+
+### 6.7 UI motion (code)
 
 | Element | Trigger | Animation | Duration / curve |
 | --- | --- | --- | --- |
@@ -471,9 +513,30 @@ Record the measurements in `research.md`.
 | `NewDot` | appears | scale 0 → 1.2 → 1 | 240 ms |
 | Tab switch | `BottomNav` | cross-fade | 150 ms |
 
-**Reduced motion** (system setting or in-app): no shake, no bubble pop, no star bounce, no parallax; fades ≤ 150 ms only. Lottie loops keep playing but `fx_*` effects stay still.
+**Reduced motion** (system setting or in-app): no shake, no bubble pop, no star bounce, no parallax; fades ≤ 150 ms only. Rive loops keep playing; skip the one-shot effects (bursts, confetti, sparkle, `targeted`, `happy`) and set `FuelGauge.level` without a tween.
 
 **Sound and haptics** follow ux-spec «الحركة والصوت والاهتزاز»: coin clink in the tray, paper fold when a note passes, «على جنب يا أسطى» voice, horn at the station; light haptic when money arrives, heavy on a fight; settings toggle both.
+
+### 6.8 Comic panels: `wassal_scenes.riv`
+
+The six comic panels of «البداية وأول جلسة» animate from a second file, `rive/wassal_scenes.riv` (copy to `assets/rive/wassal_scenes.riv`). It is separate from `wassal.riv`, which it does not change. The canvas board «حركة المشاهد» (page «النظام والمكوّنات») plays every panel live, with buttons to make each character talk.
+
+| Artboard (= panel slug) | Canvas panel | State machine | Booleans it reacts to | Loop | What moves |
+| --- | --- | --- | --- | --- | --- |
+| `opening_key` | Intro | `Panel` | `moallem`, `usta` | 4.8 s | المعلم holds the key out (it glints every 2.4 s); the driver reaches and nods; tuktuk judders |
+| `opening_stand` | PanelOpeningStand | `Panel` | `moallem`, `usta` | 4.8 s | المعلم points at the drawer; a coin drops in, coins glint; the driver nods, keen |
+| `opening_go` | PanelOpeningGo | `Panel` | `belya`, `moallem` | 2.4 s start once, then 2.4 s | driver at the wheel blinks, engine judders, wheels turn (spokes fade in over the first 0.6 s); بلية bounces and waves; المعلم waves off |
+| `stand_morning` | PanelStandMorning | `Panel` | `usta` | 4.8 s | sun rises 3 px, its glow pulses; the driver stretches, yawn ↔ smile; microbus idles |
+| `salma_waiting` | PanelSalmaWaiting | `Panel` | `salma`, `usta` | 4.8 s | سلمى shifts her books and glances at the sign; the driver turns to her and blinks, dazed; heart pulses |
+| `usta_decides` | PanelUstaDecides | `Panel` | `usta` | 4.8 s | the driver drops a coin in the tin, the tin bounces with a sparkle, determined nod |
+
+- All six artboards are 358×540 and have the view model `Panel` as default: booleans `moallem`, `usta`, `belya`, `salma`. `true` makes that character talk (mouth opens and closes every 0.5 s, small head tilt); a character who isn't in the panel ignores its boolean; all `false` = breathing and blinking. Gestures loop regardless.
+- The first frame equals the still on the canvas, and every loop closes without a jump.
+- Show with `Fit.cover`, bottom-centre alignment; one controller and one `DataBind.auto()` per panel widget, then set the booleans as the caption and bubbles change (`vm.boolean('moallem')!.value = true`).
+- Nothing moves in the top 180 px except the edge of the sun's glow in `stand_morning` (y ≈ 137–180). Moving things keep the stills' positions, so the bus-stop sign, the tuktuk on the left and المعلم's waving hand in `opening_go` sit as close to the sides as they do in the stills.
+- Inside the file, `Character_usta`, `Character_moallem`, `Character_belya`, `Character_salma` (240×440), `Tuktuk` (140×134) and `Prop_key`, `Prop_drawer`, `Prop_tin`, `Prop_books`, `Prop_bag`, `Prop_busstop` are component artboards nested in the panels. Each character has one state machine per panel and reads its boolean from the panel's `Panel` instance. Code only touches the six panel artboards.
+- No bones (joints are groups), meshes, text, fonts or images; about 50 KB.
+- Free Rive plan: the export shows a full-screen «RIVE» splash for about 2.4 s whenever a panel starts; the scene holds its first frame until it ends. A paid plan removes it (upgrade, then re-export from the editor). The export also carries Rive's `Watermark`, `NuRiveBrandmark01`, `NuRiveWordmark01` and an empty `Artboard 1`; ignore them.
 
 ## 7. Navigation map
 
@@ -535,7 +598,7 @@ The per-screen sections (§11) list every tap and where it goes.
 - Live announcements (`SemanticsService.announce`): station warnings («الكوبري جاية، المستعجل ليه باقي»), fare raised, trip result, purchase result, offline/online changes.
 - Colour is never the only cue: stations carry letters, ledger badges carry words, stars have a check/✗ caption on Result.
 - Contrast: body text on white ≥ 4.5:1 (ink, ink.2, ink.muted pass; `icon.off` is icons only). White text only on `primary`, `primary.lip`, `station[0..1]`, dashboard. Never white on `danger` or `sun`.
-- Text scale up to 1.3× (1.15× clamp in the trip HUD/dashboard). Reduced motion as §6.5.
+- Text scale up to 1.3× (1.15× clamp in the trip HUD/dashboard). Reduced motion as §6.7.
 
 ## 9. Decisions and open questions
 
@@ -543,7 +606,7 @@ The per-screen reviews (§11, "Notes" in each section) found small inconsistenci
 
 ### 9.1 Decisions (follow these)
 
-1. **Lottie, not Rive.** Architecture §2/§5/§8/§25 now say so.
+1. **Rive, with Lottie as fallback.** One file, `assets/rive/wassal.riv`, driven by view models (§6). Architecture §2/§5/§8/§25 say so.
 2. **Design sizes win** over older numbers in the UX spec and architecture: scene 390×444, HUD 114, dashboard 258.
 3. **BONAT wording.** Price tags, chips and badges always say «بون» (`٨ بون`, `+١٠ بون`). Inside sentences use Arabic number agreement: ٣–١٠ «بونات», ١١ and up «بون».
 4. **Fuel cost** is one chip everywhere: sun pill «−١» + fuel icon (as on Home and PreTrip). Where an artboard writes «−١ لتر» (Result, Pause, Fail, Piece, Event), use the chip.
@@ -645,7 +708,7 @@ Block 4 + 5 sit at `bottom: 118` (x45–345).
 - No white flash: the native splash colour must be `sun` so it matches this screen.
 
 **Motion.**
-- Microbus enters from the right on first frame (UX: «الميكروباص داخل من اليمين»), then idles (Lottie loop of `VehicleSprite`).
+- Microbus enters from the right on first frame (UX: «الميكروباص داخل من اليمين»), then idles (Rive `Splash`).
 - Marker position tweens with progress (linear, ≤150 ms per update). Reduced motion: no entrance, marker jumps.
 
 **Accessibility.**
@@ -1002,7 +1065,7 @@ After trip 3: Salma scene, then `NotifAsk`. Analytics `tutorial_step` 1..8 maps 
 - Content pack swap happens on a Home visit (arch §14.1), never visible mid-render.
 
 **Motion.**
-- Barker bubble `bubblePop` on enter, re-pops every few seconds (interval not specified). Vehicle and barker idle Lottie loops.
+- Barker bubble `bubblePop` on enter, re-pops every few seconds (interval not specified). Vehicle (Rive `Vehicle`, `driving` false) and barker (Rive `Person`) idle loops.
 - `NewDot` static. Currency changes: count-up ≤ 300 ms (suggested). Cards/buttons `press`.
 - Reduced motion: no pop, idle loops paused on frame 0.
 
@@ -1244,7 +1307,7 @@ After trip 3: Salma scene, then `NotifAsk`. Analytics `tutorial_step` 1..8 maps 
 - Long quote: max 2 lines then ellipsis; speaker 1 line.
 
 **Motion.**
-- Stars: `starIn` (350 ms, stagger 250, easeOutBack 1.6), one by one right → left; earned stars burst `lottie/ui/stars.json` (play to marker `one`/`two`/`three`). Labels fade in with their star.
+- Stars: Rive `Stars` with `stars` = stars earned; they pop one by one right → left (§6.5), so no code-driven `starIn` on the stars themselves. Labels fade in with their star (stagger ≈ 270 ms).
 - Payout count-up 0 → value (≤ 600 ms, suggested); ×2 animates to the doubled value.
 - Apartment bar fills from old to new balance (UX «شريطها بيتحرك بالمبلغ الجديد»), 600 ms easeOut, after the payout.
 - Reduced motion: no bounce/burst, values appear directly.
@@ -1474,7 +1537,7 @@ Prototype only: the invisible 44×44 link at the dashboard's bottom-left («لل
 - Alight: `alight` (600 ms, dy −12, fade). Boarding: enters from the right door (not drawn).
 - Fight or bump: `screenShake` 300 ms (amplitude 6) + haptic. Controls: `press` 80 ms. Target glow: 500 ms before the throw.
 - Side windows scroll as parallax; the next-station sign grows as the stop nears.
-- `PassengerAvatar` (Lottie) states: calm, talking, impatient (sweat), asleep (z), headphones (notes), angry, alight.
+- `PassengerAvatar` (Rive `Person`) states: calm, talking, impatient (sweat), asleep (z), headphones (notes), angry, alight.
 - Reduced motion: no shake, bubble pop, parallax or pulse (the hot ring stays static); fades ≤ 150 ms.
 
 **Accessibility.**
@@ -1675,7 +1738,7 @@ trip.boosterTimer: "{s}ث"
 
 **Motion.**
 - Character bubble: `bubblePop`.
-- `CharacterAvatar` (Lottie) frowns on mistakes.
+- `CharacterAvatar` (Rive `Person`, `mood` 4) frowns on mistakes.
 - The condition strip is static.
 
 **Accessibility.**
@@ -2083,7 +2146,7 @@ lineDetails.stateStory: "مشوار قصة"
 
 **Motion.**
 - Sheet: `sheetIn` / `sheetOut`; buttons `press`.
-- The `VehicleSprite` may idle (Lottie).
+- The `VehicleSprite` may idle (Rive `Vehicle`).
 
 **Accessibility.**
 - Dialog labelled by the vehicle name; the preview is decorative.
@@ -3666,7 +3729,7 @@ Upgrade names and effects are content. Samples: «درج أوسع» / «المش
 - **Under one day left:** not drawn. Proposal: «فاضل {h} ساعة و{m} دقيقة».
 - **Store price missing:** keep the CTA disabled with no price, and never show a hardcoded price.
 
-**Motion.** The dialog uses `dialogIn`. The sparkles twinkle (illustration Lottie, optional). Under reduced motion, everything is static.
+**Motion.** The dialog uses `dialogIn`. The sparkles twinkle (Rive `SparklePlace`, optional). Under reduced motion, everything is static.
 
 **Accessibility.** The dialog is labelled by «باقة البداية». Read the list items in order. The countdown label is read once. Targets: CTA 322×64, dismiss 322×44.
 
@@ -3819,7 +3882,7 @@ king.a11yYourRank: "ترتيبك"
 - **Long reward labels** in 60-wide cells: at most 2 lines at 12 px, ellipsis, and keep clear of the lock glyph (see Notes).
 - **Long event title:** 1 line with an ellipsis.
 
-**Motion.** The current rail node pulses gently (proposal: `hotTagPulse` timing, scale ≤1.06). Claim uses `press`, then the reward flies. The hero lanterns sway (optional Lottie; static under reduced motion).
+**Motion.** The current rail node pulses gently (proposal: `hotTagPulse` timing, scale ≤1.06). Claim uses `press`, then the reward flies. The hero lanterns sway (optional, code-driven; static under reduced motion).
 
 **Accessibility.**
 - The back button is labelled «رجوع». The pass section is labelled by «تذكرة الموسم».

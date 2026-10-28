@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/app.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/audio_haptics/audio_haptics_providers.dart';
 import 'package:wassal/core/audio_haptics/vibration_setting.dart';
 import 'package:wassal/core/theme/app_theme.dart';
@@ -19,7 +21,9 @@ import 'trip.dart';
 ///
 /// [vibration] is the stored vibration preference; [reducedMotion] turns
 /// on the platform's reduce-motion setting; [size] is the surface at device
-/// pixel ratio 1; [overrides] come last, for a screen's providers.
+/// pixel ratio 1; [overrides] come last, for a screen's providers. No scene
+/// panel animates (specs/012.5-m22-animated-scenes, T011): a test that wants
+/// turns overrides `scenePanelsProvider`.
 Future<void> pumpDesignComponent(
   WidgetTester tester,
   Widget child, {
@@ -48,6 +52,7 @@ Future<void> pumpDesignComponent(
     retry: (_, _) => null,
     overrides: [
       hapticsProvider.overrideWithValue(haptics ?? FakeHaptics()),
+      riveScenesProvider.overrideWith((ref) async => const RiveArt.none()),
       settingsStoreProvider.overrideWith(
         (ref) async =>
             MemorySettingsStore({vibrationKey: vibration ? 'on' : 'off'}),

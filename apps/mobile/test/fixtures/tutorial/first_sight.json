@@ -1,0 +1,54 @@
+{
+  "panels": [
+    {
+      "art": "ch1_stand_morning",
+      "lines": [
+        {
+          "speaker": "usta",
+          "text": {
+            "ar-EG": "صباح الفل يا موقف.. يلا على الله"
+          }
+        }
+      ]
+    },
+    {
+      "art": "ch1_salma_asks",
+      "lines": [
+        {
+          "speaker": "salma",
+          "text": {
+            "ar-EG": "لو سمحت، ميكروباص الجامعة بيقف فين؟"
+          }
+        },
+        {
+          "speaker": "usta",
+          "text": {
+            "ar-EG": "هنا.. هنا بالظبط"
+          }
+        }
+      ]
+    },
+    {
+      "art": "ch1_usta_dreams",
+      "lines": [
+        {
+          "speaker": "usta",
+          "text": {
+            "ar-EG": "من النهارده هحوّش قرش على قرش"
+          }
+        },
+        {
+          "speaker": "usta",
+          "text": {
+            "ar-EG": "بس الأول لازم أركّز في الأجرة"
+          }
+        }
+      ]
+    }
+  ],
+  "plays": {
+    "kind": "after_trip",
+    "trip_id": "line_hay.03"
+  },
+  "scene_id": "first_sight"
+}

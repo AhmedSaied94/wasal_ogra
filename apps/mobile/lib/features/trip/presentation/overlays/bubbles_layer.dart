@@ -8,6 +8,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/theme/components/bubble_pop.dart';
 import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';

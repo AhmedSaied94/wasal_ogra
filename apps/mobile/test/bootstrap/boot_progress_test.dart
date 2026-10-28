@@ -11,6 +11,7 @@ import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 
 import '../helpers/account.dart';
 import '../helpers/content.dart';
@@ -150,6 +151,43 @@ void main() {
       expect(art.file, isNull);
       expect(art.usable, isEmpty);
       expect(art.problems.single, startsWith('assets/rive/missing.riv'));
+    });
+
+    // specs/012.5-m22-animated-scenes, contracts/rive-scenes.md "Loading".
+    test('the art step waits for both files', () async {
+      final scenes = Completer<RiveArt>();
+      final container = _container([
+        riveArtProvider.overrideWith((ref) async => const RiveArt.none()),
+        riveScenesProvider.overrideWith((ref) => scenes.future),
+      ]);
+      final startup = container.read(appStartupProvider.future);
+      await container.read(riveArtProvider.future);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(
+        container.read(bootProgressProvider).done,
+        isNot(contains(BootStep.art)),
+      );
+      scenes.complete(const RiveArt.none());
+      await startup;
+      expect(container.read(bootProgressProvider).done, contains(BootStep.art));
+    });
+
+    test('a missing scenes file records a problem, and boot goes on', () async {
+      final container = _container([
+        riveScenesProvider.overrideWith(
+          (ref) => loadRiveArt(
+            contract: sceneContract,
+            asset: 'assets/rive/missing.riv',
+          ),
+        ),
+      ]);
+      await container.read(appStartupProvider.future);
+      final progress = container.read(bootProgressProvider);
+      expect(progress.done, contains(BootStep.art));
+      expect(progress.failed, isNull);
+      final scenes = container.read(riveScenesProvider).requireValue;
+      expect(scenes.file, isNull);
+      expect(scenes.problems.single, startsWith('assets/rive/missing.riv: '));
     });
 
     test('a failing step sets failed to it', () async {

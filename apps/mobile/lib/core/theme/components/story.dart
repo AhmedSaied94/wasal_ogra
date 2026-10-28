@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/theme/components/bubble_pop.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
@@ -13,11 +14,19 @@ import 'package:wassal/core/theme/tokens/design_tokens.dart';
 /// radius-26 card with the dark lip, a `sun` caption at the top-end corner
 /// and the speakers' lines in white bubbles at the start side, the second
 /// under the first (specs/012-m07-onboarding/contracts/scenes.md).
+///
+/// With [shown], the lines come in turn (specs/012.5-m22-animated-scenes,
+/// contracts/scene-turns.md "Bubbles"): every bubble is laid out from the
+/// start, those not shown yet unseen but read, and each pops as it shows.
+/// At most two bubbles show, the last two shown; an older one goes unseen in
+/// its place, still read (FR-018). Without [shown], every bubble shows, as
+/// M07 drew them (FR-017).
 class ComicPanel extends StatelessWidget {
   const ComicPanel({
     required this.art,
     this.caption,
     this.lines = const [],
+    this.shown,
     super.key,
   });
 
@@ -26,6 +35,12 @@ class ComicPanel extends StatelessWidget {
 
   /// Each speaker's name and line, in order.
   final List<(String speaker, String line)> lines;
+
+  /// How many [lines] have shown their bubble; null for all, at once.
+  final int? shown;
+
+  /// No more bubbles than this on screen at once.
+  static const _maxBubbles = 2;
 
   static const captionKey = Key('ComicPanel.caption');
 
@@ -42,6 +57,12 @@ class ComicPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(RadiusTokens.scene);
     final caption = this.caption;
+    final shown = this.shown;
+    final visible = (shown ?? lines.length).clamp(0, lines.length);
+    // In turn, the oldest bubbles go unseen once more than two have shown.
+    final first = shown == null
+        ? 0
+        : (visible - _maxBubbles).clamp(0, lines.length);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: ColorTokens.sceneSky,
@@ -70,10 +91,14 @@ class ComicPanel extends StatelessWidget {
                   spacing: _bubbleGap,
                   children: [
                     for (final (i, (speaker, line)) in lines.indexed)
-                      _ComicBubble(
-                        key: bubbleKey(i),
-                        speaker: speaker,
-                        line: line,
+                      _turn(
+                        _ComicBubble(
+                          key: bubbleKey(i),
+                          speaker: speaker,
+                          line: line,
+                        ),
+                        shown: shown == null ? null : first <= i && i < visible,
+                        key: ValueKey(i),
                       ),
                   ],
                 ),
@@ -138,6 +163,20 @@ class PageDots extends StatelessWidget {
     );
   }
 }
+
+/// [bubble] as it is in its turn: as M07 drew it without turns ([shown]
+/// null), popping in once shown, or in its place but unseen, untouchable
+/// and still read before. [key] is the line's, so a bubble pops only when it
+/// shows, not when an older one goes.
+Widget _turn(Widget bubble, {required bool? shown, required Key key}) =>
+    switch (shown) {
+      null => bubble,
+      true => BubblePop(key: key, child: bubble),
+      false => IgnorePointer(
+        key: key,
+        child: Opacity(opacity: 0, alwaysIncludeSemantics: true, child: bubble),
+      ),
+    };
 
 class _Caption extends StatelessWidget {
   const _Caption(this.text, {super.key});

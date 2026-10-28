@@ -486,6 +486,12 @@
   "label": ""
  },
  {
+  "file": "illustrations/screens/Settings_01.svg",
+  "screen": "Settings",
+  "size": "62x62",
+  "label": ""
+ },
+ {
   "file": "illustrations/screens/ShareCard_01.svg",
   "screen": "ShareCard",
   "size": "46x46",

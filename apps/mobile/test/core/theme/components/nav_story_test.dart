@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/components/bubble_pop.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/pills.dart';
 import 'package:wassal/core/theme/components/story.dart';
@@ -282,6 +283,158 @@ void main() {
         ),
       );
       expect(find.byKey(ComicPanel.bubbleKey(0)), findsNothing);
+    });
+  });
+
+  // Bubbles in turn (specs/012.5-m22-animated-scenes,
+  // contracts/scene-turns.md "Bubbles").
+  group('ComicPanel in turns', () {
+    const two = [
+      ('المعلم', 'الركاب بيدفعوا.'),
+      ('الأسطى', 'وأنا أرجّع الباقي.'),
+    ];
+
+    Future<void> pumpShown(
+      WidgetTester tester,
+      int? shown, {
+      List<(String, String)> lines = two,
+      bool reducedMotion = false,
+    }) => pumpDesignComponent(
+      tester,
+      SizedBox(
+        width: 358,
+        height: 540,
+        child: ComicPanel(
+          art: const SizedBox.shrink(),
+          lines: lines,
+          shown: shown,
+        ),
+      ),
+      reducedMotion: reducedMotion,
+    );
+
+    Finder popOf(int i) => find.ancestor(
+      of: find.byKey(ComicPanel.bubbleKey(i)),
+      matching: find.byType(BubblePop),
+    );
+
+    double scaleOf(WidgetTester tester, int i) => tester
+        .widget<Transform>(
+          find.descendant(of: popOf(i), matching: find.byType(Transform)).first,
+        )
+        .transform
+        .entry(0, 0);
+
+    testWidgets("shown null is M07's panel: every bubble, no pop", (
+      tester,
+    ) async {
+      await pumpShown(tester, null);
+      for (final i in [0, 1]) {
+        expect(find.byKey(ComicPanel.bubbleKey(i)), findsOne);
+        expect(popOf(i), findsNothing);
+      }
+    });
+
+    testWidgets('a bubble not shown yet keeps its place and its line, '
+        'unseen and untouchable', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpShown(tester, 2);
+      await tester.pumpAndSettle();
+      final place = tester.getRect(find.byKey(ComicPanel.bubbleKey(1)));
+      await pumpShown(tester, 1);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(ComicPanel.bubbleKey(1))), place);
+      final opacity = tester.widget<Opacity>(
+        find.ancestor(
+          of: find.byKey(ComicPanel.bubbleKey(1)),
+          matching: find.byType(Opacity),
+        ),
+      );
+      expect(opacity.opacity, 0);
+      expect(opacity.alwaysIncludeSemantics, isTrue);
+      expect(
+        tester
+            .widget<IgnorePointer>(
+              find
+                  .ancestor(
+                    of: find.byKey(ComicPanel.bubbleKey(1)),
+                    matching: find.byType(IgnorePointer),
+                  )
+                  .first,
+            )
+            .ignoring,
+        isTrue,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('وأنا أرجّع الباقي')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('a bubble pops when it is shown', (tester) async {
+      await pumpShown(tester, 1);
+      await tester.pumpAndSettle();
+      await pumpShown(tester, 2);
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(scaleOf(tester, 1), lessThan(1));
+      // The one already shown doesn't pop again.
+      expect(scaleOf(tester, 0), 1);
+      await tester.pump(MotionTokens.bubblePop);
+      expect(scaleOf(tester, 1), 1);
+    });
+
+    testWidgets('under reduced motion it appears at once', (tester) async {
+      await pumpShown(tester, 1, reducedMotion: true);
+      await pumpShown(tester, 2, reducedMotion: true);
+      expect(popOf(1), findsOne);
+      expect(
+        find.descendant(
+          of: popOf(1),
+          matching: find.byType(TweenAnimationBuilder<double>),
+        ),
+        findsNothing,
+        reason: 'no grow from 0.6',
+      );
+    });
+
+    const three = [...two, ('المعلم', 'يلا.')];
+
+    /// The `Opacity` [i]'s turn wraps it in, if any.
+    Opacity? hiding(WidgetTester tester, int i) {
+      final found = find.ancestor(
+        of: find.byKey(ComicPanel.bubbleKey(i)),
+        matching: find.byType(Opacity),
+      );
+      return found.evaluate().isEmpty ? null : tester.widget<Opacity>(found);
+    }
+
+    testWidgets('at most two bubbles show, the last two; the oldest keeps '
+        'its place, unseen and still read (FR-018)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpShown(tester, 2, lines: three);
+      await tester.pumpAndSettle();
+      final place = tester.getRect(find.byKey(ComicPanel.bubbleKey(0)));
+      await pumpShown(tester, 3, lines: three);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(ComicPanel.bubbleKey(0))), place);
+      expect(hiding(tester, 0)?.opacity, 0);
+      expect(hiding(tester, 0)?.alwaysIncludeSemantics, isTrue);
+      expect(find.bySemanticsLabel(RegExp('الركاب بيدفعوا')), findsOneWidget);
+      for (final i in [1, 2]) {
+        expect(popOf(i), findsOne, reason: 'bubble $i');
+        expect(hiding(tester, i), isNull, reason: 'bubble $i');
+      }
+      semantics.dispose();
+    });
+
+    testWidgets("shown null with three lines is M07's: every bubble shows "
+        '(FR-017)', (tester) async {
+      await pumpShown(tester, null, lines: three);
+      for (final i in [0, 1, 2]) {
+        expect(find.byKey(ComicPanel.bubbleKey(i)), findsOne);
+        expect(hiding(tester, i), isNull, reason: 'bubble $i');
+      }
     });
   });
 

@@ -13,6 +13,7 @@ import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/network/api_client.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/sync/sync_providers.dart';
+import 'package:wassal/core/theme/components/story.dart';
 import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/onboarding/presentation/first_session_continue.dart';
 import 'package:wassal/features/onboarding/presentation/fuel_lesson_screen.dart';
@@ -65,12 +66,31 @@ Future<void> _next(WidgetTester tester) async {
   await _frames(tester);
 }
 
-/// Taps «يلا» until the scene page has left; how many panels it had.
+/// The page dots' panel, or null once the scene has left.
+int? _panel(WidgetTester tester) {
+  final dots = find.byType(PageDots).evaluate();
+  return dots.isEmpty ? null : (dots.first.widget as PageDots).index;
+}
+
+/// «يلا» until the panel on screen moves on: once, or twice when its turns
+/// are still playing and the first only shows the rest of its bubbles
+/// (specs/012.5-m22-animated-scenes), whether or not Rive plays here.
+Future<void> _nextPanel(WidgetTester tester) async {
+  final scene = currentLocation(tester);
+  final shown = _panel(tester);
+  for (var taps = 0; taps < 2; taps++) {
+    await _next(tester);
+    if (currentLocation(tester) != scene || _panel(tester) != shown) return;
+  }
+  fail('panel $shown of $scene stayed after two taps of «يلا»');
+}
+
+/// Plays the scene until its page has left; how many panels it had.
 Future<int> _playScene(WidgetTester tester) async {
   final scene = currentLocation(tester);
   var panels = 0;
   while (panels < 10 && currentLocation(tester) == scene) {
-    await _next(tester);
+    await _nextPanel(tester);
     panels++;
   }
   return panels;
