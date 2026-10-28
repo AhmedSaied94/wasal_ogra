@@ -930,9 +930,15 @@ replays each screen and can coach every tutorial trip.
 - [ ] **2. The frame rate on a coached trip.** `tool/perf/trip_fps.sh com.wassalogra.app.dev line_hay.02`
   on the A06, with the tutorial not yet done.
 - [ ] **3. The moderated playtest (SC-007).** Five new players through the first session.
-- [ ] **4. The release draft.** Add chapter 1's opening scene and the scenes' `plays` to
+- [x] **4. The release draft.** Add chapter 1's opening scene and the scenes' `plays` to
   `content/drafts/core-r1` on the `content-core-r1` branch (research "Handed to later features"),
-  before it is promoted.
+  before it is promoted. Done by Claude on 2026-10-28, in the `content-core-r1` worktree (uncommitted,
+  like the rest of the draft):
+  - the sample's three-panel opening;
+  - `first_sight` after `line_hay.03`;
+  - `moallem_verdict` after `line_hay.20`.
+
+  Imported on the local stack as pack 11.
 
 ## Known for later features
 
