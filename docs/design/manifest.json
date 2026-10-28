@@ -45,6 +45,60 @@
   "h": 844
  },
  {
+  "file": "screens/FuelLesson.html",
+  "png": "png/FuelLesson.png",
+  "artboard": "FuelLesson",
+  "title": "تفويلة من المعلم",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PanelOpeningStand.html",
+  "png": "png/PanelOpeningStand.png",
+  "artboard": "PanelOpeningStand",
+  "title": "المشهد الافتتاحي · لوحة ٢",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PanelOpeningGo.html",
+  "png": "png/PanelOpeningGo.png",
+  "artboard": "PanelOpeningGo",
+  "title": "المشهد الافتتاحي · لوحة ٣",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PanelStandMorning.html",
+  "png": "png/PanelStandMorning.png",
+  "artboard": "PanelStandMorning",
+  "title": "مشهد الموقف · لوحة ١",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PanelSalmaWaiting.html",
+  "png": "png/PanelSalmaWaiting.png",
+  "artboard": "PanelSalmaWaiting",
+  "title": "مشهد الموقف · لوحة ٢",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PanelUstaDecides.html",
+  "png": "png/PanelUstaDecides.png",
+  "artboard": "PanelUstaDecides",
+  "title": "مشهد الموقف · لوحة ٣",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
   "file": "screens/C-Home.html",
   "png": "png/C-Home.png",
   "artboard": "C-Home",

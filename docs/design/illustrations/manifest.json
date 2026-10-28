@@ -216,6 +216,18 @@
   "label": ""
  },
  {
+  "file": "illustrations/screens/FuelLesson_01.svg",
+  "screen": "FuelLesson",
+  "size": "104x104",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/FuelLesson_02.svg",
+  "screen": "FuelLesson",
+  "size": "220x124",
+  "label": ""
+ },
+ {
   "file": "illustrations/screens/Garage_01.svg",
   "screen": "Garage",
   "size": "358x210",
@@ -261,6 +273,36 @@
   "file": "illustrations/screens/NotifAsk_01.svg",
   "screen": "NotifAsk",
   "size": "150x120",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PanelOpeningGo_01.svg",
+  "screen": "PanelOpeningGo",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PanelOpeningStand_01.svg",
+  "screen": "PanelOpeningStand",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PanelSalmaWaiting_01.svg",
+  "screen": "PanelSalmaWaiting",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PanelStandMorning_01.svg",
+  "screen": "PanelStandMorning",
+  "size": "358x540",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PanelUstaDecides_01.svg",
+  "screen": "PanelUstaDecides",
+  "size": "358x540",
   "label": ""
  },
  {
