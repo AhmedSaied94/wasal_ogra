@@ -12,7 +12,7 @@ import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
-import 'package:wassal/features/trip/presentation/scene/character_avatar.dart';
+import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -68,7 +68,7 @@ class HintLayer extends StatelessWidget {
         // corner, clear of every row's popover (below a story strip).
         final headTop = shown.popover
             ? (shown.story ? storyBand : SpaceTokens.s8) + _bubbleAboveHead
-            : layout.height - _headBottom - CharacterAvatar.size.height;
+            : BelyaSays.headTopIn(layout.height);
         final face = layout.seats[shown.seatId]?.head;
         final target = face == null
             ? null
@@ -89,46 +89,16 @@ class HintLayer extends StatelessWidget {
           down = shown.popover || below.overlaps(band);
           hand = down ? CoachHand.placeAbove(target) : below.topLeft;
         }
-        // Physical sides: the door is on the right in either direction,
-        // and بلية stands at it.
         return Stack(
           children: [
-            Positioned(
-              right: _headRight,
-              top: headTop,
-              child: const KeyedSubtree(
-                key: headKey,
-                child: CharacterAvatar('belya'),
-              ),
-            ),
-            Positioned(
-              left: _bubbleLeft,
-              right: _bubbleRight,
-              top: headTop - _bubbleAboveHead,
-              child: Semantics(
-                liveRegion: true,
-                label: l10n.tripHintSemantics(shown.text),
-                excludeSemantics: true,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    SpeechBubble(
-                      key: bubbleKey,
-                      text: shown.text,
-                      name: l10n.tripHintSpeaker,
-                      variant: SpeechBubbleVariant.character,
-                      tail: false,
-                      padding: DesignExtras.hintBubblePadding,
-                      quoteStyle: DesignExtras.hintQuote,
-                      scaled: true,
-                    ),
-                    const Positioned(
-                      right: -_tailOut,
-                      bottom: DesignExtras.hintTailRise,
-                      child: _Tail(),
-                    ),
-                  ],
-                ),
+            Positioned.fill(
+              child: BelyaSays(
+                text: shown.text,
+                name: l10n.tripHintSpeaker,
+                headTop: headTop,
+                semanticsLabel: l10n.tripHintSemantics(shown.text),
+                headKey: headKey,
+                bubbleKey: bubbleKey,
               ),
             ),
             if (hand case final hand?)
@@ -142,6 +112,85 @@ class HintLayer extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// بلية and his line (`Tutorial` blocks 5–6), laid over the scene: his head
+/// [headTop] down at the door, his bubble beside it. M02's hints and M07's
+/// coach both speak through it. With no [semanticsLabel] it is silent to
+/// screen readers (the coach announces its lines).
+class BelyaSays extends StatelessWidget {
+  const BelyaSays({
+    required this.text,
+    required this.name,
+    required this.headTop,
+    this.semanticsLabel,
+    this.headKey,
+    this.bubbleKey,
+    super.key,
+  });
+
+  final String text;
+  final String name;
+  final double headTop;
+  final String? semanticsLabel;
+  final Key? headKey;
+  final Key? bubbleKey;
+
+  /// His head's top against a scene [height]: at its bottom corner.
+  static double headTopIn(double height) =>
+      height - _headBottom - CharacterAvatar.size.height;
+
+  @override
+  Widget build(BuildContext context) {
+    final bubble = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SpeechBubble(
+          key: bubbleKey,
+          text: text,
+          name: name,
+          variant: SpeechBubbleVariant.character,
+          tail: false,
+          padding: DesignExtras.hintBubblePadding,
+          quoteStyle: DesignExtras.hintQuote,
+          scaled: true,
+        ),
+        const Positioned(
+          right: -_tailOut,
+          bottom: DesignExtras.hintTailRise,
+          child: _Tail(),
+        ),
+      ],
+    );
+    final label = semanticsLabel;
+    // Physical sides: the door is on the right in either direction, and
+    // بلية stands at it.
+    return Stack(
+      children: [
+        Positioned(
+          right: _headRight,
+          top: headTop,
+          child: KeyedSubtree(
+            key: headKey,
+            child: const CharacterAvatar('belya'),
+          ),
+        ),
+        Positioned(
+          left: _bubbleLeft,
+          right: _bubbleRight,
+          top: headTop - _bubbleAboveHead,
+          child: label == null
+              ? ExcludeSemantics(child: bubble)
+              : Semantics(
+                  liveRegion: true,
+                  label: label,
+                  excludeSemantics: true,
+                  child: bubble,
+                ),
+        ),
+      ],
     );
   }
 }

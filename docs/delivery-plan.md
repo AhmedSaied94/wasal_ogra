@@ -105,7 +105,7 @@ glossary, and merged decisions win on behaviour.
 | B03 | none | #8 the comeback-gift and family-request grants (no op yet); longest streak and trip count |
 | M06 | `States` 1, 7, 8 (offline, update required, maintenance): placed with 008.5's components, not redrawn (`test/goldens/server_states_goldens_test.dart`) | none |
 | Before M07 | none | #4 routing money around أبو سمّاعة. If yes, it is a rules change: `RULES.md`, both engines and fixtures in one PR (constitution III), before M07 teaches it and M08's PreTrip mentions it. |
-| M07 | `Intro`, `Name`, `Tutorial` | #3 the coach line of each tutorial trip |
+| M07 | `Intro`, `Name`, `Tutorial`, `FuelLesson` | #3 the coach line of each tutorial trip (resolved in M07's research R18) |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
 | M09 | `Lines`, `LineDetails`, `BuyVehicle` | none |
 | M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` | #2 when the Apartment tab opens |
@@ -440,7 +440,7 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
-| `012-m07-onboarding` | M07 | Onboarding and tutorial overlays (5 tutorial trips) | M02 | ux-spec «البداية وأول جلسة»; product-spec «تجربة المستخدم» (أول جلسة); design `Intro`, `Name`, `Tutorial` |
+| `012-m07-onboarding` | M07 | Onboarding and tutorial overlays (5 tutorial trips) | M02 | ux-spec «البداية وأول جلسة»; product-spec «تجربة المستخدم» (أول جلسة); design `Intro`, `Name`, `Tutorial`, `FuelLesson` |
 | `013-m08-home-result` | M08 | Home, pre-trip card, result screen | M02, M05 | ux-spec «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة»; design `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` |
 | `014-m09-lines-vehicles` | M09 | Lines map, line detail, vehicle purchase | M05 | ux-spec «الخطوط والعربية والجراج»; product-spec «التقدم: الخطوط والعربيات»; design `Lines`, `LineDetails`, `BuyVehicle` |
 | `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا»; design `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` |
@@ -450,7 +450,7 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
   - from the design (HANDOFF §9.3): before M07, whether money can be passed around a muted
     أبو سمّاعة through the neighbouring seat (#4; the engine blocks it today). If yes, it is a rules
     change with its parity fixtures (constitution III), in its own PR. In M07, each tutorial trip's
-    coach line (#3). In M10, when the Apartment tab opens (#2: the ux-spec locks it in chapters
+    coach line (#3; resolved in M07's research R18). In M10, when the Apartment tab opens (#2: the ux-spec locks it in chapters
     1–2, the design shows the goal from the start).
 - **Handed over from M02** (research "Handed to later features"):
   - M07: a trip layout for screens under 744 pt in which faces keep their 50/80 pt minimums, with
@@ -687,7 +687,12 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     holds the sync; one neutral toast when a sync takes back something visible. Resolved the device
     side of backend §22.6 (research R1).
 - [ ] Step 7: The full game loop
-  - [ ] `012-m07-onboarding`
+  - [ ] `012-m07-onboarding`. Built on 2026-10-27; ticked after merge. Decided in its
+    clarifications: the trip's clock keeps running while بلية coaches; the first session is fully
+    guided from the opening to Home after trip 5; the name saves at once, online or offline, and a
+    refusal reopens it as a sheet on Home; المعلم's fuel lesson before trip 5 is a new artboard,
+    `FuelLesson`. Closed M02's exception to constitution XI with the trip screen's compact profile
+    under `inset + 764` pt. Resolved HANDOFF §9.3 #3 (research R18).
   - [ ] `013-m08-home-result`
   - [ ] `014-m09-lines-vehicles`
   - [ ] `015-m10-apartment-story`

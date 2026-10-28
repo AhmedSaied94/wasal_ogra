@@ -49,6 +49,17 @@ abstract interface class Economy {
   // Rewarded ads, applied after the ad's reward callback (M11).
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement});
 
+  // The first session (specs/012-m07-onboarding, research R8).
+
+  /// Records the driver's name as a `settings_update`: shown at once, sent
+  /// by the sync, rolled back if the server refuses it. A name the phone's
+  /// rules refuse is `OpRefused(invalidName)`.
+  Future<OpOutcome> setDisplayName(TxnId id, String name);
+
+  /// The fuel lesson's full tank, once per player
+  /// (`OpRefused(alreadyGranted)` after).
+  Future<OpOutcome> grantTutorialGift(TxnId id);
+
   // The sync's calls are on `EconomySync` (economy_sync.dart), out of the
   // screens' reach (specs/011-m06-identity-sync, research R20).
 }
@@ -93,13 +104,15 @@ final class OpWriteFailed extends OpOutcome {
 /// active pack lacks: readers look entries up by the ids the content source
 /// gives them, so those are skipped, never errors (FR-034).
 final class EconomyView {
-  EconomyView(EconomyState state, this.fuel)
+  EconomyView(EconomyState state, this.fuel, {this.nameRefused = false})
     : jenehat = state.jenehat,
       bonat = state.bonat,
       inventory = state.inventory,
       progress = state.progress,
       unfinished = state.unfinished,
       lastResult = state.lastResult,
+      displayName = state.displayName,
+      tutorialGranted = state.tutorialGranted,
       _ownership = state.ownership;
 
   final int jenehat;
@@ -109,6 +122,15 @@ final class EconomyView {
   final Map<String, TripProgress> progress;
   final UnfinishedTrip? unfinished;
   final LastResult? lastResult;
+
+  /// The driver's name: a pending or accepted one, else the server's, else
+  /// null (shown as the default, M07 contracts/name.md "The name shown").
+  final String? displayName;
+
+  /// The newest `settings_update` was refused by the server. A new one
+  /// clears it.
+  final bool nameRefused;
+  final bool tutorialGranted;
   final Map<OwnedKey, Owned> _ownership;
 
   bool owns(SkuKind kind, String skuId) =>

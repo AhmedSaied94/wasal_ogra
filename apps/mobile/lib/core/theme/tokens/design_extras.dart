@@ -648,6 +648,160 @@ abstract final class DesignExtras {
   /// A switch's knob sliding across; no artboard animates it, so it takes
   /// the tab fade's 150 ms.
   static const switchKnob = tabFade;
+
+  /// `Intro` motion (HANDOFF): under reduced motion a panel change is a
+  /// fade of at most 150 ms.
+  static const panelFadeReduced = Duration(milliseconds: 150);
+
+  /// `Intro` box 2: «تخطّى», Readex Pro 600 14 on its 44-high pill.
+  static const skipLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Name` motion (HANDOFF): the dice swaps the field's name in 150 ms.
+  static const nameDiceSwap = Duration(milliseconds: 150);
+
+  /// `Name` boxes 6, 7 and 11: the subtitle (Readex Pro 500 14), the field
+  /// label (600 13) and the helper (500 12), on the browser's normal line,
+  /// measured 18, 16 and 15.
+  static const nameSubtitle = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 18 / 14,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const nameLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const nameHelper = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The Name sheet's refused line (contracts/name.md "The re-ask"): Readex
+  /// Pro 600 14, in `danger.ink`.
+  static const nameRefused = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Name` box 8: the name field, 54 high, its text Readex Pro 600 20.
+  static const double nameFieldHeight = 54;
+  static const nameFieldText = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Name` box 9: the dice button, 54 square, its lip 4 down in
+  /// `sun.soft.lip` (HANDOFF proposes the token).
+  static const double nameDice = 54;
+  static const nameDiceLip = LipTokens.sunSoft;
+
+  /// `Name` box 12: «تمام», Marhey 700 25 on a 60-high button.
+  static const nameCtaLabel = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 25,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const double nameCtaHeight = 60;
+
+  /// `Name` boxes 2–3: the card's padding, 76 20 22, and the avatar's
+  /// 112 circle overlapping its top by 56, lip 5 in `sun.lip`.
+  static const nameCardPadding = EdgeInsets.fromLTRB(20, 76, 20, 22);
+  static const double nameAvatar = 112;
+  static const double nameAvatarArt = 104;
+  static const nameAvatarLip = BoxShadow(
+    offset: Offset(0, 5),
+    color: ColorTokens.sunLip,
+  );
+
+  /// `Name` box 1: the two `primary.soft` circles behind the card, as
+  /// (centre, radius) on the 390×844 board.
+  static const nameCircles = [
+    (Offset(340, 90), 90.0),
+    (Offset(30, 760), 120.0),
+  ];
+
+  /// `FuelLesson` box 10: the gauge, 220×124. Its arc, r 72 and 22 wide, is
+  /// on the hub at (110, 94); the needle, 7 wide on a 12 hub, reaches
+  /// [fuelLessonNeedleTip] at full and its mirror at empty.
+  static const fuelLessonGauge = Size(220, 124);
+  static const fuelLessonHub = Offset(110, 94);
+  static const double fuelLessonRadius = 72;
+  static const double fuelLessonArc = 22;
+  static const double fuelLessonNeedle = 7;
+  static const fuelLessonNeedleTip = Offset(60, -26);
+  static const double fuelLessonHubRadius = 12;
+
+  /// Rive's `FuelGauge` (156×110, its arc r 48 on the hub at 78, 92) at
+  /// 1.5×, placed in the gauge's box so its arc lies on the board's.
+  static const fuelLessonArt = Rect.fromLTWH(-7, -44, 234, 165);
+
+  /// The pump inside the arc, centred this far above the hub.
+  static const double fuelLessonPump = 32;
+  static const double fuelLessonPumpRise = 40;
+
+  /// The E and F marks under the arc's ends, Readex Pro 700 15.
+  static const fuelLessonMark = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// Box 11: the value 2 under the gauge, `number.l` on a 24 line.
+  static const fuelLessonValue = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// Box 12: the refill line, `body` (Readex Pro 500 14) on the browser's
+  /// normal line, measured 18.
+  static const fuelLessonRefill = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 18 / 14,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// The needle's sweep to full, after the card has come in.
+  static const fuelLessonSweep = Duration(milliseconds: 600);
+  static const fuelLessonSweepCurve = Curves.easeOutCubic;
 }
 
 /// A ring as decoration: an outside one spreads a shadow past the edge, an

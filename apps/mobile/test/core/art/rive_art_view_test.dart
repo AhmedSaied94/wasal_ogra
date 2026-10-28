@@ -7,7 +7,7 @@ import 'package:rive/rive.dart' as rive;
 import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/theme/components/story.dart';
 import 'package:wassal/core/theme/components/vehicle_sprite.dart';
-import 'package:wassal/features/trip/presentation/scene/character_avatar.dart';
+import 'package:wassal/core/theme/components/characters.dart';
 
 // The art outside the trip's seats in Rive, each with its static art as the
 // fallback (tasks.md T108, contracts/rive-characters.md "How the app uses

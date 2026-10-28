@@ -27,7 +27,8 @@ left, in what order, and where to look.
 | [008.5 M21 design refresh](#0085-m21-design-refresh) | 7 | 2 | Merged in #10 on 2026-10-23, before its owner checks: all 7 are still open. |
 | [009 B02 accounts and auth](#009-b02-accounts-auth) | 2 | 2, plus 1 before the closed test | Merged in #15 on 2026-10-26. T065: the project, the web client and the Firebase apps are done (2026-10-25). T066 is open, and a deploy fails without it. |
 | [010 B03 ledger and sync](#010-b03-ledger-and-sync) | 1 | 2, plus 1 after the closed test starts | Merged in #16 on 2026-10-26. The approval of its one constitution deviation is open. |
-| [011 M06 identity and sync](#011-m06-identity-and-sync) | 2 | 4 | Built and tested on 2026-10-27, on branch `011-m06-identity-sync`. |
+| [011 M06 identity and sync](#011-m06-identity-and-sync) | 2 | 4 | Merged in #17 on 2026-10-27. Its before-merge checks are still open. |
+| [012 M07 onboarding](#012-m07-onboarding) | 4 | 4 | Built and tested on 2026-10-27, on branch `012-m07-onboarding`. The drawings were done on 2026-10-28. |
 
 ## Every month
 
@@ -873,6 +874,65 @@ every screen but the trip shows the update card. Internal builds' Home has a «s
 - [ ] **4. The Galaxy A06 (SC-001).** `tool/perf/cold_start.sh com.wassalogra.app.dev 10` with a
   median of 3,000 ms or less, and one first open of a returning player (a re-install with the
   network on), at most 3 s longer.
+
+## 012 M07 onboarding
+
+Built and tested on 2026-10-27, on branch `012-m07-onboarding`
+([tasks.md](../specs/012-m07-onboarding/tasks.md),
+[quickstart](../specs/012-m07-onboarding/quickstart.md)). A new player now gets the first session:
+the opening scene, the Name card with a suggested name, five tutorial trips with بلية's coach, the
+سلمى scene after trip 3, المعلم's fuel lesson and a full tank before trip 5, then Home. The name
+saves at once and syncs later; a refused name is asked again on Home. Short screens (under 788 pt
+with a 24 pt status bar, such as 360×640) get the trip screen's compact profile, where every minimum
+size holds, which closes M02's exception. Internal builds' Home has an «Onboarding» card that
+replays each screen and can coach every tutorial trip.
+
+### Before the fuel lesson's design checks
+
+- [x] **1. Draw `FuelLesson` and the five missing comic panels (T073).** Done on 2026-10-28: drawn
+  with Claude Design, then exported, mapped and checked by Claude (T080). On the Claude Design canvas
+  «وصّل الأجرة — Design», from [fuel-lesson.md](../specs/012-m07-onboarding/contracts/fuel-lesson.md)
+  Part 1: the `FuelLesson` board, and the panels `opening_stand`, `opening_go` and the سلمى scene's
+  three. Export with `docs/design/tools` (`export.py`, `boxes.py` + `boxes_post.py`,
+  `build_assets.py`) and commit `docs/design/screens/FuelLesson.html`, `png/FuelLesson.png`,
+  `boxes/FuelLesson.json`, the new illustrations and `manifest.json`, or hand the export to Claude.
+  Claude then maps the panel slugs and adds the design checks (T080). Until then the panels show a
+  plain fallback, and the fuel lesson follows the brief.
+
+### Before merge
+
+- [ ] **1. Approve the lines (T042, T058, T078, T087).** In `apps/mobile/lib/l10n/app_ar.arb`:
+  - بلية's coach lines, `coach*` (research R18): «شايف؟ الأجرة وصلت الدرج», the change line with
+    its coin and count, «دلوقتي دوس عليه.», the stop line with the station, the sleeper line;
+  - المعلم's fuel lesson, `fuelLesson*`: «تفويلة من المعلم», «البنزين قرّب يخلص يا أسطى. كل مشوار
+    بلتر، والمرة دي التفويلة عليّا!», the refill line, «يلا على المشوار», and the gauge's marks E and F
+    (`fuelGaugeEmpty`, `fuelGaugeFull`, as the board draws them);
+  - the name pool (`namePool`), the refused line «الاسم ده مينفعش. اختار اسم تاني.» and the
+    default name «الأسطى».
+
+  Say "approved" or give the wording, and Claude changes `app_ar.arb`.
+- [ ] **2. Approve the compact look (T096).** The 360×640 trip goldens,
+  `apps/mobile/test/goldens/trip/goldens/*_small_*.png` (and `*_mid_*.png`, 360×720). Three choices
+  differ from the plan, because the plan's version covered the fares: reputation is a 6 pt line on
+  the station strip's top edge, not its bottom; the compact strip has no «الموقف» label; a raised
+  fare shows only the new fare in its red pill. On internal builds the debug button narrows the
+  strip, so four long station names with a raised fare can reach over it (prod builds fit).
+- [ ] **3. The trip title's new place.** In the compact profile the HUD has no title: it is in the
+  pause card, over «واقفين على جنب». Confirm on the goldens (`paused_small_*.png`).
+- [ ] **4. The device checks (T106).** [Quickstart Part B](../specs/012-m07-onboarding/quickstart.md#part-b-on-a-device)
+  steps 1–15 on the Redmi Note 7, with the release draft imported on the local stack (its opening
+  scene and `plays` added, as Part B's setup says). Tell Claude what any step showed that the
+  table doesn't expect.
+
+### After merge
+
+- [ ] **1. The Galaxy A06 (SC-001).** From a fresh install, the first trip starts in under 20 s.
+- [ ] **2. The frame rate on a coached trip.** `tool/perf/trip_fps.sh com.wassalogra.app.dev line_hay.02`
+  on the A06, with the tutorial not yet done.
+- [ ] **3. The moderated playtest (SC-007).** Five new players through the first session.
+- [ ] **4. The release draft.** Add chapter 1's opening scene and the scenes' `plays` to
+  `content/drafts/core-r1` on the `content-core-r1` branch (research "Handed to later features"),
+  before it is promoted.
 
 ## Known for later features
 

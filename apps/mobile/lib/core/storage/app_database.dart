@@ -63,6 +63,8 @@ typedef UpgradeStep = Future<void> Function(Migrator m);
     TripIntentTable,
     AccountTable,
     ServerInfoTable,
+    PlayerStateTable,
+    FirstSessionTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -75,12 +77,16 @@ class AppDatabase extends _$AppDatabase {
   final OpenCheck? openCheck;
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// The step to each version after 1. A later schema adds its entry here,
   /// calling the step `make-migrations` generates for it.
   @protected
-  Map<int, UpgradeStep> get upgradeSteps => const {2: _toV2, 3: _toV3};
+  Map<int, UpgradeStep> get upgradeSteps => const {
+    2: _toV2,
+    3: _toV3,
+    4: _toV4,
+  };
 
   /// v2 adds the trip's records (specs/008-m02-trip-screen,
   /// contracts/trip-records.md "Schema"), as v2 defines them.
@@ -115,6 +121,20 @@ class AppDatabase extends _$AppDatabase {
     await m.database.customStatement(
       'INSERT INTO server_info (id, comeback_claimable) VALUES (1, 0)',
     );
+  }
+
+  /// v4 adds the driver's name and the tutorial grant, and the first
+  /// session's flags (specs/012-m07-onboarding, data-model.md "App database
+  /// v4"), as v4 defines them. `ledger_ops` is rebuilt as in v3, every row
+  /// kept, since its `op_type` check gains `settings_update` and
+  /// `tutorial_gift`. The new tables start empty: an absent row reads as
+  /// their defaults.
+  static Future<void> _toV4(Migrator m) async {
+    final schema = Schema4(database: m.database);
+    final v4 = Migrator(m.database, schema);
+    await v4.alterTable(TableMigration(schema.ledgerOps));
+    await v4.createTable(schema.playerState);
+    await v4.createTable(schema.firstSession);
   }
 
   @override

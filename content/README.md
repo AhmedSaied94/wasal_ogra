@@ -7,7 +7,7 @@ the content itself.
 | --- | --- | --- |
 | `schemas/` | JSON Schema 2020-12, one file per pack part, plus `schema-set.json` (the set's version and the minimum app version per major). The only definition of content shared by the app, the backend and the solver. | Developers, by pull request |
 | `examples/valid/<part>/` | At least one valid document per part, including the backend §9.3 trip made self-contained | Developers |
-| `examples/invalid/<part>/` | Deliberately broken documents. `invalid/expected.json` names the field each one gets wrong. | Developers |
+| `examples/invalid/<part>/` | Deliberately broken documents. `invalid/expected.json` names the field each one gets wrong: its schema path, or, for a document only a rule beyond shape refuses, the rule's `code` and `path` (checked in place of the sample's element). | Developers |
 | `examples/sample/` | A small sample pack in the `content/source` layout that uses every part. `sample.golden.json` holds its checksums as version 1. | Developers |
 | `examples/canonical-vectors.json` | Input and canonical-JSON pairs that the Python and Dart canonical forms must both reproduce | Developers |
 | `source/` | Exports of the packs promoted to production, and nothing else (FR-040) | The publisher, by pull request |
@@ -32,3 +32,20 @@ the content itself.
   (`content-schemas.md`, `content-source.md`).
 - **No real brands, government bodies or clubs, and no digits in player text** (R14): numbers go
   through placeholders, so the player's digit setting applies.
+
+## Scenes
+
+A chapter's scenes are comics of 3 to 5 panels (`schemas/chapter.schema.json`). Two conventions
+tell the app how to play them (M07, `specs/012-m07-onboarding/contracts/scenes.md`):
+
+- **`plays`** makes the app play a scene by itself:
+  - `{"kind": "opening"}`: at the first open, before the Name card. Only in the chapter with
+    `order` 1, at most once in the pack, and with no `trip_id` (`V-C3`).
+  - `{"kind": "after_trip", "trip_id": "<trip_id>"}`: after that trip's first finish. The trip is
+    in the pack, and each trip has at most one such scene (`V-C4`).
+  - Without `plays`, a scene waits for M10's rules (album, chapter end).
+- **`narrator`.** A panel line whose `speaker` is `narrator` is the panel's caption, drawn in its
+  caption chip, not in a bubble. A panel has at most one, and it is the panel's first line
+  (`V-C5`).
+- The sample's chapter 1 uses both: `opening` plays first, and `the_stand` plays after
+  `line_hay.03`.

@@ -54,7 +54,7 @@ def test_index_pack_writes_one_rules_row_equal_to_the_pack(
         "goal": {"kind": "complete_line", "line_id": "line_hay"},
         "completion_bonat": 5,
         "story_trip_id": "line_hay.03",
-        "scenes": ["the_stand"],
+        "scenes": ["opening", "the_stand"],
     }
     assert rules["chapters"]["ch3_shabka"]["story_trip_id"] == ""
     assert rules["rooms"]["salon"] == {

@@ -186,7 +186,11 @@ wassal/
 │       │   │   ├── notifications/  # FCM + local notifications
 │       │   │   └── audio_haptics/
 │       │   └── features/
-│       │       ├── onboarding/     # loading, intro comic, name, tutorial overlays
+│       │       ├── onboarding/     # the first session (M07): scenes, name, coach, fuel lesson
+│       │       │   ├── domain/     # FirstSession, the coach's lessons, name rules (no Flutter)
+│       │       │   ├── application/ # FirstSessionService, the late-restore lifecycle
+│       │       │   ├── data/       # DriftFirstSessionStore: the only writer of `first_session`
+│       │       │   └── presentation/ # ScenePage, NameScreen/NameSheet, CoachLayer, FuelLessonScreen
 │       │       ├── home/           # الموقف
 │       │       ├── pre_trip/       # كارت ما قبل المشوار
 │       │       ├── trip/           # trip screen: Flame scene + HUD + dashboard
@@ -412,13 +416,13 @@ Per line, from Remote Config (§14.3): `trip_hop_ms_<line_id>` (1300 / 1100 / 90
 
 - **Zones.** A 114 pt HUD under the top inset, an 8 pt gap, the scene, and a 258 pt dashboard drawn over the scene's last 16. The HUD and dashboard never shrink; the scene takes what is left.
 - **The crop.** With less room than the design's 444 pt scene, the scene's top is cropped (at most 36 pt: the wall and the back window, never a face or a tag). Below that, the cabin, faces, tags and hit areas scale down.
-- **The threshold.** A screen keeps every minimum when its height is at least `inset + 764` pt (788 with a 24 pt inset). The Galaxy A06 does, with a 24 pt crop. Below it, M02's approved exception to constitution XI continues until M07: only the scene's faces and drawn sizes shrink; hit areas stay 44×44.
+- **The threshold.** A screen takes the regular profile when its height is at least `inset + 764` pt (788 with a 24 pt inset). The Galaxy A06 does, with a 24 pt crop. Below it the trip takes the compact profile (M07, [compact-trip-layout.md](../specs/012-m07-onboarding/contracts/compact-trip-layout.md)): a 72 pt HUD (pause, then the station strip with reputation as a 6 pt line on its top edge; the trip's title moves to the pause card), a 226 pt dashboard («آخر كلام» on one line over the four rows), and compact seat tables for scenes under 408 pt. Every minimum holds on both; M02's exception to constitution XI is closed.
 - **Width.** Design x values scale with the width, except the front seat's, kept 40 pt from the end edge.
 - **Art.** Rive draws the people, the static SVGs of `assets/illustrations/` stand in wherever it doesn't: without the file, for an artboard that failed its contract check (each falls back alone), under reduced motion, and in every trip golden. `ArtTier` decides which seats use Rive: `rive` (all), `near_rive` (the front seat and row A), or `static`; the A06 measurement sets the default, and dev builds switch it from the debug panel. The Lottie files in `docs/design/lottie/` show the motion only; the runtime stays Rive (`docs/design/README.md`).
 
 Rules from the UX doc that the renderer must enforce:
 
-- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt. Every minimum holds from `inset + 764` pt of screen height (008.5; M02's was 744); below that only the faces shrink, until M07's short-screen layout (M02 [research R15](../specs/008-m02-trip-screen/research.md#r15-layout-screen-sizes-and-text-scale), 008.5 [trip-layout.md](../specs/008.5-m21-design-refresh/contracts/trip-layout.md#height)).
+- Back-row face ≥ 50 pt wide, near-row face ≥ 80 pt, bubble text ≥ 15 pt after scaling, money token ≥ 40×24 pt, touch targets ≥ 44×44 pt. Every minimum holds on every supported screen: from `inset + 764` pt of height in the regular profile (008.5; M02's was 744), and below it in M07's compact profile, down to 360×640 (M02 [research R15](../specs/008-m02-trip-screen/research.md#r15-layout-screen-sizes-and-text-scale), 008.5 [trip-layout.md](../specs/008.5-m21-design-refresh/contracts/trip-layout.md#height)).
 - At most 2 bubbles visible; others queue. Bubble duration ≥ `trip_bubble_min_ms_<line_id>`.
 - Bubbles are clamped inside the scene bounds; the tail points to the speaker.
 - Reduced-motion setting disables shake and bubble pop.
@@ -433,6 +437,8 @@ Rules from the UX doc that the renderer must enforce:
 | --- | --- | --- |
 | `/boot` | Loading | MVP |
 | `/onboarding/intro`, `/onboarding/name` | Intro comic, driver name | MVP |
+| `/onboarding/scene/:sceneId?then=` | a chapter 1 scene that plays by itself after a trip (M07) | MVP |
+| `/onboarding/fuel?then=<tripId>` | المعلم's fuel lesson, before tutorial trip 5 (M07) | MVP |
 | `/home` | الموقف | MVP |
 | `/home/pre-trip/:tripId` (sheet) | كارت ما قبل المشوار | MVP |
 | `/trip/:tripId` | شاشة المشوار (+ pause, fail overlays) | MVP |
@@ -527,6 +533,7 @@ The client side is M06's (`specs/011-m06-identity-sync/contracts/sync.md`):
 
 A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying the `TripResult` (§7.2). The server validates earnings against the trip's `max_earnings_jenehat`. The full op list (`ad_reward`, `spend_jenehat`, `spend_bonat`, `use_booster`, `story_progress`, `settings_update`, `tutorial_gift`, `comeback_gift`, `claim_request`, and `claim_daily_reward` and `claim_task` from B08 and M13) and validation rules are in backend §7.4; the checks in order and every reason are in `specs/010-b03-ledger-sync/contracts/operations.md`.
 
+- **M07's two local operations.** `settings_update` (`{"display_name"}`) records the driver's name, and `tutorial_gift` (`{}`) fills the tank once, at the fuel lesson; both apply offline at once and sync as is, without `content_version`. They live in the economy's projection: the `player_state` table (one row: `display_name`, `tutorial_granted`), written only by `DriftEconomyStore`; the first session's own flags are in `first_session`, written only by `DriftFirstSessionStore`. A refused name (`validation_error`) rolls back through the fold, so the name shown falls back to the server's or «الأسطى»; it sets `nameRefused`, which makes Home ask again, and it shows no toast (`settings_update` changes nothing the player can count). A refused `tutorial_gift` rolls back like any fuel change, with the toast. Contracts: `specs/012-m07-onboarding/contracts/name.md`, `fuel-lesson.md`.
 - **The three grants** (B03). `tutorial_gift` fills the tank once per player (M07). `comeback_gift` fills the tank and adds a `change_bag` once per return: send it only when bootstrap answers `comeback.claimable`, and never a second while one is pending, because bootstrap keeps answering `claimable` until the claim has synced. M06 records it as a local operation from `server_info`'s cached flag, so it works offline (`lib/core/sync/comeback_gift.dart`). `claim_request` collects a family request's BONAT once its item is owned (M10). Room and chapter BONAT is not an op: the server pays it in the batch of the op that completes them, in that op's `granted`.
 - **`content_version` in the payload.** Every op that reads the pack (`trip_start`, `spend_jenehat`, `spend_bonat`, `story_progress`, `claim_request`) carries `content_version` in its payload, from the version its `ledger_ops` row recorded. The server reads prices, trips and rules from that version's pack, and accepts the current version and any published in the last 45 days.
 

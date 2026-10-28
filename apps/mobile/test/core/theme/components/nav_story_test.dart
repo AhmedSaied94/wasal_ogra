@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/pills.dart';
@@ -207,8 +208,7 @@ void main() {
         child: ComicPanel(
           art: ColoredBox(key: Key('art'), color: ColorTokens.sceneSky),
           caption: 'الموقف، الصبح بدري',
-          speaker: 'المعلم',
-          line: 'خد مفتاح التوكتوك.',
+          lines: [('المعلم', 'خد مفتاح التوكتوك.')],
         ),
       ),
     );
@@ -226,6 +226,121 @@ void main() {
       tester.getRect(find.text('المعلم')).right,
       greaterThan(panel.center.dx),
     );
+    // `Intro` box 6: the bubble 236 wide, 76 below the panel's top.
+    final bubble = tester.getRect(find.byKey(ComicPanel.bubbleKey(0)));
+    expect(bubble.width, 236);
+    expect(bubble.top - panel.top, 76);
+  });
+
+  group('ComicPanel with two lines (M07 contracts/scenes.md)', () {
+    Future<void> pumpTwo(WidgetTester tester, {String? caption}) =>
+        pumpDesignComponent(
+          tester,
+          SizedBox(
+            width: 358,
+            height: 540,
+            child: ComicPanel(
+              art: const SizedBox.shrink(),
+              caption: caption,
+              lines: const [
+                ('المعلم', 'الركاب بيدفعوا.'),
+                ('الأسطى', 'وأنا أرجّع الباقي.'),
+              ],
+            ),
+          ),
+        );
+
+    testWidgets('two bubbles, the second under the first', (tester) async {
+      await pumpTwo(tester);
+      final first = tester.getRect(find.byKey(ComicPanel.bubbleKey(0)));
+      final second = tester.getRect(find.byKey(ComicPanel.bubbleKey(1)));
+      expect(second.top, greaterThan(first.bottom));
+      expect(find.text('المعلم'), findsOne);
+      expect(find.text('وأنا أرجّع الباقي.'), findsOne);
+    });
+
+    testWidgets('the caption chip comes from the caption only', (tester) async {
+      await pumpTwo(tester);
+      expect(find.byKey(ComicPanel.captionKey), findsNothing);
+      await pumpTwo(tester, caption: 'الموقف');
+      expect(
+        find.descendant(
+          of: find.byKey(ComicPanel.captionKey),
+          matching: find.text('الموقف'),
+        ),
+        findsOne,
+      );
+    });
+
+    testWidgets('no lines, no bubble', (tester) async {
+      await pumpDesignComponent(
+        tester,
+        const SizedBox(
+          width: 358,
+          height: 540,
+          child: ComicPanel(art: SizedBox.shrink(), caption: 'الموقف'),
+        ),
+      );
+      expect(find.byKey(ComicPanel.bubbleKey(0)), findsNothing);
+    });
+  });
+
+  group('PageDots (Intro boxes 10–13)', () {
+    for (final digits in [DigitStyle.arabicIndic, DigitStyle.western]) {
+      testWidgets('3 dots, the first active, in ${digits.name} digits', (
+        tester,
+      ) async {
+        await pumpDesignComponent(
+          tester,
+          SizedBox(
+            width: 358,
+            child: PageDots(
+              count: 3,
+              index: 0,
+              label: digits == DigitStyle.western
+                  ? 'اللوحة 1 من 3'
+                  : 'اللوحة ١ من ٣',
+            ),
+          ),
+        );
+        final dots = [
+          for (var i = 0; i < 3; i++)
+            tester.getRect(find.byKey(PageDots.dotKey(i))),
+        ];
+        expect(dots[0].size, const Size(26, 10));
+        expect(dots[1].size, const Size(10, 10));
+        expect(dots[2].size, const Size(10, 10));
+        // RTL: the first panel's dot is on the right, 8 apart.
+        expect(dots[0].left - dots[1].right, 8);
+        expect(dots[1].left - dots[2].right, 8);
+        expect(
+          find.bySemanticsLabel(
+            digits == DigitStyle.western ? 'اللوحة 1 من 3' : 'اللوحة ١ من ٣',
+          ),
+          findsOne,
+        );
+      });
+    }
+
+    testWidgets('the active pill moves with the index, in colour', (
+      tester,
+    ) async {
+      await pumpDesignComponent(
+        tester,
+        const SizedBox(
+          width: 358,
+          child: PageDots(count: 3, index: 2, label: 'اللوحة ٣ من ٣'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byKey(PageDots.dotKey(2))).width, 26);
+      expect(tester.getSize(find.byKey(PageDots.dotKey(0))).width, 10);
+      final dots = tester.getRect(find.byType(PageDots));
+      expect(
+        tester.getRect(find.byKey(PageDots.dotKey(2))).left,
+        closeTo(dots.center.dx - 31, 0.5),
+      );
+    });
   });
 
   group('CoachMark', () {

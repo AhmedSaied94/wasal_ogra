@@ -168,10 +168,40 @@ void main() {
     expect(last.doubled, isTrue);
   });
 
-  test('story, grants and stats change nothing', () {
+  test('the name and the tutorial grant (M07 research R8)', () {
+    final state = _map(_json());
+    expect(state.displayName, 'name');
+    expect(state.tutorialGranted, isTrue);
+  });
+
+  test('no name, and a grant of false', () {
+    final json = _json()
+      ..['player'] = {'driver_level': 1}
+      ..['grants'] = {'tutorial': false};
+    final state = _map(json);
+    expect(state.displayName, isNull);
+    expect(state.tutorialGranted, isFalse);
+  });
+
+  test('a missing grants, or a missing tutorial in it, is not granted', () {
+    expect(_map({..._json()}..remove('grants')).tutorialGranted, isFalse);
+    expect(
+      _map({..._json(), 'grants': <String, Object?>{}}).tutorialGranted,
+      isFalse,
+    );
+  });
+
+  test('the snapshot reads grants.tutorial', () {
+    expect(StateSnapshot.fromJson(_json()).grants.tutorial, isTrue);
+    expect(
+      StateSnapshot.fromJson({..._json()}..remove('grants')).grants.tutorial,
+      isFalse,
+    );
+  });
+
+  test('story and stats change nothing', () {
     final bare = {..._json()}
       ..['story'] = {'chapters': <Object?>[]}
-      ..['grants'] = <String, Object?>{}
       ..['stats'] = <String, Object?>{};
     expect(_map(_json()).toJson(), _map(bare).toJson());
   });

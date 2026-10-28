@@ -50,7 +50,7 @@ fixes what the code promises: where each component lives, its variants and state
 | | `EventBanner`, `OfflineBanner`, `UndoToast`, `AppToast`, `InlineAlert`, `StatusCard` | `UndoToast` built for M12; not used in the trip (spec FR-028) |
 | `nav.dart` | `BottomNav` | four tabs, active pill, new-dots; cross-fade 150 ms |
 | | `DailyCircle` | normal, event; optional `NewDot` or `CountBadge` |
-| `story.dart` | `ComicPanel`, `CoachMark` (hole, ring, hand, character bubble; only the target takes taps), `MicrobusLoader` | `CoachMark` built for M07 |
+| `story.dart` | `ComicPanel`, `PageDots`, `CoachMark` (hole, ring, hand, character bubble; only the target takes taps), `MicrobusLoader` | `CoachMark` built for M07. M07 added `PageDots` and gave `ComicPanel` a list of lines (specs/012-m07-onboarding/contracts/scenes.md) |
 
 `lib/features/trip/presentation/` (HANDOFF §3.4; research R10 maps them to M02's widgets):
 
@@ -59,12 +59,12 @@ fixes what the code promises: where each component lives, its variants and state
 | `TripHud`, `ReputationBar` | reputation under 40%: `danger` fill and the «تحت ٤٠٪» chip; story chip |
 | `StationStrip` | research R9 |
 | `StationTag` | sizes 24, 26, 30; `hot`; `alightHere` (star); hidden while a `LedgerBadge` shows |
-| `SpeechBubble` | `normal`, `warn`, `fight`, `thanks`, `character` (name over `quote` text) |
+| `SpeechBubble` | `normal`, `warn`, `fight`, `thanks`, `character` (name over `quote` text). Moved to `core/theme/components/characters.dart` by M07, which the onboarding screens share |
 | `MoneyNote` | `fare`, `change`, `blocked` («؟»), `fallen` (sun ring), `inHand` |
 | `LedgerBadge` | `paid` «دافع», `notYet` «لسه», `onFriend` «على صاحبه» |
 | `ChoicePopover` | two answers, 44 tall |
 | `Dashboard`, `HandSlot` (with the «رجّع» undo pill), `CallChangeButton`, `ChangeTray`, `TrayCell` (full, empty, breakable, pressed), `BoosterButton` (count, price, ad hidden until M11, active timer), `LastWordsLog` | break mode |
-| `PassengerAvatar`, `CharacterAvatar`, `VehicleSprite` | Rive or static art ([rive-characters.md](./rive-characters.md)) |
+| `PassengerAvatar`, `CharacterAvatar`, `VehicleSprite` | Rive or static art ([rive-characters.md](./rive-characters.md)). `CharacterAvatar` moved to `core/theme/components/characters.dart` by M07 |
 
 ## What goes
 

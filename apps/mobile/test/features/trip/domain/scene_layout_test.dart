@@ -105,6 +105,22 @@ const _hits = <String, Rectangle<double>>{
   'front_r': Rectangle(-50, -48, 90, 80),
 };
 
+/// The compact `micro_old` table at a 334 scene, 390 wide
+/// (contracts/compact-trip-layout.md "`micro_old`, compact"). The near rows'
+/// 0.952 is 80/84: their faces are exactly 80.
+const _compact = <String, ({double x, double y, double rig, double tag})>{
+  'C_l': (x: 126, y: 46, rig: 0.6, tag: 24),
+  'C_m': (x: 195, y: 46, rig: 0.6, tag: 24),
+  'C_r': (x: 264, y: 46, rig: 0.6, tag: 24),
+  'B_l': (x: 98, y: 122, rig: 0.66, tag: 26),
+  'B_m': (x: 195, y: 122, rig: 0.66, tag: 26),
+  'B_r': (x: 292, y: 122, rig: 0.66, tag: 26),
+  'A_l': (x: 62, y: 206, rig: 80 / 84, tag: 30),
+  'A_m': (x: 176, y: 206, rig: 80 / 84, tag: 30),
+  'A_r': (x: 290, y: 206, rig: 80 / 84, tag: 30),
+  'front_r': (x: 350, y: 284, rig: 80 / 84, tag: 30),
+};
+
 void main() {
   group('zones', () {
     test('390×844 with the design inset: gap 8, scene 444, top at 158', () {
@@ -146,17 +162,14 @@ void main() {
       expect(zones.scene, 444);
     });
 
-    test('a room of 400 crops by 36 and scales by 400/408', () {
-      final zones = TripZones(
-        width: 360,
-        height: 400 + 24 + 114 + 258 - 16,
-        viewPaddingTop: 24,
-      );
-      expect(zones.gap, 0);
-      expect(zones.scene, 400);
+    test('a scene of 408 is the last on 008.5\'s table, cropped by 36', () {
+      final zones = TripZones(width: 360, height: 788, viewPaddingTop: 24);
+      expect(zones.profile, TripProfile.regular);
+      expect(zones.scene, 408);
       final layout = microOld(360, zones.scene);
       expect(layout.crop, 36);
-      expect(layout.scale, closeTo(400 / 408, 1e-9));
+      expect(layout.scale, 1);
+      expect(layout.compact, isFalse);
     });
 
     test('a taller room grows the wall: seats keep their distance from the '
@@ -167,20 +180,36 @@ void main() {
       expectPoint(layout.seats['A_m']!.face, const Point(176, 316), 'A_m');
     });
 
-    test('the threshold is T + 764', () {
+    test('the threshold is T + 764: under it, the compact profile', () {
       expect(minCompliantHeight(24), 788);
       expect(minCompliantHeight(36), 800);
       final at = TripZones(width: 360, height: 788, viewPaddingTop: 24);
-      expect(microOld(360, at.scene).scale, 1);
+      expect(at.profile, TripProfile.regular);
       final under = TripZones(width: 360, height: 787, viewPaddingTop: 24);
-      expect(microOld(360, under.scene).scale, lessThan(1));
+      expect(under.profile, TripProfile.compact);
+      expect(microOld(360, under.scene).scale, 1);
     });
 
-    test('the zones never shrink the HUD or the dashboard', () {
-      for (final height in <double>[640, 744, 800, 844, 932]) {
+    test('compact: HUD 72, no gap, dashboard 226, scene H − T − 282', () {
+      for (final (height, scene) in [(640.0, 334.0), (720.0, 414.0)]) {
         final zones = TripZones(width: 360, height: height, viewPaddingTop: 24);
-        expect(zones.hud, 114);
-        expect(zones.dashboard, 258);
+        expect(zones.profile, TripProfile.compact, reason: '$height');
+        expect(zones.hud, 72);
+        expect(zones.gap, 0);
+        expect(zones.dashboard, 226);
+        expect(zones.overlap, 16);
+        expect(zones.scene, scene, reason: '$height');
+        expect(zones.sceneTop, 24 + 72);
+        expect(zones.dashboardTop, height - 226);
+      }
+    });
+
+    test('each profile fills the screen with its HUD and dashboard', () {
+      for (final height in <double>[640, 720, 744, 787, 800, 844, 932]) {
+        final zones = TripZones(width: 360, height: height, viewPaddingTop: 24);
+        final compact = zones.profile == TripProfile.compact;
+        expect(zones.hud, compact ? 72 : 114, reason: '$height');
+        expect(zones.dashboard, compact ? 226 : 258, reason: '$height');
         expect(
           zones.inset +
               zones.hud +
@@ -375,19 +404,133 @@ void main() {
       }
     }
 
-    test('below the threshold only faces shrink; hit areas keep 44×44', () {
-      final zones = TripZones(width: 360, height: 640, viewPaddingTop: 24);
-      final layout = microOld(360, zones.scene);
-      expect(layout.scale, lessThan(1));
+    test('at 360×640 and 360×720 every face keeps its minimum', () {
+      for (final height in <double>[640, 720]) {
+        final zones = TripZones(width: 360, height: height, viewPaddingTop: 24);
+        for (final make in [microOld, tuktuk]) {
+          final layout = make(360, zones.scene);
+          expect(layout.scale, 1);
+          for (final seat in layout.seats.values) {
+            expect(
+              seat.faceWidth,
+              greaterThanOrEqualTo(seat.isNearRow ? nearFaceMin : backFaceMin),
+              reason: '${seat.seatId} at $height',
+            );
+            expect(seat.head.top, greaterThanOrEqualTo(0), reason: seat.seatId);
+            expect(
+              seat.head.bottom,
+              lessThanOrEqualTo(layout.height),
+              reason: '${seat.seatId} inside the scene',
+            );
+          }
+          expectHitAreasApart(layout);
+        }
+      }
+    });
+
+    test('under a 334 scene the compact table scales; hit areas keep 44', () {
+      final layout = microOld(360, 300);
+      expect(layout.scale, closeTo(300 / 334, 1e-9));
       expect(layout.seats['A_m']!.faceWidth, lessThan(nearFaceMin));
       expectHitAreasApart(layout);
       for (final seat in layout.seats.values) {
-        expect(
-          seat.face.y + seat.faceWidth / 2,
-          lessThanOrEqualTo(layout.height),
-          reason: seat.seatId,
+        expect(seat.head.bottom, lessThanOrEqualTo(300), reason: seat.seatId);
+      }
+    });
+  });
+
+  // contracts/compact-trip-layout.md "Seats".
+  group('compact', () {
+    double x(String id, double width) =>
+        id == 'front_r' ? width - 40 : _compact[id]!.x * width / 390;
+
+    for (final width in <double>[360, 390]) {
+      test('micro_old at a 334 scene, $width wide: the table', () {
+        final layout = microOld(width, 334);
+        expect(layout.compact, isTrue);
+        expect(layout.scale, 1);
+        expect(layout.seats.keys.toSet(), _compact.keys.toSet());
+        for (final MapEntry(key: id, value: row) in _compact.entries) {
+          final seat = layout.seats[id]!;
+          expectPoint(seat.face, Point(x(id, width), row.y), id);
+          expect(seat.rigScale, closeTo(row.rig, 1e-9), reason: id);
+          expect(seat.tagSize, row.tag, reason: id);
+        }
+        expect(layout.seats['C_m']!.faceWidth, closeTo(50.4, 1e-9));
+        expect(layout.seats['B_m']!.faceWidth, closeTo(55.44, 1e-9));
+        expect(layout.seats['A_m']!.faceWidth, closeTo(80, 1e-9));
+        expect(layout.seats['front_r']!.faceWidth, closeTo(80, 1e-9));
+        expectPoint(layout.hand, Point(162 * width / 390, 290), 'hand');
+        expectHitAreasApart(layout);
+      });
+    }
+
+    test('at a 407 scene the table moves down by 73: more wall on top', () {
+      final layout = microOld(360, 407);
+      expect(layout.compact, isTrue);
+      for (final MapEntry(key: id, value: row) in _compact.entries) {
+        expectPoint(layout.seats[id]!.face, Point(x(id, 360), row.y + 73), id);
+      }
+      expectPoint(layout.hand, const Point(162 * 360 / 390, 363), 'hand');
+      expectHitAreasApart(layout);
+    });
+
+    test('the tuktuk keeps its bench at scene − 136, scale 1.15', () {
+      final layout = tuktuk(360, 334);
+      for (final (id, x) in [('A_l', 62.0), ('A_m', 195.0), ('A_r', 328.0)]) {
+        final seat = layout.seats[id]!;
+        expectPoint(seat.face, Point(x * 360 / 390, 198), id);
+        expect(seat.rigScale, 1.15);
+      }
+      expectHitAreasApart(layout);
+    });
+
+    test("hit rects are 008.5's times the scale ratio, narrowed to stay "
+        'apart, the front seat whole', () {
+      final layout = microOld(390, 334);
+      final c = layout.seats['C_m']!;
+      expect(c.hit.width, closeTo(68 * 0.6 / 0.625, 0.01));
+      final front = layout.seats['front_r']!;
+      expect(front.hit.width, closeTo(90 * 80 / 84, 0.01));
+      expect(front.hit.height, closeTo(80 * 80 / 84, 0.01));
+      expect(overlaps(front.hit, layout.seats['A_r']!.hit), isFalse);
+      expectHitAreasApart(layout);
+    });
+
+    test('tags, bubbles and notes follow the compact rig scales', () {
+      final layout = microOld(390, 334);
+      for (final MapEntry(key: id, value: row) in _compact.entries) {
+        final seat = layout.seats[id]!;
+        final face = seat.face;
+        final offset = id == 'front_r'
+            ? const Point(-32.0, 18.0)
+            : Point(-38 * row.rig, 46 * row.rig);
+        expectPoint(seat.tag, face + offset, '$id tag');
+        expectPoint(
+          seat.bubbleAnchor,
+          Point(face.x, max(10, face.y - 42 * row.rig - 8)),
+          '$id bubble',
+        );
+        expectPoint(
+          seat.tokenAnchor,
+          Point(face.x, face.y + 50 * row.rig),
+          '$id note',
         );
       }
+    });
+
+    test('a bench keeps its distance from its row', () {
+      final regular = microOld(390, 444);
+      expect(
+        regular.placeOnRow(SeatRow.c, 88, 104),
+        regular.place(88, 104),
+        reason: "008.5's table: the design's place",
+      );
+      final compact = microOld(390, 334);
+      // The back bench sits 12 under its row's faces, as on the design.
+      expect(compact.placeOnRow(SeatRow.c, 88, 104).y, closeTo(46 + 12, 1e-9));
+      expect(compact.placeOnRow(SeatRow.b, 46, 212).y, closeTo(122 + 16, 1e-9));
+      expect(compact.placeOnRow(SeatRow.a, 6, 326).y, closeTo(206 + 18, 1e-9));
     });
   });
 

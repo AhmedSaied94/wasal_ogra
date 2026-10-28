@@ -4,7 +4,10 @@
 // vehicle marker at the trip clock's share, and under them the names and
 // fares. The next stop wears a `danger` ring and its countdown chip, which
 // pulses under 8 s (steady under reduced motion); passed stops fade to 35%;
-// a raised fare shows the old one struck through beside the new.
+// a raised fare shows the old one struck through beside the new. In the
+// compact HUD's narrower card the depot has no label and a raised fare shows
+// only the new one, so four long names, the raise and the countdown fit
+// (M07 contracts/compact-trip-layout.md).
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -14,7 +17,9 @@ import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/coach_anchors.dart';
 import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
@@ -46,7 +51,10 @@ const _countdownPulse = 0.12;
 const _labelWidth = 132.0;
 
 class StationStrip extends StatelessWidget {
-  const StationStrip({super.key});
+  const StationStrip({this.compact = false, super.key});
+
+  /// The compact HUD's strip.
+  final bool compact;
 
   static const trackKey = ValueKey('strip-track');
   static const vehicleKey = ValueKey('strip-vehicle');
@@ -78,8 +86,12 @@ class StationStrip extends StatelessWidget {
               return const SizedBox.shrink();
             }
             return LayoutBuilder(
-              builder: (context, constraints) =>
-                  _Strip(strip: strip, tMs: tMs, width: constraints.maxWidth),
+              builder: (context, constraints) => _Strip(
+                strip: strip,
+                tMs: tMs,
+                width: constraints.maxWidth,
+                compact: compact,
+              ),
             );
           },
         ),
@@ -89,11 +101,17 @@ class StationStrip extends StatelessWidget {
 }
 
 class _Strip extends ConsumerWidget {
-  const _Strip({required this.strip, required this.tMs, required this.width});
+  const _Strip({
+    required this.strip,
+    required this.tMs,
+    required this.width,
+    required this.compact,
+  });
 
   final StationStripView strip;
   final int tMs;
   final double width;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -102,6 +120,29 @@ class _Strip extends ConsumerWidget {
     final last = strip.chips.last.atMs;
     double share(int atMs) => last <= 0 ? 0 : (atMs / last).clamp(0.0, 1.0);
     final vehicle = share(tMs) * width;
+    final labels = [
+      if (!compact)
+        (
+          center: 0.0,
+          label: Text(
+            l10n.destHome,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: TypeTokens.label.copyWith(color: ColorTokens.inkMuted),
+          ),
+        ),
+      for (final chip in strip.chips)
+        (
+          center: share(chip.atMs) * width,
+          label: _Label(
+            chip: chip,
+            countdownMs: chip.next ? strip.countdownMs : null,
+            numbers: numbers,
+            compact: compact,
+          ),
+        ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -182,37 +223,14 @@ class _Strip extends ConsumerWidget {
               Positioned.fill(
                 child: CustomMultiChildLayout(
                   delegate: _LabelsLayout(
-                    centers: [
-                      0,
-                      for (final chip in strip.chips) share(chip.atMs) * width,
-                    ],
+                    centers: [for (final l in labels) l.center],
                     textDirection: Directionality.of(context),
                   ),
                   children: [
-                    LayoutId(
-                      id: 0,
-                      child: ExcludeSemantics(
-                        child: Text(
-                          l10n.destHome,
-                          maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.visible,
-                          style: TypeTokens.label.copyWith(
-                            color: ColorTokens.inkMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-                    for (final (i, chip) in strip.chips.indexed)
+                    for (final (i, l) in labels.indexed)
                       LayoutId(
-                        id: i + 1,
-                        child: ExcludeSemantics(
-                          child: _Label(
-                            chip: chip,
-                            countdownMs: chip.next ? strip.countdownMs : null,
-                            numbers: numbers,
-                          ),
-                        ),
+                        id: i,
+                        child: ExcludeSemantics(child: l.label),
                       ),
                   ],
                 ),
@@ -307,11 +325,15 @@ class _Label extends StatelessWidget {
     required this.chip,
     required this.countdownMs,
     required this.numbers,
+    required this.compact,
   });
 
   final StationChip chip;
   final int? countdownMs;
   final NumberFormatter numbers;
+
+  /// Without the struck-through old fare.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -336,11 +358,13 @@ class _Label extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (raised) ...[
-                line(
-                  l10n.tripStripFare(numbers.piasters(chip.basePiasters)),
-                  fare.copyWith(decoration: TextDecoration.lineThrough),
-                ),
-                const SizedBox(width: SpaceTokens.s4),
+                if (!compact) ...[
+                  line(
+                    l10n.tripStripFare(numbers.piasters(chip.basePiasters)),
+                    fare.copyWith(decoration: TextDecoration.lineThrough),
+                  ),
+                  const SizedBox(width: SpaceTokens.s4),
+                ],
                 _Pill(
                   key: StationStrip.raisedKey(chip.slot),
                   color: ColorTokens.dangerSoft,
@@ -415,8 +439,12 @@ class _Countdown extends StatelessWidget {
         style: TypeTokens.label.weight(700).copyWith(color: ColorTokens.ink),
       ),
     );
-    if (ms >= TripMotion.countdownPulseBelow.inMilliseconds) return chip;
-    return TripPulse(amplitude: _countdownPulse, child: chip);
+    return CoachAnchor(
+      target: const StationCountdownTarget(),
+      child: ms >= TripMotion.countdownPulseBelow.inMilliseconds
+          ? chip
+          : TripPulse(amplitude: _countdownPulse, child: chip),
+    );
   }
 }
 
@@ -484,8 +512,9 @@ class _MicrobusGlyph extends CustomPainter {
   bool shouldRepaint(_MicrobusGlyph oldDelegate) => false;
 }
 
-/// The labels under their stops, the depot's first: each centred on its
-/// stop, pushed apart where two would touch, and kept within the card.
+/// The labels under their stops (the depot's first, when it has one): each
+/// centred on its stop, pushed apart where two would touch, and kept within
+/// the card.
 class _LabelsLayout extends MultiChildLayoutDelegate {
   _LabelsLayout({required this.centers, required this.textDirection});
 

@@ -1216,6 +1216,46 @@
   "@tripPlaytestTrips": {
     "description": "Internal builds: the heading of Home's list of every trip in the active pack."
   },
+  "tripPlaytestTutorial": "تعليمي {number}",
+  "@tripPlaytestTutorial": {
+    "description": "Internal builds: beside a tutorial trip in Home's trip list, its place in the tutorial, preformatted.",
+    "placeholders": {
+      "number": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "onboardingPlaytestTitle": "أول مرة",
+  "@onboardingPlaytestTitle": {
+    "description": "Internal builds: the heading of the playtest Home's card that replays the first session's screens."
+  },
+  "onboardingPlaytestOpening": "مشهد البداية",
+  "@onboardingPlaytestOpening": {
+    "description": "Internal builds: opens the pack's opening scene, then the Name card, then Home."
+  },
+  "onboardingPlaytestName": "كارت الاسم",
+  "@onboardingPlaytestName": {
+    "description": "Internal builds: opens the Name card, then Home."
+  },
+  "onboardingPlaytestScene": "مشهد {scene}",
+  "@onboardingPlaytestScene": {
+    "description": "Internal builds: opens an after-trip scene, then Home. The scene's id, Latin.",
+    "placeholders": {
+      "scene": {
+        "type": "String",
+        "example": "salma_meets"
+      }
+    }
+  },
+  "onboardingPlaytestFuel": "درس البنزين",
+  "@onboardingPlaytestFuel": {
+    "description": "Internal builds: opens المعلم's fuel lesson, then Home."
+  },
+  "onboardingPlaytestCoach": "بلية في كل مشوار تعليمي",
+  "@onboardingPlaytestCoach": {
+    "description": "Internal builds: a switch, off at each launch, that coaches every tutorial trip, finished or not."
+  },
   "tripDebugOpen": "لوحة التجربة",
   "@tripDebugOpen": {
     "description": "Internal builds: the top bar's debug icon, read by screen readers. It pauses the trip."
@@ -1421,5 +1461,211 @@
   "maintenanceMessage": "المشاوير شغالة أوفلاين.",
   "@maintenanceMessage": {
     "description": "The maintenance card's message without an end time (HANDOFF States 8)."
+  },
+  "introSkip": "تخطّى",
+  "@introSkip": {
+    "description": "Opening and after-trip scenes (Intro artboard): the pill that skips the rest of the scene."
+  },
+  "introNext": "يلا",
+  "@introNext": {
+    "description": "Opening and after-trip scenes (Intro artboard): the button that shows the next panel, or ends the scene on the last one."
+  },
+  "introPageOf": "اللوحة {n} من {total}",
+  "@introPageOf": {
+    "description": "Scene player: the page dots' spoken label. Both numbers arrive formatted in the player's digit style.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١"
+      },
+      "total": {
+        "type": "String",
+        "example": "٣"
+      }
+    }
+  },
+  "sceneSpeaker": "{speaker, select, salma{سلمى} bride_father{أبو العروسة} bride_mother{أم العروسة} moallem{المعلم} belya{بلية} other{}}",
+  "@sceneSpeaker": {
+    "description": "Scene player: a story character's name over their line (HANDOFF 5.2). The driver (usta) shows the player's name instead; an unknown id shows nothing.",
+    "placeholders": {
+      "speaker": {
+        "type": "String",
+        "example": "moallem"
+      }
+    }
+  },
+  "coachFareArrived": "شايف؟ الأجرة وصلت الدرج",
+  "@coachFareArrived": {
+    "description": "Tutorial coach (lesson 1, trip 1): بلية points at the drawer when the first fare lands."
+  },
+  "coachGiveChange": "ليه باقي {amount}. دوس على {coin} {count, plural, =1{مرة} =2{مرتين} few{{n} مرات} other{{n} مرة}}، وبعدين دوس عليه.",
+  "@coachGiveChange": {
+    "description": "Tutorial coach (trip 2): the change a rider is owed, the coin that pays it and how many times to tap it. `amount` is the money preformatted; `coin` is coachCoinName's; `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "٣"
+      },
+      "coin": {
+        "type": "String",
+        "example": "الجنيه"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "٣"
+      }
+    }
+  },
+  "coachGiveChangeAny": "ليه باقي {amount}. خد الفكة من الدرج، وبعدين دوس عليه.",
+  "@coachGiveChangeAny": {
+    "description": "Tutorial coach: the change owed when no single coin pays it. `amount` is preformatted.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "١٣"
+      }
+    }
+  },
+  "coachTapRider": "دلوقتي دوس عليه.",
+  "@coachTapRider": {
+    "description": "Tutorial coach: the change is in hand; now tap the rider."
+  },
+  "coachStopNear": "نازل {station}، لازم ياخد باقيه قبلها",
+  "@coachStopNear": {
+    "description": "Tutorial coach (trip 3): a rider still owed gets off at the next station. `station` is its name.",
+    "placeholders": {
+      "station": {
+        "type": "String",
+        "example": "المطبعة"
+      }
+    }
+  },
+  "coachWakeSleeper": "ده نايم، دوس عليه صحّيه",
+  "@coachWakeSleeper": {
+    "description": "Tutorial coach (trip 4): a sleeping rider; tap to wake them."
+  },
+  "coachName": "بلية",
+  "@coachName": {
+    "description": "Tutorial coach: بلية's name over his bubble."
+  },
+  "coachAnnouncement": "بلية: {line}",
+  "@coachAnnouncement": {
+    "description": "Tutorial coach: what a screen reader announces when a step starts. `line` is the step's line.",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "شايف؟ الأجرة وصلت الدرج"
+      }
+    }
+  },
+  "coachCoinName": "{denomination, select, v50{النص جنيه} v100{الجنيه} v500{الخمسة} v1000{العشرة} v2000{العشرين} v5000{الخمسين} v10000{المية} v20000{الميتين} other{الفكة}}",
+  "@coachCoinName": {
+    "description": "Tutorial coach: a coin or note as بلية names it. `denomination` is the Denomination enum's name.",
+    "placeholders": {
+      "denomination": {
+        "type": "String",
+        "example": "v100"
+      }
+    }
+  },
+  "fuelLessonTitle": "تفويلة من المعلم",
+  "@fuelLessonTitle": {
+    "description": "The fuel lesson's title (before the last tutorial trip)."
+  },
+  "fuelLessonSpeaker": "المعلم",
+  "@fuelLessonSpeaker": {
+    "description": "The speaker's name over the fuel lesson's line."
+  },
+  "fuelLessonLine": "البنزين قرّب يخلص يا أسطى. كل مشوار بلتر، والمرة دي التفويلة عليّا!",
+  "@fuelLessonLine": {
+    "description": "المعلم explains fuel and gives the tutorial's free refill."
+  },
+  "fuelLessonGauge": "البنزين {liters} من {max}",
+  "@fuelLessonGauge": {
+    "description": "The fuel lesson's gauge, for a screen reader. Both numbers are preformatted in the player's digits.",
+    "placeholders": {
+      "liters": {
+        "type": "String",
+        "example": "١"
+      },
+      "max": {
+        "type": "String",
+        "example": "٥"
+      }
+    }
+  },
+  "fuelLessonRefill": "التانك بيتملى لوحده: لتر كل {count, plural, few{{n} دقايق} other{{n} دقيقة}}.",
+  "@fuelLessonRefill": {
+    "description": "How the tank refills by itself: a liter every fuel_regen_minutes. `count` picks the form; `n` is the same number preformatted in the player's digits.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "20"
+      },
+      "n": {
+        "type": "String",
+        "example": "٢٠"
+      }
+    }
+  },
+  "fuelLessonCta": "يلا على المشوار",
+  "@fuelLessonCta": {
+    "description": "The fuel lesson's button: the gift, then the trip."
+  },
+  "fuelGaugeEmpty": "E",
+  "@fuelGaugeEmpty": {
+    "description": "The fuel gauge's mark at the empty end of its arc, as on a car's gauge."
+  },
+  "fuelGaugeFull": "F",
+  "@fuelGaugeFull": {
+    "description": "The fuel gauge's mark at the full end of its arc, as on a car's gauge."
+  },
+  "firstSessionContinue": "\u0643\u0645\u0651\u0644",
+  "@firstSessionContinue": {
+    "description": "The result screen's main action through the first session: on to the next tutorial trip, or to the stand once the tutorial is done."
+  },
+  "tripBoostersLocked": "المساعدات بتتفتح بعد المشوار الخامس",
+  "@tripBoostersLocked": {
+    "description": "Trip dashboard: in place of the boosters until the five tutorial trips are done."
+  },
+  "nameTitle": "اسمك إيه يا أسطى؟",
+  "@nameTitle": {
+    "description": "Name card and name sheet: the title."
+  },
+  "nameSubtitle": "الاسم ده هيظهر في الموقف وفي ترتيب ملك الخط.",
+  "@nameSubtitle": {
+    "description": "Name card: the line under the title, saying where the name shows."
+  },
+  "nameFieldLabel": "اسمك",
+  "@nameFieldLabel": {
+    "description": "Name card: the text field's label and spoken name."
+  },
+  "nameSuggestAnother": "اقترح اسم تاني",
+  "@nameSuggestAnother": {
+    "description": "Name card: the dice button's spoken label; it puts another suggested name in the field."
+  },
+  "nameHelper": "تقدر تغيّره بعدين من الإعدادات.",
+  "@nameHelper": {
+    "description": "Name card: the helper line under the field."
+  },
+  "nameCta": "تمام",
+  "@nameCta": {
+    "description": "Name card and name sheet: the button that saves the name."
+  },
+  "nameRefusedLine": "الاسم ده مينفعش. اختار اسم تاني.",
+  "@nameRefusedLine": {
+    "description": "Above the name field in the Name sheet, when the server refused the last name (contracts/name.md)."
+  },
+  "driverNameDefault": "الأسطى",
+  "@driverNameDefault": {
+    "description": "The name shown for the driver before they pick one, or after the server refused theirs."
+  },
+  "namePool": "حمادة، سيد، عبده، شريف، ميدو، حسن، كريم، مصطفى، تامر، وليد، عادل، سامح، رضا، أشرف، هاني، محمود، فتحي، جمعة، صلاح، عصام، حمدي، ناصر، ربيع، شعبان",
+  "@namePool": {
+    "description": "Name card: the suggested driver names, separated by «،». The dice picks one at random. Every name must pass the server's name filter (backend apps/accounts/tests/test_name_pool.py) and the app's name rules; keep at least 20."
   }
 }

@@ -12,6 +12,7 @@ import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/step_accumulator.dart';
+import 'package:wassal/features/trip/presentation/coach_anchors.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 
 /// Inside the trip, text scales at most this much (research R15).
@@ -136,7 +137,13 @@ final class TripControls {
     }
   }
 
-  void dispose() => shakes.dispose();
+  /// Where the coach's targets are drawn (contracts/coach.md "Anchors").
+  final anchors = CoachAnchors();
+
+  void dispose() {
+    shakes.dispose();
+    anchors.dispose();
+  }
 }
 
 class TripScope extends InheritedWidget {
@@ -154,6 +161,8 @@ class TripScope extends InheritedWidget {
 
   static TripScope of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<TripScope>()!;
+
+  CoachAnchors get anchors => controls.anchors;
 
   @override
   bool updateShouldNotify(TripScope oldWidget) =>

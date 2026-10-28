@@ -18,6 +18,7 @@ import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/components/vehicle_sprite.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/trip/trip_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -89,8 +90,10 @@ class _BootScreenState extends ConsumerState<BootScreen>
     super.dispose();
   }
 
-  /// To الموقف, or back into the trip a kill interrupted
-  /// (specs/008-m02-trip-screen/contracts/trip-controller.md "Launch").
+  /// Back into the trip a kill interrupted
+  /// (specs/008-m02-trip-screen/contracts/trip-controller.md "Launch"), or
+  /// where the first session says: its next screen, or الموقف
+  /// (specs/012-m07-onboarding/contracts/first-session.md "Boot").
   Future<void> _handOver() async {
     if (_handedOver) return;
     _handedOver = true;
@@ -99,7 +102,7 @@ class _BootScreenState extends ConsumerState<BootScreen>
     final economy = await ref.read(economyProvider.future);
     await ref.read(appDatabaseProvider.future);
     if (!mounted) return;
-    await _waitForFirstOpen();
+    final outcome = await _waitForFirstOpen();
     if (!mounted) return;
     ref.read(bootProgressProvider.notifier).markDone(BootStep.account);
     final unfinished = economy.view.unfinished;
@@ -114,7 +117,17 @@ class _BootScreenState extends ConsumerState<BootScreen>
       // No account service: nothing can restore past the hand-over either.
     }
     if (!mounted) return;
-    context.go(unfinished == null ? '/home' : '/trip/${unfinished.tripId}');
+    // The flags load before any redirect reads them. A restored player has
+    // seen the opening, on another phone.
+    final flags = ref.read(firstSessionFlagsProvider.notifier);
+    await ref.read(firstSessionFlagsProvider.future);
+    if (outcome == FirstOpenOutcome.restored) await flags.markOpeningDone();
+    if (!mounted) return;
+    context.go(
+      unfinished == null
+          ? ref.read(firstSessionProvider).launchTarget(outcome)
+          : '/trip/${unfinished.tripId}',
+    );
   }
 
   /// The first open's outcome, up to [firstOpenWait]: at once on a later

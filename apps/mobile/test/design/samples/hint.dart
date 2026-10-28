@@ -8,16 +8,17 @@ import 'package:wassal/features/trip/domain/trip_view.dart';
 import '../../helpers/trip.dart';
 import 'c_trip.dart';
 
-// The hint of `Tutorial` (HANDOFF §11 `Tutorial` blocks 5–7, research R12)
-// on the tuktuk of `line_hay.01`: الحاجة paid 10 for 7 and بلية says she is
-// owed, pointing at her. The scrim, the hole and the locked boosters are
-// M07's; the hint takes no touch. The engine never sees it.
+// بلية's hint (M02 research R12, drawn as HANDOFF §11 `Tutorial` blocks
+// 5–7) on the tuktuk of `line_hay.01`: الحاجة paid 10 for 7 and بلية says
+// she is owed, pointing at her. The hint takes no touch, and the engine
+// never sees it. The `Tutorial` artboard itself is M07's coach
+// (`tutorial.dart`).
 
 /// The trip the sample opens, for its tuktuk.
-const tutorialTripId = 'line_hay.01';
+const hintTripId = 'line_hay.01';
 
 /// The one بلية's hint is about.
-const tutorialTarget = 'p_A_m';
+const hintTarget = 'p_A_m';
 
 PassengerView _rider(String seatId, String look, int slot) => PassengerView(
   passengerId: 'p_$seatId',
@@ -48,7 +49,7 @@ BoosterSlotView _booster(BoosterId booster) => BoosterSlotView(
   adOffered: false,
 );
 
-TripView tutorialView({String hintKey = 'tripHintOwed'}) => TripView(
+TripView hintView({String hintKey = 'tripHintOwed'}) => TripView(
   tMs: 12000,
   phase: TripPhase.running,
   topBar: const TopBarView(
@@ -114,7 +115,7 @@ TripView tutorialView({String hintKey = 'tripHintOwed'}) => TripView(
     ),
     const LogLine(kind: LogKind.fareArrived, amountPiasters: 1000),
   ],
-  hint: HintView(key: hintKey, targetPassengerId: tutorialTarget),
+  hint: HintView(key: hintKey, targetPassengerId: hintTarget),
   banner: null,
   storyCondition: null,
   failSummary: null,
@@ -124,11 +125,11 @@ TripView tutorialView({String hintKey = 'tripHintOwed'}) => TripView(
 );
 
 /// The trip screen on the reference frame, showing the hint.
-Future<void> pumpTutorialHint(
+Future<void> pumpHintSample(
   WidgetTester tester, {
   DigitStyle digits = DigitStyle.arabicIndic,
 }) async {
-  await pumpTrip(tester, tripId: tutorialTripId, digits: digits);
-  controllerOf(tester).debugShowModel(cTripModel(tutorialView()));
+  await pumpTrip(tester, tripId: hintTripId, digits: digits);
+  controllerOf(tester).debugShowModel(cTripModel(hintView()));
   await tester.pumpAndSettle();
 }

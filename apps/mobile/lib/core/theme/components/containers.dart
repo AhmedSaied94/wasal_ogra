@@ -21,24 +21,29 @@ double screenTopInset(BuildContext context) =>
 
 /// A white card with the card lip. [locked]: `locked.bg`, a 2 pt `outline`
 /// ring inside, `ink.2` text and a lock at the top-end corner, never faded
-/// (spec FR-012).
+/// (spec FR-012). An artboard that draws a bigger card passes its [radius]
+/// and [lip] (`Name`: `radius.scene`, `lip.card.big`).
 class AppCard extends StatelessWidget {
   const AppCard({
     required this.child,
     this.locked = false,
     this.padding = const EdgeInsets.all(SpaceTokens.s16),
+    this.radius = RadiusTokens.card,
+    this.lip = LipTokens.card,
     super.key,
   });
 
   final Widget child;
   final bool locked;
   final EdgeInsetsGeometry padding;
+  final double radius;
+  final BoxShadow lip;
 
   static const double _lock = 18;
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(RadiusTokens.card);
+    final radius = BorderRadius.circular(this.radius);
     final card = DecoratedBox(
       decoration: BoxDecoration(
         color: locked ? ColorTokens.lockedBg : ColorTokens.paper,
@@ -50,7 +55,7 @@ class AppCard extends StatelessWidget {
                 strokeAlign: BorderSide.strokeAlignInside,
               )
             : null,
-        boxShadow: locked ? null : const [LipTokens.card],
+        boxShadow: locked ? null : [lip],
       ),
       child: Padding(padding: padding, child: child),
     );

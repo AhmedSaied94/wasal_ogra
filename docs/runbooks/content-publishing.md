@@ -43,6 +43,23 @@ $ADMIN create_staff <name> --group content_author
 A published pack never changes. Its files are written once, and its record keeps only its minimum
 app version mutable.
 
+### Authoring scenes
+
+A scene's page, and the scenes on its chapter's page, have two fields that tell the app when to
+play it by itself (M07, `specs/012-m07-onboarding/contracts/scenes.md`):
+
+- **Plays kind** `opening`: at the first open, before the Name card. One scene in the pack, in the
+  chapter of order 1, with **Plays trip** empty.
+- **Plays kind** `after_trip`: after the first finish of the trip in **Plays trip**, which is then
+  required. One scene per trip.
+- **Plays kind** blank (the default): M10's rules play it.
+- **Captions.** A panel's caption is a scene line whose speaker is `narrator`. Make it the panel's
+  first line (the lowest order), and add at most one per panel. The app draws it in the caption
+  chip, not a bubble.
+
+Saving refuses a trip on a scene that isn't `after_trip`, and the reverse. An import and a build
+report the other rules as `V-C3`–`V-C5`.
+
 ## 2. Promote to production
 
 1. On staging's page of the tested pack, copy the **promotion code** (`core-<v>:<64 hex>`).

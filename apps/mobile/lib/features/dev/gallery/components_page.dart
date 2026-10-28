@@ -578,10 +578,16 @@ final gallerySections = <GallerySection>[
           ),
         ),
         caption: l10n.destHome,
-        speaker: l10n.tripLookHajja,
-        line: l10n.tripHintHonest,
+        lines: [
+          (l10n.tripLookHajja, l10n.tripHintHonest),
+          (l10n.driverNameDefault, l10n.nameHelper),
+        ],
       ),
     );
+  }),
+  GallerySection('PageDots', (context, _) {
+    final l10n = _l10n(context);
+    return PageDots(count: 3, index: 1, label: l10n.introPageOf('2', '3'));
   }),
   GallerySection('CoachMark', (context, _) {
     const target = Rect.fromLTWH(120, 150, 87, 44);

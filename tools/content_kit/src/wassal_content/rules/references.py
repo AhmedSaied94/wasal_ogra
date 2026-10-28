@@ -39,6 +39,8 @@ _GOAL_FIELD = {
     "complete_room": "room_id",
     "purchase": None,
 }
+# A panel line by this speaker is the panel's caption (M07 research R5), not a bubble.
+NARRATOR = "narrator"
 
 Entity = tuple[str, str]
 
@@ -384,7 +386,78 @@ def _chapter(chapter: Any, ix: _Index) -> Iterator[Finding]:
         yield _error("V-C2", entity, "$.story_trip_id", f"trip {story!r} is not in this pack")
     elif story is not None and ix.trips[story]["kind"] != "story":
         yield _error("V-C2", entity, "$.story_trip_id", f"trip {story!r} is not a story trip")
+    yield from _narrators(chapter, entity)
     yield from _duplicates(chapter["scenes"], "scene_id", entity, "$.scenes")
+
+
+def _narrators(chapter: Any, entity: Entity) -> Iterator[Finding]:
+    """V-C5: a panel's `narrator` line is its caption, so it comes first, and once."""
+    for n, scene in enumerate(chapter["scenes"]):
+        for m, panel in enumerate(scene["panels"]):
+            seen = False
+            for k, line in enumerate(panel["lines"]):
+                if line["speaker"] != NARRATOR:
+                    continue
+                if k:
+                    yield _error(
+                        "V-C5",
+                        entity,
+                        f"$.scenes[{n}].panels[{m}].lines[{k}].speaker",
+                        "a panel has at most one narrator line"
+                        if seen
+                        else "a panel's narrator line comes first",
+                    )
+                seen = True
+
+
+def _scene_plays(chapters: list[Any], ix: _Index) -> Iterator[Finding]:
+    """V-C3 and V-C4: when the app plays a scene by itself (`plays`), across the pack.
+
+    The first opening and the first scene of each trip, in chapter order, are the ones kept.
+    """
+    opening: str | None = None
+    claimed: dict[str, str] = {}
+    for chapter in sorted(chapters, key=lambda c: (c["order"], c["chapter_id"])):
+        entity: Entity = ("chapter", chapter["chapter_id"])
+        for n, scene in enumerate(chapter["scenes"]):
+            plays = scene.get("plays")
+            if plays is None:
+                continue
+            base, here = f"$.scenes[{n}].plays", f"{chapter['chapter_id']}/{scene['scene_id']}"
+            trip_id = plays.get("trip_id")
+            if plays["kind"] == "opening":
+                if chapter["order"] != 1:
+                    yield _error(
+                        "V-C3",
+                        entity,
+                        f"{base}.kind",
+                        "only the chapter of order 1 has an opening scene",
+                    )
+                if opening is not None:
+                    yield _error(
+                        "V-C3", entity, f"{base}.kind", f"the pack already opens with {opening}"
+                    )
+                else:
+                    opening = here
+                if trip_id is not None:
+                    yield _error(
+                        "V-C3", entity, f"{base}.trip_id", "an opening scene names no trip_id"
+                    )
+            elif trip_id is None:
+                yield _error("V-C4", entity, base, "an after_trip scene needs trip_id")
+            elif trip_id not in ix.trips:
+                yield _error(
+                    "V-C4", entity, f"{base}.trip_id", f"trip {trip_id!r} is not in this pack"
+                )
+            elif trip_id in claimed:
+                yield _error(
+                    "V-C4",
+                    entity,
+                    f"{base}.trip_id",
+                    f"trip {trip_id!r} already plays {claimed[trip_id]}",
+                )
+            else:
+                claimed[trip_id] = here
 
 
 def _room(room: Any, ix: _Index) -> Iterator[Finding]:
@@ -515,6 +588,7 @@ def reference_findings(pack: Mapping[str, Any]) -> list[Finding]:
         findings.extend(_vehicle(vehicle))
     for chapter in pack["chapters"]:
         findings.extend(_chapter(chapter, ix))
+    findings.extend(_scene_plays(pack["chapters"], ix))
     for room in pack["rooms"]:
         findings.extend(_room(room, ix))
     for item in pack["items"]:

@@ -69,6 +69,12 @@ abstract final class TripMotion {
   /// constitution XI).
   static const double signGrowFrom = 12 / 13;
 
+  /// بلية's coach (M07 contracts/coach.md "Motion"): the scrim fades in,
+  /// and the hole moves to the next target; it jumps under reduced motion.
+  static const coachScrimFade = Duration(milliseconds: 200);
+  static const coachHoleMove = Duration(milliseconds: 250);
+  static const coachHoleCurve = MotionTokens.sheetInCurve;
+
   /// The street's speed in the windows, in points per second.
   static const double streetSpeed = 60;
 

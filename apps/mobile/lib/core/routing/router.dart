@@ -4,15 +4,26 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:trip_engine/trip_engine.dart' show TripResult;
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
 import 'package:wassal/core/routing/app_page.dart';
+import 'package:wassal/core/routing/param_validators.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/routing/shell_scaffold.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
+import 'package:wassal/features/onboarding/domain/first_session.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
+import 'package:wassal/features/onboarding/presentation/driver_name_line.dart';
+import 'package:wassal/features/onboarding/presentation/first_session_continue.dart';
+import 'package:wassal/features/onboarding/presentation/fuel_lesson_screen.dart';
+import 'package:wassal/features/onboarding/presentation/name_reask_host.dart';
+import 'package:wassal/features/onboarding/presentation/name_screen.dart';
+import 'package:wassal/features/onboarding/presentation/scene_page.dart';
 import 'package:wassal/features/dev/gallery/gallery_entry.dart';
+import 'package:wassal/features/dev/onboarding_card.dart';
 import 'package:wassal/features/dev/sync_status_card.dart';
 import 'package:wassal/features/home/home_status_area.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
@@ -79,12 +90,14 @@ GoRouter router(Ref ref) {
     initialLocation: '/boot',
     onException: (_, _, router) => router.go('/home'),
     // Screens read the settings store and tunables synchronously, so only
-    // boot may show until startup completes. Boot then goes to الموقف.
-    redirect: (_, state) =>
-        ref.read(appStartupProvider).hasValue ||
-            state.matchedLocation == '/boot'
-        ? null
-        : '/boot',
+    // boot may show until startup completes. Boot then goes to الموقف, or
+    // into the first session (specs/012-m07-onboarding).
+    redirect: (_, state) {
+      if (!ref.read(appStartupProvider).hasValue) {
+        return state.matchedLocation == '/boot' ? null : '/boot';
+      }
+      return _firstSessionRedirect(ref, state);
+    },
     routes: [
       GoRoute(
         name: RouteNames.boot,
@@ -93,6 +106,8 @@ GoRouter router(Ref ref) {
       ),
       route(RouteNames.onboardingIntro),
       route(RouteNames.onboardingName),
+      route(RouteNames.onboardingScene),
+      route(RouteNames.onboardingFuel),
       StatefulShellRoute(
         builder: (_, _, navigationShell) =>
             ShellScaffold(navigationShell: navigationShell),
@@ -132,6 +147,59 @@ GoRouter router(Ref ref) {
   return router;
 }
 
+/// The first session's redirects (specs/012-m07-onboarding/contracts/
+/// first-session.md "Router"), read from providers that are synchronous
+/// once startup has completed.
+String? _firstSessionRedirect(Ref ref, GoRouterState state) {
+  final location = state.matchedLocation;
+  if (location == '/onboarding/intro' &&
+      ref.read(tutorialPlanProvider).openingScene == null) {
+    // The playtest card's `then` goes along.
+    return Uri(
+      path: '/onboarding/name',
+      queryParameters: state.uri.queryParameters.isEmpty
+          ? null
+          : state.uri.queryParameters,
+    ).toString();
+  }
+  if (location == '/home') {
+    return switch (ref.read(firstSessionProvider).onArrivalAtHome()) {
+      DueScene(:final sceneId) => _sceneThen(sceneId, '/home'),
+      null => null,
+    };
+  }
+  // A trip's start, never the unfinished trip's resume.
+  final tripId = _tripStart.firstMatch(location)?[1];
+  if (tripId == null ||
+      tripId == ref.read(economyViewProvider).unfinished?.tripId) {
+    return null;
+  }
+  return switch (ref.read(firstSessionProvider).beforeStart(tripId)) {
+    DueScene(:final sceneId) => _sceneThen(sceneId, '/trip/$tripId'),
+    FuelLessonDue() => Uri(
+      path: '/onboarding/fuel',
+      queryParameters: {'then': tripId},
+    ).toString(),
+    null => null,
+  };
+}
+
+final _tripStart = RegExp(r'^/trip/([^/]+)$');
+
+String _sceneThen(String sceneId, String then) => Uri(
+  path: '/onboarding/scene/$sceneId',
+  queryParameters: {'then': then},
+).toString();
+
+/// Where a `then` query parameter may send the player: a trip by a valid id,
+/// or الموقف. Anything else, from a link or a stale record, becomes الموقف.
+String safeThen(String? then) {
+  if (then == null) return '/home';
+  final trip = RegExp(r'^/trip/([^/?#]+)$').firstMatch(then);
+  if (trip != null && ParamValidators.tripId(trip[1]!)) return then;
+  return '/home';
+}
+
 Page<void> _page(
   BuildContext context,
   GoRouterState state,
@@ -139,6 +207,19 @@ Page<void> _page(
   required bool playtest,
 }) {
   final screen = switch (d.name) {
+    RouteNames.onboardingIntro => ScenePage.opening(
+      then: state.uri.queryParameters['then'],
+    ),
+    RouteNames.onboardingName => NameScreen(
+      then: state.uri.queryParameters['then'],
+    ),
+    RouteNames.onboardingFuel => FuelLessonScreen(
+      then: state.uri.queryParameters['then'],
+    ),
+    RouteNames.onboardingScene => ScenePage(
+      sceneId: state.pathParameters['sceneId']!,
+      then: state.uri.queryParameters['then'],
+    ),
     RouteNames.settings => const SettingsScreen(),
     // Keyed: another trip in the same page is another screen, with its own
     // controller.
@@ -152,19 +233,31 @@ Page<void> _page(
       extra: const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: SpaceTokens.s16,
-        children: [TripList(), GalleryEntry()],
+        children: [DriverNameLine(), TripList(), GalleryEntry()],
       ),
-      footer: const SyncStatusCard(),
+      // Below Home's links, so they stay where they were.
+      footer: const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: SpaceTokens.s16,
+        children: [OnboardingCard(), SyncStatusCard()],
+      ),
     ),
     // M08 replaces it.
     RouteNames.result => PlaceholderScreen(
       destination: d,
       params: state.pathParameters,
-      extra: ResultSummary(
-        result: switch (state.extra) {
-          final TripResult result => result,
-          _ => null,
-        },
+      extra: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: SpaceTokens.s16,
+        children: [
+          ResultSummary(
+            result: switch (state.extra) {
+              final TripResult result => result,
+              _ => null,
+            },
+          ),
+          FirstSessionContinue(tripId: state.pathParameters['tripId']!),
+        ],
       ),
     ),
     _ => PlaceholderScreen(destination: d, params: state.pathParameters),
@@ -175,7 +268,9 @@ Page<void> _page(
       name: d.name,
       // Cold start ends when الموقف first draws (FR-012a).
       child: d.name == RouteNames.home
-          ? ReportFullyDrawn(child: HomeStatusArea(child: screen))
+          ? ReportFullyDrawn(
+              child: HomeStatusArea(child: NameReaskHost(child: screen)),
+            )
           : screen,
     ),
     Presentation.sheet => AppSheetPage(

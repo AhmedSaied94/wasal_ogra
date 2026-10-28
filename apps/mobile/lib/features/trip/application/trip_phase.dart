@@ -3,6 +3,7 @@
 // (contracts/trip-controller.md).
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
 
@@ -83,6 +84,8 @@ final class TripModel extends ViewValue {
     this.boosterCard,
     this.pauseReason,
     this.restartEnabled = false,
+    this.coach,
+    this.coachBubble,
   });
 
   final TripPhase phase;
@@ -100,6 +103,14 @@ final class TripModel extends ViewValue {
   /// «عيد المشوار» needs a liter, or unlimited fuel.
   final bool restartEnabled;
 
+  /// The tutorial step showing while the trip runs
+  /// (specs/012-m07-onboarding/contracts/coach.md).
+  final CoachView? coach;
+
+  /// The coach line in بلية's bubble: the step's, or the last one's while
+  /// its bubble finishes its time.
+  final CoachLine? coachBubble;
+
   @override
   Map<String, Object?> get fields => {
     'phase': phase,
@@ -110,5 +121,7 @@ final class TripModel extends ViewValue {
     'boosterCard': boosterCard,
     'pauseReason': pauseReason,
     'restartEnabled': restartEnabled,
+    'coach': coach,
+    'coachBubble': coachBubble,
   };
 }

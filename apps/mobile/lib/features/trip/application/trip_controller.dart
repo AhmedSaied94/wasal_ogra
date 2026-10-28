@@ -20,6 +20,7 @@ import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/fail_summary.dart';
 import 'package:wassal/features/trip/domain/hints.dart';
 import 'package:wassal/features/trip/domain/line_ids.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
 import 'package:wassal/features/trip/domain/projection.dart';
 import 'package:wassal/features/trip/domain/speech.dart';
@@ -59,7 +60,11 @@ final class TripController {
     int Function()? nowMs,
     this.onKillPoint,
     FixedTrip? fixedTrip,
-  }) : _hintsSeen = hintsSeen ?? (() => const {}),
+    int? Function()? coachLesson,
+    bool Function()? boostersLocked,
+  }) : _coachLesson = coachLesson ?? (() => null),
+       _boostersLocked = boostersLocked ?? (() => false),
+       _hintsSeen = hintsSeen ?? (() => const {}),
        _nowMs = nowMs ?? (() => DateTime.now().millisecondsSinceEpoch),
        _fixed = fixedTrip;
 
@@ -95,6 +100,14 @@ final class TripController {
   final String Function(int slot) _stationLetter;
   final Set<String> Function() _hintsSeen;
   final void Function(String archetypeWire)? _onHintSeen;
+
+  /// The tutorial lesson of the trip opening, or null: asked each time a
+  /// run starts (specs/012-m07-onboarding/contracts/coach.md).
+  final int? Function() _coachLesson;
+
+  /// Whether the boosters are locked (the tutorial isn't done), asked when
+  /// a trip opens.
+  final bool Function() _boostersLocked;
   final TripAdOffers _ads;
   final int Function() _nowMs;
   final FixedTrip? _fixed;
@@ -110,6 +123,9 @@ final class TripController {
   _PendingStart? _pendingStart;
   PresentationMemory _memory = PresentationMemory.empty;
   HintState _hints = HintState.empty;
+  int? _lesson;
+  CoachMemory _coachMemory = CoachMemory.empty;
+  CoachView? _coach;
   TripPhase _phase = TripPhase.opening;
   TripRetry? _retry;
   TripExit? _exit;
@@ -249,6 +265,7 @@ final class TripController {
         );
         _memory = PresentationMemory.empty;
         _hints = HintState.empty;
+        _resetCoach();
         _openHints();
         _setPhase(TripPhase.running);
         return true;
@@ -289,6 +306,7 @@ final class TripController {
         TripHintsMode.firstTime => HintMode.firstTime,
         TripHintsMode.always => HintMode.always,
       },
+      boostersLocked: _boostersLocked(),
     );
   }
 
@@ -318,6 +336,7 @@ final class TripController {
     );
     _memory = PresentationMemory.empty;
     _hints = HintState.empty;
+    _resetCoach();
     _openHints();
     _uncharged
       ..clear()
@@ -460,6 +479,13 @@ final class TripController {
   }
 
   void collect(int tokenId) => _command(CollectDropped(tokenId));
+
+  /// The coach's scrim took a tap: a step that ends on any tap ends.
+  void coachTapped() {
+    if (_phase != TripPhase.running) return;
+    _coachMemory = TutorialCoach.tapped(_coachMemory, _coach);
+    _publish();
+  }
 
   /// Uses [booster], or opens its purchase card when none is left.
   Future<void> useBooster(BoosterId booster) async {
@@ -946,9 +972,52 @@ final class TripController {
     return fuel.liters > 0 || fuel.unlimitedUntilMs != null;
   }
 
+  /// A new run is coached afresh, by the lesson the trip has now.
+  void _resetCoach() {
+    _lesson = _coachLesson();
+    _coachMemory = CoachMemory.empty;
+    _coach = null;
+  }
+
+  /// The step at this moment, and بلية's bubble: the step's line before a
+  /// hint's (a hint waits while a step shows).
+  void _coachAndBubble(TripSession session) {
+    final state = session.engine.state;
+    final lesson = _lesson;
+    if (lesson != null && _phase == TripPhase.running) {
+      final result = TutorialCoach.step(
+        CoachInput(
+          lesson: lesson,
+          state: state,
+          warning: _memory.warning,
+          memory: _coachMemory,
+          bubbleMinMs: session.facts.bubbleMinMs,
+          destinations: session.facts.destinations,
+        ),
+      );
+      _coachMemory = result.memory;
+      _coach = result.view;
+    } else if (_phase != TripPhase.paused) {
+      _coach = null;
+    }
+    final coach = _coach;
+    final hint = _hints.showing;
+    final BelyaWish? wish = coach != null
+        ? (source: coach.lessonStep, line: coach.line)
+        : hint != null
+        ? (source: hint.key, line: hint)
+        : null;
+    _memory = _memory.belyaAt(
+      wish,
+      tMs: state.tMs,
+      bubbleMinMs: session.facts.bubbleMinMs * _speed,
+    );
+  }
+
   void _resetPlay() {
     _memory = PresentationMemory.empty;
     _hints = HintState.empty;
+    _resetCoach();
     _accumulator.clear();
     _breakMode = false;
     _controlsLocked = false;
@@ -975,6 +1044,8 @@ final class TripController {
   void _publish() {
     if (_disposed) return;
     final session = _session;
+    if (session != null) _coachAndBubble(session);
+    final belya = _memory.belya?.line;
     final view = session == null
         ? null
         : projectTripView(
@@ -994,7 +1065,7 @@ final class TripController {
               rejection: _rejection,
               fastForward: _speed > 1,
             ),
-            hint: _hints.showing,
+            hint: belya is HintView ? belya : null,
             dispute: _phase == TripPhase.disputeOpen && _disputes.isNotEmpty
                 ? _disputes.first
                 : null,
@@ -1018,6 +1089,10 @@ final class TripController {
       restartEnabled:
           (_phase == TripPhase.paused || _phase == TripPhase.failed) &&
           _restartEnabled,
+      coach: _phase == TripPhase.running ? _coach : null,
+      coachBubble: _phase == TripPhase.running && belya is CoachLine
+          ? belya
+          : null,
     );
     if (model == _model) return;
     _model = model;

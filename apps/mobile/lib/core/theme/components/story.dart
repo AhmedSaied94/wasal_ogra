@@ -6,35 +6,42 @@ import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
-/// Story pieces (HANDOFF §3.3): the comic panel, the coach mark and the
-/// loader.
+/// Story pieces (HANDOFF §3.3): the comic panel, its page dots, the coach
+/// mark and the loader.
 
 /// One panel of a comic (`Intro` boxes 3–9): the art on `scene.sky` in a
 /// radius-26 card with the dark lip, a `sun` caption at the top-end corner
-/// and the speaker's line in a white bubble at the start side.
+/// and the speakers' lines in white bubbles at the start side, the second
+/// under the first (specs/012-m07-onboarding/contracts/scenes.md).
 class ComicPanel extends StatelessWidget {
   const ComicPanel({
     required this.art,
     this.caption,
-    this.speaker,
-    this.line,
+    this.lines = const [],
     super.key,
   });
 
   final Widget art;
   final String? caption;
-  final String? speaker;
-  final String? line;
+
+  /// Each speaker's name and line, in order.
+  final List<(String speaker, String line)> lines;
+
+  static const captionKey = Key('ComicPanel.caption');
+
+  static Key bubbleKey(int i) => ValueKey('ComicPanel.bubble.$i');
 
   static const double _inset = 14;
   static const double _bubbleTop = 76;
   static const double _bubbleWidth = 236;
 
+  /// Room for a bubble's tail before the next bubble.
+  static const double _bubbleGap = 20;
+
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(RadiusTokens.scene);
     final caption = this.caption;
-    final line = this.line;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: ColorTokens.sceneSky,
@@ -51,14 +58,79 @@ class ComicPanel extends StatelessWidget {
               PositionedDirectional(
                 top: _inset,
                 end: _inset,
-                child: _Caption(caption),
+                child: _Caption(caption, key: captionKey),
               ),
-            if (line != null)
+            if (lines.isNotEmpty)
               PositionedDirectional(
                 top: _bubbleTop,
                 start: _inset,
                 width: _bubbleWidth,
-                child: _ComicBubble(speaker: speaker, line: line),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: _bubbleGap,
+                  children: [
+                    for (final (i, (speaker, line)) in lines.indexed)
+                      _ComicBubble(
+                        key: bubbleKey(i),
+                        speaker: speaker,
+                        line: line,
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Which panel of a comic shows (`Intro` boxes 10–13): one dot per panel,
+/// the current one a 26 pt `sun` pill, the others 10 pt `dashboard.line`
+/// dots, 8 apart, the first at the start. One semantics node reads
+/// [label] («اللوحة ١ من ٣», formatted by the caller).
+class PageDots extends StatelessWidget {
+  const PageDots({
+    required this.count,
+    required this.index,
+    required this.label,
+    super.key,
+  });
+
+  final int count;
+  final int index;
+  final String label;
+
+  static Key dotKey(int i) => ValueKey('PageDots.dot.$i');
+
+  static const double _height = 10;
+  static const double _active = 26;
+  static const double _gap = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    return Semantics(
+      container: true,
+      label: label,
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: _gap,
+          children: [
+            for (var i = 0; i < count; i++)
+              AnimatedContainer(
+                key: dotKey(i),
+                duration: still ? Duration.zero : MotionTokens.sheetIn,
+                curve: MotionTokens.sheetInCurve,
+                width: i == index ? _active : _height,
+                height: _height,
+                decoration: BoxDecoration(
+                  color: i == index
+                      ? ColorTokens.sun
+                      : ColorTokens.dashboardLine,
+                  borderRadius: BorderRadius.circular(RadiusTokens.pill),
+                ),
               ),
           ],
         ),
@@ -68,7 +140,7 @@ class ComicPanel extends StatelessWidget {
 }
 
 class _Caption extends StatelessWidget {
-  const _Caption(this.text);
+  const _Caption(this.text, {super.key});
 
   final String text;
 
@@ -90,9 +162,9 @@ class _Caption extends StatelessWidget {
 }
 
 class _ComicBubble extends StatelessWidget {
-  const _ComicBubble({required this.speaker, required this.line});
+  const _ComicBubble({required this.speaker, required this.line, super.key});
 
-  final String? speaker;
+  final String speaker;
   final String line;
 
   static const double _radius = 20;
@@ -101,7 +173,11 @@ class _ComicBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final speaker = this.speaker;
+    // The speaker and the line read as one (contracts/scenes.md).
+    return MergeSemantics(child: _bubble());
+  }
+
+  Widget _bubble() {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -134,11 +210,10 @@ class _ComicBubble extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (speaker != null)
-                Text(
-                  speaker,
-                  style: TypeTokens.label.copyWith(color: ColorTokens.inkMuted),
-                ),
+              Text(
+                speaker,
+                style: TypeTokens.label.copyWith(color: ColorTokens.inkMuted),
+              ),
               Text(
                 line,
                 style: DesignExtras.comicLine.copyWith(color: ColorTokens.ink),
@@ -163,6 +238,7 @@ class CoachMark extends StatefulWidget {
     required this.target,
     this.children = const [],
     this.showHand = true,
+    this.pulse = false,
     super.key,
   });
 
@@ -171,9 +247,14 @@ class CoachMark extends StatefulWidget {
   final List<Widget> children;
   final bool showHand;
 
+  /// The ring beats 1 ↔ 1.06 on `hotTagPulse` (M07's coach); steady under
+  /// reduced motion.
+  final bool pulse;
+
   static const double holePadding = 6;
   static const double holeRadius = 18;
   static const double ringWidth = 4;
+  static const double ringPulse = 0.06;
 
   static const double _handTravel = 6;
   static const _handLoop = Duration(milliseconds: 900);
@@ -184,28 +265,48 @@ class CoachMark extends StatefulWidget {
   State<CoachMark> createState() => _CoachMarkState();
 }
 
-class _CoachMarkState extends State<CoachMark>
-    with SingleTickerProviderStateMixin {
+class _CoachMarkState extends State<CoachMark> with TickerProviderStateMixin {
   late final _tap = AnimationController(
     vsync: this,
     duration: CoachMark._handLoop,
+  );
+  late final _beat = AnimationController(
+    vsync: this,
+    duration: MotionTokens.hotTagPulse,
   );
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) || !widget.showHand) {
-      _tap
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(CoachMark oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  void _sync() {
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    _loop(_tap, on: !reduced && widget.showHand);
+    _loop(_beat, on: !reduced && widget.pulse);
+  }
+
+  static void _loop(AnimationController controller, {required bool on}) {
+    if (!on) {
+      controller
         ..stop()
         ..value = 0;
-    } else if (!_tap.isAnimating) {
-      unawaited(_tap.repeat(reverse: true));
+    } else if (!controller.isAnimating) {
+      unawaited(controller.repeat(reverse: true));
     }
   }
 
   @override
   void dispose() {
     _tap.dispose();
+    _beat.dispose();
     super.dispose();
   }
 
@@ -215,7 +316,7 @@ class _CoachMarkState extends State<CoachMark>
     return Stack(
       fit: StackFit.expand,
       children: [
-        CustomPaint(painter: _CoachScrim(widget.hole)),
+        CustomPaint(painter: _CoachScrim(widget.hole, beat: _beat)),
         if (widget.showHand)
           Positioned(
             left: CoachHand.placeFor(target).dx,
@@ -341,14 +442,29 @@ class _GlovePainter extends CustomPainter {
 
 /// Paints the scrim with its hole and ring, and lets taps through the hole.
 class _CoachScrim extends CustomPainter {
-  const _CoachScrim(this.hole);
+  _CoachScrim(this.hole, {required this.beat}) : super(repaint: beat);
 
   final Rect hole;
+
+  /// The ring's beat, 0 to 1.
+  final Animation<double> beat;
 
   RRect get _rrect => RRect.fromRectAndRadius(
     hole,
     const Radius.circular(CoachMark.holeRadius),
   );
+
+  RRect get _ring {
+    final scale = 1 + CoachMark.ringPulse * beat.value;
+    return RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: hole.center,
+        width: hole.width * scale,
+        height: hole.height * scale,
+      ),
+      Radius.circular(CoachMark.holeRadius * scale),
+    );
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -359,7 +475,7 @@ class _CoachScrim extends CustomPainter {
     canvas
       ..drawPath(scrim, Paint()..color = ColorTokens.scrimCoach)
       ..drawRRect(
-        _rrect,
+        _ring,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = CoachMark.ringWidth
@@ -373,7 +489,7 @@ class _CoachScrim extends CustomPainter {
   bool hitTest(Offset position) => !_rrect.contains(position);
 
   @override
-  bool shouldRepaint(_CoachScrim old) => old.hole != hole;
+  bool shouldRepaint(_CoachScrim old) => old.hole != hole || old.beat != beat;
 }
 
 /// «Loading» (`States` boxes 39–42): a `primary` marker with its lip

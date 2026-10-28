@@ -6,12 +6,12 @@ import '../../helpers/trip.dart';
 
 // The trip screen's US6 goldens (tasks.md T088): the failure card with
 // and without the revive, affordable and not, and the story strip, on the
-// three trip surfaces, in RTL, in both digit styles, with the stand-in
-// art. Generated on Linux.
+// trip surfaces but `mid`, in RTL, in both digit styles, with the
+// stand-in art. Generated on Linux.
 
 void main() {
   for (final state in us6TripCases()) {
-    for (final surface in TripSurface.values) {
+    for (final surface in tripGoldenSurfaces(state)) {
       for (final digits in DigitStyle.values) {
         final name = '${state.name}_${surface.name}_${digits.name}';
         testWidgets(name, (tester) async {

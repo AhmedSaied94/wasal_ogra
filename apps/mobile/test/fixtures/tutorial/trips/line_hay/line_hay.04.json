@@ -1,0 +1,105 @@
+{
+  "events": [],
+  "initial_tray": {
+    "100": 6,
+    "50": 2,
+    "500": 1
+  },
+  "kind": "regular",
+  "line_id": "line_hay",
+  "max_earnings_jenehat": 21,
+  "passengers": [
+    {
+      "archetype": "sleeper",
+      "dest_station_id": "taawon",
+      "passenger_id": "p1",
+      "payment": [
+        1000
+      ],
+      "pays_at_seconds": 4,
+      "seat_id": "A_m",
+      "skin": "sleeper",
+      "speech_keys": {
+        "boards": "sleeper.boards",
+        "missed_stop": "sleeper.missed_stop",
+        "woke": "sleeper.woke"
+      }
+    },
+    {
+      "archetype": "regular",
+      "dest_station_id": "ishreen",
+      "passenger_id": "p2",
+      "payment": [
+        1000
+      ],
+      "pays_at_seconds": 2,
+      "seat_id": "A_r",
+      "skin": "regular"
+    },
+    {
+      "archetype": "regular",
+      "dest_station_id": "talbiya",
+      "passenger_id": "p3",
+      "payment": [
+        500,
+        100,
+        100
+      ],
+      "pays_at_seconds": 8,
+      "seat_id": "A_l",
+      "skin": "regular"
+    }
+  ],
+  "rev": 1,
+  "rules": {
+    "bag_fare_piasters": 0,
+    "child_free_age": 6,
+    "max_break_requests": 2,
+    "no_fights_required": false,
+    "student_discount_pct": 50
+  },
+  "seats": [
+    {
+      "col": "r",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_r"
+    },
+    {
+      "col": "m",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_m"
+    },
+    {
+      "col": "l",
+      "reachable_by_driver": true,
+      "row": "A",
+      "seat_id": "A_l"
+    }
+  ],
+  "seed": 1056763844,
+  "star_rules": {
+    "three": "no_fights_no_mistakes",
+    "two": "no_fights"
+  },
+  "stations": [
+    {
+      "at_seconds": 30,
+      "fare_piasters": 700,
+      "station_id": "ishreen"
+    },
+    {
+      "at_seconds": 55,
+      "fare_piasters": 700,
+      "station_id": "talbiya"
+    },
+    {
+      "at_seconds": 80,
+      "fare_piasters": 700,
+      "station_id": "taawon"
+    }
+  ],
+  "trip_id": "line_hay.04",
+  "vehicle_id": "tuktuk"
+}

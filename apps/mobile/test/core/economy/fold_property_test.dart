@@ -316,5 +316,7 @@ Future<OpOutcome?> _send(TestEconomy e, TxnId id, OpRequest request) async {
       placement: placement,
     ),
     ComebackGiftRequest() => e.service.grantComebackGift(id),
+    SettingsUpdateRequest(:final name) => e.service.setDisplayName(id, name),
+    TutorialGiftRequest() => e.service.grantTutorialGift(id),
   };
 }

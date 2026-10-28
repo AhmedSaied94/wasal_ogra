@@ -1,8 +1,10 @@
-// The app database's tables, schema version 3: the economy's
+// The app database's tables, schema version 4: the economy's
 // (specs/007-m05-local-economy/data-model.md "Tables"), since v2 the trip's
-// records (specs/008-m02-trip-screen/data-model.md), and since v3 the
-// account and the last bootstrap (specs/011-m06-identity-sync/data-model.md
-// "Tables (schema v3)"). Every column is INTEGER or TEXT: a guard forbids
+// records (specs/008-m02-trip-screen/data-model.md), since v3 the account
+// and the last bootstrap (specs/011-m06-identity-sync/data-model.md "Tables
+// (schema v3)"), and since v4 the driver's name, the tutorial grant and the
+// first session's flags (specs/012-m07-onboarding/data-model.md "App
+// database v4"). Every column is INTEGER or TEXT: a guard forbids
 // REAL (constitution II). Single-row tables hold `id = 1` only.
 //
 // drift's check DSL names a column inside its own getter; drift_dev reads
@@ -32,6 +34,9 @@ class LedgerOps extends Table {
       'use_booster',
       // v3: M06's local gift (research R16).
       'comeback_gift',
+      // v4: M07's name and tutorial gift (research R8).
+      'settings_update',
+      'tutorial_gift',
     ]),
   )();
 
@@ -178,6 +183,55 @@ class ProjectionBaseTable extends Table {
   /// player's base until the first state or the first accepted batch (M06
   /// research R7).
   TextColumn get playerId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// The driver's name and the tutorial grant, as the projection holds them
+/// (M07 research R8). Written only by `DriftEconomyStore`, with the wallet.
+/// An absent row reads as no name and no grant.
+@DataClassName('PlayerStateRow')
+class PlayerStateTable extends Table {
+  @override
+  String get tableName => 'player_state';
+
+  /// Always 1.
+  IntColumn get id => integer().check(id.equals(1))();
+
+  /// No length check: the server allows up to 20, and its name wins on a
+  /// restore.
+  TextColumn get displayName => text().nullable()();
+  BoolColumn get tutorialGranted =>
+      boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// The first session's flags (M07 research R2). Written only by
+/// `DriftFirstSessionStore`. Times are trusted-clock milliseconds.
+@DataClassName('FirstSessionRow')
+class FirstSessionTable extends Table {
+  @override
+  String get tableName => 'first_session';
+
+  /// Always 1.
+  IntColumn get id => integer().check(id.equals(1))();
+  IntColumn get openingDoneAtMs => integer().nullable()();
+
+  /// A JSON array of scene ids.
+  TextColumn get scenesDue => text().withDefault(const Constant('[]'))();
+
+  /// A JSON array of scene ids.
+  TextColumn get scenesSeen => text().withDefault(const Constant('[]'))();
+  IntColumn get fuelLessonDoneAtMs => integer().nullable()();
+
+  /// 0 to 8, never lowered.
+  IntColumn get stepReached => integer()
+      .withDefault(const Constant(0))
+      .check(stepReached.isBetweenValues(0, 8))();
+  IntColumn get doneAtMs => integer().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

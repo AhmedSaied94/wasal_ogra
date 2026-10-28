@@ -1,0 +1,52 @@
+{
+  "difficulty_band": {
+    "max": 30,
+    "min": 0
+  },
+  "line_id": "line_hay",
+  "name": {
+    "ar-EG": "خط الحي"
+  },
+  "order": 1,
+  "stations": [
+    {
+      "name": {
+        "ar-EG": "المطبعة"
+      },
+      "station_id": "matbaa"
+    },
+    {
+      "name": {
+        "ar-EG": "العشرين"
+      },
+      "station_id": "ishreen"
+    },
+    {
+      "name": {
+        "ar-EG": "الطالبية"
+      },
+      "station_id": "talbiya"
+    },
+    {
+      "name": {
+        "ar-EG": "التعاون"
+      },
+      "station_id": "taawon"
+    },
+    {
+      "name": {
+        "ar-EG": "المريوطية"
+      },
+      "station_id": "maryoutiya"
+    },
+    {
+      "name": {
+        "ar-EG": "ترسا"
+      },
+      "station_id": "tersa"
+    }
+  ],
+  "unlock": {
+    "kind": "start"
+  }
+}

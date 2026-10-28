@@ -1,0 +1,73 @@
+{
+  "chapter_id": "ch2_her_father",
+  "completion_bonat": 10,
+  "goal": {
+    "kind": "own_vehicle",
+    "vehicle_id": "micro_old"
+  },
+  "order": 2,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "opening_key",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "الموقف، الصبح بدري"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "خد مفتاح التوكتوك. لمّ الأجرة صح، والباقي يرجع لصاحبه."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_stand",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "الركاب بيدفعوا، والفلوس بتيجي لحد الدرج."
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "وأنا أرجّع الباقي لكل واحد."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_go",
+          "lines": [
+            {
+              "speaker": "belya",
+              "text": {
+                "ar-EG": "وأنا معاك أول كام مشوار يا أسطى"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "يلا، على الله."
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "opening"
+      },
+      "scene_id": "opening"
+    }
+  ],
+  "title": {
+    "ar-EG": "الكلام مع أبوها"
+  }
+}

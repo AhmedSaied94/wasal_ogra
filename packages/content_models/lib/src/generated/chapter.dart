@@ -55,6 +55,33 @@ abstract class Panel with _$Panel {
       _$PanelFromJson(json);
 }
 
+/// opening: at the first open, before the Name card. after_trip: right after
+/// the trip's first finish.
+enum ScenePlaysKind {
+  @JsonValue('opening')
+  opening,
+  @JsonValue('after_trip')
+  afterTrip,
+}
+
+/// When the app plays the scene by itself. Absent: M10's rules (album, chapter
+/// end).
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class ScenePlays with _$ScenePlays {
+  const factory ScenePlays({
+    @JsonKey(name: 'kind') required ScenePlaysKind kind,
+    @JsonKey(name: 'trip_id') String? tripId,
+  }) = _ScenePlays;
+
+  factory ScenePlays.fromJson(Map<String, dynamic> json) =>
+      _$ScenePlaysFromJson(json);
+}
+
 /// A comic scene of 3 to 5 panels.
 @Freezed(
   copyWith: false,
@@ -66,6 +93,7 @@ abstract class Scene with _$Scene {
   const factory Scene({
     @JsonKey(name: 'scene_id') required String sceneId,
     @JsonKey(name: 'panels') required List<Panel> panels,
+    @JsonKey(name: 'plays') ScenePlays? plays,
   }) = _Scene;
 
   factory Scene.fromJson(Map<String, dynamic> json) =>

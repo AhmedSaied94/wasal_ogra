@@ -1,17 +1,33 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/account/account_providers.dart';
+import 'package:wassal/core/account/account_service.dart' show firstOpenWait;
+import 'package:wassal/core/account/domain/account.dart';
 import 'package:wassal/core/config/config_providers.dart';
+import 'package:wassal/core/config/tunable_snapshot.dart';
+import 'package:wassal/core/network/api_client.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
+import 'package:wassal/features/onboarding/data/drift_first_session_store.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
+import 'package:wassal/features/trip/data/drift_trip_records.dart';
+import 'package:wassal/features/trip/data/trip_records.dart';
 
+import '../../helpers/account.dart';
+import '../../helpers/content.dart';
 import '../../helpers/economy.dart';
+import '../../helpers/fake_api.dart';
 import '../../helpers/pump_app.dart';
+import '../../helpers/sync.dart';
+import '../../helpers/trip.dart';
 
 const launchChannel = MethodChannel('wassal/launch');
 
@@ -151,5 +167,172 @@ void main() {
     await pumpWassalApp(tester);
     expect(currentLocation(tester), '/home');
     expect(tester.takeException(), isNull);
+  });
+
+  group('a new player (specs/012-m07-onboarding, first-session.md "Boot")', () {
+    /// Launches a new player over [economy] and returns every path the
+    /// router went to, and the container.
+    Future<(List<String>, ProviderContainer)> launch(
+      WidgetTester tester,
+      TestEconomy economy, {
+      FakeApi? api,
+      MemorySessionStore? sessions,
+      bool online = true,
+      Duration wait = Duration.zero,
+    }) async {
+      final startup = Completer<void>();
+      final connectivity = FakeConnectivitySource()..current = online;
+      final container = await pumpWassalApp(
+        tester,
+        newPlayer: true,
+        content: contentTestOverrides(connectivity: connectivity),
+        economy: economyOverridesOf(economy),
+        account: accountTestOverrides(
+          api: api ?? FakeApi(fallback: unreachable),
+          sessions: sessions,
+        ),
+        overrides: [
+          appStartupProvider.overrideWith((ref) async {
+            await appStartup(ref);
+            await startup.future;
+          }),
+        ],
+      );
+      final router = container.read(routerProvider);
+      final paths = [router.state.uri.path];
+      void changed() => paths.add(router.state.uri.path);
+      router.routerDelegate.addListener(changed);
+      addTearDown(() => router.routerDelegate.removeListener(changed));
+      startup.complete();
+      if (wait > Duration.zero) await tester.pump(wait);
+      await tester.pumpAndSettle();
+      return (paths, container);
+    }
+
+    Future<int?> openingDone(TestEconomy economy) async =>
+        (await DriftFirstSessionStore(economy.db).read()).openingDoneAtMs;
+
+    testWidgets('newPlayer: the opening scene', (tester) async {
+      final economy = await testEconomy();
+      final api = FakeApi(fallback: unreachable)
+        ..reply('POST', ApiPaths.anonymous, [apiOk(tokenJson(created: true))]);
+      final (paths, container) = await launch(tester, economy, api: api);
+      expect(
+        await container.read(firstOpenOutcomeProvider.future),
+        FirstOpenOutcome.newPlayer,
+      );
+      expect(paths, ['/boot', '/onboarding/intro']);
+    });
+
+    testWidgets('offline: the opening scene', (tester) async {
+      final economy = await testEconomy();
+      final (paths, container) = await launch(tester, economy, online: false);
+      expect(
+        await container.read(firstOpenOutcomeProvider.future),
+        FirstOpenOutcome.offline,
+      );
+      expect(paths.last, '/onboarding/intro');
+    });
+
+    testWidgets('timedOut: the opening scene', (tester) async {
+      final economy = await testEconomy();
+      final gate = Completer<void>();
+      final api = FakeApi(fallback: unreachable)
+        ..reply('POST', ApiPaths.anonymous, [
+          FakeReply.held(apiOk(tokenJson(created: true)), gate),
+        ]);
+      final (paths, _) = await launch(
+        tester,
+        economy,
+        api: api,
+        wait: firstOpenWait + const Duration(milliseconds: 100),
+      );
+      expect(paths.last, '/onboarding/intro');
+      gate.complete();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('notFirstOpen: the opening scene while it is not done', (
+      tester,
+    ) async {
+      final economy = await testEconomy();
+      final store = await testAccountStore(economy);
+      await store.signedIn(playerId: playerIdOf(1), providers: const []);
+      final (paths, container) = await launch(
+        tester,
+        economy,
+        sessions: MemorySessionStore(sessionFor(economy.clock.nowMs())),
+      );
+      expect(
+        await container.read(firstOpenOutcomeProvider.future),
+        FirstOpenOutcome.notFirstOpen,
+      );
+      expect(paths.last, '/onboarding/intro');
+    });
+
+    testWidgets('restored: Home, and the opening counts as done', (
+      tester,
+    ) async {
+      final economy = await testEconomy();
+      final api = FakeApi(fallback: unreachable)
+        ..reply('POST', ApiPaths.anonymous, [apiOk(tokenJson(created: false))])
+        ..reply('GET', ApiPaths.state, [apiOk(stateJson(stateVersion: 6))]);
+      final (paths, container) = await launch(tester, economy, api: api);
+      expect(
+        await container.read(firstOpenOutcomeProvider.future),
+        FirstOpenOutcome.restored,
+      );
+      expect(paths, ['/boot', '/home']);
+      expect(await openingDone(economy), isNotNull);
+      expect(
+        container.read(firstSessionFlagsProvider).value?.openingDoneAtMs,
+        isNotNull,
+        reason: 'through the notifier, so the redirects read it',
+      );
+    });
+
+    testWidgets('an unfinished trip still wins', (tester) async {
+      final economy = await testEconomy();
+      final id = economy.service.newRequestId();
+      final definition = economy.content.trip('line_hay.01')!;
+      await DriftTripRecords(economy.db).create(
+        TripRecordHeader(
+          startTxn: id,
+          tripId: 'line_hay.01',
+          contentVersion: 1,
+          definition: definition,
+          seed: definition.seed,
+          params: TripParams.fromTunables(
+            tunableSnapshot(bundledConfig()),
+            definition.lineId,
+          ),
+          createdAtMs: economy.clock.nowMs(),
+        ),
+      );
+      await economy.service.startTrip(id, tripId: 'line_hay.01');
+      final (paths, _) = await launch(tester, economy, online: false);
+      expect(paths.take(2), ['/boot', '/trip/line_hay.01']);
+      expect(paths, isNot(contains('/onboarding/intro')));
+    });
+
+    testWidgets('a relaunch after the opening, before the name: the Name '
+        'card', (tester) async {
+      final economy = await testEconomy();
+      await DriftFirstSessionStore(economy.db).markOpeningDone(5);
+      final (paths, _) = await launch(tester, economy, online: false);
+      expect(paths.last, '/onboarding/name');
+    });
+
+    testWidgets('a relaunch after the name, before trip 1 starts: trip 1 '
+        '(FR-002)', (tester) async {
+      final economy = await testEconomy();
+      await DriftFirstSessionStore(economy.db).markOpeningDone(5);
+      await economy.service.setDisplayName(
+        economy.service.newRequestId(),
+        'Hamada',
+      );
+      final (paths, _) = await launch(tester, economy, online: false);
+      expect(paths.take(2), ['/boot', '/trip/line_hay.01']);
+    });
   });
 }

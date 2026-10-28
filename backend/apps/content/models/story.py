@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import Q
-from wassal_content.models import ChapterId, GoalKind, RoomId
+from wassal_content.models import ChapterId, GoalKind, RoomId, ScenePlaysKind
 
 from apps.content.models.base import PermanentModel, TimestampedModel, choices, slug_validator
 from apps.content.models.lines import Line, Vehicle
@@ -18,6 +18,7 @@ from apps.content.models.trips import Trip
 
 PANELS_MIN, PANELS_MAX = 3, 5
 VARIANTS_MAX = 3
+AFTER_TRIP = ScenePlaysKind.AFTER_TRIP.value
 
 
 class Chapter(PermanentModel):
@@ -97,6 +98,14 @@ class Scene(PermanentModel):
         size=PANELS_MAX,
         validators=[ArrayMinLengthValidator(PANELS_MIN), ArrayMaxLengthValidator(PANELS_MAX)],
     )
+    # When the app plays the scene by itself (the pack's `plays`, M07); blank: M10's rules. The
+    # database default keeps the previous release's inserts working (expand/contract).
+    plays_kind = models.CharField(
+        max_length=16, choices=choices(ScenePlaysKind), blank=True, default="", db_default=""
+    )
+    plays_trip = models.ForeignKey(
+        Trip, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
 
     class Meta:
         ordering: ClassVar[list[str]] = ["chapter", "order"]
@@ -111,10 +120,23 @@ class Scene(PermanentModel):
                 condition=Q(panel_art__len__gte=PANELS_MIN, panel_art__len__lte=PANELS_MAX),
                 name="content_scene_panel_count",
             ),
+            # A trip is named exactly when the scene plays after it.
+            models.CheckConstraint(
+                condition=Q(plays_kind=AFTER_TRIP, plays_trip__isnull=False)
+                | ~Q(plays_kind=AFTER_TRIP) & Q(plays_trip__isnull=True),
+                name="content_scene_plays_trip",
+            ),
         ]
 
     def __str__(self) -> str:
         return self.scene_id
+
+    def clean(self) -> None:
+        super().clean()
+        if self.plays_kind == AFTER_TRIP and self.plays_trip_id is None:
+            raise ValidationError({"plays_trip": "An after_trip scene needs its trip."})
+        if self.plays_kind != AFTER_TRIP and self.plays_trip_id is not None:
+            raise ValidationError({"plays_trip": "Only an after_trip scene names a trip."})
 
 
 class SceneLine(TimestampedModel):

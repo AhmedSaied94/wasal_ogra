@@ -5,7 +5,7 @@ import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/economy/domain/txn_id.dart';
 
-/// The six `op_type`s the economy applies (backend §7.4).
+/// The `op_type`s the economy applies (backend §7.4).
 enum OpType {
   tripStart('trip_start'),
   tripResult('trip_result'),
@@ -15,7 +15,13 @@ enum OpType {
   useBooster('use_booster'),
 
   /// The comeback gift (specs/011-m06-identity-sync research R16).
-  comebackGift('comeback_gift');
+  comebackGift('comeback_gift'),
+
+  /// The driver's name (specs/012-m07-onboarding research R8).
+  settingsUpdate('settings_update'),
+
+  /// The fuel lesson's full tank, once per player (M07 research R8, R9).
+  tutorialGift('tutorial_gift');
 
   const OpType(this.wire);
 
@@ -129,6 +135,19 @@ final class AdRewardRequest extends OpRequest {
 /// `EconomySync`, behind its guard (specs/011-m06-identity-sync R16).
 final class ComebackGiftRequest extends OpRequest {
   const ComebackGiftRequest();
+}
+
+/// The driver's name, as typed: the rules normalize it (M07 contracts/
+/// name.md "The operation").
+final class SettingsUpdateRequest extends OpRequest {
+  const SettingsUpdateRequest(this.name);
+
+  final String name;
+}
+
+/// The fuel lesson's gift (M07 contracts/fuel-lesson.md).
+final class TutorialGiftRequest extends OpRequest {
+  const TutorialGiftRequest();
 }
 
 /// An operation: what a request became once validated, and what is stored

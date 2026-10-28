@@ -298,9 +298,20 @@ class TripAdmin(ContentModelAdmin):
 # -- story ----------------------------------------------------------------------------------------
 
 
-class SceneInline(ContentInline):
+class ScenePlaysMixin:
+    """A scene's `plays` (M07): the trip list labels each trip `<line_id>.<nn>` in one query."""
+
+    def formfield_for_foreignkey(
+        self, db_field: models.ForeignKey[Any, Any], request: HttpRequest | None, **kwargs: Any
+    ) -> Any:
+        if db_field.name == "plays_trip":
+            kwargs["queryset"] = Trip.objects.select_related("line")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)  # type: ignore[misc]
+
+
+class SceneInline(ScenePlaysMixin, ContentInline):
     model = Scene
-    fields = ("scene_id", "order", "panel_art")
+    fields = ("scene_id", "order", "panel_art", "plays_kind", "plays_trip")
     show_change_link = True
     ordering = ("order",)
 
@@ -330,11 +341,11 @@ class SceneLineInline(ContentInline):
 
 
 @admin.register(Scene)
-class SceneAdmin(ContentModelAdmin):
+class SceneAdmin(ScenePlaysMixin, ContentModelAdmin):
     inlines = (SceneLineInline,)
     list_display = ("scene_id", "chapter", "order")
     list_filter = ("chapter",)
-    fields = ("chapter", "scene_id", "order", "panel_art")
+    fields = ("chapter", "scene_id", "order", "panel_art", "plays_kind", "plays_trip")
 
 
 @admin.register(Room)

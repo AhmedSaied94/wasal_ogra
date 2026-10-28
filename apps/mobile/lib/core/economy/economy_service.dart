@@ -32,6 +32,7 @@ final class EconomyService implements Economy, EconomySync {
     required this._state,
     required ProjectionBase base,
     required this._pending,
+    required this._nameRefused,
   }) : _base = (stateVersion: base.stateVersion, playerId: base.playerId);
 
   /// Reads the materialized tables (never the log, research R18) and arms
@@ -55,6 +56,7 @@ final class EconomyService implements Economy, EconomySync {
       state: stored.state,
       base: stored.base,
       pending: await store.pendingCount(),
+      nameRefused: await store.nameRefused(),
     ).._rearm();
   }
 
@@ -67,6 +69,10 @@ final class EconomyService implements Economy, EconomySync {
   EconomyState _state;
   ({int? stateVersion, String? playerId}) _base;
   int _pending;
+
+  /// The view's `nameRefused`, read from the log after each change that can
+  /// answer a name (M07 research R8).
+  bool _nameRefused;
 
   final _views = StreamController<EconomyView>.broadcast();
   final _pendingCounts = StreamController<int>.broadcast();
@@ -89,6 +95,7 @@ final class EconomyService implements Economy, EconomySync {
         max: tunables.read(Tunable.fuelMax),
         regenMs: regenMsOf(tunables.read(Tunable.fuelRegenMinutes)),
       ),
+      nameRefused: _nameRefused,
     );
   }
 
@@ -124,6 +131,14 @@ final class EconomyService implements Economy, EconomySync {
   @override
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
       _submit(id, AdRewardRequest(placement));
+
+  @override
+  Future<OpOutcome> setDisplayName(TxnId id, String name) =>
+      _submit(id, SettingsUpdateRequest(name));
+
+  @override
+  Future<OpOutcome> grantTutorialGift(TxnId id) =>
+      _submit(id, const TutorialGiftRequest());
 
   // The sync (EconomySync).
 
@@ -259,9 +274,11 @@ final class EconomyService implements Economy, EconomySync {
     ),
   );
 
-  /// Reads the pending count again, after a change that answered some.
+  /// Reads the pending count and the name's refusal again, after a change
+  /// that answered some.
   Future<void> _recount() async {
     _pending = await _store.pendingCount();
+    _nameRefused = await _store.nameRefused();
     _pendingChanged();
   }
 
@@ -333,6 +350,7 @@ final class EconomyService implements Economy, EconomySync {
         }
         _state = after;
         _pending++;
+        if (op.type == OpType.settingsUpdate) _nameRefused = false;
         _changed();
         _pendingChanged();
         return OpApplied(op: ledgerOp, view: view, repeated: false);

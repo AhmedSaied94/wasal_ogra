@@ -42,6 +42,33 @@ final class WarningMemory extends ViewValue {
   Map<String, Object?> get fields => {'stationId': stationId, 'owed': owed};
 }
 
+/// What بلية would say now: a coach step's line or a hint, and what it is
+/// for, so a new line of the same step keeps its bubble.
+typedef BelyaWish = ({Object source, ViewValue line});
+
+/// بلية's bubble (specs/012-m07-onboarding/contracts/coach.md "بلية's
+/// bubble"): one of the two bubbles, up for at least its minimum time.
+final class BelyaBubble extends ViewValue {
+  const BelyaBubble({
+    required this.source,
+    required this.line,
+    required this.shownAtMs,
+  });
+
+  final Object source;
+
+  /// A coach line (the onboarding's) or a [HintView].
+  final ViewValue line;
+  final int shownAtMs;
+
+  @override
+  Map<String, Object?> get fields => {
+    'source': source,
+    'line': line,
+    'shownAtMs': shownAtMs,
+  };
+}
+
 final class PresentationMemory extends ViewValue {
   const PresentationMemory({
     this.walks = const {},
@@ -51,6 +78,7 @@ final class PresentationMemory extends ViewValue {
     this.banner,
     this.openRoad = false,
     this.waveAtMs,
+    this.belya,
   });
 
   static const empty = PresentationMemory();
@@ -68,6 +96,9 @@ final class PresentationMemory extends ViewValue {
 
   /// A roadside pickup's wave, from this clock time.
   final int? waveAtMs;
+
+  /// بلية's bubble, while it shows.
+  final BelyaBubble? belya;
 
   /// [events] and their [cues] folded in, at the clock [tMs] they end on.
   PresentationMemory update(
@@ -149,11 +180,53 @@ final class PresentationMemory extends ViewValue {
     return PresentationMemory(
       walks: walks,
       warning: warning,
-      bubbles: bubbles.at(tMs, bubbleMinMs: bubbleMinMs),
+      bubbles: bubbles.at(
+        tMs,
+        bubbleMinMs: bubbleMinMs,
+        reserved: belya == null ? 0 : 1,
+      ),
       log: log,
       banner: banner,
       openRoad: openRoad,
       waveAtMs: waveAtMs,
+      belya: belya,
+    );
+  }
+
+  /// بلية's bubble at [tMs], given what he would say now ([wish]):
+  /// - one showing stays its minimum time, and as long after as its source
+  ///   still speaks, taking that source's latest line;
+  /// - otherwise [wish] gets a bubble when at most one rider's is up.
+  PresentationMemory belyaAt(
+    BelyaWish? wish, {
+    required int tMs,
+    required int bubbleMinMs,
+  }) {
+    final current = belya;
+    final BelyaBubble? next;
+    if (current != null && current.source == wish?.source) {
+      next = BelyaBubble(
+        source: current.source,
+        line: wish!.line,
+        shownAtMs: current.shownAtMs,
+      );
+    } else if (current != null && tMs - current.shownAtMs < bubbleMinMs) {
+      next = current;
+    } else if (wish != null && bubbles.visible.length < maxVisibleBubbles) {
+      next = BelyaBubble(source: wish.source, line: wish.line, shownAtMs: tMs);
+    } else {
+      next = null;
+    }
+    if (next == current) return this;
+    return PresentationMemory(
+      walks: walks,
+      warning: warning,
+      bubbles: bubbles,
+      log: log,
+      banner: banner,
+      openRoad: openRoad,
+      waveAtMs: waveAtMs,
+      belya: next,
     );
   }
 
@@ -170,5 +243,6 @@ final class PresentationMemory extends ViewValue {
     'banner': banner,
     'openRoad': openRoad,
     'waveAtMs': waveAtMs,
+    'belya': belya,
   };
 }

@@ -3,6 +3,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
+import 'package:wassal/core/theme/components/characters.dart';
+import 'package:wassal/core/theme/components/story.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
+import 'package:wassal/features/onboarding/presentation/coach_layer.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
@@ -14,16 +18,21 @@ import 'package:wassal/features/trip/presentation/top_bar/station_strip_bar.dart
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
+import '../helpers/content.dart';
+import '../helpers/economy.dart';
 import '../helpers/screens.dart';
 import '../helpers/trip.dart';
+import '../helpers/tutorial_content.dart';
 import 'minimum_sizes_test.dart' show effectiveFontSizes, minTextSize;
 
 // The trip screen's minimum sizes (specs/008.5-m21-design-refresh,
 // contracts/trip-layout.md "Guaranteed sizes", "Text scale"; constitution
 // XI): faces, hit areas, notes, bubble text, dashboard targets, text,
 // contrast, labels, the 1.15 clamp, nothing overlapping or cut short, and
-// every control outside the scene in the bottom third, on the three trip
-// surfaces in the US1–US6 states.
+// every control outside the scene in the bottom third, on the four trip
+// surfaces in the US1–US6 states; under the threshold, in the compact
+// profile (specs/012-m07-onboarding, contracts/compact-trip-layout.md
+// "Guaranteed sizes (compact)"), and with بلية's coach on screen there.
 
 /// Where [node] sits on the screen.
 Rect globalRect(SemanticsNode node) {
@@ -81,15 +90,18 @@ void main() {
           );
           final height = surface.size.height;
 
-          // The bands keep their sizes on every surface.
-          expect(tester.getSize(find.byType(TripHud)).height, tripHudHeight);
+          // The bands keep their profile's sizes on every surface.
+          expect(
+            tester.getSize(find.byType(TripHud)).height,
+            surface.compact ? compactHudHeight : tripHudHeight,
+          );
           expect(
             tester.getSize(find.byType(TripDashboard)).height,
-            dashboardHeight,
+            surface.compact ? compactDashboardHeight : dashboardHeight,
           );
 
           // Faces, from the layout the scene and the overlays share: kept
-          // on the compliant surfaces, shrunk only on the small one.
+          // on every surface.
           final c = controllerOf(tester);
           final definition = c.session?.facts.definition;
           if (definition != null) {
@@ -100,17 +112,15 @@ void main() {
               width: scene.width,
               height: scene.height,
             );
-            expect(layout.scale == 1, surface.compliant);
-            if (surface.compliant) {
-              for (final seat in layout.seats.values) {
-                expect(
-                  seat.faceWidth,
-                  greaterThanOrEqualTo(
-                    seat.isNearRow ? nearFaceMin : backFaceMin,
-                  ),
-                  reason: seat.seatId,
-                );
-              }
+            expect(layout.scale, 1);
+            for (final seat in layout.seats.values) {
+              expect(
+                seat.faceWidth,
+                greaterThanOrEqualTo(
+                  (seat.isNearRow ? nearFaceMin : backFaceMin) - 1e-9,
+                ),
+                reason: seat.seatId,
+              );
             }
           }
 
@@ -229,10 +239,9 @@ void main() {
 
           // The bottom third (FR-018, constitution XI 1.4.0). Exempt: the
           // scene's own items, the pause button and internal builds' debug
-          // icon, and the cards, which stop play or come before it. On the
-          // small surface the 258 pt dashboard is taller than a third, so
-          // its top rows sit above it: part of the short-screen exception,
-          // awaiting the owner's approval (plan.md, Complexity Tracking).
+          // icon, and the cards, which stop play or come before it. Under
+          // the threshold the compact dashboard keeps its controls in the
+          // bottom 194 pt (M07).
           final scene = definition == null
               ? Rect.zero
               : tester.getRect(find.byType(GameWidget<TripGame>));
@@ -240,7 +249,6 @@ void main() {
             for (final card in find.byType(AppDialog).evaluate())
               tester.getRect(find.byWidget(card.widget)),
           ];
-          final dashboard = tester.getRect(find.byType(TripDashboard));
           for (final node in tappable(tester)) {
             final rect = globalRect(node);
             final label = node.getSemanticsData().label;
@@ -248,11 +256,6 @@ void main() {
               continue;
             }
             if (cards.any((card) => card.contains(rect.center))) continue;
-            if (!surface.compliant &&
-                dashboard.contains(rect.topLeft) &&
-                dashboard.contains(rect.bottomRight - const Offset(1, 1))) {
-              continue;
-            }
             if (scene.contains(rect.topLeft) &&
                 scene.contains(rect.bottomRight - const Offset(1, 1))) {
               continue;
@@ -266,6 +269,70 @@ void main() {
           semantics.dispose();
         });
       }
+    }
+  }
+
+  // بلية's coach under the threshold (compact-trip-layout.md "The coach
+  // and the hint in the compact profile"; FR-042): lesson 1 on the
+  // tutorial's second trip, when the change is due.
+  for (final surface in [TripSurface.small, TripSurface.mid]) {
+    for (final scale in textScales) {
+      testWidgets('coach · ${surface.name} · ×$scale', (tester) async {
+        const tripId = 'line_hay.02';
+        await pumpTrip(
+          tester,
+          tripId: tripId,
+          surface: surface,
+          textScale: scale,
+          economy: await testEconomy(content: tutorialContent()),
+          content: contentTestOverrides(assets: tutorialBundledAssets()),
+          overrides: [tutorialCoachProvider(tripId).overrideWithValue(1)],
+        );
+        final c = controllerOf(tester);
+        for (var t = 0; t < 120000 && c.model.coach == null; t += 33) {
+          c.advance(const Duration(milliseconds: 33));
+        }
+        expect(c.model.coach, isNotNull, reason: 'no step showed');
+        // The anchors report, the layer rebuilds, the hole moves.
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        final screen = Offset.zero & surface.size;
+        bool inside(Rect rect) =>
+            rect.left >= screen.left - 0.5 &&
+            rect.top >= screen.top - 0.5 &&
+            rect.right <= screen.right + 0.5 &&
+            rect.bottom <= screen.bottom + 0.5;
+        final mark = tester.widget<CoachMark>(find.byType(CoachMark));
+        for (final (what, rect) in [
+          ('the hole', mark.hole),
+          ('بلية', tester.getRect(find.byKey(CoachLayer.headKey))),
+          ('the hand', tester.getRect(find.byType(CoachHand))),
+          ('the bubble', tester.getRect(find.byKey(CoachLayer.bubbleKey))),
+        ]) {
+          expect(inside(rect), isTrue, reason: '$what at $rect');
+        }
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(TripDashboard)),
+        );
+        final lines = [
+          for (final p in paragraphsIn(
+            tester,
+            find.byKey(CoachLayer.bubbleKey),
+          ))
+            if (p.text.toPlainText() != l10n.coachName) p,
+        ];
+        expect(lines, isNotEmpty);
+        for (final p in lines) {
+          expect(
+            p.textScaler.scale(p.text.style?.fontSize ?? 14),
+            greaterThanOrEqualTo(15),
+            reason: p.text.toPlainText(),
+          );
+        }
+        expect(tester.takeException(), isNull);
+      });
     }
   }
 }

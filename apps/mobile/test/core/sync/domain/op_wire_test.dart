@@ -47,6 +47,9 @@ void main() {
     OpType.spendBonat: {'kind': 'booster', 'sku_id': 'change_bag'},
     OpType.useBooster: {'booster': 'change_bag', 'start_txn': _id.value},
     OpType.comebackGift: {},
+    // M07 contracts/name.md and fuel-lesson.md: sent as stored.
+    OpType.settingsUpdate: {'display_name': 'Hamada'},
+    OpType.tutorialGift: {},
   };
 
   test('covers every operation type', () {

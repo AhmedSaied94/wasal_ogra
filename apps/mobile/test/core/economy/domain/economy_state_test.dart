@@ -52,6 +52,8 @@ EconomyState fullState() => EconomyState(
     earningsJenehat: 15,
     doubled: true,
   ),
+  displayName: 'Hamada',
+  tutorialGranted: true,
 );
 
 Map<String, Object?> _json(EconomyState state) =>
@@ -84,6 +86,35 @@ void main() {
     expect(EconomyState.fromJson(_json(fresh)), fresh);
   });
 
+  test('the name and the tutorial grant round-trip (M07 data-model.md)', () {
+    final named = EconomyState.newPlayer(
+      fuelMax: 5,
+      nowMs: 1,
+    ).copyWith(displayName: () => 'Hamada', tutorialGranted: true);
+    final json = _json(named);
+    expect(json['display_name'], 'Hamada');
+    expect(json['tutorial_granted'], isTrue);
+    expect(EconomyState.fromJson(json), named);
+    expect(EconomyState.fromJson(json).displayName, 'Hamada');
+    expect(EconomyState.fromJson(json).tutorialGranted, isTrue);
+  });
+
+  test('a v3 base without them reads as no name and no grant', () {
+    final v3 = EconomyState.newPlayer(fuelMax: 5, nowMs: 1);
+    final json = _json(v3);
+    expect(json.keys, isNot(contains('display_name')));
+    expect(json.keys, isNot(contains('tutorial_granted')));
+    final read = EconomyState.fromJson(json);
+    expect(read.displayName, isNull);
+    expect(read.tutorialGranted, isFalse);
+  });
+
+  test('copyWith clears the name', () {
+    final named = fullState();
+    expect(named.copyWith(displayName: () => null).displayName, isNull);
+    expect(named.copyWith(jenehat: 1).displayName, 'Hamada');
+  });
+
   test('equality looks at every field', () {
     expect(fullState(), fullState());
     expect(fullState().hashCode, fullState().hashCode);
@@ -93,6 +124,8 @@ void main() {
       isNot(fullState()),
     );
     expect(fullState().copyWith(unfinished: () => null), isNot(fullState()));
+    expect(fullState().copyWith(displayName: () => 'x'), isNot(fullState()));
+    expect(fullState().copyWith(tutorialGranted: false), isNot(fullState()));
   });
 
   test('a zero inventory count is dropped', () {

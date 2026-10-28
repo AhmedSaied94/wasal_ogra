@@ -89,4 +89,37 @@ void main() {
     expect(q.isTalking('a'), isTrue);
     expect(q.isTalking('b'), isFalse);
   });
+
+  group("reserved: بلية's bubble takes a slot (specs/012-m07-onboarding)", () {
+    test('with one reserved, at most one rider bubble shows', () {
+      var q = BubbleQueue.empty
+          .push(line('a', '1', 0))
+          .push(line('b', '2', 0))
+          .at(0, bubbleMinMs: minMs, reserved: 1);
+      expect(texts(q), ['1']);
+      expect(q.waiting.map((w) => w.text), ['2']);
+      q = q.at(minMs, bubbleMinMs: minMs, reserved: 1);
+      expect(texts(q), ['2']);
+    });
+
+    test('a bubble already up stays its time when a slot is reserved', () {
+      var q = BubbleQueue.empty
+          .push(line('a', '1', 0))
+          .push(line('b', '2', 0))
+          .at(0, bubbleMinMs: minMs);
+      q = q.at(33, bubbleMinMs: minMs, reserved: 1);
+      expect(texts(q), ['1', '2']);
+    });
+
+    test('none reserved is the M02 queue', () {
+      final lines = BubbleQueue.empty
+          .push(line('a', '1', 0))
+          .push(line('b', '2', 0))
+          .push(line('c', '3', 0));
+      expect(
+        lines.at(0, bubbleMinMs: minMs, reserved: 0),
+        lines.at(0, bubbleMinMs: minMs),
+      );
+    });
+  });
 }

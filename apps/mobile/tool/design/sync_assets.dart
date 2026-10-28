@@ -51,11 +51,42 @@ const syncedFolders = <String, ({String from, List<String>? files})>{
   ),
 };
 
+/// Files copied under another name: the scenes' panel drawings, named by the
+/// panel's `art` slug (specs/012-m07-onboarding/contracts/scenes.md "Panel
+/// art"). Each is a (source in `docs/design`, target in `assets`) pair.
+const renamedFiles = <SyncedFile>[
+  (
+    source: 'illustrations/screens/Intro_01.svg',
+    target: 'illustrations/panels/opening_key.svg',
+  ),
+  (
+    source: 'illustrations/screens/PanelOpeningStand_01.svg',
+    target: 'illustrations/panels/opening_stand.svg',
+  ),
+  (
+    source: 'illustrations/screens/PanelOpeningGo_01.svg',
+    target: 'illustrations/panels/opening_go.svg',
+  ),
+  (
+    source: 'illustrations/screens/PanelStandMorning_01.svg',
+    target: 'illustrations/panels/stand_morning.svg',
+  ),
+  (
+    source: 'illustrations/screens/PanelSalmaWaiting_01.svg',
+    target: 'illustrations/panels/salma_waiting.svg',
+  ),
+  (
+    source: 'illustrations/screens/PanelUstaDecides_01.svg',
+    target: 'illustrations/panels/usta_decides.svg',
+  ),
+];
+
 /// One file to copy, as paths relative to `docs/design` and `assets`.
 typedef SyncedFile = ({String source, String target});
 
 /// Every file [syncedFolders] names, with `files: null` expanded from
-/// [design]. Sorted, so the order never depends on the file system.
+/// [design], then [renamedFiles]. Sorted, so the order never depends on the
+/// file system.
 List<SyncedFile> syncedFiles(Directory design) {
   final out = <SyncedFile>[];
   for (final MapEntry(key: target, value: folder) in syncedFolders.entries) {
@@ -72,7 +103,7 @@ List<SyncedFile> syncedFiles(Directory design) {
       out.add((source: '${folder.from}/$name', target: '$target/$name'));
     }
   }
-  return out;
+  return out..addAll(renamedFiles);
 }
 
 /// Copies every synced file from [design] to [assets]. Throws a

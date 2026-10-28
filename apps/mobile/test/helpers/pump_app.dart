@@ -15,6 +15,7 @@ import 'package:wassal/core/sync/server_status.dart';
 import 'account.dart';
 import 'content.dart';
 import 'economy.dart';
+import 'first_session.dart';
 import 'memory_settings_store.dart';
 import 'server_status.dart';
 import 'surfaces.dart';
@@ -31,9 +32,12 @@ import 'trip.dart';
 /// edges, which are always fakes ([tripTestOverrides]). [serverStatus] pins
 /// what the player is told of the server, online with nothing due unless
 /// a test says otherwise; null keeps the real one, which follows the
-/// (unreachable) server. [overrides] come last. [size] replaces
+/// (unreachable) server. Unless [newPlayer], the player is past the first
+/// session's screens ([returningPlayerOverrides]), so boot hands over to
+/// الموقف. [overrides] come last. [size] replaces
 /// [surface]'s frame (the trip's surfaces). Without [settle], the initial
-/// location gets a fixed number of frames ([pumpFrames]).
+/// location gets a fixed number of frames ([pumpFrames]); without
+/// [settleBoot], so does boot.
 Future<ProviderContainer> pumpWassalApp(
   WidgetTester tester, {
   List<Override> overrides = const [],
@@ -50,11 +54,16 @@ Future<ProviderContainer> pumpWassalApp(
   DigitStyle digits = DigitStyle.arabicIndic,
   SettingsStore? settingsStore,
   bool settle = true,
+  bool settleBoot = true,
+  bool newPlayer = false,
 }) async {
   applySurfaceSize(tester, size ?? surface.size);
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
+  // A second call is a relaunch: the last app's scope goes first, as a
+  // process exit takes it, rather than taking the new overrides.
+  await tester.pumpWidget(const SizedBox.shrink());
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
@@ -74,12 +83,13 @@ Future<ProviderContainer> pumpWassalApp(
           serverStatusProvider.overrideWith(
             () => PinnedServerStatus(serverStatus),
           ),
+        if (!newPlayer) ...returningPlayerOverrides(),
         ...overrides,
       ],
       child: const WassalApp(),
     ),
   );
-  await tester.pumpAndSettle();
+  await (settleBoot ? tester.pumpAndSettle() : pumpFrames(tester, count: 60));
 
   final container = ProviderScope.containerOf(
     tester.element(find.byType(WassalApp)),
@@ -106,6 +116,9 @@ Future<void> pumpFrames(
 GoRouter _router(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(WassalApp)))
         .read(routerProvider);
+
+/// The app's router, to go somewhere as a link would.
+GoRouter appRouter(WidgetTester tester) => _router(tester);
 
 /// A context below MaterialApp's localizations, theme and text-scale clamp.
 BuildContext appContext(WidgetTester tester) =>

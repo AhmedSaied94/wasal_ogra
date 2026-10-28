@@ -256,11 +256,26 @@ class Room(ContentModel):
     completion_bonat: StrictInt
 
 
+class ScenePlaysKind(StrEnum):
+    """opening: at the first open, before the Name card. after_trip: right after the trip's first finish."""
+
+    OPENING = "opening"
+    AFTER_TRIP = "after_trip"
+
+
+class ScenePlays(ContentModel):
+    """When the app plays the scene by itself. Absent: M10's rules (album, chapter end)."""
+
+    kind: ScenePlaysKind
+    trip_id: StrictStr | None = None
+
+
 class Scene(ContentModel):
     """A comic scene of 3 to 5 panels."""
 
     scene_id: StrictStr
     panels: tuple[Panel, ...]
+    plays: ScenePlays | None = None
 
 
 class SeatCol(StrEnum):
