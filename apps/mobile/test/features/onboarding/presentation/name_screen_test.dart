@@ -1,7 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/content/content_controller.dart';
+import 'package:wassal/core/content/content_providers.dart';
+import 'package:wassal/core/content/decode_pack_file.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/features/onboarding/data/drift_first_session_store.dart';
@@ -99,6 +103,34 @@ void main() {
     ]);
     expect(economy.service.view.displayName, 'حمادة الصغير');
     expect(currentLocation(tester), '/trip/line_hay.01');
+  });
+
+  testWidgets('a pack that got ready meanwhile is taken before trip 1, and '
+      'trip 1 is its own', (tester) async {
+    await _pumpName(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NameScreen)),
+    );
+    // v2 has no line_hay.01, so its tutorial starts at line_hay.02: trip 1
+    // must come from the pack the switch made active.
+    final json = samplePackJson();
+    final pack = encodePackFile({
+      ...json,
+      'version': 2,
+      'trips': [
+        for (final trip
+            in (json['trips']! as List).cast<Map<String, Object?>>())
+          if (trip['trip_id'] != 'line_hay.01') trip,
+      ],
+    });
+    final decoded = decodePackFile(pack.bytes, pack.expected) as PackDecoded;
+    container.read(activeContentProvider.notifier).acceptReady(decoded.source);
+    expect(container.read(contentVersionProvider), 1);
+
+    await tester.tap(find.byKey(NameScreen.ctaKey));
+    await tester.pumpAndSettle();
+    expect(container.read(contentVersionProvider), 2);
+    expect(currentLocation(tester), '/trip/line_hay.02');
   });
 
   testWidgets("the keyboard's done key acts like «تمام»", (tester) async {

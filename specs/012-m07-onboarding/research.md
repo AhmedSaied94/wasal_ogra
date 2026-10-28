@@ -59,6 +59,17 @@ account and sync (`specs/011-m06-identity-sync/contracts/`), and B03's operation
   - a `tutorial` flag on trips: it changes `TripDefinition`, an engine input, so every parity fixture
     and both engines would be touched for a flag the engine ignores;
   - hard-coded ids.
+- **The pack the tutorial plays (added 2026-10-28, the owner's request).** A new player reaches trip 1
+  without passing Home, so M04's switch points (launch, arrival at Home) left the tutorial on the
+  pack the app started with, even when a newer one had downloaded during the opening. On a dev build
+  that is the sample, not the backend's pack.
+  - So «تمام» on the Name card is a third switch point: it calls `switchIfReady()` before reading
+    the tutorial's trips.
+  - Nothing has been played at that point, so nothing depends on the old pack.
+  - Offline, or before the download finishes, the bundled pack plays the tutorial. On staging and
+    prod builds that is the release pack, so its first five trips are the online ones, at the
+    rev the build bundled.
+  - The playtest card's Name card (with `then`) doesn't switch; it goes on to Home, which does.
 
 ## R4. Where a launch goes
 

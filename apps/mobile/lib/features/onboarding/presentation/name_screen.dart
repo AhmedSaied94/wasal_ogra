@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
@@ -44,11 +45,16 @@ class _NameScreenState extends ConsumerState<NameScreen> {
     }
   }
 
-  void _saved() {
+  Future<void> _saved() async {
     if (widget.then case final then?) {
       context.go(safeThen(then));
       return;
     }
+    // Nothing has been played yet, so a pack that got ready since launch
+    // can take over here, as at Home: the tutorial is then the newest one
+    // (research R3). Offline, the bundled pack plays it.
+    await ref.read(activeContentProvider.notifier).switchIfReady();
+    if (!mounted) return;
     final trips = ref.read(tutorialPlanProvider).tutorialTrips;
     context.go(trips.isEmpty ? '/home' : '/trip/${trips.first}');
   }
@@ -109,7 +115,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
         textAlign: TextAlign.center,
         style: DesignExtras.nameSubtitle.copyWith(color: ColorTokens.inkMuted),
       ),
-      NameForm(onSaved: _saved),
+      NameForm(onSaved: () => unawaited(_saved())),
     ],
   );
 }

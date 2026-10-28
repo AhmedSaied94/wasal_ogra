@@ -72,12 +72,13 @@ layout), so the draft arrives through M04's updater:
 1. Start the local stack.
 2. Import the draft as a zip in the dev admin (`content_import`, `docs/runbooks/content-publishing.md`)
    and publish it.
-3. Install a fresh dev build (`fvm flutter run --flavor dev`) with the network on.
-4. On the opening scene, wait until the debug status shows the new pack downloaded, then kill the app
-   without finishing the scene.
-5. Reopen. The pack switches at launch, and the first session resumes at the opening scene, now the
-   draft's, with the draft's trips after it.
-6. Turn airplane mode on for steps 1–8.
+3. Install a fresh dev build (`fvm flutter run --flavor dev`), or clear its data, with the network on
+   (on a phone, `adb reverse tcp:8000 tcp:8000` first).
+4. Play the opening: it comes from the bundled sample (the draft's is the same three panels) while
+   the draft downloads. On the Name card, wait until the debug status shows the new pack, then tap
+   «تمام». The pack switches there, so trip 1 and the rest of the tutorial are the draft's
+   (research R3).
+5. Turn airplane mode on for steps 1–8.
 
 Steps marked "sample" use a fresh dev install with the network off, so the bundled sample stays
 active.

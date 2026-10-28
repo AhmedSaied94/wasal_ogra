@@ -50,8 +50,10 @@ Built to the `Name` artboard with 008.5's components:
 
 - «تمام» or the keyboard's done key, when `ok`:
   1. `economy.setDisplayName(txnId, normalized)`;
-  2. `context.go('/trip/<tutorialTrips[0]>')` (the redirects may put a scene or the lesson first:
-     never, in practice, for trip 1).
+  2. `ContentController.switchIfReady()`, so a pack that got ready since launch plays the tutorial
+     (research R3); with `then` (the playtest card), this step is skipped;
+  3. `context.go('/trip/<tutorialTrips[0]>')`, read from the pack now active (the redirects may put a
+     scene or the lesson first: never, in practice, for trip 1).
 - Back does nothing (`PopScope(canPop: false)`).
 - Offline and online behave the same. Nothing waits for the server.
 
