@@ -16,7 +16,8 @@ import '../helpers/server_status.dart';
 
 // The server states over Home (specs/011-m06-identity-sync, contracts/
 // server-states.md "Checks"), in RTL at 390×844 with both digit styles,
-// and each placed component against its `States` box.
+// and each placed component against its `States` box (the offline banner,
+// against Home's own board).
 
 /// 16:30 on the device's clock, wherever the test runs.
 final _untilMs = DateTime(2026, 10, 27, 16, 30).millisecondsSinceEpoch;
@@ -89,9 +90,15 @@ void main() {
     late DesignBoard board;
     setUpAll(() => board = loadBoard('States'));
 
-    testWidgets('the offline banner (box 1)', (tester) async {
+    // Over Home, the banner is `HomeStates`' (box 14, 40 high; its place
+    // is checked on that board's surface), which M08 builds; `States` box
+    // 1 draws it alone, 49.6 high (specs/013-m08-home-result, R12).
+    testWidgets('the offline banner (HomeStates box 14)', (tester) async {
       await _pump(tester, _states['offline']!, DigitStyle.arabicIndic);
-      _expectBox(tester.getRect(find.byType(OfflineBanner)), board.byId(1));
+      _expectBox(
+        tester.getRect(find.byType(OfflineBanner)),
+        loadBoard('HomeStates').byId(14),
+      );
     });
 
     testWidgets('the update card (box 26) and its button (box 30)', (

@@ -802,6 +802,234 @@ abstract final class DesignExtras {
   /// The needle's sweep to full, after the card has come in.
   static const fuelLessonSweep = Duration(milliseconds: 600);
   static const fuelLessonSweepCurve = Curves.easeOutCubic;
+
+  // M08's motion that HANDOFF gives no value for
+  // (specs/013-m08-home-result, research R13, R19).
+
+  /// `C-Home` box 17: the barker's bubble pops again this often (R13).
+  static const barkerRepop = Duration(seconds: 6);
+
+  /// `Result` box 40: the pay counts up from 0 (R19).
+  static const payCountUp = Duration(milliseconds: 600);
+
+  /// `Result` boxes 52–54: the apartment bar fills from the old balance to the
+  /// new, after the pay (R19).
+  static const aptBarFill = Duration(milliseconds: 600);
+  static const aptBarFillCurve = Curves.easeOut;
+
+  /// `Result` box 8: each star's condition fades in with its star, this far
+  /// apart: `Stars`' 16 frames at 60 fps (R19).
+  static const starLabelStagger = Duration(milliseconds: 270);
+
+  /// `Result` block 5: the quote fades in when its replay ends, as the
+  /// banner does (R19's 200 ms).
+  static const resultFadeIn = Duration(milliseconds: 200);
+  static const resultFadeInCurve = Curves.easeOut;
+
+  /// `C-Home` block 2 (`C-Home_02.svg`): the street's five buildings, left
+  /// to right, in the trip's window colours.
+  static const homeBuildings = <Color>[
+    ColorTokens.denom200,
+    Color(0xFFF4B7A0),
+    Color(0xFFD6CDF0),
+    Color(0xFFF9C79E),
+    ColorTokens.denom200,
+  ];
+
+  /// `C-Home` block 2: the buildings' windows.
+  static const homeWindow = Color(0xD9FFFFFF);
+
+  /// `C-Home` block 2: the road's lane dashes.
+  static const homeLane = Color(0xCCFFFFFF);
+
+  /// `HomeStates` "Motion": the start button's variants cross-fade.
+  static const ctaSwap = Duration(milliseconds: 150);
+
+  /// `HomeStates` "Motion": the scene card's height follows the offline
+  /// banner.
+  static const homeSceneResize = Duration(milliseconds: 200);
+  static const homeSceneResizeCurve = Curves.easeOut;
+
+  /// `C-Home` box 4: the driver's name on Home, Marhey 700 19 (HANDOFF
+  /// lists it as a non-token value).
+  static const homeName = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 19,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PreTrip` box 10: the card's title, Marhey 700 26, measured 31.2.
+  static const preTripTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PreTrip` box 33: the new subject's name, Marhey 700 17 measured 30,
+  /// as a status card's title.
+  static const newCardName = statusTitle;
+
+  /// `PreTrip` box 9: the line over the card's title, 13/600 on the
+  /// browser's normal line, measured 16.
+  static const preTripLine = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PreTrip` boxes 17, 21, 25: a price cell's station, 13/600 on a
+  /// 15.6 line.
+  static const preTripStation = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PreTrip` boxes 18, 22, 26: a price cell's fare, 16/700 on a 19.2
+  /// line.
+  static const preTripFare = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PreTrip` box 34: the new card's sentence, 13/500 on a 19.5 line.
+  static const newCardText = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` box 3: the header's «المشوار ١٢ · خط الجامعة», 14/600 on the
+  /// browser's normal line, measured 18.
+  static const resultHeader = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 18 / 14,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` box 7: «وصلنا الجامعة!», `display.xl` on a 40 line.
+  static const resultTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 40 / 32,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` boxes 24–31, 33, 37: the breakdown's and the mistakes' rows,
+  /// 14/500 (the values and the summary 700) on an 18 line.
+  static const resultRow = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 18 / 14,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` boxes 10, 13, 16: the stars' labels, 12/600 on a 15 line.
+  static const resultStarLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `ShareCard` box 2: the trip chip, 13/600.
+  static const shareChip = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `ShareCard` box 3: the title, Marhey 700 34 on `sun.lip`'s 4.
+  static const shareTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 34,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.15,
+    leadingDistribution: TextLeadingDistribution.even,
+    shadows: [Shadow(offset: Offset(0, 4), color: ColorTokens.sunLip)],
+  );
+
+  /// `ShareCard` box 11: the quote, Marhey 600 16.
+  static const shareQuote = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.35,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `ShareCard` box 13: the wordmark, Marhey 700 20.
+  static const shareWordmark = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 35 / 20,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `ShareCard` box 14: «قبضت {amount}», 13/700.
+  static const sharePaid = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` box 38: «قبضت», 16/600.
+  static const resultPayLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 20 / 16,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` box 40: the pay, Marhey 700 50 on a 50 line.
+  static const resultPay = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 50,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
 }
 
 /// A ring as decoration: an outside one spreads a shadow past the edge, an

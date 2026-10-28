@@ -11,7 +11,7 @@ import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
-import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
+import 'package:wassal/core/theme/components/station_tag.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/top_bar/station_strip_bar.dart';

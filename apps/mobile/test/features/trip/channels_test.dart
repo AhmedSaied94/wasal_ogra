@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/core/audio_haptics/sfx.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
@@ -151,8 +152,13 @@ void main() {
         haptics: haptics,
         cues: cues,
       );
+      final result = loadFixture(name).expectedResult;
+      // Then the result: a first three stars sounds the horn (M08 FR-045).
+      final celebrates =
+          result.outcome == TripOutcome.finished && result.stars == 3;
       expect(sfx.played, [
         for (final cue in cues.whereType<SoundCue>()) sfxOf(cue.sound),
+        if (celebrates) Sfx.horn,
       ]);
       expect(sfx.played, isNotEmpty);
       expect(haptics.felt, [

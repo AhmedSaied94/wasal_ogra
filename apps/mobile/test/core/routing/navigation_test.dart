@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/bootstrap/flavor.dart';
-import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
+import 'package:wassal/features/home/presentation/home_header.dart';
+import 'package:wassal/features/settings/settings_screen.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
-import 'package:wassal/features/onboarding/presentation/driver_name_line.dart';
 import 'package:wassal/features/onboarding/presentation/name_screen.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
 
+import '../../helpers/economy.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
 import '../../helpers/trip.dart';
@@ -31,7 +31,8 @@ void main() {
       testWidgets('الموقف reaches ${d.name}', (tester) async {
         final route = routeTo(d.name);
         expect(route, isNotNull, reason: '${d.name} is unreachable');
-        await pumpWassalApp(tester);
+        // M13's daily row, as links, keeps the daily pages reachable.
+        await pumpWassalApp(tester, overrides: [homeDailyLinks()]);
         if (route!.tab != Section.home) await tapTab(tester, route.tab);
         for (final step in route.links) {
           // The trip has no link: playing it to the end leads to the
@@ -61,36 +62,17 @@ void main() {
     });
   });
 
-  group("the playtest Home shows the driver's name", () {
-    testWidgets('«الأسطى» before one is saved', (tester) async {
-      await pumpWassalApp(tester);
-      expect(
-        tester.widget<Text>(find.byKey(DriverNameLine.nameKey)).data,
-        'الأسطى',
-      );
-    });
-
-    testWidgets('the saved one after', (tester) async {
-      final container = await pumpWassalApp(tester);
-      final economy = container.read(economyProvider).requireValue;
-      await economy.setDisplayName(economy.newRequestId(), 'حمادة');
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<Text>(find.byKey(DriverNameLine.nameKey)).data,
-        'حمادة',
-      );
-    });
-
-    testWidgets('not on prod', (tester) async {
-      await pumpWassalApp(tester, flavor: Flavor.prod);
-      expect(find.byKey(DriverNameLine.nameKey), findsNothing);
-    });
-  });
-
   group('bottom bar only on the four tabs (FR-015)', () {
     for (final d in _routable) {
       testWidgets(d.name, (tester) async {
-        await pumpWassalApp(tester, initialLocation: d.location);
+        await pumpWassalApp(
+          tester,
+          initialLocation: d.location,
+          // With nothing kept, the result is Home (M08 FR-036).
+          economy: d.name == RouteNames.result
+              ? economyOverridesOf(await lastFinishedEconomy())
+              : null,
+        );
         expect(currentLocation(tester), d.location);
         expect(
           find.byType(BottomNav).hitTestable(),
@@ -178,13 +160,13 @@ void main() {
 
   group('page transitions (FR-023)', () {
     Finder transitionAround(Type type) => find.ancestor(
-      of: find.byType(PlaceholderScreen).last,
+      of: find.byType(SettingsScreen),
       matching: find.byType(type),
     );
 
     testWidgets('full motion uses the fade-through scale', (tester) async {
       await pumpWassalApp(tester);
-      await tester.tap(find.byKey(PlaceholderScreen.linkKey('settings')));
+      await tester.tap(find.byKey(HomeHeader.profileKey));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 120));
       expect(transitionAround(ScaleTransition), findsWidgets);
@@ -201,7 +183,7 @@ void main() {
         tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
       );
       await pumpWassalApp(tester);
-      await tester.tap(find.byKey(PlaceholderScreen.linkKey('settings')));
+      await tester.tap(find.byKey(HomeHeader.profileKey));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 60));
       expect(transitionAround(FadeTransition), findsWidgets);

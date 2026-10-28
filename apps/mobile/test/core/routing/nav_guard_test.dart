@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
-import 'package:wassal/core/routing/placeholder_screen.dart';
+import 'package:wassal/features/home/presentation/home_header.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
@@ -10,7 +10,7 @@ import '../../helpers/routing.dart';
 void main() {
   testWidgets('two rapid taps on a link push one route', (tester) async {
     await pumpWassalApp(tester);
-    final link = find.byKey(PlaceholderScreen.linkKey('settings'));
+    final link = find.byKey(HomeHeader.profileKey);
     await tester.tap(link);
     await tester.tap(link, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -41,9 +41,7 @@ void main() {
 
   testWidgets('a covered page cannot navigate', (tester) async {
     await pumpWassalApp(tester);
-    final homeLink = tester.element(
-      find.byKey(PlaceholderScreen.linkKey('dailyTasks')),
-    );
+    final homeLink = tester.element(find.byKey(HomeHeader.profileKey));
     await tapLink(tester, 'settings');
     expect(NavGuard.push(homeLink, '/daily/tasks'), isFalse);
   });

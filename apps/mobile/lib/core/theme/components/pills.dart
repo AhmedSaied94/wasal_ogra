@@ -22,6 +22,7 @@ class CurrencyPill extends StatelessWidget {
     required this.kind,
     required this.value,
     this.timer,
+    this.timerChild,
     this.empty = false,
     this.height = standardHeight,
     this.onTap,
@@ -36,6 +37,10 @@ class CurrencyPill extends StatelessWidget {
 
   /// Fuel only: the time to the next litre, preformatted.
   final String? timer;
+
+  /// Fuel only: a widget in [timer]'s place, in its style, such as a
+  /// countdown that ticks on its own (specs/013-m08-home-result R11).
+  final Widget? timerChild;
   final bool empty;
   final double height;
 
@@ -57,6 +62,9 @@ class CurrencyPill extends StatelessWidget {
         : LipTokens.cardSmall;
     final radius = BorderRadius.circular(RadiusTokens.pill);
     final fuel = kind == CurrencyKind.fuel;
+    final timerStyle = DesignExtras.pillTimer.copyWith(
+      color: empty ? ColorTokens.ink : ColorTokens.inkMuted,
+    );
     final reading = fuel
         ? Column(
             mainAxisSize: MainAxisSize.min,
@@ -65,13 +73,10 @@ class CurrencyPill extends StatelessWidget {
                 value,
                 style: DesignExtras.pillFuel.copyWith(color: ColorTokens.ink),
               ),
-              if (timer case final timer?)
-                Text(
-                  timer,
-                  style: DesignExtras.pillTimer.copyWith(
-                    color: empty ? ColorTokens.ink : ColorTokens.inkMuted,
-                  ),
-                ),
+              if (timerChild case final child?)
+                DefaultTextStyle.merge(style: timerStyle, child: child)
+              else if (timer case final timer?)
+                Text(timer, style: timerStyle),
             ],
           )
         : Text(
@@ -270,23 +275,34 @@ class Stars extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     spacing: SpaceTokens.s4,
     children: [
-      for (var i = 0; i < 3; i++)
-        if (i < earned)
-          SizedBox.square(
-            dimension: size,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Transform.translate(
-                  offset: LipTokens.sun.offset,
-                  child: AppIcon('star', size: size, color: ColorTokens.sunLip),
-                ),
-                AppIcon('star', size: size, color: ColorTokens.gold),
-              ],
-            ),
-          )
-        else
-          AppIcon('star_outline', size: size),
+      for (var i = 0; i < 3; i++) Star(earned: i < earned, size: size),
     ],
   );
+}
+
+/// One of [Stars]: gold on its lip when earned, else outlined. The result
+/// draws its three at their own sizes (specs/013-m08-home-result, `Result`
+/// block 4).
+class Star extends StatelessWidget {
+  const Star({required this.earned, required this.size, super.key});
+
+  final bool earned;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => earned
+      ? SizedBox.square(
+          dimension: size,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Transform.translate(
+                offset: LipTokens.sun.offset,
+                child: AppIcon('star', size: size, color: ColorTokens.sunLip),
+              ),
+              AppIcon('star', size: size, color: ColorTokens.gold),
+            ],
+          ),
+        )
+      : AppIcon('star_outline', size: size);
 }

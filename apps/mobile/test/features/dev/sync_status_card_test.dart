@@ -9,6 +9,7 @@ import 'package:wassal/features/dev/sync_status_card.dart';
 
 import '../../helpers/account.dart';
 import '../../helpers/fake_api.dart';
+import '../../helpers/home.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/sync.dart';
 
@@ -33,6 +34,8 @@ Future<(ProviderContainer, FakeApi)> _pump(
     flavor: flavor,
     account: accountTestOverrides(api: api),
   );
+  // In the testers' sheet on internal builds (M08).
+  if (flavor != Flavor.prod) await openDebugSheet(tester);
   final card = find.byType(SyncStatusCard);
   if (card.evaluate().isNotEmpty) {
     await tester.ensureVisible(card);

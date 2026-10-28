@@ -7,7 +7,12 @@ import 'package:content_models/content_models.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
 
 final class Look extends ViewValue {
-  const Look({required this.id, required this.labelKey, required this.rive});
+  const Look({
+    required this.id,
+    required this.labelKey,
+    required this.rive,
+    this.feminine = false,
+  });
 
   /// The design's art id (HANDOFF §5.3), such as `hagga`.
   final String id;
@@ -19,6 +24,10 @@ final class Look extends ViewValue {
   /// (contracts/rive-characters.md "Looks").
   final int rive;
 
+  /// A woman: the result's sentences say «نزلت», not «نزل»
+  /// (specs/013-m08-home-result research R15).
+  final bool feminine;
+
   /// The static art, drawn when Rive isn't.
   String get svg => 'assets/illustrations/passengers/$id.svg';
 
@@ -27,6 +36,7 @@ final class Look extends ViewValue {
     'id': id,
     'labelKey': labelKey,
     'rive': rive,
+    'feminine': feminine,
   };
 }
 
@@ -39,7 +49,12 @@ const groupLabelKey = 'tripLookGroup';
 /// The MVP's twelve looks, in the design's order.
 const looks = <String, Look>{
   'regular': Look(id: 'regular', labelKey: passengerLabelKey, rive: 0),
-  'hagga': Look(id: 'hagga', labelKey: 'tripLookHajja', rive: 1),
+  'hagga': Look(
+    id: 'hagga',
+    labelKey: 'tripLookHajja',
+    rive: 1,
+    feminine: true,
+  ),
   'sleeper': Look(id: 'sleeper', labelKey: passengerLabelKey, rive: 2),
   'effendi_200': Look(id: 'effendi_200', labelKey: 'tripLookEffendi', rive: 4),
   'student': Look(id: 'student', labelKey: 'tripLookStudent', rive: 5),
@@ -84,5 +99,10 @@ Look _fallback(Archetype archetype) {
         Archetype.bigNote => 'effendi_200',
         _ => 'regular',
       }]!;
-  return Look(id: look.id, labelKey: passengerLabelKey, rive: look.rive);
+  return Look(
+    id: look.id,
+    labelKey: passengerLabelKey,
+    rive: look.rive,
+    feminine: look.feminine,
+  );
 }

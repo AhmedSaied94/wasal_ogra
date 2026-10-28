@@ -43,6 +43,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('رجوع'));
     await tester.pumpAndSettle();
     expect(currentLocation(tester), '/home');
-    expect(find.textContaining('1,250'), findsWidgets);
+    // Home's tank.
+    expect(find.textContaining('5/5'), findsWidgets);
   });
 }

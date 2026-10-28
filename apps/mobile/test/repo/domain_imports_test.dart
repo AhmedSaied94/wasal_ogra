@@ -66,6 +66,34 @@ bool _onboardingAllowed(String uri) =>
     uri.startsWith('package:wassal/features/onboarding/domain/') ||
     _sameFolder(uri);
 
+/// The progression rules on the phone (specs/013-m08-home-result,
+/// contracts/progress-rules.md): the generated models, the content source
+/// they read them through and the SKU ids' wire names (each the models
+/// only), and their own folder.
+bool _progressAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'package:wassal/core/content/domain/content_source.dart' ||
+    uri == 'package:wassal/core/economy/domain/wire.dart' ||
+    uri.startsWith('package:wassal/core/progress/domain/') ||
+    _sameFolder(uri);
+
+/// Home's, the pre-trip card's and the result's domains
+/// (specs/013-m08-home-result, contracts/seams.md "Repo guards touched"): the
+/// engine, the content, economy and progress domains, the trip domain's
+/// looks for the passengers' faces, and each other (the result shows Home's
+/// savings target).
+bool _screensAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri.startsWith('package:trip_engine/') ||
+    uri.startsWith('package:wassal/core/content/domain/') ||
+    uri.startsWith('package:wassal/core/economy/domain/') ||
+    uri.startsWith('package:wassal/core/progress/domain/') ||
+    uri == 'package:wassal/features/trip/domain/looks.dart' ||
+    uri.startsWith('package:wassal/features/home/domain/') ||
+    uri.startsWith('package:wassal/features/pre_trip/domain/') ||
+    uri.startsWith('package:wassal/features/result/domain/') ||
+    _sameFolder(uri);
+
 /// Files allowed one more import than their folder: the economy checks a
 /// name with the onboarding's rules, the one check the phone and the economy
 /// share (M07 research R7, R8). Nothing else of `features/`.
@@ -86,6 +114,10 @@ const _domains = <String, bool Function(String)>{
   'lib/core/account/domain': _syncAllowed,
   'lib/core/sync/domain': _syncAllowed,
   'lib/features/onboarding/domain': _onboardingAllowed,
+  'lib/core/progress/domain': _progressAllowed,
+  'lib/features/home/domain': _screensAllowed,
+  'lib/features/pre_trip/domain': _screensAllowed,
+  'lib/features/result/domain': _screensAllowed,
 };
 
 final _directive = RegExp(
@@ -262,6 +294,56 @@ void main() {
     expect(_fileExceptions.values.single, {
       'package:wassal/features/onboarding/domain/name_rules.dart',
     });
+  });
+
+  test('the progress scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _progressAllowed);
+    for (final ok in [
+      'unlocks.dart',
+      'package:content_models/content_models.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:wassal/core/economy/domain/wire.dart',
+      'dart:collection',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/foundation.dart',
+      'package:trip_engine/trip_engine.dart',
+      'package:wassal/core/economy/economy.dart',
+      'package:wassal/core/economy/domain/economy_state.dart',
+      'dart:io',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
+  });
+
+  test('the screens scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _screensAllowed);
+    for (final ok in [
+      'briefing.dart',
+      'package:content_models/content_models.dart',
+      'package:trip_engine/trip_engine.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:wassal/core/economy/domain/economy_state.dart',
+      'package:wassal/core/progress/domain/unlocks.dart',
+      'package:wassal/features/trip/domain/looks.dart',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/widgets.dart',
+      'package:wassal/core/economy/economy.dart',
+      'package:wassal/features/trip/domain/trip_view.dart',
+      'package:wassal/features/onboarding/domain/first_session.dart',
+      'package:wassal/features/home/application/home_model.dart',
+      'dart:io',
+      'dart:ui',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
   });
 
   test('the trip scan allows its list and refuses the rest', () {

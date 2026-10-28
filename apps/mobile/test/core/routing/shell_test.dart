@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/features/home/presentation/home_screen.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 
@@ -12,13 +13,8 @@ void main() {
     expect(currentLocation(tester), '/home');
     final bar = tester.widget<BottomNav>(find.byType(BottomNav));
     expect(bar.currentIndex, 0);
-    expect(
-      find.descendant(
-        of: find.byType(PlaceholderScreen),
-        matching: find.text('الموقف'),
-      ),
-      findsOneWidget,
-    );
+    // The real stand since M08.
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   const tabs = {

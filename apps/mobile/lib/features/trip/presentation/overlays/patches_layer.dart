@@ -6,12 +6,12 @@
 // `LedgerBadge` takes the tag's place (`TripEvents` block 5).
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/theme/components/station_tag.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
-import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/features/trip/presentation/trip_text.dart';
@@ -105,11 +105,14 @@ class PatchesLayer extends StatelessWidget {
       width: size,
       height: size,
       child: switch (p.slot) {
-        final slot? => StationTag(
-          key: tagKey(p.passengerId),
-          slot: slot,
-          size: seat.tagSize,
-          hot: p.hot,
+        final slot? => _beating(
+          p.hot,
+          StationTag(
+            key: tagKey(p.passengerId),
+            slot: slot,
+            size: seat.tagSize,
+            hot: p.hot,
+          ),
         ),
         null => HereStar(key: hereKey(p.passengerId)),
       },
@@ -117,59 +120,14 @@ class PatchesLayer extends StatelessWidget {
   }
 }
 
-/// A station tag: 24 on the back row, 26 in the middle, 30 near.
-class StationTag extends StatelessWidget {
-  const StationTag({
-    required this.slot,
-    required this.size,
-    this.hot = false,
-    super.key,
-  });
-
-  final int slot;
-  final double size;
-  final bool hot;
-
-  double get _letter => switch (size) {
-    <= 24 => DesignExtras.tagLetterBack,
-    <= 26 => DesignExtras.tagLetterMiddle,
-    _ => DesignExtras.tagLetterNear,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = TripColors.station(slot);
-    final tag = SizedBox.square(
-      dimension: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.bg,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: ColorTokens.paper,
-            width: DesignExtras.tagBorder,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
-          boxShadow: [hot ? RingTokens.hot.spread : DesignExtras.tagLip],
-        ),
-        child: Center(
-          child: Text(
-            AppLocalizations.of(context).stationLetter(slot),
-            style: TypeTokens.label
-                .weight(700)
-                .copyWith(color: colors.letter, fontSize: _letter, height: 1),
-          ),
-        ),
-      ),
-    );
-    if (!hot) return tag;
-    return TripPulse(
-      amplitude: TripMotion.hotPulseAmplitude,
-      cycle: TripMotion.hotPulse,
-      child: tag,
-    );
-  }
-}
+/// A hot tag beats 1 ↔ 1.18 on the trip's clock.
+Widget _beating(bool hot, Widget tag) => hot
+    ? TripPulse(
+        amplitude: TripMotion.hotPulseAmplitude,
+        cycle: TripMotion.hotPulse,
+        child: tag,
+      )
+    : tag;
 
 /// «هنا»: they want to get off now (`StationTag alightHere`): a `sun` star
 /// with a `danger` ring, pulsing.

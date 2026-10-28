@@ -17,8 +17,8 @@ import '../../helpers/tutorial_content.dart';
 
 // The first session's redirects (contracts/first-session.md "Router"): a
 // trip's start goes through a due scene or the fuel lesson first, Home plays
-// a due scene, the unfinished trip is never held up, and `then` only leads
-// to a trip or Home.
+// a due scene (through its arrival queue since M08), the unfinished trip is
+// never held up, and `then` only leads to a trip or Home.
 
 const _name = 'حمادة';
 
@@ -58,9 +58,11 @@ Future<void> _leaveUnfinished(TestEconomy economy, String tripId) async {
   await economy.service.startTrip(id, tripId: tripId);
 }
 
+/// Launches at [location]; null lets boot hand over to Home, as a launch
+/// does.
 Future<void> _launch(
   WidgetTester tester,
-  String location, {
+  String? location, {
   required EconomyState Function(int nowMs) player,
   Set<String> scenesDue = const {},
   bool fuelLessonDone = false,
@@ -171,10 +173,12 @@ void main() {
     expect(currentLocation(tester), '/trip/line_hay.05');
   });
 
+  // No longer a redirect: Home's arrival queue plays it
+  // (specs/013-m08-home-result, research R9).
   testWidgets('Home with a due scene plays it, then Home', (tester) async {
     await _launch(
       tester,
-      '/home',
+      null,
       player: _player(finished: 3),
       scenesDue: {'the_stand'},
     );

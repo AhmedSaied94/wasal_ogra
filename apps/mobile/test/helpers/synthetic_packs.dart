@@ -103,3 +103,74 @@ double _compressedPerLine(_Letters letters) {
   final bytes = GZipCodec(level: 9).encode(utf8.encode(jsonEncode(sample)));
   return bytes.length / sample.length;
 }
+
+/// A pack for the progression sweeps (specs/013-m08-home-result, T004,
+/// T013), built from the sample:
+/// - line_hay (start): trips 01, 03 and 04 regular, 02 a story trip mid-line
+///   that ch2 names, so it stays locked until ch1 is complete;
+/// - line_gamaa (once line_hay is complete): trips 01 and 02, on the tuktuk;
+/// - line_souq (with the micro_old, which the sweeps never buy): one trip;
+/// - ch1 completes line_hay, ch2 line_gamaa, then the sample's ch3 and ch4.
+Map<String, Object?> progressionPackJson() {
+  final json = samplePackJson();
+  List<Map<String, Object?>> list(String key) => [
+    for (final item in json[key]! as List<Object?>)
+      (item! as Map<String, dynamic>).cast<String, Object?>(),
+  ];
+  final lines = {for (final l in list('lines')) l['line_id']: l};
+  final trips = list('trips');
+  Map<String, Object?> trip(String from, String id, String line, String kind) {
+    final template = trips.firstWhere((t) => t['trip_id'] == from);
+    return {
+      ...template,
+      'trip_id': id,
+      'line_id': line,
+      'kind': kind,
+      'vehicle_id': line == 'line_souq' ? 'micro_old' : 'tuktuk',
+      'seats': line == 'line_souq'
+          ? trips.firstWhere((t) => t['trip_id'] == 'line_gamaa.01')['seats']
+          : trips.firstWhere((t) => t['trip_id'] == 'line_hay.01')['seats'],
+    };
+  }
+
+  return {
+    ...json,
+    'lines': [
+      lines['line_hay'],
+      {
+        ...lines['line_gamaa']!,
+        'unlock': {'kind': 'line_complete', 'line_id': 'line_hay'},
+      },
+      {
+        ...lines['line_gamaa']!,
+        'line_id': 'line_souq',
+        'order': 3,
+        'unlock': {'kind': 'vehicle', 'vehicle_id': 'micro_old'},
+      },
+    ],
+    'trips': [
+      trip('line_hay.01', 'line_hay.01', 'line_hay', 'regular'),
+      trip('line_hay.03', 'line_hay.02', 'line_hay', 'story'),
+      trip('line_hay.02', 'line_hay.03', 'line_hay', 'regular'),
+      trip('line_hay.01', 'line_hay.04', 'line_hay', 'regular'),
+      trip('line_gamaa.01', 'line_gamaa.01', 'line_gamaa', 'regular'),
+      trip('line_gamaa.02', 'line_gamaa.02', 'line_gamaa', 'regular'),
+      trip('line_gamaa.01', 'line_souq.01', 'line_souq', 'regular'),
+    ],
+    'chapters': [
+      for (final chapter in list('chapters'))
+        switch (chapter['chapter_id']) {
+          'ch1_first_job' => {
+            for (final MapEntry(:key, :value) in chapter.entries)
+              if (key != 'story_trip_id') key: value,
+          },
+          'ch2_her_father' => {
+            ...chapter,
+            'goal': {'kind': 'complete_line', 'line_id': 'line_gamaa'},
+            'story_trip_id': 'line_hay.02',
+          },
+          _ => chapter,
+        },
+    ],
+  };
+}

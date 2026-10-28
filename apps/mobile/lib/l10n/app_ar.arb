@@ -148,6 +148,10 @@
   "@newBadgeLabel": {
     "description": "Screen-reader label of the «new» dot on a bottom-bar tab."
   },
+  "navNeedsNetwork": "محتاج نت",
+  "@navNeedsNetwork": {
+    "description": "Screen-reader detail of a bottom-bar tab disabled while offline (the shop), joined to its name: «المحل، محتاج نت» (specs/013-m08-home-result FR-014)."
+  },
   "settingsDigitStyle": "شكل الأرقام",
   "@settingsDigitStyle": {
     "description": "Settings: label of the digit-style choice."
@@ -1667,5 +1671,1099 @@
   "namePool": "حمادة، سيد، عبده، شريف، ميدو، حسن، كريم، مصطفى، تامر، وليد، عادل، سامح، رضا، أشرف، هاني، محمود، فتحي، جمعة، صلاح، عصام، حمدي، ناصر، ربيع، شعبان",
   "@namePool": {
     "description": "Name card: the suggested driver names, separated by «،». The dice picks one at random. Every name must pass the server's name filter (backend apps/accounts/tests/test_name_pool.py) and the app's name rules; keep at least 20."
+  },
+  "homeLevelChip": "درجة {n}",
+  "@homeLevelChip": {
+    "description": "Home's header: the driver's level chip (HANDOFF C-Home). `n` is preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٣"
+      }
+    }
+  },
+  "homeLineTripOf": "المشوار {n} من {total}",
+  "@homeLineTripOf": {
+    "description": "Home's line card: the next trip's place in the line. Both preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "total": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "homeCtaStart": "يلا نطلع!",
+  "@homeCtaStart": {
+    "description": "Home's start button."
+  },
+  "homeFuelCost": "−{n}",
+  "@homeFuelCost": {
+    "description": "The fuel a start costs, on Home's start button: a minus sign and the preformatted liters.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١"
+      }
+    }
+  },
+  "homeSavingsTitle": "تحويش الجواز",
+  "@homeSavingsTitle": {
+    "description": "Home's savings card, from the apartment's chapter on."
+  },
+  "homeSavingsChapter": "الفصل {n}",
+  "@homeSavingsChapter": {
+    "description": "Home's savings card: the current chapter's number, preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٤"
+      }
+    }
+  },
+  "homeSavingsNext": "الجاية: {item}",
+  "@homeSavingsNext": {
+    "description": "Home's savings card: the next piece of the apartment, as the content names it.",
+    "placeholders": {
+      "item": {
+        "type": "String",
+        "example": "الأنتريه"
+      }
+    }
+  },
+  "homeSavingsAmount": "{have} / {price} ج",
+  "@homeSavingsAmount": {
+    "description": "Home's savings card: JENEHAT saved of the target's price, both preformatted.",
+    "placeholders": {
+      "have": {
+        "type": "String",
+        "example": "١٬٢٤٠"
+      },
+      "price": {
+        "type": "String",
+        "example": "٣٬٢٠٠"
+      }
+    }
+  },
+  "homeSavingsReady": "جاهزة للشرا!",
+  "@homeSavingsReady": {
+    "description": "Home's savings card when the player can afford the target."
+  },
+  "homeSceneWaiting": "مشهد جديد مستنيك",
+  "@homeSceneWaiting": {
+    "description": "Home's savings card, in place of the bar, while a chapter's scene is waiting (M10)."
+  },
+  "homeCtaOutOfFuel": "البنزين خلص",
+  "@homeCtaOutOfFuel": {
+    "description": "Home's start button on an empty tank; it opens the fuel sheet."
+  },
+  "homeNextLiter": "اللتر الجاي {time}",
+  "@homeNextLiter": {
+    "description": "Home's out-of-fuel chip: the time to the next liter, preformatted m:ss.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "١٢:٣٠"
+      }
+    }
+  },
+  "homeGoalApartmentLocked": "الشقة بتتفتح في الفصل {n}",
+  "@homeGoalApartmentLocked": {
+    "description": "Home's chapter-goal card: the chapter the apartment opens in, preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٤"
+      }
+    }
+  },
+  "goalCompleteLine": "خلّص {line}",
+  "@goalCompleteLine": {
+    "description": "A chapter goal: finish every regular trip of a line, as the content names it. Draft for the owner (research R18).",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "خط الحي"
+      }
+    }
+  },
+  "goalOwnVehicle": "اشتري {vehicle}",
+  "@goalOwnVehicle": {
+    "description": "A chapter goal: buy a vehicle, as the content names it. Draft for the owner (research R18).",
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "الميكروباص القديم"
+      }
+    }
+  },
+  "goalPurchase": "اشتري {chapter}",
+  "@goalPurchase": {
+    "description": "A chapter goal: buy the chapter's own purchase, named by the chapter's title. Draft for the owner (research R18).",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "الشبكة"
+      }
+    }
+  },
+  "goalCompleteRoom": "جهّز {room}",
+  "@goalCompleteRoom": {
+    "description": "A chapter goal: own every piece of a room, as the content names it. Draft for the owner (research R18).",
+    "placeholders": {
+      "room": {
+        "type": "String",
+        "example": "الصالون"
+      }
+    }
+  },
+  "homeBarkerCall": "{station}.. {station}!",
+  "@homeBarkerCall": {
+    "description": "Home's street scene: the barker calls the line's last station. Draft for the owner (research R18).",
+    "placeholders": {
+      "station": {
+        "type": "String",
+        "example": "الجامعة"
+      }
+    }
+  },
+  "homeA11yProfile": "ملف الأسطى والإعدادات",
+  "@homeA11yProfile": {
+    "description": "Home's profile button, for a screen reader."
+  },
+  "homeA11yCoins": "الجنيهات {n}",
+  "@homeA11yCoins": {
+    "description": "Home's JENEHAT pill, for a screen reader (HANDOFF asks to add it). Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٬٢٤٠"
+      }
+    }
+  },
+  "homeA11yBonat": "البونات {n}، افتح المحل",
+  "@homeA11yBonat": {
+    "description": "Home's BONAT pill, for a screen reader. Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٨٥"
+      }
+    }
+  },
+  "homeA11yBonatOffline": "البونات {n}، المحل محتاج نت",
+  "@homeA11yBonatOffline": {
+    "description": "Home's BONAT pill while offline: not a link. Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٨٥"
+      }
+    }
+  },
+  "homeA11yFuel": "البنزين {fuel} من {max}، اللتر الجاي بعد {count, plural, few{{n} دقايق} other{{n} دقيقة}}",
+  "@homeA11yFuel": {
+    "description": "Home's fuel pill, for a screen reader: minutes only, rounded up, so it changes at most once a minute (research R11). `count` picks the form; the others are preformatted.",
+    "placeholders": {
+      "fuel": {
+        "type": "String",
+        "example": "٤"
+      },
+      "max": {
+        "type": "String",
+        "example": "٥"
+      },
+      "count": {
+        "type": "int",
+        "example": "13"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٣"
+      }
+    }
+  },
+  "homeA11yFuelFull": "البنزين {fuel} من {max}",
+  "@homeA11yFuelFull": {
+    "description": "Home's fuel pill on a full tank, for a screen reader. Preformatted.",
+    "placeholders": {
+      "fuel": {
+        "type": "String",
+        "example": "٥"
+      },
+      "max": {
+        "type": "String",
+        "example": "٥"
+      }
+    }
+  },
+  "homeA11yFuelEmpty": "البنزين خلص، اللتر الجاي بعد {count, plural, few{{n} دقايق} other{{n} دقيقة}}",
+  "@homeA11yFuelEmpty": {
+    "description": "Home's fuel pill on an empty tank, for a screen reader: minutes only, rounded up (research R11).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "13"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٣"
+      }
+    }
+  },
+  "homeA11yFuelUnlimited": "بنزين مفتوح، فاضل {count, plural, few{{n} دقايق} other{{n} دقيقة}}",
+  "@homeA11yFuelUnlimited": {
+    "description": "Home's fuel pill during an unlimited window, for a screen reader: minutes left, rounded up.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "13"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٣"
+      }
+    }
+  },
+  "homeA11yLine": "الخطوط: {line}، المشوار {n} من {total}، النجوم {earned} من {max}",
+  "@homeA11yLine": {
+    "description": "Home's line card, for a screen reader. Numbers preformatted.",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "خط الجامعة"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "total": {
+        "type": "String",
+        "example": "٣٠"
+      },
+      "earned": {
+        "type": "String",
+        "example": "٢٧"
+      },
+      "max": {
+        "type": "String",
+        "example": "٩٠"
+      }
+    }
+  },
+  "homeA11ySavings": "تحويش الجواز: الفصل {n}، الجاية {item}",
+  "@homeA11ySavings": {
+    "description": "Home's savings card, for a screen reader.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٤"
+      },
+      "item": {
+        "type": "String",
+        "example": "الأنتريه"
+      }
+    }
+  },
+  "homeA11ySavingsReady": "تحويش الجواز: الفصل {n}، الجاية {item}، جاهزة للشرا",
+  "@homeA11ySavingsReady": {
+    "description": "Home's savings card when affordable, for a screen reader.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٤"
+      },
+      "item": {
+        "type": "String",
+        "example": "الأنتريه"
+      }
+    }
+  },
+  "homeA11yGoal": "الفصل {n}: {goal}",
+  "@homeA11yGoal": {
+    "description": "Home's chapter-goal card, for a screen reader: the chapter and its goal.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٢"
+      },
+      "goal": {
+        "type": "String",
+        "example": "اشتري الميكروباص القديم"
+      }
+    }
+  },
+  "homeA11yStart": "يلا نطلع!، هيصرف لتر بنزين",
+  "@homeA11yStart": {
+    "description": "Home's start button, for a screen reader, with what it costs (HANDOFF asks to add it)."
+  },
+  "homeA11yOutOfFuel": "البنزين خلص، افتح البنزين",
+  "@homeA11yOutOfFuel": {
+    "description": "Home's out-of-fuel button, for a screen reader: it opens the fuel sheet."
+  },
+  "homeA11yNoTrip": "مفيش مشوار دلوقتي",
+  "@homeA11yNoTrip": {
+    "description": "Home's start button when the pack has no startable trip (never in a validated pack)."
+  },
+  "preTripTitle": "المشوار {n}",
+  "@preTripTitle": {
+    "description": "The pre-trip card's title: the trip's number on its line (PreTrip box 10). Formatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "preTripPrices": "أسعار المحطات",
+  "@preTripPrices": {
+    "description": "The prices block's heading (PreTrip box 14)."
+  },
+  "preTripFare": "{price} ج",
+  "@preTripFare": {
+    "description": "A stop's fare in a price cell (PreTrip box 18). Formatted pounds.",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "٤٫٥"
+      }
+    }
+  },
+  "preTripA11yPrice": "{station}، {price} جنيه",
+  "@preTripA11yPrice": {
+    "description": "A price cell, read aloud: the stop and its fare.",
+    "placeholders": {
+      "station": {
+        "type": "String",
+        "example": "الكوبري"
+      },
+      "price": {
+        "type": "String",
+        "example": "٤٫٥"
+      }
+    }
+  },
+  "preTripStudentHalf": "الطلبة بنص أجرة لو ورّوا الكارنيه",
+  "@preTripStudentHalf": {
+    "description": "The student rule at 50% (PreTrip box 27, HANDOFF)."
+  },
+  "preTripStudentPercent": "الطلبة بخصم {percent}٪ لو ورّوا الكارنيه",
+  "@preTripStudentPercent": {
+    "description": "The student rule at another discount. Formatted.",
+    "placeholders": {
+      "percent": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "preTripBag": "الشنطة عليها {price} ج",
+  "@preTripBag": {
+    "description": "The bag rule, once the engine has a passenger with bags. Formatted pounds.",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "٢"
+      }
+    }
+  },
+  "preTripChildFree": "العيال تحت {age} سنين ببلاش",
+  "@preTripChildFree": {
+    "description": "The child rule, once the engine has a passenger with children. Formatted.",
+    "placeholders": {
+      "age": {
+        "type": "String",
+        "example": "٦"
+      }
+    }
+  },
+  "preTripNew": "جديد",
+  "@preTripNew": {
+    "description": "The new card's chip (PreTrip box 32)."
+  },
+  "preTripStars": "النجوم",
+  "@preTripStars": {
+    "description": "The stars block's heading (PreTrip box 35)."
+  },
+  "preTripStar1": "وصّل كل الركاب",
+  "@preTripStar1": {
+    "description": "The first star's goal (PreTrip box 36)."
+  },
+  "preTripStar2": "من غير ولا خناقة",
+  "@preTripStar2": {
+    "description": "The second star's goal (PreTrip box 38)."
+  },
+  "preTripStar3": "كل باقي يرجع صح من أول مرة",
+  "@preTripStar3": {
+    "description": "The third star's goal (PreTrip box 40)."
+  },
+  "preTripStarNotYet": "لسه",
+  "@preTripStarNotYet": {
+    "description": "Beside a star not earned yet (PreTrip box 42)."
+  },
+  "preTripA11yStarEarned": "{goal}، خدتها",
+  "@preTripA11yStarEarned": {
+    "description": "A star row, read aloud, when earned.",
+    "placeholders": {
+      "goal": {
+        "type": "String",
+        "example": "وصّل كل الركاب"
+      }
+    }
+  },
+  "preTripA11yStarNotYet": "{goal}، لسه",
+  "@preTripA11yStarNotYet": {
+    "description": "A star row, read aloud, when not earned yet.",
+    "placeholders": {
+      "goal": {
+        "type": "String",
+        "example": "كل باقي يرجع صح من أول مرة"
+      }
+    }
+  },
+  "preTripBoosters": "المساعدات",
+  "@preTripBoosters": {
+    "description": "The boosters block's heading (PreTrip box 43)."
+  },
+  "preTripBoosterJam": "زحمة",
+  "@preTripBoosterJam": {
+    "description": "The traffic-jam booster's short name on its tile (PreTrip box 53)."
+  },
+  "preTripBoosterCount": "×{count}",
+  "@preTripBoosterCount": {
+    "description": "A booster tile's count (PreTrip box 46). Formatted.",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "١"
+      }
+    }
+  },
+  "preTripBuyChip": "{booster} بـ{count, plural, =1{بون واحد} =2{بونين} few{{price} بونات} other{{price} بون}}",
+  "@preTripBuyChip": {
+    "description": "The buy chip: the first booster the player has none of, at its price (PreTrip box 56).",
+    "placeholders": {
+      "booster": {
+        "type": "String",
+        "example": "صحّي النايم"
+      },
+      "count": {
+        "type": "int",
+        "example": "8"
+      },
+      "price": {
+        "type": "String",
+        "example": "٨"
+      }
+    }
+  },
+  "preTripBuy": "اشتري",
+  "@preTripBuy": {
+    "description": "The buy dialog's action: buys the booster for the trip ahead."
+  },
+  "preTripGo": "اطلع",
+  "@preTripGo": {
+    "description": "The card's button: starts the trip (PreTrip box 58)."
+  },
+  "preTripA11yGo": "اطلع، هيصرف لتر بنزين",
+  "@preTripA11yGo": {
+    "description": "«اطلع» read aloud, when it spends a liter."
+  },
+  "settingsPreTripCard": "كارت ما قبل المشوار",
+  "@settingsPreTripCard": {
+    "description": "Settings: the pre-trip card's row."
+  },
+  "settingsPreTripCardAlways": "يظهر دايمًا",
+  "@settingsPreTripCardAlways": {
+    "description": "Settings: the card before every trip."
+  },
+  "settingsPreTripCardNewOnly": "في الجديد بس",
+  "@settingsPreTripCardNewOnly": {
+    "description": "Settings: the card only before a trip with something new, or a story trip."
+  },
+  "newCardHonest": "الأمين",
+  "@newCardHonest": {
+    "description": "The pre-trip card's new subject `honest`: its name (research R18; owner-approved draft)."
+  },
+  "newCardHonestText": "لو اديته باقي زيادة أو مش بتاعه، بيرجّعهولك.",
+  "@newCardHonestText": {
+    "description": "The pre-trip card's new subject `honest`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardHajja": "الحاجة",
+  "@newCardHajja": {
+    "description": "The pre-trip card's new subject `hajja`: its name (research R18; owner-approved draft)."
+  },
+  "newCardHajjaText": "بتعدّي الفلوس على مهلها، فالسلسلة اللي بتعدّي عليها بتبطّأ.",
+  "@newCardHajjaText": {
+    "description": "The pre-trip card's new subject `hajja`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardSleeper": "النايم",
+  "@newCardSleeper": {
+    "description": "The pre-trip card's new subject `sleeper`: its name (research R18; owner-approved draft)."
+  },
+  "newCardSleeperText": "نايم والفلوس بتقف عنده. دوس عليه يصحى، وبعد شوية ينام تاني.",
+  "@newCardSleeperText": {
+    "description": "The pre-trip card's new subject `sleeper`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardHurry": "المستعجل",
+  "@newCardHurry": {
+    "description": "The pre-trip card's new subject `hurry`: its name (research R18; owner-approved draft)."
+  },
+  "newCardHurryText": "صبره قليل. رجّعله باقيه بسرعة قبل ما يزهق.",
+  "@newCardHurryText": {
+    "description": "The pre-trip card's new subject `hurry`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardBigNote": "الأفندي",
+  "@newCardBigNote": {
+    "description": "The pre-trip card's new subject `big_note`: its name (research R18; owner-approved draft)."
+  },
+  "newCardBigNoteText": "بيدفع ورقة كبيرة على أجرة صغيرة، وهتحتاج فكة كتير.",
+  "@newCardBigNoteText": {
+    "description": "The pre-trip card's new subject `big_note`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardStudent": "الطالب",
+  "@newCardStudent": {
+    "description": "The pre-trip card's new subject `student`: its name (research R18; owner-approved draft)."
+  },
+  "newCardStudentText": "بيدفع نص الأجرة بالكارنيه. افتكر مين طالب.",
+  "@newCardStudentText": {
+    "description": "The pre-trip card's new subject `student`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardHeadphones": "أبو سمّاعة",
+  "@newCardHeadphones": {
+    "description": "The pre-trip card's new subject `headphones`: its name (research R18; owner-approved draft)."
+  },
+  "newCardHeadphonesText": "مش سامع حاجة، والفلوس بتقف عنده. ناديه مرتين.",
+  "@newCardHeadphonesText": {
+    "description": "The pre-trip card's new subject `headphones`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardFalseClaimer": "«أنا دافع!»",
+  "@newCardFalseClaimer": {
+    "description": "The pre-trip card's new subject `false_claimer`: its name (research R18; owner-approved draft)."
+  },
+  "newCardFalseClaimerText": "واحد هيقول إنه دفع وهو ما دفعش. افتكر مين دفع.",
+  "@newCardFalseClaimerText": {
+    "description": "The pre-trip card's new subject `false_claimer`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardGroupPayer": "«خلّيها عليّا»",
+  "@newCardGroupPayer": {
+    "description": "The pre-trip card's new subject `group_payer`: its name (research R18; owner-approved draft)."
+  },
+  "newCardGroupPayerText": "بيدفع عن الشلة كلها، والباقي كله بيرجعله هو.",
+  "@newCardGroupPayerText": {
+    "description": "The pre-trip card's new subject `group_payer`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardChatty": "الرغّاي",
+  "@newCardChatty": {
+    "description": "The pre-trip card's new subject `chatty`: its name (research R18; owner-approved draft)."
+  },
+  "newCardChattyText": "بيشغل اللي جنبه بالكلام، فالفلوس في صفّه بتمشي أبطأ.",
+  "@newCardChattyText": {
+    "description": "The pre-trip card's new subject `chatty`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardRegularCustomer": "الزبون الدايم",
+  "@newCardRegularCustomer": {
+    "description": "The pre-trip card's new subject `regular_customer`: its name (research R18; owner-approved draft)."
+  },
+  "newCardRegularCustomerText": "لو شكرته وهو مش زهقان، بيديك بقشيش.",
+  "@newCardRegularCustomerText": {
+    "description": "The pre-trip card's new subject `regular_customer`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardBump": "مطب",
+  "@newCardBump": {
+    "description": "The pre-trip card's new subject `bump`: its name (research R18; owner-approved draft)."
+  },
+  "newCardBumpText": "الفلوس اللي بتتعدّى ممكن تقع. لمّها بسرعة قبل ما تضيع.",
+  "@newCardBumpText": {
+    "description": "The pre-trip card's new subject `bump`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardTraffic": "زحمة",
+  "@newCardTraffic": {
+    "description": "The pre-trip card's new subject `traffic`: its name (research R18; owner-approved draft)."
+  },
+  "newCardTrafficText": "العربية بتبطّأ، والركاب بيزهقوا أسرع.",
+  "@newCardTrafficText": {
+    "description": "The pre-trip card's new subject `traffic`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardOpenRoad": "طريق مفتوح",
+  "@newCardOpenRoad": {
+    "description": "The pre-trip card's new subject `open_road`: its name (research R18; owner-approved draft)."
+  },
+  "newCardOpenRoadText": "المحطات بتقرب أسرع، فالوقت أضيق.",
+  "@newCardOpenRoadText": {
+    "description": "The pre-trip card's new subject `open_road`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardFareIncrease": "الأجرة زادت!",
+  "@newCardFareIncrease": {
+    "description": "The pre-trip card's new subject `fare_increase`: its name (research R18; owner-approved draft)."
+  },
+  "newCardFareIncreaseText": "السعر بيتغير في نص الطريق، وفي ركاب هيدفعوا بالقديم.",
+  "@newCardFareIncreaseText": {
+    "description": "The pre-trip card's new subject `fare_increase`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardDropMeHere": "«نزّلني هنا»",
+  "@newCardDropMeHere": {
+    "description": "The pre-trip card's new subject `drop_me_here`: its name (research R18; owner-approved draft)."
+  },
+  "newCardDropMeHereText": "راكب هيغيّر محطته فجأة، وباقيه لازم يرجعله دلوقتي.",
+  "@newCardDropMeHereText": {
+    "description": "The pre-trip card's new subject `drop_me_here`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardPaymentDispute": "خناقة على الدفع",
+  "@newCardPaymentDispute": {
+    "description": "The pre-trip card's new subject `payment_dispute`: its name (research R18; owner-approved draft)."
+  },
+  "newCardPaymentDisputeText": "اتنين كل واحد يقول التاني ما دفعش. افتكر مين دفع.",
+  "@newCardPaymentDisputeText": {
+    "description": "The pre-trip card's new subject `payment_dispute`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardChangeRequest": "«حد معاه فكة؟»",
+  "@newCardChangeRequest": {
+    "description": "The pre-trip card's new subject `change_request`: its name (research R18; owner-approved draft)."
+  },
+  "newCardChangeRequestText": "راكب هيطلب تفكّله ورقة كبيرة من درجك. ليك تقبل أو ترفض.",
+  "@newCardChangeRequestText": {
+    "description": "The pre-trip card's new subject `change_request`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "newCardRoadsidePickup": "راكب في الطريق",
+  "@newCardRoadsidePickup": {
+    "description": "The pre-trip card's new subject `roadside_pickup`: its name (research R18; owner-approved draft)."
+  },
+  "newCardRoadsidePickupText": "واحد هيشاور ويركب في النص، ومعاه فلوس جديدة.",
+  "@newCardRoadsidePickupText": {
+    "description": "The pre-trip card's new subject `roadside_pickup`: what the engine does with it, two lines at most (research R18; owner-approved draft)."
+  },
+  "resultHeader": "المشوار {n} · {line}",
+  "@resultHeader": {
+    "description": "The result header: the trip number and its line (Result box 3).",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "line": {
+        "type": "String",
+        "example": "خط الجامعة"
+      }
+    }
+  },
+  "resultA11yBack": "ارجع الموقف",
+  "@resultA11yBack": {
+    "description": "The result's back button: to Home."
+  },
+  "resultTitle": "وصلنا {station}!",
+  "@resultTitle": {
+    "description": "The result's title: the trip's last stop.",
+    "placeholders": {
+      "station": {
+        "type": "String",
+        "example": "الجامعة"
+      }
+    }
+  },
+  "resultRecord": "رقم قياسي جديد",
+  "@resultRecord": {
+    "description": "Under the title on a first three stars (FR-045)."
+  },
+  "resultStar1": "وصلت",
+  "@resultStar1": {
+    "description": "The first star: the trip was finished."
+  },
+  "resultStar2": "من غير خناقات",
+  "@resultStar2": {
+    "description": "The second star: no fights."
+  },
+  "resultStar3": "كل باقي صح",
+  "@resultStar3": {
+    "description": "The third star: no change mistakes."
+  },
+  "resultA11yStars": "{count, plural, =0{ولا نجمة من تلاتة} =1{نجمة واحدة من تلاتة} =2{نجمتين من تلاتة} other{تلات نجوم من تلاتة}}",
+  "@resultA11yStars": {
+    "description": "The stars' group label.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "resultA11yStarEarned": "{condition}، خدتها",
+  "@resultA11yStarEarned": {
+    "description": "A star row the player earned.",
+    "placeholders": {
+      "condition": {
+        "type": "String",
+        "example": "وصلت"
+      }
+    }
+  },
+  "resultA11yStarMissed": "{condition}، ما خدتهاش",
+  "@resultA11yStarMissed": {
+    "description": "A star row the player didn't earn.",
+    "placeholders": {
+      "condition": {
+        "type": "String",
+        "example": "كل باقي صح"
+      }
+    }
+  },
+  "resultQuote": "«{line}»",
+  "@resultQuote": {
+    "description": "A passenger's line, quoted.",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "ربنا يكرمك يا ابني"
+      }
+    }
+  },
+  "resultFares": "الأجرة اللي اتلمّت",
+  "@resultFares": {
+    "description": "Breakdown: fares collected."
+  },
+  "resultTips": "البقشيش",
+  "@resultTips": {
+    "description": "Breakdown: tips."
+  },
+  "resultOverpaid": "باقي زيادة ضاع",
+  "@resultOverpaid": {
+    "description": "Breakdown: change given in excess."
+  },
+  "resultFights": "الخناقات",
+  "@resultFights": {
+    "description": "Breakdown: fights."
+  },
+  "resultPlus": "+{amount}",
+  "@resultPlus": {
+    "description": "A gain in the breakdown.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "٧"
+      }
+    }
+  },
+  "resultMinus": "−{amount}",
+  "@resultMinus": {
+    "description": "A loss in the breakdown.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "٠٫٥"
+      }
+    }
+  },
+  "resultA11yBreakdownRow": "{label}، {value} جنيه",
+  "@resultA11yBreakdownRow": {
+    "description": "A money row of the breakdown, read aloud.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "البقشيش"
+      },
+      "value": {
+        "type": "String",
+        "example": "+٧"
+      }
+    }
+  },
+  "resultSummaryFights": "{count, plural, =1{خناقة واحدة ضيّعت النجمتين} =2{خناقتين ضيّعوا النجمتين} few{{n} خناقات ضيّعوا النجمتين} other{{n} خناقة ضيّعوا النجمتين}}",
+  "@resultSummaryFights": {
+    "description": "The mistakes card summary when fights cost the second and third stars.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "resultSummaryMistakes": "{count, plural, =1{غلطة واحدة ضيّعت النجمة التالتة} =2{غلطتين ضيّعوا النجمة التالتة} few{{n} غلطات ضيّعوا النجمة التالتة} other{{n} غلطة ضيّعوا النجمة التالتة}}",
+  "@resultSummaryMistakes": {
+    "description": "The mistakes card summary when mistakes cost the third star.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "resultSummaryLosses": "{count, plural, =1{حاجة واحدة فاتتك، بس النجوم سليمة} =2{حاجتين فاتوك، بس النجوم سليمة} few{{n} حاجات فاتتك، بس النجوم سليمة} other{{n} حاجة فاتتك، بس النجوم سليمة}}",
+  "@resultSummaryLosses": {
+    "description": "The mistakes card summary when only missed stops and lost fares happened.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "resultA11yMistakesOpen": "{summary}، اقفل التفاصيل",
+  "@resultA11yMistakesOpen": {
+    "description": "The open mistakes summary row.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "غلطة واحدة ضيّعت النجمة التالتة"
+      }
+    }
+  },
+  "resultA11yMistakesClosed": "{summary}، افتح التفاصيل",
+  "@resultA11yMistakesClosed": {
+    "description": "The closed mistakes summary row.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "غلطة واحدة ضيّعت النجمة التالتة"
+      }
+    }
+  },
+  "mistakeOver": "إديت {who} زيادة {size, select, half{نص جنيه} one{جنيه} other{{amount} جنيه}}",
+  "@mistakeOver": {
+    "description": "A mistake: more change than owed.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "الطالب"
+      },
+      "size": {
+        "type": "String",
+        "example": "half"
+      },
+      "amount": {
+        "type": "String",
+        "example": "١٫٥"
+      }
+    }
+  },
+  "mistakeNotOwed": "إديت {who} {size, select, half{نص جنيه} one{جنيه} other{{amount} جنيه}} {feminine, select, true{وهي مالهاش باقي} other{وهو مالوش باقي}}",
+  "@mistakeNotOwed": {
+    "description": "A mistake: change to a passenger owed none.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "راكب"
+      },
+      "size": {
+        "type": "String",
+        "example": "other"
+      },
+      "amount": {
+        "type": "String",
+        "example": "٣"
+      },
+      "feminine": {
+        "type": "String",
+        "example": "false"
+      }
+    }
+  },
+  "mistakeUnreturned": "{who} {feminine, select, true{نزلت من غير باقيها} other{نزل من غير باقيه}} ({size, select, half{نص جنيه} one{جنيه} other{{amount} جنيه}})",
+  "@mistakeUnreturned": {
+    "description": "A mistake: a passenger got off still owed change.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "الحاجة"
+      },
+      "feminine": {
+        "type": "String",
+        "example": "true"
+      },
+      "size": {
+        "type": "String",
+        "example": "one"
+      },
+      "amount": {
+        "type": "String",
+        "example": "١"
+      }
+    }
+  },
+  "mistakeFights": "{count, plural, =1{حصلت خناقة} =2{حصلت خناقتين} few{حصلت {n} خناقات} other{حصلت {n} خناقة}}",
+  "@mistakeFights": {
+    "description": "A count line: fights.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "mistakeMissedStops": "{count, plural, =1{راكب عدّى محطته} =2{راكبين عدّوا محطتهم} few{{n} ركاب عدّوا محطتهم} other{{n} راكب عدّوا محطتهم}}",
+  "@mistakeMissedStops": {
+    "description": "A count line: passengers who missed their stop.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "mistakeLostFares": "{count, plural, =1{أجرة ضاعت} =2{أجرتين ضاعوا} few{{n} أجرات ضاعت} other{{n} أجرة ضاعت}}",
+  "@mistakeLostFares": {
+    "description": "A count line: fares lost.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "resultPaid": "قبضت",
+  "@resultPaid": {
+    "description": "Before the pay."
+  },
+  "resultA11yPay": "قبضت {amount} جنيه",
+  "@resultA11yPay": {
+    "description": "The pay, read aloud.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "٨٥"
+      }
+    }
+  },
+  "resultAptRemaining": "فاضلك {n} ج",
+  "@resultAptRemaining": {
+    "description": "The apartment card: what is still missing.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٬٨٧٥"
+      }
+    }
+  },
+  "resultAptAffordable": "تقدر تشتري {item}!",
+  "@resultAptAffordable": {
+    "description": "The apartment card when the pay made the piece affordable.",
+    "placeholders": {
+      "item": {
+        "type": "String",
+        "example": "الأنتريه"
+      }
+    }
+  },
+  "resultA11yApt": "{item}، {have} من {price} جنيه",
+  "@resultA11yApt": {
+    "description": "The apartment card, read aloud.",
+    "placeholders": {
+      "item": {
+        "type": "String",
+        "example": "الأنتريه"
+      },
+      "have": {
+        "type": "String",
+        "example": "١٬٣٢٥"
+      },
+      "price": {
+        "type": "String",
+        "example": "٣٬٢٠٠"
+      }
+    }
+  },
+  "resultAgain": "مشوار تاني",
+  "@resultAgain": {
+    "description": "The next trip."
+  },
+  "resultAgainFuel": "−{n} لتر",
+  "@resultAgainFuel": {
+    "description": "The next trip's fuel chip.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١"
+      }
+    }
+  },
+  "resultA11yAgain": "مشوار تاني، هيصرف لتر بنزين",
+  "@resultA11yAgain": {
+    "description": "The next trip, read aloud."
+  },
+  "resultA11yShare": "شارك النتيجة",
+  "@resultA11yShare": {
+    "description": "The share button."
+  },
+  "shareCaption": "قبضت {amount} في مشوار {line} في وصّل الأجرة!",
+  "@shareCaption": {
+    "description": "The text offered with the shared result picture (research R18, owner approval): the pay in JENEHAT and the line's name. No store link until the listing is public.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "The pay, formatted in the player's digits."
+      },
+      "line": {
+        "type": "String",
+        "description": "The line's name: «خط الجامعة»."
+      }
+    }
+  },
+  "sharePaid": "قبضت {amount}",
+  "@sharePaid": {
+    "description": "The result picture's pay, beside the coin (ShareCard box 14).",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "description": "The pay, formatted in the player's digits."
+      }
+    }
+  },
+  "shareFailed": "ما عرفناش نجهّز الصورة. حاول تاني.",
+  "@shareFailed": {
+    "description": "Toast when the result picture could not be made or shared; nothing else changed."
+  },
+  "resultA11yCountRow": "{label}، {value}",
+  "@resultA11yCountRow": {
+    "description": "A count row of the breakdown (the fights), read aloud.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "الخناقات"
+      },
+      "value": {
+        "type": "String",
+        "example": "٠"
+      }
+    }
+  },
+  "resultBonatChip": "+{n} بون",
+  "@resultBonatChip": {
+    "description": "The pay's BONAT chip, from M13's task slot (HANDOFF §9.1 #3: chips say «بون»).",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٥"
+      }
+    }
+  },
+  "resultAptGoalAffordable": "تقدر تشتريه!",
+  "@resultAptGoalAffordable": {
+    "description": "The apartment card when the pay covers the chapter goal before the apartment opens."
   }
 }

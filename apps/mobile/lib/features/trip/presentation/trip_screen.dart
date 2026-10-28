@@ -170,9 +170,9 @@ class _TripScreenState extends ConsumerState<TripScreen> {
       if (!mounted) return;
       final router = GoRouter.of(context);
       switch (exit) {
-        case ExitToResult(:final tripId, :final result):
+        case ExitToResult(:final tripId, :final args):
           unawaited(
-            router.pushReplacement('/trip/$tripId/result', extra: result),
+            router.pushReplacement('/trip/$tripId/result', extra: args),
           );
         case ExitToHome():
           router.go('/home');

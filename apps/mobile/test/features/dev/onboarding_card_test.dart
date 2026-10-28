@@ -15,6 +15,7 @@ import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
 import '../../helpers/content.dart';
 import '../../helpers/economy.dart';
 import '../../helpers/first_session.dart';
+import '../../helpers/home.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/trip.dart';
 import '../../helpers/tutorial_content.dart';
@@ -24,8 +25,9 @@ import '../../helpers/tutorial_content.dart';
 // on demand and back to Home, "coach on every tutorial trip", the tutorial
 // trips marked in the trip list; nothing of it on prod.
 
-/// A tester past the tutorial, on the playtest Home of a [flavor] build
-/// with the tutorial fixture's pack.
+/// A tester past the tutorial, on Home of a [flavor] build with the
+/// tutorial fixture's pack, the testers' sheet open (M08) where there is
+/// one.
 Future<ProviderContainer> _home(
   WidgetTester tester, {
   Flavor flavor = Flavor.staging,
@@ -47,7 +49,7 @@ Future<ProviderContainer> _home(
         ),
   );
   await preloadTripArt(tester);
-  return pumpWassalApp(
+  final container = await pumpWassalApp(
     tester,
     flavor: flavor,
     newPlayer: true,
@@ -64,6 +66,8 @@ Future<ProviderContainer> _home(
       }
     }),
   );
+  if (flavor != Flavor.prod) await openDebugSheet(tester);
+  return container;
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {

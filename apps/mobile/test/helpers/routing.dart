@@ -1,9 +1,16 @@
 import 'dart:collection';
 
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/theme/components/nav.dart';
+import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/home/application/home_slots.dart';
+import 'package:wassal/features/home/presentation/home_header.dart';
+import 'package:wassal/features/home/presentation/start_button.dart';
+import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 
 /// Presses the phone's back button.
 Future<void> pressBack(WidgetTester tester) async {
@@ -11,10 +18,47 @@ Future<void> pressBack(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Taps the visible placeholder link to [name], scrolling it into view
-/// when content above it (internal builds' trip list) pushed it down.
+/// The real screens' controls for the links their placeholders had (M08):
+/// the profile opens Settings, «يلا نطلع!» the next trip's card, and the
+/// card's «اطلع» the trip.
+final _homeControls = <String, Key>{
+  RouteNames.settings: HomeHeader.profileKey,
+  RouteNames.preTrip: HomeStartButton.startKey,
+  RouteNames.trip: PreTripCard.goKey,
+};
+
+/// Home's daily row (M13's slot) as placeholder links, so the daily
+/// destinations stay reachable in tests until M13 builds it.
+Override homeDailyLinks() => homeDailyRowProvider.overrideWithValue(
+  (context) => SizedBox(
+    width: _dailyLinksWidth,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: SpaceTokens.s4,
+      children: [
+        for (final name in [
+          RouteNames.dailyReward,
+          RouteNames.dailyTasks,
+          RouteNames.dailyChallenge,
+        ])
+          PlaceholderLink(
+            from: destinationNamed(RouteNames.home),
+            to: destinationNamed(name),
+          ),
+      ],
+    ),
+  ),
+);
+
+const double _dailyLinksWidth = 180;
+
+/// Taps the visible link to [name]: a placeholder's, or Home's own control
+/// for it, scrolling it into view when content above it pushed it down.
 Future<void> tapLink(WidgetTester tester, String name) async {
-  final key = find.byKey(PlaceholderScreen.linkKey(name));
+  var key = find.byKey(PlaceholderScreen.linkKey(name));
+  if (key.evaluate().isEmpty && _homeControls[name] != null) {
+    key = find.byKey(_homeControls[name]!);
+  }
   if (key.hitTestable().evaluate().isEmpty && key.evaluate().isNotEmpty) {
     await tester.ensureVisible(key.last);
     await tester.pumpAndSettle();

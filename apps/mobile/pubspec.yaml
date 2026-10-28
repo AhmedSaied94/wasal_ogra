@@ -43,6 +43,10 @@ dependencies:
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
   rive: ^0.14.11
+  # The result's picture through the phone's share sheet, behind ShareGateway
+  # (specs/013-m08-home-result, research R16). Its iOS plugin is a Swift
+  # Package, so there is still no Podfile.
+  share_plus: ^13.3.1
   shared_preferences: ^2.5.6
   # Direct for its Android options: `AndroidInstallIdStore` writes the
   # install id to its own backed-up file, `wassal_install.xml`

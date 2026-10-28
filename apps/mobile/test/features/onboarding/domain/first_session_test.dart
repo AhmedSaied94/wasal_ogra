@@ -291,6 +291,117 @@ void main() {
     });
   });
 
+  // M08 (specs/013-m08-home-result, research R8): what Home reads.
+  group('nextTutorialTrip', () {
+    test('null before the first trip has started', () {
+      expect(_session().nextTutorialTrip, isNull);
+    });
+
+    test('the first unfinished tutorial trip while in the first session', () {
+      for (var i = 1; i < 5; i++) {
+        expect(_session(progress: _done(i)).nextTutorialTrip, _trips[i]);
+      }
+      expect(_session(unfinishedTripId: _trips[0]).nextTutorialTrip, _trips[0]);
+      expect(
+        _session(progress: {'line_hay.01': _finished, 'line_hay.03': _finished})
+            .nextTutorialTrip,
+        'line_hay.02',
+      );
+      expect(
+        _session(progress: {..._done(1), 'line_hay.02': _failed})
+            .nextTutorialTrip,
+        'line_hay.02',
+      );
+    });
+
+    test('null once the tutorial is done', () {
+      expect(_session(progress: _done(5)).nextTutorialTrip, isNull);
+      expect(
+        _session(progress: {for (final t in _trips) t: _restoredFinish})
+            .nextTutorialTrip,
+        isNull,
+      );
+    });
+  });
+
+  group('fuelLessonDue', () {
+    test('on trip 5\'s first play', () {
+      expect(_session(progress: _done(4)).fuelLessonDue(_trips[4]), isTrue);
+      expect(
+        _session(progress: {..._done(4), 'line_hay.05': _failed})
+            .fuelLessonDue(_trips[4]),
+        isFalse,
+      );
+    });
+
+    test('on any tutorial trip with an empty tank and no window', () {
+      for (final trip in _trips) {
+        expect(_session(liters: 0).fuelLessonDue(trip), isTrue, reason: trip);
+      }
+      // Trip 5's first play has the lesson whatever the tank.
+      for (final trip in _trips.take(4)) {
+        expect(
+          _session(liters: 0, unlimited: true).fuelLessonDue(trip),
+          isFalse,
+          reason: trip,
+        );
+      }
+      expect(_session(liters: 0).fuelLessonDue('line_gamaa.01'), isFalse);
+    });
+
+    test('never once granted or once done', () {
+      expect(
+        _session(liters: 0, granted: true).fuelLessonDue(_trips[1]),
+        isFalse,
+      );
+      const done = FirstSessionFlags(fuelLessonDoneAtMs: 9);
+      expect(
+        _session(flags: done, liters: 0).fuelLessonDue(_trips[1]),
+        isFalse,
+      );
+    });
+
+    test('still true when a scene is due, which beforeStart puts first', () {
+      const flags = FirstSessionFlags(scenesDue: ['the_stand']);
+      final session = _session(flags: flags, liters: 0, progress: _done(3));
+      expect(session.fuelLessonDue(_trips[3]), isTrue);
+      expect(session.beforeStart(_trips[3]), const DueScene('the_stand'));
+    });
+  });
+
+  group('nextAfterResult, rewritten on nextTutorialTrip', () {
+    // M07's rule as it was, to compare against.
+    String before(FirstSession session, String tripId) {
+      final trips = session.facts.tutorialTrips;
+      if (!trips.contains(tripId)) return '/home';
+      for (final trip in trips) {
+        if (!isFinished(session.facts.progress[trip])) return '/trip/$trip';
+      }
+      return '/home';
+    }
+
+    test('gives the same answer for every trip in every tutorial state', () {
+      // A result has been recorded, so some trip has progress.
+      final states = <Map<String, TripProgress>>[
+        for (var i = 1; i <= 5; i++) _done(i),
+        {..._done(1), 'line_hay.02': _failed},
+        {'line_hay.01': _finished, 'line_hay.03': _finished},
+        {for (final t in _trips) t: _restoredFinish},
+        {'line_gamaa.01': _finished},
+      ];
+      for (final progress in states) {
+        final session = _session(progress: progress);
+        for (final trip in [..._trips, 'line_gamaa.01']) {
+          expect(
+            session.nextAfterResult(trip),
+            before(session, trip),
+            reason: '$trip after $progress',
+          );
+        }
+      }
+    });
+  });
+
   group('the state', () {
     test('inFirstSession: a trip started and the tutorial not done', () {
       expect(_session().inFirstSession, isFalse);

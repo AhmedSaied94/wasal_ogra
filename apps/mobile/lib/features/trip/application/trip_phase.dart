@@ -4,6 +4,7 @@
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
+import 'package:wassal/features/result/domain/result_args.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
 
@@ -20,15 +21,18 @@ sealed class TripExit extends ViewValue {
   const TripExit();
 }
 
-/// The result route, with the trip's result.
+/// The result route, with what the trip hands it
+/// (specs/013-m08-home-result, contracts/result.md).
 final class ExitToResult extends TripExit {
-  const ExitToResult(this.tripId, this.result);
+  const ExitToResult(this.tripId, this.args);
 
   final String tripId;
-  final TripResult result;
+  final ResultArgs args;
+
+  TripResult get result => args.result;
 
   @override
-  Map<String, Object?> get fields => {'tripId': tripId, 'result': result};
+  Map<String, Object?> get fields => {'tripId': tripId, 'args': args};
 }
 
 final class ExitToHome extends TripExit {

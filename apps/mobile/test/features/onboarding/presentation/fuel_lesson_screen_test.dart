@@ -87,15 +87,21 @@ Future<void> _tapCta(WidgetTester tester) async {
   }
 }
 
+/// [text] on the lesson, not on Home's fuel pill beneath it.
+Finder _inLesson(String text) => find.descendant(
+  of: find.byType(FuelLessonScreen),
+  matching: find.text(text),
+);
+
 void main() {
   testWidgets('the gauge starts at the tank, then sweeps to full', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
     await _lesson(tester);
-    expect(find.text(_numbers.ratio(1, 5)), findsOneWidget);
+    expect(_inLesson(_numbers.ratio(1, 5)), findsOneWidget);
     await pumpFrames(tester);
-    expect(find.text(_numbers.ratio(5, 5)), findsOneWidget);
+    expect(_inLesson(_numbers.ratio(5, 5)), findsOneWidget);
     expect(_gaugeLabel(tester), _gauge(5));
     semantics.dispose();
   });
@@ -105,7 +111,7 @@ void main() {
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     await _lesson(tester);
-    expect(find.text(_numbers.ratio(5, 5)), findsOneWidget);
+    expect(_inLesson(_numbers.ratio(5, 5)), findsOneWidget);
   });
 
   testWidgets('the button: the gift, the lesson done, then the trip', (
