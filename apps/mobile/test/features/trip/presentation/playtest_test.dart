@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/flavor.dart';
+import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
@@ -128,6 +129,33 @@ void main() {
       expect(
         find.descendant(of: panel, matching: find.text('near_rive')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets("lists both Rive files' problems, the characters' first", (
+      tester,
+    ) async {
+      await pumpTrip(
+        tester,
+        riveArt: const RiveArt.none(['assets/rive/wassal.riv: x']),
+        riveScenes: const RiveArt.none(['assets/rive/wassal_scenes.riv: y']),
+      );
+      await tester.tap(find.byKey(TripHud.debugKey));
+      await tester.pumpAndSettle();
+      final panel = find.byType(DebugPanel);
+      final l10n = lookupAppLocalizations(const Locale('ar'));
+      expect(
+        find.descendant(
+          of: panel,
+          matching: find.text(
+            'assets/rive/wassal.riv: x\nassets/rive/wassal_scenes.riv: y',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: panel, matching: find.text(l10n.tripDebugArtFine)),
+        findsNothing,
       );
     });
 

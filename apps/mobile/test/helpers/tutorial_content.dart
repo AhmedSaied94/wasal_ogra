@@ -113,6 +113,10 @@ Map<String, Uint8List?> tutorialBundledAssetsAllFlavors() {
 /// A fixture trip's definition.
 TripDefinition tutorialTrip(String tripId) => tutorialContent().trip(tripId)!;
 
+/// The draft's سلمى scene, `first_sight`, under its `ch1_*` panel names
+/// (specs/012.5-m22-animated-scenes, research R11).
+Scene draftFirstSight() => Scene.fromJson(_json('$_fixture/first_sight.json'));
+
 /// The sample with no scene that plays by itself: every `plays` removed,
 /// so the pack has no opening scene (FR-010).
 Map<String, Object?> sampleWithoutSessionScenesJson() {

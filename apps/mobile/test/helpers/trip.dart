@@ -52,6 +52,7 @@ import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/features/trip/presentation/scene/svg_passenger_art.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
@@ -540,18 +541,21 @@ Future<void> playCommands(
 Economy economyOf(TestEconomy economy) => economy.service;
 
 /// The trip screen's platform edges as fakes, for every app test: no
-/// sound or vibration plugins, no Rive file (the static art everywhere), no
-/// ads, and a
-/// clock the test moves itself (the scene steps once per change).
+/// sound or vibration plugins, no Rive files unless [riveArt] or
+/// [riveScenes] gives one (the static art everywhere), no ads, and a clock
+/// the test moves itself (the scene steps once per change).
 List<Override> tripTestOverrides({
   FakeSfxPlayer? sfx,
   FakeHaptics? haptics,
   TripAdOffers ads = const NoTripAdOffers(),
+  RiveArt riveArt = const RiveArt.none(),
+  RiveArt riveScenes = const RiveArt.none(),
 }) => [
   sfxPlayerProvider.overrideWithValue(sfx ?? FakeSfxPlayer()),
   hapticsProvider.overrideWithValue(haptics ?? FakeHaptics()),
   tripFrameDrivenProvider.overrideWithValue(false),
-  riveArtProvider.overrideWith((ref) async => const RiveArt.none()),
+  riveArtProvider.overrideWith((ref) async => riveArt),
+  riveScenesProvider.overrideWith((ref) async => riveScenes),
   passengerArtProvider.overrideWithValue(const SvgPassengerArtFactory()),
   tripAdOffersProvider.overrideWithValue(ads),
 ];
@@ -589,6 +593,8 @@ Future<ProviderContainer> pumpTrip(
   FakeSfxPlayer? sfx,
   FakeHaptics? haptics,
   TripAdOffers ads = const NoTripAdOffers(),
+  RiveArt riveArt = const RiveArt.none(),
+  RiveArt riveScenes = const RiveArt.none(),
   SettingsStore? settingsStore,
   Flavor flavor = Flavor.dev,
   List<Override>? content,
@@ -610,7 +616,13 @@ Future<ProviderContainer> pumpTrip(
     settingsStore: settingsStore,
     economy: economy == null ? null : economyOverridesOf(economy),
     initialLocation: '/trip/$tripId',
-    trip: tripTestOverrides(sfx: sfx, haptics: haptics, ads: ads),
+    trip: tripTestOverrides(
+      sfx: sfx,
+      haptics: haptics,
+      ads: ads,
+      riveArt: riveArt,
+      riveScenes: riveScenes,
+    ),
     overrides: [
       if (fixed != null) tripFixedProvider.overrideWithValue(fixed),
       ...overrides,

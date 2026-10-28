@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rive/rive.dart' as rive;
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/theme/components/story.dart';
 import 'package:wassal/core/theme/components/vehicle_sprite.dart';
 import 'package:wassal/core/theme/components/characters.dart';
@@ -172,5 +173,117 @@ void main() {
       expect(find.byType(rive.RiveWidget), findsNWidgets(3));
       await tester.pumpWidget(const SizedBox());
     }, tags: ['rive']);
+  });
+
+  // The scope's second file (specs/012.5-m22-animated-scenes,
+  // contracts/rive-scenes.md "Drawing"): a view reads the file its source
+  // names, and draws its fallback without it.
+  group('the scenes file', () {
+    const panel = RiveArtView(
+      source: RiveArtSource.scenes,
+      artboard: 'opening_key',
+      fit: rive.Fit.cover,
+      alignment: Alignment.bottomCenter,
+      fallback: SizedBox(key: _fallback),
+    );
+
+    testWidgets('a scenes view without the scenes file: its fallback', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const RiveArtScope(art: RiveArt.none(), child: panel),
+      );
+      expect(find.byKey(_fallback), findsOneWidget);
+      expect(find.byType(rive.RiveWidget), findsNothing);
+    });
+
+    group('with it', () {
+      late rive.File file;
+      late RiveArt scenes;
+
+      Future<void> load(WidgetTester tester) async {
+        await tester.runAsync(() async {
+          await rive.RiveNative.init();
+          final bytes = io.File(riveScenesAsset).readAsBytesSync();
+          file = (await rive.File.decode(
+            bytes,
+            riveFactory: rive.Factory.flutter,
+          ))!;
+        });
+        scenes = checkRiveArt(file, sceneContract);
+        addTearDown(file.dispose);
+      }
+
+      testWidgets('a scenes view draws Rive, with the fit and alignment it '
+          'asks for', (tester) async {
+        await load(tester);
+        await tester.pumpWidget(
+          RiveArtScope(art: null, scenes: scenes, child: panel),
+        );
+        await tester.pump(const Duration(milliseconds: 16));
+        final widget = tester.widget<rive.RiveWidget>(
+          find.byType(rive.RiveWidget),
+        );
+        expect(widget.fit, rive.Fit.cover);
+        expect(widget.alignment, Alignment.bottomCenter);
+        await tester.pumpWidget(const SizedBox());
+      }, tags: ['rive']);
+
+      testWidgets('a characters view never reads the scenes file', (
+        tester,
+      ) async {
+        await load(tester);
+        await tester.pumpWidget(
+          RiveArtScope(
+            art: const RiveArt.none(),
+            scenes: scenes,
+            child: const RiveArtView(
+              artboard: 'opening_key',
+              fallback: SizedBox(key: _fallback),
+            ),
+          ),
+        );
+        expect(find.byKey(_fallback), findsOneWidget);
+        expect(find.byType(rive.RiveWidget), findsNothing);
+      }, tags: ['rive']);
+
+      testWidgets('a change of source closes the view', (tester) async {
+        await load(tester);
+        Future<void> pump(RiveArtSource source) => tester.pumpWidget(
+          RiveArtScope(
+            art: const RiveArt.none(),
+            scenes: scenes,
+            child: RiveArtView(
+              source: source,
+              artboard: 'opening_key',
+              fallback: const SizedBox(key: _fallback),
+            ),
+          ),
+        );
+        await pump(RiveArtSource.scenes);
+        expect(find.byType(rive.RiveWidget), findsOneWidget);
+        await pump(RiveArtSource.characters);
+        expect(find.byType(rive.RiveWidget), findsNothing);
+        expect(find.byKey(_fallback), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      }, tags: ['rive']);
+
+      testWidgets('a file whose contract lacks the artboard: its fallback, '
+          'never a throw', (tester) async {
+        await load(tester);
+        // Built by hand, with no contract: the characters' is read.
+        final bare = RiveArt(
+          file: file,
+          usable: const {'opening_key'},
+          problems: const [],
+        );
+        await tester.pumpWidget(
+          RiveArtScope(art: null, scenes: bare, child: panel),
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(_fallback), findsOneWidget);
+        expect(find.byType(rive.RiveWidget), findsNothing);
+      }, tags: ['rive']);
+    });
   });
 }

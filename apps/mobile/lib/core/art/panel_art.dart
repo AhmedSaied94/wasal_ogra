@@ -2,18 +2,32 @@ import 'dart:math' as math;
 
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:rive/rive.dart' as rive;
+import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+
+/// The panel's four talking Booleans for [talking]: its own on, the others
+/// off; all off for nobody, or for a speaker without one
+/// (specs/012.5-m22-animated-scenes, data-model.md `panelTalkers`).
+Map<String, bool> panelTalkers(String? talking) => {
+  for (final talker in sceneTalkers) talker: talker == talking,
+};
 
 /// A comic panel's art (specs/012-m07-onboarding/contracts/scenes.md "Panel
 /// art"): the drawing the app ships for [slug], or [PanelFallback] drawn
 /// from the panel's [speakers]. Art ships in the app, not in packs, so a
-/// missing drawing never blocks a scene.
+/// missing drawing never blocks a scene. With [animate], the scenes' file
+/// draws it over the drawing, [talking] talking
+/// (specs/012.5-m22-animated-scenes, contracts/rive-scenes.md "Panel art").
 class PanelArt extends StatelessWidget {
   const PanelArt({
     required this.slug,
     required this.speakers,
     this.current,
+    this.animate = false,
+    this.talking,
     super.key,
   });
 
@@ -24,6 +38,13 @@ class PanelArt extends StatelessWidget {
 
   /// Who speaks first, drawn in front by the fallback.
   final String? current;
+
+  /// Whether to draw the panel's animation; without it, or when it can't
+  /// play, the drawing.
+  final bool animate;
+
+  /// The speaker talking now, or nobody.
+  final String? talking;
 
   /// The drawings, by slug. A new drawing is one entry and its asset
   /// (`tool/design/sync_assets.dart`).
@@ -36,11 +57,49 @@ class PanelArt extends StatelessWidget {
     'usta_decides': 'assets/illustrations/panels/usta_decides.svg',
   };
 
+  /// Content slugs that draw another slug's art, both the drawing and the
+  /// animation (specs/012.5-m22-animated-scenes, data-model.md "Art slug"):
+  /// the release draft's names for the سلمى scene's three panels.
+  static const Map<String, String> _aliases = {
+    'ch1_stand_morning': 'stand_morning',
+    'ch1_salma_asks': 'salma_waiting',
+    'ch1_usta_dreams': 'usta_decides',
+  };
+
+  /// The art slug [slug] draws: an alias's, else itself.
+  static String artFor(String slug) => _aliases[slug] ?? slug;
+
   /// The asset drawn for [slug], or null when it has none.
-  static String? assetFor(String slug) => _drawings[slug];
+  static String? assetFor(String slug) => _drawings[artFor(slug)];
+
+  /// Sets all four talking Booleans for [talking], so none is left on from
+  /// an earlier turn.
+  static void Function(rive.ViewModelInstance model) bindTalkers(
+    String? talking,
+  ) => (model) {
+    for (final MapEntry(key: talker, value: on) in panelTalkers(
+      talking,
+    ).entries) {
+      model.boolean(talker)?.value = on;
+    }
+  };
 
   @override
-  Widget build(BuildContext context) => switch (assetFor(slug)) {
+  Widget build(BuildContext context) {
+    final still = _still();
+    if (!animate) return still;
+    // The drawing's own fit, so a shorter panel loses sky first.
+    return RiveArtView(
+      source: RiveArtSource.scenes,
+      artboard: artFor(slug),
+      fit: rive.Fit.cover,
+      alignment: Alignment.bottomCenter,
+      bind: bindTalkers(talking),
+      fallback: still,
+    );
+  }
+
+  Widget _still() => switch (assetFor(slug)) {
     final asset? => SvgPicture.asset(
       asset,
       fit: BoxFit.cover,

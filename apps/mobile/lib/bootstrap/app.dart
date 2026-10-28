@@ -6,6 +6,7 @@ import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/bootstrap/status_overlay_host.dart';
 import 'package:wassal/core/account/account_providers.dart';
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/home_arrival.dart';
@@ -144,9 +145,11 @@ class _WassalAppState extends ConsumerState<WassalApp> {
         // Screens are on the ground unless they say otherwise.
         child: SystemBars(
           bottom: ColorTokens.ground,
-          // The Rive file once boot has decoded it; static art until then.
+          // The Rive files once boot has decoded them; static art until
+          // then.
           child: RiveArtScope(
             art: ref.watch(riveArtProvider).value,
+            scenes: ref.watch(riveScenesProvider).value,
             child: StatusOverlayHost(child: child ?? const SizedBox.shrink()),
           ),
         ),

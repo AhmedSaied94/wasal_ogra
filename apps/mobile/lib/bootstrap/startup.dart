@@ -13,6 +13,7 @@ import 'package:wassal/core/platform/app_info.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/preferences/shared_prefs_settings_store.dart';
 import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 
 part 'startup.g.dart';
 
@@ -63,7 +64,11 @@ Future<void> appStartup(Ref ref) {
       BootStep.content: ref.watch(activeContentProvider.future),
       BootStep.database: ref.watch(appDatabaseProvider.future),
       BootStep.economy: ref.watch(economyProvider.future),
-      BootStep.art: ref.watch(riveArtProvider.future),
+      // Both Rive files, side by side; neither can fail the step.
+      BootStep.art: Future.wait([
+        ref.watch(riveArtProvider.future),
+        ref.watch(riveScenesProvider.future),
+      ]),
     },
     onDone: progress.markDone,
     onFailed: progress.markFailed,
@@ -72,7 +77,7 @@ Future<void> appStartup(Ref ref) {
 
 /// Runs startup again after a failure. Each step caches its own result,
 /// so the step that failed is reset too, not just [appStartup]. The art
-/// keeps its file: its step never fails (`loadRiveArt`).
+/// keeps both its files: its step never fails (`loadRiveArt`).
 void retryAppStartup(WidgetRef ref) {
   ref
     ..invalidate(settingsStoreProvider)

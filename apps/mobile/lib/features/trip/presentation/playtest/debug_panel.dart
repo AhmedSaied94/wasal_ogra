@@ -3,7 +3,8 @@
 // clock and status, reputation and counters, and copies the replay
 // record's JSON to the clipboard. Since 008.5 it also switches which seats
 // Rive draws, for the session, and lists what the Rive file's contract
-// check found (research R18). Values are identifiers, read left to right.
+// check found (research R18); since 012.5, the scenes' file's too. Values
+// are identifiers, read left to right.
 import 'dart:async';
 import 'dart:convert';
 
@@ -11,12 +12,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/core/art/rive_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/controls.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/application/art_tier.dart';
 import 'package:wassal/features/trip/presentation/cards/trip_card.dart';
-import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class DebugPanel extends ConsumerStatefulWidget {
@@ -54,7 +56,11 @@ class _DebugPanelState extends ConsumerState<DebugPanel> {
     final l10n = AppLocalizations.of(context);
     final state = widget.state;
     final definition = widget.record.definition;
-    final problems = ref.watch(riveArtProvider).value?.problems ?? const [];
+    // The characters' file, then the scenes' (012.5, research R13).
+    final problems = [
+      ...?ref.watch(riveArtProvider).value?.problems,
+      ...?ref.watch(riveScenesProvider).value?.problems,
+    ];
     return TripCard(
       title: l10n.tripDebugTitle,
       children: [

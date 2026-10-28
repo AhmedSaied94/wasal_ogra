@@ -8,10 +8,8 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
-import 'dart:ui' show FramePhase, FrameTiming;
 
 import 'package:flame/game.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -30,6 +28,7 @@ import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import '../test/helpers/content.dart';
 import '../test/helpers/pump_app.dart';
 import '../test/helpers/trip.dart';
+import 'frame_rates.dart';
 import 'trip_helpers.dart';
 
 /// The trip to play, from the script.
@@ -37,58 +36,6 @@ const _tripId = String.fromEnvironment(
   'WASSAL_PERF_TRIP',
   defaultValue: 'line_gamaa.02',
 );
-
-const _second = 1000000;
-
-/// Collects every frame's timing while it runs.
-final class _Frames {
-  _Frames() {
-    SchedulerBinding.instance.addTimingsCallback(_add);
-  }
-
-  final timings = <FrameTiming>[];
-  final _waiting = <(int, Completer<FrameTiming>)>[];
-
-  void _add(List<FrameTiming> batch) {
-    timings.addAll(batch);
-    for (final timing in batch) {
-      final start = timing.timestampInMicroseconds(FramePhase.buildStart);
-      _waiting.removeWhere((w) {
-        if (start < w.$1) return false;
-        w.$2.complete(timing);
-        return true;
-      });
-    }
-  }
-
-  /// The first frame whose build starts at or after [micros] (the same
-  /// clock as [Timeline.now]).
-  Future<FrameTiming> after(int micros) {
-    final done = Completer<FrameTiming>();
-    _waiting.add((micros, done));
-    return done.future;
-  }
-
-  void dispose() => SchedulerBinding.instance.removeTimingsCallback(_add);
-}
-
-int _raster(FrameTiming t) =>
-    t.timestampInMicroseconds(FramePhase.rasterFinish);
-
-/// Average fps, and the fewest frames in any one-second window.
-({double average, int worstWindow}) _rates(List<FrameTiming> frames) {
-  final ends = [for (final f in frames) _raster(f)]..sort();
-  final span = ends.last - ends.first;
-  var worst = ends.length;
-  var j = 0;
-  for (var i = 0; i < ends.length && ends[i] + _second <= ends.last; i++) {
-    while (j < ends.length && ends[j] < ends[i] + _second) {
-      j++;
-    }
-    worst = worst < j - i ? worst : j - i;
-  }
-  return (average: (ends.length - 1) * _second / span, worstWindow: worst);
-}
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized()
@@ -117,7 +64,7 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(WassalApp)),
     );
-    final frames = _Frames();
+    final frames = FrameTimings();
     addTearDown(frames.dispose);
 
     // The trip's first frame (SC-005).
@@ -130,7 +77,7 @@ void main() {
           controllerOf(tester).phase == TripPhase.running,
     );
     final firstFrame = await frames.after(Timeline.now);
-    final firstFrameMs = (_raster(firstFrame) - openedAt) / 1000;
+    final firstFrameMs = (rasterEnd(firstFrame) - openedAt) / 1000;
 
     final c = controllerOf(tester);
     var peakRss = ProcessInfo.currentRss;
@@ -154,7 +101,7 @@ void main() {
             final tappedAt = Timeline.now;
             await _perform(tester, c, command);
             final shown = await frames.after(Timeline.now);
-            tapMs = (_raster(shown) - tappedAt) / 1000;
+            tapMs = (rasterEnd(shown) - tappedAt) / 1000;
           } else {
             await _perform(tester, c, command);
           }
@@ -167,7 +114,7 @@ void main() {
     await Future<void>.delayed(const Duration(seconds: 2));
 
     final played = frames.timings.sublist(playedFrom);
-    final rates = _rates(played);
+    final rates = frameRates(played);
     binding.reportData = {
       ...?binding.reportData,
       'trip_perf': {

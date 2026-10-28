@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart' show OrdinalSortKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/art/panel_art.dart';
+import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/containers.dart';
@@ -11,13 +12,30 @@ import 'package:wassal/core/theme/components/story.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/core/theme/tokens/scene_turn_tokens.dart';
+import 'package:wassal/features/onboarding/domain/panel_turns.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
+
+/// How long the scenes' turns last (specs/012.5-m22-animated-scenes,
+/// research R5).
+final _turnTimings = TurnTimings(
+  leadIn: SceneTurnTokens.leadIn,
+  perLetter: SceneTurnTokens.perLetter,
+  min: SceneTurnTokens.min,
+  max: SceneTurnTokens.max,
+  pause: SceneTurnTokens.pause,
+);
 
 /// Plays one scene as a comic, built to the `Intro` artboard
 /// (specs/012-m07-onboarding/contracts/scenes.md "The player"): the
 /// chapter's [title] and «تخطّى», one [ComicPanel] per panel, the page dots
 /// and «يلا». «يلا» shows the next panel; on the last one, «تخطّى» and back
 /// call [onFinished], once.
+///
+/// A panel that animates plays its lines in turn
+/// (specs/012.5-m22-animated-scenes, contracts/scene-turns.md): each
+/// speaker's bubble pops up and they talk for their turn. «يلا» before the
+/// last turn has started shows the rest; the next «يلا» moves on.
 class ScenePlayer extends ConsumerStatefulWidget {
   const ScenePlayer({
     required this.title,
@@ -50,9 +68,24 @@ class ScenePlayer extends ConsumerStatefulWidget {
   ConsumerState<ScenePlayer> createState() => _ScenePlayerState();
 }
 
-class _ScenePlayerState extends ConsumerState<ScenePlayer> {
+class _ScenePlayerState extends ConsumerState<ScenePlayer>
+    with TickerProviderStateMixin {
   int _index = 0;
   bool _finished = false;
+
+  /// The panel [_turns] and [_clock] belong to.
+  int? _turnsOf;
+  PanelTurns? _turns;
+
+  /// The turns' clock, while they play; one per animated panel.
+  AnimationController? _clock;
+
+  /// Where the turns are, once per change.
+  TurnsAt? _at;
+
+  /// The panel shows every bubble and nobody talks: it showed still, has no
+  /// turns, or «يلا» or the end of the scene stopped them.
+  bool _done = false;
 
   /// `Intro`: the header, panel, dots and CTA are 16 apart.
   static const double _gap = 16;
@@ -69,16 +102,68 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
   void _finish() {
     if (_finished) return;
     _finished = true;
+    // Nothing keeps talking while the scene goes.
+    setState(_endTurns);
     widget.onFinished();
   }
 
   void _next() {
     if (_finished) return;
-    if (_index + 1 < _panels.length) {
+    if (_clock != null && !(_at?.lastStarted ?? true)) {
+      setState(_endTurns);
+    } else if (_index + 1 < _panels.length) {
       setState(() => _index++);
     } else {
       _finish();
     }
+  }
+
+  /// Every bubble at once, and nobody talks.
+  void _endTurns() {
+    _clock?.dispose();
+    _clock = null;
+    _done = true;
+  }
+
+  /// Brings the turns up to the panel on screen and whether it [animated].
+  /// A new panel starts its clock in the frame it first shows.
+  void _syncTurns({required bool animated}) {
+    if (_turnsOf != _index) {
+      _clock?.dispose();
+      _clock = null;
+      _turnsOf = _index;
+      final turns = PanelTurns(_panels[_index].lines, _turnTimings);
+      _turns = turns;
+      _at = turns.at(Duration.zero);
+      _done = !animated || turns.turns.isEmpty;
+      if (!_done) {
+        _clock = AnimationController(vsync: this, duration: turns.end)
+          ..addListener(_tick)
+          ..forward();
+      }
+    } else if (!animated && _clock != null) {
+      // Reduced motion turned on mid-turn.
+      _endTurns();
+    }
+  }
+
+  /// Rebuilds only when the turns move on, not every frame.
+  void _tick() {
+    final (clock, turns) = (_clock, _turns);
+    if (clock == null || turns == null) return;
+    // A completed controller has already cleared its elapsed time when it
+    // notifies, so its last tick is the turns' end, not their start.
+    final elapsed = clock.isCompleted
+        ? turns.end
+        : clock.lastElapsedDuration ?? Duration.zero;
+    final at = turns.at(elapsed);
+    if (at != _at) setState(() => _at = at);
+  }
+
+  @override
+  void dispose() {
+    _clock?.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,6 +171,13 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
     final l10n = AppLocalizations.of(context);
     final numbers = ref.watch(numberFormatterProvider);
     final count = _panels.length;
+    final animated =
+        ref
+            .watch(scenePanelsProvider)
+            .animates(PanelArt.artFor(_panels[_index].art)) &&
+        !MediaQuery.disableAnimationsOf(context);
+    _syncTurns(animated: animated);
+    final turns = _done ? null : _at;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -152,10 +244,19 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
                           ),
                           child: Semantics(
                             sortKey: const OrdinalSortKey(1),
-                            child: _PanelSwitcher(
-                              key: ScenePlayer.panelKey,
+                            child: _Talking(
                               index: _index,
-                              child: _panel(l10n, _panels[_index]),
+                              talking: turns?.talking,
+                              child: _PanelSwitcher(
+                                key: ScenePlayer.panelKey,
+                                index: _index,
+                                child: _panel(
+                                  l10n,
+                                  _panels[_index],
+                                  animated: animated,
+                                  shown: turns?.shown,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -191,7 +292,12 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
     );
   }
 
-  Widget _panel(AppLocalizations l10n, Panel panel) {
+  Widget _panel(
+    AppLocalizations l10n,
+    Panel panel, {
+    required bool animated,
+    required int? shown,
+  }) {
     String? caption;
     final lines = <(String, String)>[];
     for (final line in panel.lines) {
@@ -204,16 +310,19 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
     final speakers = [for (final line in panel.lines) line.speaker];
     return ComicPanel(
       key: ValueKey(_index),
-      art: PanelArt(
+      art: _PanelArtInTurn(
+        index: _index,
         slug: panel.art,
         speakers: speakers,
         current: speakers.firstWhere(
           (s) => s != ScenePlayer.narrator,
           orElse: () => ScenePlayer.narrator,
         ),
+        animate: animated,
       ),
       caption: caption,
       lines: lines,
+      shown: shown,
     );
   }
 
@@ -221,6 +330,54 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer> {
       speaker == ScenePlayer.driver
       ? widget.driverName
       : l10n.sceneSpeaker(speaker);
+}
+
+/// Who talks in the panel at [index], the one on screen. A panel on its way
+/// out talks no more (spec FR-015).
+class _Talking extends InheritedWidget {
+  const _Talking({
+    required this.index,
+    required this.talking,
+    required super.child,
+  });
+
+  final int index;
+  final String? talking;
+
+  static String? of(BuildContext context, int index) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_Talking>();
+    return scope != null && scope.index == index ? scope.talking : null;
+  }
+
+  @override
+  bool updateShouldNotify(_Talking oldWidget) =>
+      oldWidget.index != index || oldWidget.talking != talking;
+}
+
+/// The panel at [index]'s art, its speaker talking while it is on screen.
+class _PanelArtInTurn extends StatelessWidget {
+  const _PanelArtInTurn({
+    required this.index,
+    required this.slug,
+    required this.speakers,
+    required this.current,
+    required this.animate,
+  });
+
+  final int index;
+  final String slug;
+  final List<String> speakers;
+  final String current;
+  final bool animate;
+
+  @override
+  Widget build(BuildContext context) => PanelArt(
+    slug: slug,
+    speakers: speakers,
+    current: current,
+    animate: animate,
+    talking: _Talking.of(context, index),
+  );
 }
 
 /// Changes panels: a slide and fade within `sheetIn`, the new bubble
