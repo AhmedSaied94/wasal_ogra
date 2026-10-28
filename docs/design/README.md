@@ -30,16 +30,25 @@ feature ([Design sources](../delivery-plan.md#design-sources)).
 
 HANDOFF.md was written against the docs as they stood before M01. These rules win over it.
 
-1. **Rive, not Lottie.** The constitution locks Rive for characters (Platform constraints, "Locked
-   stack"). HANDOFF §6.1 and §9.1 #1 don't apply, and the `lottie`, `flame_lottie` and
-   `dotlottie_loader` packages are not added. What HANDOFF §6 asks of the Lottie files, the owner's
-   Rive files deliver instead:
+1. **Rive only, no Lottie.** The constitution locks Rive for characters (Platform constraints,
+   "Locked stack"). HANDOFF §6 agrees, except for its Lottie fallback: §6.6's step 2 and its
+   "Lottie fallback" paragraph don't apply. The `lottie`, `flame_lottie` and `dotlottie_loader`
+   packages are not added.
    - The states keep their names and meaning: the passenger states of HANDOFF §5.4 and the segment
-     list of §6.2, including which ones loop and which play once. 008.5's character contract says
-     how the Rive files expose them.
+     list of §6.3, including which ones loop and which play once. 008.5's character contract
+     (`specs/008.5-m21-design-refresh/contracts/rive-characters.md`) describes `wassal.riv` as
+     delivered. Where it differs from HANDOFF §6.1–§6.5, the contract wins.
    - The files in `lottie/` show the timing and what moves in each state. `illustrations/` is the
-     art, and the static fallback of HANDOFF §6.3.
-   - The performance gate of HANDOFF §6.4 applies to the Rive scene, with the same fallback steps.
+     art, and the static fallback of HANDOFF §6.6 ("Last resort").
+   - The performance gate of HANDOFF §6.6 applies to the Rive scene, without its Lottie step: rows
+     that miss the gate fall back to the static art.
+   - The Rive files live in the app, as `apps/mobile/assets/rive/wassal.riv` and
+     `apps/mobile/assets/rive/wassal_scenes.riv`. This folder has no `rive/`; HANDOFF's `rive/`
+     paths (§1's tree, §6, §6.8) mean those files. The comic panels' file belongs to 012.5
+     (`specs/012.5-m22-animated-scenes/`). Its six panels are the opening's three and the سلمى
+     scene's three, not "six opening" panels as §1's tree and §6.8 say.
+   - Both files load with `riveFactory: Factory.flutter`, not §6.1's `Factory.rive`: it is the only
+     factory that draws inside Flame and in Linux `flutter test` (M02 research R1).
 2. **Identifiers come from the glossary.** The Shared Contract Glossary (architecture §3) names
    lines, vehicles, archetypes and every other id. The names in HANDOFF are art file names:
    - Vehicles: `microbus_old`, `microbus_new` and `microbus_travel` are `micro_old`, `micro_new` and

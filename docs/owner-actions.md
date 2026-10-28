@@ -29,6 +29,7 @@ left, in what order, and where to look.
 | [010 B03 ledger and sync](#010-b03-ledger-and-sync) | 1 | 2, plus 1 after the closed test starts | Merged in #16 on 2026-10-26. The approval of its one constitution deviation is open. |
 | [011 M06 identity and sync](#011-m06-identity-and-sync) | 2 | 4 | Merged in #17 on 2026-10-27. Its before-merge checks are still open. |
 | [012 M07 onboarding](#012-m07-onboarding) | 4 | 4 | Built and tested on 2026-10-27, on branch `012-m07-onboarding`. The drawings were done on 2026-10-28. |
+| [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 
 ## Every month
 
@@ -939,6 +940,53 @@ replays each screen and can coach every tutorial trip.
   - `moallem_verdict` after `line_hay.20`.
 
   Imported on the local stack as pack 11.
+
+## 012.5 M22 animated scenes
+
+Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`
+([tasks.md](../specs/012.5-m22-animated-scenes/tasks.md),
+[quickstart](../specs/012.5-m22-animated-scenes/quickstart.md)). The first session's comic panels
+now play as animations from a second Rive file, `wassal_scenes.riv`: the tuktuk drives, the
+characters move, and each line's bubble appears while its speaker talks. «يلا» first shows the rest
+of a panel's bubbles, then moves on. Without the file, for a panel whose artboard fails its check,
+or under reduced motion, the panel is M07's drawing. The release draft's `ch1_*` panels draw the
+same art. The usta has one look everywhere: the owner's new `wassal.riv`, and the design rebuilt
+from the canvas.
+
+### Before merge
+
+- [ ] **1. The phone checks (T052).** [Quickstart Part B](../specs/012.5-m22-animated-scenes/quickstart.md#part-b-on-the-phones-owner)
+  step 1 on the Redmi Note 7, with reduced motion off, then on. Then one timed first session on a
+  fresh install (step 3's last bullet): the first trip within 20 s of opening the app. Claude asks
+  before connecting to the phone. Your first run (2026-10-28) found that a finished panel needed two taps
+  of «يلا»; that is fixed in the PR, so rebuild before checking again.
+- [ ] **2. Rename the Rive source (quickstart Part B step 4).** In the Rive editor, rename «Untitled»
+  to `wassal_scenes`. The app's copy doesn't change.
+- [ ] **3. `opening_key`'s sky (T019).** The file's first frame of `opening_key` has the blue sky
+  (`#BFE6F7`) and two clouds, as all six artboards do. Its drawing (the `Intro` board's art) has
+  neither, unlike the other five drawings, so the still panel's top is the pale screen ground. The
+  contract says the first frame is the drawing. Choose: redraw the `Intro` panel with the sky on the
+  canvas (Claude then rebuilds `docs/design/` and syncs), or keep the file as it is.
+- [ ] **4. The usta's quiff on the Name card (T044).** The avatar's head-and-shoulders crop (008.5)
+  cuts about 4 pt off the tip of the new quiff (`test/goldens/design/goldens/Name_*.png`). Choose:
+  keep it, or let Claude widen the crop, which moves every avatar a little and changes their goldens.
+- [ ] **5. The design rebuild's leftovers (T041).** Rebuilding `docs/design/` from the canvas took
+  only the usta's files. Say which of these to add, if any:
+  - the canvas's new `SceneMotion` artboard («حركة المشاهد», on «النظام والمكوّنات»);
+  - the brand boards and the Logo's unnamed icon (`brand/` is kept by hand today);
+  - remeasured `boxes/`: this machine's Chromium measures text up to about 2 px differently, so
+    every box moves a little without any change on the canvas. Claude kept the committed boxes.
+
+### After merge
+
+- [ ] **1. Every panel on the Galaxy A06 (SC-001).** Quickstart Part B step 1.
+- [ ] **2. The frame rate and cold start on the A06 (SC-002, SC-003).**
+  `tool/perf/scene_fps.sh com.wassalogra.app.dev` (paste the output in the PR or here), then
+  `tool/perf/cold_start.sh com.wassalogra.app.dev 10`.
+- [ ] **3. The first trip within 20 s on the A06 (SC-003, M07 SC-001).** On a fresh install, tap
+  «يلا» as soon as it shows and accept the suggested name.
+- [ ] **4. The release draft's line change.** The draft's `ch1_usta_dreams` line is now the usta's,
+  in the `content-core-r1` worktree. It is committed with the draft, not in this PR.
 
 ## Known for later features
 
