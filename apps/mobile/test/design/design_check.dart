@@ -34,8 +34,12 @@ void applyDesignSurface(
 /// For each tap box: a box in [skip] is skipped (its reason printed); a box
 /// in [pairings] is found by the paired label; otherwise by its `label`,
 /// else by the node whose label contains its `text`. Exactly one node must
-/// match. Then every tappable node that no box matched must have a label in
-/// [appOnly]. All problems are reported together, each naming the artboard.
+/// match. A box in [tolerances] is checked within its own tolerance, for a
+/// control placed after others whose text Flutter measures a little wider
+/// than the browser did. Then every tappable node that no box matched must
+/// have a label in [appOnly]. A sheet's or dialog's [scrim], which the board
+/// draws as a box, is left out: the node with that label covering the whole
+/// frame. All problems are reported together, each naming the artboard.
 void expectLayoutMatches(
   WidgetTester tester,
   String artboard, {
@@ -44,9 +48,15 @@ void expectLayoutMatches(
   Map<int, String> pairings = const {},
   Set<String> appOnly = const {},
   double tolerance = 2,
+  Map<int, double> tolerances = const {},
+  String? scrim,
 }) {
   final design = board ?? loadBoard(artboard);
-  final nodes = _tappableNodes(tester);
+  final frame = Rect.fromLTWH(0, 0, design.w, design.h);
+  final nodes = [
+    for (final n in _tappableNodes(tester))
+      if (scrim == null || n.label != _plain(scrim) || n.rect != frame) n,
+  ];
   final matched = <int>{};
   final problems = <String>[];
 
@@ -84,11 +94,12 @@ void expectLayoutMatches(
     final node = found.single;
     matched.add(node.id);
     final want = Rect.fromLTWH(box.x, box.y, box.w, box.h);
-    if (!_within(node.rect, want, tolerance)) {
+    final within = tolerances[box.id] ?? tolerance;
+    if (!_within(node.rect, want, within)) {
       problems.add(
         '$artboard: box ${box.id} "${paired ?? box.label ?? box.text}": '
         'design ${_fmt(want)}, app ${_fmt(node.rect)} '
-        '(tolerance ±$tolerance pt)',
+        '(tolerance ±$within pt)',
       );
     }
   }

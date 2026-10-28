@@ -4,6 +4,7 @@ import 'package:content_models/content_models.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
+import 'package:wassal/core/theme/components/station_tag.dart';
 import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
@@ -11,12 +12,7 @@ import 'package:wassal/l10n/generated/app_localizations.dart';
 
 extension TripText on AppLocalizations {
   /// The station letter of [slot] (0–3): أ ب ج د.
-  String stationLetter(int slot) => switch (slot % 4) {
-    0 => tripStationLetter1,
-    1 => tripStationLetter2,
-    2 => tripStationLetter3,
-    _ => tripStationLetter4,
-  };
+  String stationLetter(int slot) => stationLetterOf(this, slot);
 
   /// A `tripLook*` label by its key; an unknown key is the neutral label.
   String lookLabel(String key) => switch (key) {

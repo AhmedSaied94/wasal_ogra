@@ -19,6 +19,7 @@ class BottomNav extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     this.newDots = const [false, false, false, false],
+    this.disabled = const [false, false, false, false],
     super.key,
   });
 
@@ -27,6 +28,11 @@ class BottomNav extends StatelessWidget {
 
   /// Which tabs show the new-dot, in tab order.
   final List<bool> newDots;
+
+  /// Which tabs need the network while there is none, in tab order: drawn
+  /// at [Pressable.disabledOpacity], taking no tap, and said so
+  /// («المحل، محتاج نت»).
+  final List<bool> disabled;
 
   static Key cellKey(int index) => ValueKey('BottomNav.cell.$index');
 
@@ -86,8 +92,10 @@ class BottomNav extends StatelessWidget {
                       activeIcon: tab.active,
                       label: labels[i],
                       newLabel: l10n.newBadgeLabel,
+                      offlineLabel: l10n.navNeedsNetwork,
                       active: i == currentIndex,
                       showDot: i < newDots.length && newDots[i],
+                      enabled: i >= disabled.length || !disabled[i],
                       onTap: () => onTap(i),
                     ),
                   ),
@@ -106,8 +114,10 @@ class _NavCell extends StatelessWidget {
     required this.activeIcon,
     required this.label,
     required this.newLabel,
+    required this.offlineLabel,
     required this.active,
     required this.showDot,
+    required this.enabled,
     required this.onTap,
     super.key,
   });
@@ -116,8 +126,10 @@ class _NavCell extends StatelessWidget {
   final String? activeIcon;
   final String label;
   final String newLabel;
+  final String offlineLabel;
   final bool active;
   final bool showDot;
+  final bool enabled;
   final VoidCallback onTap;
 
   static const double _height = 62;
@@ -133,12 +145,16 @@ class _NavCell extends StatelessWidget {
         ? Duration.zero
         : DesignExtras.tabFade;
     const pill = DesignExtras.navPill;
+    final l10n = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
+      enabled: enabled,
       selected: active,
-      semanticLabel: showDot
-          ? AppLocalizations.of(context).pairLabel(label, newLabel)
-          : label,
+      semanticLabel: switch ((enabled, showDot)) {
+        (false, _) => l10n.pairLabel(label, offlineLabel),
+        (true, true) => l10n.pairLabel(label, newLabel),
+        (true, false) => label,
+      },
       child: SizedBox(
         width: double.infinity,
         height: _height,

@@ -2,6 +2,10 @@
 
 They run over the sample pack's rules document: assembled from `content/examples/sample` without a
 database, and checked once against the document a real publish writes.
+
+The phone ports every test here, one Dart test each named after it
+(`apps/mobile/test/core/progress/unlocks_test.dart`, M08). When a test changes, is added or is
+removed, change the port in the same PR.
 """
 
 from __future__ import annotations

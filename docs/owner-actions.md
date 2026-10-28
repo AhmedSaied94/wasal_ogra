@@ -30,6 +30,7 @@ left, in what order, and where to look.
 | [011 M06 identity and sync](#011-m06-identity-and-sync) | 2 | 4 | Merged in #17 on 2026-10-27. Its before-merge checks are still open. |
 | [012 M07 onboarding](#012-m07-onboarding) | 4 | 4 | Built and tested on 2026-10-27, on branch `012-m07-onboarding`. The drawings were done on 2026-10-28. |
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
+| [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
 
 ## Every month
 
@@ -987,6 +988,56 @@ from the canvas.
   «يلا» as soon as it shows and accept the suggested name.
 - [ ] **4. The release draft's line change.** The draft's `ch1_usta_dreams` line is now the usta's,
   in the `content-core-r1` worktree. It is committed with the draft, not in this PR.
+
+## 013 M08 Home, pre-trip card and result
+
+Built and tested on 2026-10-28, on branch `013-m08-home-result`
+([tasks.md](../specs/013-m08-home-result/tasks.md),
+[quickstart](../specs/013-m08-home-result/quickstart.md)). Home (الموقف) shows the next trip, the
+line card, the savings goal, fuel and its countdown, and opens one arrival item at a time; the
+pre-trip card shows the stops and their prices, the star goals, a «جديد» card for a new passenger
+type or event, and the boosters; the result shows the stars, the breakdown, the mistakes, the pay,
+the apartment bar and a passenger's line, and shares itself as a 1080×1080 picture. The playtest
+Home is gone: its trip list is in Home's debug sheet on dev and staging.
+
+### Before merge
+
+- [ ] **1. The strings (T083).** Read the drafts in
+  [research R18](../specs/013-m08-home-result/research.md#r18-strings-and-the-owners-approval),
+  as they stand in `apps/mobile/lib/l10n/app_ar.arb`: the 19 «جديد» names and sentences, the goal
+  titles, the mistake lines and the three summary families, the barker's call, the rule line for
+  discounts other than 50%, and the share caption («قبضت … في مشوار … في وصّل الأجرة!»). Say what
+  to change; Claude applies it and regenerates the goldens it touches.
+- [ ] **2. The departures and the golden differences (T084).** Approve or refuse:
+  - the three departures in the plan's Complexity Tracking: the booster buy asks for confirmation
+    instead of the 3-second undo until M12 (R7), the fuel pill's screen-reader label gives minutes
+    only (R11), and the goal title uses the vehicle's full name (R4);
+  - the expected differences from the artboards (R20): the barker, riders and painted street, and
+    the «جديد» card's event icons, which reuse existing glyphs;
+  - the ones found while building, listed in the PR: Home's offline banner follows `HomeStates`
+    (40 high) where `States` draws it alone; the goal tile's glyph follows the goal's kind (the
+    microbus for a vehicle); the result's apartment tile is the ring until M09 brings the pieces'
+    art; the share card's missed-star outline is built from two icons; with Western digits, Home's
+    header and the goal card's second row wrap at 390 pt.
+- [ ] **3. iOS (T086).** Run Codemagic's `ios-dev-unsigned` on the branch: it must build with no
+  Podfile (`share_plus` comes as a Swift Package). Sideload it and check that «شارك» opens the
+  share sheet ([quickstart §8](../specs/013-m08-home-result/quickstart.md#8-ios-owner)).
+- [ ] **4. The side-by-side images (T086).** Run
+  `fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true` in
+  `apps/mobile` and look at `build/design_compare/` for `C-Home`, `HomeStates`, `PreTrip`, `Result`
+  and `ShareCard`, in both digit styles, beside `docs/design/png/`
+  ([quickstart §4](../specs/013-m08-home-result/quickstart.md#4-the-design-checks-sc-005)).
+
+### After merge
+
+- [ ] **1. The device pass (T088).** [Quickstart §7](../specs/013-m08-home-result/quickstart.md#7-by-hand-on-the-owners-phone-dev-build)
+  on the Redmi Note 7, or the Galaxy A06 when there is one: Home's figures, the countdown against a
+  changed clock (SC-003), offline, the card's setting, a booster buy, the result, the arrival check,
+  the share within a second (SC-010), and Home within a second after the result and a tab switch
+  (SC-002). Claude asks before connecting to the phone.
+- [ ] **2. The 10-player playtest (T089).** SC-008: do 8 of 10 know which star they missed and why,
+  from the result alone? SC-009: do 8 of 10 who meet a new passenger type know what it does from the
+  card? Tell Claude the counts.
 
 ## Known for later features
 

@@ -26,6 +26,7 @@ class HomeStatusArea extends ConsumerWidget {
     final card = switch (ref.watch(serverStatusProvider)) {
       ServerStatusState(reach: Reach.offline) => OfflineBanner(
         message: l10n.homeOffline,
+        dense: true,
       ),
       ServerStatusState(:final maintenance?) => _MaintenanceCard(maintenance),
       _ => null,
@@ -39,9 +40,10 @@ class HomeStatusArea extends ConsumerWidget {
             SafeArea(
               bottom: false,
               child: Padding(
+                // `HomeStates`: 10 under the header, where the scene was.
                 padding: const EdgeInsets.fromLTRB(
                   LayoutTokens.gutter,
-                  SpaceTokens.s8,
+                  SpaceTokens.s10,
                   LayoutTokens.gutter,
                   0,
                 ),

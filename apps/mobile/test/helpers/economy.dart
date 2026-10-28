@@ -477,6 +477,19 @@ TxnId txnIdOf(int n) => TxnId.parse(
   '0192f3a1-7b2c-7d4e-8f00-${n.toRadixString(16).padLeft(12, '0')}',
 );
 
+/// A player whose last trip finished, paying 85: what the result shows
+/// when opened without the trip's hand-over (M08 FR-036).
+Future<TestEconomy> lastFinishedEconomy() => testEconomy(
+  firstState: (nowMs) =>
+      EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
+        lastResult: () => LastResult(
+          startTxn: txnIdOf(1),
+          outcome: TripOutcome.finished,
+          earningsJenehat: 85,
+        ),
+      ),
+);
+
 /// What a request validates against in the rule tests: the sample pack at
 /// version 1, `fuel_max` 5 and `fuel_regen_minutes` 20 unless given.
 RuleContext ruleContext({

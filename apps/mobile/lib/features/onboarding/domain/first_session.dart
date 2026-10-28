@@ -200,10 +200,15 @@ final class FirstSession {
   /// What comes before [tripId] starts, or null (R10, R11).
   BeforeStart? beforeStart(String tripId) {
     if (dueScene case final scene?) return DueScene(scene);
-    return _fuelLessonDue(tripId) ? const FuelLessonDue() : null;
+    return fuelLessonDue(tripId) ? const FuelLessonDue() : null;
   }
 
-  bool _fuelLessonDue(String tripId) {
+  /// المعلم's fuel lesson is due before [tripId] (R11): the fifth tutorial
+  /// trip's first play, or any tutorial trip on an empty tank with no
+  /// unlimited window, until the gift is granted or the lesson done. A due
+  /// scene doesn't hide it, though [beforeStart] puts the scene first: Home
+  /// keeps «يلا نطلع!» for it (specs/013-m08-home-result, research R8).
+  bool fuelLessonDue(String tripId) {
     if (facts.tutorialGranted || _flags.fuelLessonDoneAtMs != null) {
       return false;
     }
@@ -217,7 +222,7 @@ final class FirstSession {
   }
 
   /// What an arrival at Home plays first: a due scene. The name sheet is
-  /// `NameReaskHost`'s (contracts/name.md).
+  /// the next arrival item (specs/013-m08-home-result, research R9).
   DueScene? onArrivalAtHome() => switch (dueScene) {
     final scene? => DueScene(scene),
     null => null,
@@ -227,10 +232,21 @@ final class FirstSession {
   /// tutorial trip not finished, or Home.
   String nextAfterResult(String tripId) {
     if (!facts.tutorialTrips.contains(tripId)) return '/home';
+    return switch (nextTutorialTrip) {
+      final trip? => '/trip/$trip',
+      null => '/home',
+    };
+  }
+
+  /// The first tutorial trip not finished, while in the first session; else
+  /// null. Home's next trip until the tutorial is done
+  /// (specs/013-m08-home-result, research R8).
+  String? get nextTutorialTrip {
+    if (!inFirstSession) return null;
     for (final trip in facts.tutorialTrips) {
-      if (!isFinished(facts.progress[trip])) return '/trip/$trip';
+      if (!isFinished(facts.progress[trip])) return trip;
     }
-    return '/home';
+    return null;
   }
 
   /// Every tutorial trip the pack has is finished (FR-039).

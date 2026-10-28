@@ -6,6 +6,10 @@ player do something harmless, and strict where it protects value: a room with no
 with no regular trips, is never complete, so it never pays a reward.
 
 M10 must show the same unlocks. If its design needs a different rule, change it here, tests first.
+
+The phone has a port of these rules (`apps/mobile/lib/core/progress/domain/unlocks.dart`, M08) and
+of their tests (`apps/mobile/test/core/progress/unlocks_test.dart`). When this file or its tests
+change, change the port in the same PR.
 """
 
 from __future__ import annotations

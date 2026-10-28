@@ -40,6 +40,7 @@ class AppSheetPage<T> extends Page<T> {
   const AppSheetPage({
     required this.title,
     required this.child,
+    this.ownHeader = false,
     super.key,
     super.name,
     super.arguments,
@@ -48,10 +49,14 @@ class AppSheetPage<T> extends Page<T> {
   final String title;
   final Widget child;
 
+  /// See [AppSheet.ownHeader].
+  final bool ownHeader;
+
   @override
   Route<T> createRoute(BuildContext context) => _AppSheetRoute<T>(
     settings: this,
     title: title,
+    ownHeader: ownHeader,
     builder: (_) => child,
     reducedMotion: MediaQuery.disableAnimationsOf(context),
     barrierLabel: AppLocalizations.of(context).closeLabel,
@@ -66,10 +71,12 @@ class _AppSheetRoute<T> extends PopupRoute<T> {
     required this.builder,
     required this.reducedMotion,
     required this.barrierLabel,
+    this.ownHeader = false,
     super.settings,
   });
 
   final String title;
+  final bool ownHeader;
   final WidgetBuilder builder;
   final bool reducedMotion;
 
@@ -99,16 +106,27 @@ class _AppSheetRoute<T> extends PopupRoute<T> {
     BuildContext context,
     Animation<double> animation,
     Animation<double> secondaryAnimation,
-  ) => Align(
-    alignment: Alignment.bottomCenter,
-    child: Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: AppSheet(
-        title: title,
-        child: Builder(builder: builder),
+  ) {
+    // A page the router updates in place (the same route, other
+    // parameters) brings its new child; build from it, not from the first.
+    final page = switch (settings) {
+      final AppSheetPage<T> page => page,
+      _ => null,
+    };
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: AppSheet(
+          title: page?.title ?? title,
+          ownHeader: page?.ownHeader ?? ownHeader,
+          child: page?.child ?? Builder(builder: builder),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   @override
   Widget buildTransitions(
@@ -139,10 +157,21 @@ class _AppSheetRoute<T> extends PopupRoute<T> {
 /// shorter one springs back. The phone's bottom inset is added under the
 /// content (spec FR-018).
 class AppSheet extends StatefulWidget {
-  const AppSheet({required this.title, required this.child, super.key});
+  const AppSheet({
+    required this.title,
+    required this.child,
+    this.ownHeader = false,
+    super.key,
+  });
 
+  /// The heading, and the sheet's name for the screen reader.
   final String title;
   final Widget child;
+
+  /// The child draws its own heading and ✕ under the grabber (the pre-trip
+  /// card's two lines, `PreTrip` boxes 9–11); [title] still names the
+  /// sheet.
+  final bool ownHeader;
 
   static const grabberKey = Key('AppSheet.grabber');
 
@@ -237,39 +266,43 @@ class _AppSheetState extends State<AppSheet>
                     ),
                   ),
                 ),
-                SizedBox(
-                  height:
-                      AppSheet._closeTop -
-                      AppSheet._grabberTop -
-                      grabber.height,
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: SpaceTokens.s12,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: AppSheet._titleTop),
-                        child: Semantics(
-                          header: true,
-                          child: Text(
-                            widget.title,
-                            style: DesignExtras.sheetTitle.copyWith(
-                              color: ColorTokens.ink,
+                if (!widget.ownHeader) ...[
+                  SizedBox(
+                    height:
+                        AppSheet._closeTop -
+                        AppSheet._grabberTop -
+                        grabber.height,
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: SpaceTokens.s12,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: AppSheet._titleTop,
+                          ),
+                          child: Semantics(
+                            header: true,
+                            child: Text(
+                              widget.title,
+                              style: DesignExtras.sheetTitle.copyWith(
+                                color: ColorTokens.ink,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    IconCircleButton(
-                      icon: 'close',
-                      semanticLabel: AppLocalizations.of(context).closeLabel,
-                      inSheet: true,
-                      onTap: _close,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: SpaceTokens.s12),
+                      IconCircleButton(
+                        icon: 'close',
+                        semanticLabel: AppLocalizations.of(context).closeLabel,
+                        inSheet: true,
+                        onTap: _close,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: SpaceTokens.s12),
+                ],
                 Flexible(child: widget.child),
               ],
             ),
@@ -605,9 +638,13 @@ class EventBannerCard extends StatelessWidget {
 /// «You're offline» (`States` box 1): `dashboard.bg`, radius 14, the
 /// `wifi_off` icon in `sun` at the start and white 12.5/600 text.
 class OfflineBanner extends StatelessWidget {
-  const OfflineBanner({required this.message, super.key});
+  const OfflineBanner({required this.message, this.dense = false, super.key});
 
   final String message;
+
+  /// Home's banner (`HomeStates` box 14): 12 at the sides and 12.5/500
+  /// text, so the line fits in 40.
+  final bool dense;
 
   static const double minHeight = 40;
   static const double _radius = 14;
@@ -618,10 +655,15 @@ class OfflineBanner extends StatelessWidget {
     liveRegion: true,
     child: Container(
       constraints: const BoxConstraints(minHeight: minHeight),
-      padding: const EdgeInsets.symmetric(
-        horizontal: SpaceTokens.s14,
-        vertical: SpaceTokens.s8,
-      ),
+      padding: dense
+          ? const EdgeInsets.symmetric(
+              horizontal: SpaceTokens.s12,
+              vertical: SpaceTokens.s4,
+            )
+          : const EdgeInsets.symmetric(
+              horizontal: SpaceTokens.s14,
+              vertical: SpaceTokens.s8,
+            ),
       decoration: BoxDecoration(
         color: ColorTokens.dashboardBg,
         borderRadius: BorderRadius.circular(_radius),
@@ -634,9 +676,11 @@ class OfflineBanner extends StatelessWidget {
             child: Text(
               message,
               maxLines: 2,
-              style: DesignExtras.offlineText.copyWith(
-                color: ColorTokens.paper,
-              ),
+              style:
+                  (dense
+                          ? DesignExtras.offlineText.weight(500)
+                          : DesignExtras.offlineText)
+                      .copyWith(color: ColorTokens.paper),
             ),
           ),
         ],

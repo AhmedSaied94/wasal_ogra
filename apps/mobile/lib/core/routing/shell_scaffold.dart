@@ -5,6 +5,7 @@ import 'package:wassal/core/routing/back_to_exit.dart';
 import 'package:wassal/core/routing/new_dot_providers.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/theme/components/nav.dart';
+import 'package:wassal/core/sync/server_status.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 
 /// The four tabs around their branch navigators, over the `BottomNav`.
@@ -23,6 +24,14 @@ class ShellScaffold extends ConsumerWidget {
     final dots = [
       for (final section in tabSections) ref.watch(newDotProvider(section)),
     ];
+    // The shop needs the network; every other tab works without it
+    // (specs/013-m08-home-result FR-014).
+    final offline = ref.watch(
+      serverStatusProvider.select((status) => status.reach == Reach.offline),
+    );
+    final disabled = [
+      for (final section in tabSections) offline && section == Section.shop,
+    ];
     final open = tabSections[shell.currentIndex];
     if (dots[shell.currentIndex]) {
       // Providers cannot change while widgets build; clear after the frame.
@@ -37,6 +46,7 @@ class ShellScaffold extends ConsumerWidget {
         bottomNavigationBar: BottomNav(
           currentIndex: shell.currentIndex,
           newDots: dots,
+          disabled: disabled,
           onTap: (index) => shell.goBranch(
             index,
             initialLocation: index == shell.currentIndex,

@@ -49,7 +49,8 @@ void main() {
     await pressBack(tester);
     await pressBack(tester);
     expect(currentLocation(tester), '/home');
-    expect(find.textContaining('8.5'), findsWidgets);
+    // Home's tank, in Western digits.
+    expect(find.textContaining('5/5'), findsWidgets);
   });
 
   testWidgets('each option is at least 44×44', (tester) async {
@@ -65,7 +66,9 @@ void main() {
     tester,
   ) async {
     await pumpWassalApp(tester, digits: DigitStyle.western);
-    expect(find.textContaining('1,250'), findsWidgets);
+    // Home's tank.
+    expect(find.textContaining('5/5'), findsWidgets);
+    expect(find.textContaining('٥/٥'), findsNothing);
   });
 
   testWidgets('a failed save is reported, and the choice still applies', (

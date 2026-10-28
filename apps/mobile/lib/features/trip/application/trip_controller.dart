@@ -11,6 +11,7 @@ import 'package:wassal/core/config/tunable.dart';
 import 'package:wassal/core/config/tunable_snapshot.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/economy.dart';
+import 'package:wassal/features/result/domain/result_args.dart';
 import 'package:wassal/features/trip/application/trip_ad_offers.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/application/trip_session.dart';
@@ -810,9 +811,23 @@ final class TripController {
     return true;
   }
 
-  TripExit _exitFor(TripResult result) => result.outcome == TripOutcome.finished
-      ? ExitToResult(result.tripId, result)
-      : const ExitToHome();
+  /// The result route for a finished trip, with the best stars and the
+  /// balance as they are before [result] is recorded; Home otherwise.
+  TripExit _exitFor(TripResult result) {
+    if (result.outcome != TripOutcome.finished) return const ExitToHome();
+    final session = _session!;
+    final view = _economy.view;
+    return ExitToResult(
+      result.tripId,
+      ResultArgs(
+        result: result,
+        startTxn: session.startTxn,
+        replay: session.engine.replayRecord,
+        bestStarsBefore: view.progress[result.tripId]?.bestStars ?? 0,
+        jenehatBefore: view.jenehat,
+      ),
+    );
+  }
 
   void _end(TripExit exit) {
     _exit = exit;

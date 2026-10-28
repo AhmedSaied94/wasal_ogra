@@ -1,8 +1,9 @@
 // The whole first session (specs/012-m07-onboarding SC-002, contracts/
 // ci-checks.md "Integration"): a fresh database and the tutorial fixture,
 // offline from the opening through the five tutorial trips, the scene after
-// trip 3 and the fuel lesson before trip 5, to Home; then online, where the
-// name and the gift reach the server once each. Headless:
+// trip 3 and the fuel lesson before trip 5, to Home, whose next trip opens
+// its card (M08); then online, where the name and the gift reach the server
+// once each. Headless:
 //
 //   fvm flutter test integration_test/first_session_test.dart -d flutter-tester
 //
@@ -14,11 +15,15 @@ import 'package:wassal/core/network/api_client.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/sync/sync_providers.dart';
 import 'package:wassal/core/theme/components/story.dart';
+import 'package:wassal/features/home/application/home_model.dart';
+import 'package:wassal/features/home/presentation/start_button.dart';
 import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/first_session_continue.dart';
 import 'package:wassal/features/onboarding/presentation/fuel_lesson_screen.dart';
 import 'package:wassal/features/onboarding/presentation/name_screen.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
+import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/dashboard/boosters_locked_bar.dart';
 import 'package:wassal/features/trip/presentation/dashboard/boosters_row.dart';
@@ -44,8 +49,11 @@ List<String> _sentTypes(FakeApi api) => [
       (op as Map<String, Object?>)['op_type']! as String,
 ];
 
-/// Taps [finder] once it can be hit: pages come in with a transition.
+/// Taps [finder] once it can be hit: pages come in with a transition, and
+/// the result scrolls its bottom row into view (M08).
 Future<void> _tap(WidgetTester tester, Finder finder) async {
+  await pumpUntil(tester, () => finder.evaluate().isNotEmpty);
+  await tester.ensureVisible(finder);
   await pumpUntil(tester, () => finder.hitTestable().evaluate().isNotEmpty);
   await tester.tap(finder);
 }
@@ -194,6 +202,19 @@ void main() {
       reason: 'the fuel lesson, once',
     );
     expect(shown('/onboarding/intro'), isFalse, reason: 'never again');
+
+    // 6. Past the tutorial (M08 FR-010): Home's next trip, and «يلا نطلع!»
+    // opens its card. This content has nothing else open: a replay.
+    expect(container.read(firstSessionProvider).inFirstSession, isFalse);
+    final next = container.read(homeModelProvider).next;
+    expect(next?.isReplay, isTrue);
+    await _tap(tester, find.byKey(HomeStartButton.startKey));
+    await pumpUntil(
+      tester,
+      () => currentLocation(tester) == '/home/pre-trip/${next!.tripId}',
+    );
+    await _tap(tester, find.byKey(PreTripCard.closeKey));
+    await pumpUntil(tester, () => currentLocation(tester) == '/home');
 
     // 5. Online: the name and the gift, once each.
     api

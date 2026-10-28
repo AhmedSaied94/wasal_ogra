@@ -34,6 +34,7 @@ Future<void> _pump(
   WidgetTester tester, {
   Offset pauseShift = Offset.zero,
   bool extra = false,
+  bool scrim = false,
 }) async {
   applyDesignSurface(tester, const Size(200, 200), topInset: 0);
   await tester.pumpWidget(
@@ -41,6 +42,7 @@ Future<void> _pump(
       textDirection: TextDirection.rtl,
       child: Stack(
         children: [
+          if (scrim) _tap('pause', const Rect.fromLTWH(0, 0, 200, 200)),
           _tap('pause', const Rect.fromLTWH(10, 10, 44, 44).shift(pauseShift)),
           _tap('let us go', const Rect.fromLTWH(10, 100, 100, 50)),
           _tap('app name', const Rect.fromLTWH(120, 10, 60, 60)),
@@ -89,6 +91,30 @@ void main() {
     _check(tester);
   });
 
+  testWidgets("a box's own tolerance replaces the artboard's", (tester) async {
+    await _pump(tester, pauseShift: const Offset(3, 0));
+    expectLayoutMatches(
+      tester,
+      'Sample',
+      board: parseBoard(_board),
+      skip: {3: 'prototype navigation'},
+      pairings: {4: 'app name'},
+      tolerances: {1: 3},
+    );
+    await _pump(tester, pauseShift: const Offset(4, 0));
+    expect(
+      () => expectLayoutMatches(
+        tester,
+        'Sample',
+        board: parseBoard(_board),
+        skip: {3: 'prototype navigation'},
+        pairings: {4: 'app name'},
+        tolerances: {1: 3},
+      ),
+      _failsWith('(tolerance ±3.0 pt)'),
+    );
+  });
+
   testWidgets('a skipped box is not looked up', (tester) async {
     // Nothing on screen is labelled "prototype", and it still passes.
     await _pump(tester);
@@ -116,6 +142,21 @@ void main() {
       skip: {3: 'prototype navigation'},
       pairings: {4: 'app name'},
       appOnly: {'extra'},
+    );
+  });
+
+  testWidgets("the scrim, named, is left out; the board's box is matched", (
+    tester,
+  ) async {
+    await _pump(tester, scrim: true);
+    expect(() => _check(tester), _failsWith('found 2'));
+    expectLayoutMatches(
+      tester,
+      'Sample',
+      board: parseBoard(_board),
+      skip: {3: 'prototype navigation'},
+      pairings: {4: 'app name'},
+      scrim: 'pause',
     );
   });
 

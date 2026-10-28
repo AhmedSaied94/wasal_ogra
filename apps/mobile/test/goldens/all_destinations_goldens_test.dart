@@ -5,9 +5,11 @@ import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 
 import '../design/samples/name.dart';
+import '../helpers/economy.dart';
 import '../helpers/pump_app.dart';
 import '../helpers/routing.dart';
 import '../helpers/screens.dart';
+import '../helpers/trip.dart' show economyOverridesOf;
 
 // Every destination in the route table, from its sample parameters, at the
 // reference surface and text scale 1.0, in both digit styles (constitution
@@ -33,6 +35,15 @@ void main() {
               digits: digits,
             );
             await pressBack(tester);
+          case Destination(name: RouteNames.result):
+            // Opened bare, it shows the last trip's pay (M08 FR-036).
+            await pumpWassalApp(
+              tester,
+              initialLocation: d.location,
+              digits: digits,
+              economy: economyOverridesOf(await lastFinishedEconomy()),
+            );
+            expect(currentLocation(tester), d.location);
           case _:
             await pumpWassalApp(
               tester,

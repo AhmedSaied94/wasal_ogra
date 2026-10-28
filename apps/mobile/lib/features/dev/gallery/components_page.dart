@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
+import 'package:wassal/core/theme/components/avatars.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/controls.dart';
@@ -610,6 +611,19 @@ final gallerySections = <GallerySection>[
   GallerySection(
     'MicrobusLoader',
     (context, _) => MicrobusLoader(label: _l10n(context).destTrip),
+  ),
+  GallerySection(
+    'PassengerAvatar',
+    (context, _) => _wrap([
+      for (final size in PassengerAvatarSize.values)
+        PassengerAvatar(lookId: 'student', person: 5, size: size),
+      const PassengerAvatar(
+        lookId: 'hagga',
+        person: 1,
+        size: PassengerAvatarSize.mistake,
+        mistake: true,
+      ),
+    ]),
   ),
 ];
 

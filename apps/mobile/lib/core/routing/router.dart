@@ -1,8 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:trip_engine/trip_engine.dart' show TripResult;
-import 'package:wassal/bootstrap/flavor.dart';
+import 'package:trip_engine/trip_engine.dart' show TripOutcome;
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
@@ -12,23 +11,17 @@ import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/routing/shell_scaffold.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
-import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/boot/boot_screen.dart';
 import 'package:wassal/features/onboarding/domain/first_session.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
-import 'package:wassal/features/onboarding/presentation/driver_name_line.dart';
-import 'package:wassal/features/onboarding/presentation/first_session_continue.dart';
 import 'package:wassal/features/onboarding/presentation/fuel_lesson_screen.dart';
-import 'package:wassal/features/onboarding/presentation/name_reask_host.dart';
 import 'package:wassal/features/onboarding/presentation/name_screen.dart';
 import 'package:wassal/features/onboarding/presentation/scene_page.dart';
-import 'package:wassal/features/dev/gallery/gallery_entry.dart';
-import 'package:wassal/features/dev/onboarding_card.dart';
-import 'package:wassal/features/dev/sync_status_card.dart';
-import 'package:wassal/features/home/home_status_area.dart';
+import 'package:wassal/features/home/presentation/home_screen.dart';
+import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
+import 'package:wassal/features/result/domain/result_args.dart';
+import 'package:wassal/features/result/presentation/result_screen.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
-import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
-import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
 import 'package:wassal/features/trip/presentation/trip_screen.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -47,8 +40,6 @@ part 'router.g.dart';
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-  // The playtest tools are on dev and staging only (research R21).
-  final playtest = ref.read(flavorProvider) != Flavor.prod;
 
   GoRoute route(
     String name, {
@@ -67,8 +58,7 @@ GoRouter router(Ref ref) {
           ? null
           : (_, state) =>
                 d.acceptsParams(state.pathParameters) ? null : '/home',
-      pageBuilder: (context, state) =>
-          _page(context, state, d, playtest: playtest),
+      pageBuilder: (context, state) => _page(context, state, d),
       routes: routes,
     );
   }
@@ -96,7 +86,7 @@ GoRouter router(Ref ref) {
       if (!ref.read(appStartupProvider).hasValue) {
         return state.matchedLocation == '/boot' ? null : '/boot';
       }
-      return _firstSessionRedirect(ref, state);
+      return _resultRedirect(ref, state) ?? _firstSessionRedirect(ref, state);
     },
     routes: [
       GoRoute(
@@ -149,7 +139,8 @@ GoRouter router(Ref ref) {
 
 /// The first session's redirects (specs/012-m07-onboarding/contracts/
 /// first-session.md "Router"), read from providers that are synchronous
-/// once startup has completed.
+/// once startup has completed. A scene due at Home is no longer one: Home's
+/// arrival queue plays it (specs/013-m08-home-result, research R9).
 String? _firstSessionRedirect(Ref ref, GoRouterState state) {
   final location = state.matchedLocation;
   if (location == '/onboarding/intro' &&
@@ -161,12 +152,6 @@ String? _firstSessionRedirect(Ref ref, GoRouterState state) {
           ? null
           : state.uri.queryParameters,
     ).toString();
-  }
-  if (location == '/home') {
-    return switch (ref.read(firstSessionProvider).onArrivalAtHome()) {
-      DueScene(:final sceneId) => _sceneThen(sceneId, '/home'),
-      null => null,
-    };
   }
   // A trip's start, never the unfinished trip's resume.
   final tripId = _tripStart.firstMatch(location)?[1];
@@ -186,6 +171,18 @@ String? _firstSessionRedirect(Ref ref, GoRouterState state) {
 
 final _tripStart = RegExp(r'^/trip/([^/]+)$');
 
+/// A result with nothing to show, neither the trip's hand-over nor a
+/// finished last result, is الموقف before any page is built
+/// (specs/013-m08-home-result FR-036).
+String? _resultRedirect(Ref ref, GoRouterState state) {
+  if (!_result.hasMatch(state.matchedLocation)) return null;
+  if (state.extra is ResultArgs) return null;
+  final last = ref.read(economyViewProvider).lastResult;
+  return last != null && last.outcome == TripOutcome.finished ? null : '/home';
+}
+
+final _result = RegExp(r'^/trip/[^/]+/result$');
+
 String _sceneThen(String sceneId, String then) => Uri(
   path: '/onboarding/scene/$sceneId',
   queryParameters: {'then': then},
@@ -200,12 +197,7 @@ String safeThen(String? then) {
   return '/home';
 }
 
-Page<void> _page(
-  BuildContext context,
-  GoRouterState state,
-  Destination d, {
-  required bool playtest,
-}) {
+Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
   final screen = switch (d.name) {
     RouteNames.onboardingIntro => ScenePage.opening(
       then: state.uri.queryParameters['then'],
@@ -227,38 +219,20 @@ Page<void> _page(
       key: ValueKey(state.pathParameters['tripId']),
       tripId: state.pathParameters['tripId']!,
     ),
-    RouteNames.home when playtest => PlaceholderScreen(
-      destination: d,
-      params: state.pathParameters,
-      extra: const Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: SpaceTokens.s16,
-        children: [DriverNameLine(), TripList(), GalleryEntry()],
-      ),
-      // Below Home's links, so they stay where they were.
-      footer: const Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: SpaceTokens.s16,
-        children: [OnboardingCard(), SyncStatusCard()],
-      ),
+    RouteNames.home => const HomeScreen(),
+    // Keyed, as the trip is: another trip's card is another card.
+    RouteNames.preTrip => PreTripCard(
+      key: ValueKey(state.pathParameters['tripId']),
+      tripId: state.pathParameters['tripId']!,
     ),
-    // M08 replaces it.
-    RouteNames.result => PlaceholderScreen(
-      destination: d,
-      params: state.pathParameters,
-      extra: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: SpaceTokens.s16,
-        children: [
-          ResultSummary(
-            result: switch (state.extra) {
-              final TripResult result => result,
-              _ => null,
-            },
-          ),
-          FirstSessionContinue(tripId: state.pathParameters['tripId']!),
-        ],
-      ),
+    // The trip hands over its ResultArgs; a bare TripResult (M07's path
+    // until it updates) or nothing shows the last result's pay.
+    RouteNames.result => ResultScreen(
+      tripId: state.pathParameters['tripId']!,
+      args: switch (state.extra) {
+        final ResultArgs args => args,
+        _ => null,
+      },
     ),
     _ => PlaceholderScreen(destination: d, params: state.pathParameters),
   };
@@ -267,16 +241,18 @@ Page<void> _page(
       key: state.pageKey,
       name: d.name,
       // Cold start ends when الموقف first draws (FR-012a).
+      // Home puts M06's status area under its header itself
+      // (specs/013-m08-home-result, `HomeStates`).
       child: d.name == RouteNames.home
-          ? ReportFullyDrawn(
-              child: HomeStatusArea(child: NameReaskHost(child: screen)),
-            )
+          ? ReportFullyDrawn(child: screen)
           : screen,
     ),
     Presentation.sheet => AppSheetPage(
       key: state.pageKey,
       name: d.name,
       title: d.title(AppLocalizations.of(context)),
+      // The card's two-line heading is its own (`PreTrip` boxes 9–11).
+      ownHeader: d.name == RouteNames.preTrip,
       child: screen,
     ),
     Presentation.page || Presentation.overlay => AppPage(

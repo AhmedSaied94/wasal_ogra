@@ -163,15 +163,17 @@ class _Content extends StatelessWidget {
         const _SampleNumbers(),
         ?extra,
         for (final name in destination.links)
-          _Link(from: destination, to: destinationNamed(name)),
+          PlaceholderLink(from: destination, to: destinationNamed(name)),
         ?footer,
       ],
     );
   }
 }
 
-class _Link extends StatelessWidget {
-  const _Link({required this.from, required this.to});
+/// A link from [from] to [to] as placeholders draw it. Also what tests put
+/// in a slot a later feature fills (Home's daily row, M13).
+class PlaceholderLink extends StatelessWidget {
+  const PlaceholderLink({required this.from, required this.to, super.key});
 
   final Destination from;
   final Destination to;

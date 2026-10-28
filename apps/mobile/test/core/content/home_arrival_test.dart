@@ -12,6 +12,7 @@ import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/cards/pause_card.dart';
 
 import '../../helpers/content.dart';
+import '../../helpers/economy.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/trip.dart';
 
@@ -51,7 +52,11 @@ void main() {
   });
 
   testWidgets('no other screen switches', (tester) async {
-    final container = await pumpWassalApp(tester);
+    // A finished last trip, so the bare result shows its pay (M08 FR-036).
+    final container = await pumpWassalApp(
+      tester,
+      economy: economyOverridesOf(await lastFinishedEconomy()),
+    );
     await _go(tester, container, '/lines');
     _readyV2(container);
     for (final location in [

@@ -15,6 +15,7 @@ import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/dashboard/hand_slot.dart';
 import 'package:wassal/features/trip/presentation/dashboard/tray.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
+import 'package:wassal/core/theme/components/station_tag.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';

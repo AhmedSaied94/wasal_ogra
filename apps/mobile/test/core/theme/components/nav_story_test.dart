@@ -5,6 +5,7 @@ import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/bubble_pop.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/pills.dart';
+import 'package:wassal/core/theme/components/pressable.dart';
 import 'package:wassal/core/theme/components/story.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
@@ -19,6 +20,7 @@ Future<void> _pumpNav(
   WidgetTester tester, {
   int current = 0,
   List<bool> newDots = const [false, false, false, false],
+  List<bool> disabled = const [false, false, false, false],
   ValueChanged<int>? onTap,
 }) => pumpDesignComponent(
   tester,
@@ -28,6 +30,7 @@ Future<void> _pumpNav(
       currentIndex: current,
       onTap: onTap ?? (_) {},
       newDots: newDots,
+      disabled: disabled,
     ),
   ),
 );
@@ -45,6 +48,39 @@ void main() {
       for (final label in ['الموقف', 'الخطوط', 'الشقة', 'المحل']) {
         expect(tester.widget<Text>(find.text(label)).style!.fontSize, 13);
       }
+    });
+
+    testWidgets('a disabled tab: at 0.45, no tap, «المحل، محتاج نت»', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      final taps = <int>[];
+      await _pumpNav(
+        tester,
+        disabled: const [false, false, false, true],
+        onTap: taps.add,
+      );
+      final dimmed = tester.widget<Opacity>(
+        find
+            .ancestor(
+              of: _inCell(3, find.byType(AppIcon)),
+              matching: find.byType(Opacity),
+            )
+            .first,
+      );
+      expect(dimmed.opacity, Pressable.disabledOpacity);
+      await tester.tap(find.byKey(BottomNav.cellKey(3)));
+      await tester.tap(find.byKey(BottomNav.cellKey(1)));
+      expect(taps, [1]);
+      expect(
+        tester.getSemantics(find.byKey(BottomNav.cellKey(3))),
+        isSemantics(
+          label: 'المحل، محتاج نت',
+          hasEnabledState: true,
+          isEnabled: false,
+        ),
+      );
+      semantics.dispose();
     });
 
     testWidgets('RTL: الموقف is the right-most tab', (tester) async {

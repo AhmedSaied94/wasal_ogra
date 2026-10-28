@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_engine/trip_engine.dart' show TripOutcome;
 import 'package:wassal/core/economy/domain/economy_state.dart';
-import 'package:wassal/core/routing/placeholder_screen.dart';
-import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/first_session_continue.dart';
+import 'package:wassal/features/result/presentation/result_screen.dart';
 
 import '../../../helpers/content.dart';
 import '../../../helpers/economy.dart';
@@ -13,10 +13,10 @@ import '../../../helpers/pump_app.dart';
 import '../../../helpers/trip.dart';
 import '../../../helpers/tutorial_content.dart';
 
-// «كمّل» on the result placeholder (contracts/first-session.md "The result
-// screen"): through the first session, and once after the trip that ends
-// it, to the next tutorial trip or Home. Never afterwards; Home stays
-// linked.
+// «كمّل» on the result (contracts/first-session.md "The result screen";
+// M08's screen, opened here on the last trip's pay): through the first
+// session, and once after the trip that ends it, to the next tutorial trip
+// or Home. Never afterwards: «مشوار تاني» instead; back to Home stays.
 
 Finder get _continue => find.byKey(FirstSessionContinue.buttonKey);
 
@@ -33,6 +33,11 @@ Future<ProviderContainer> _result(
     firstState: (nowMs) =>
         EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
           displayName: () => 'حمادة',
+          lastResult: () => LastResult(
+            startTxn: txnIdOf(1),
+            outcome: TripOutcome.finished,
+            earningsJenehat: 10,
+          ),
           progress: {
             for (final trip in tutorialTripIds.take(finished))
               trip: const TripProgress(
@@ -75,10 +80,7 @@ void main() {
   ) async {
     await _result(tester, 'line_hay.01', finished: 1);
     expect(_continue, findsOneWidget);
-    expect(
-      find.byKey(PlaceholderScreen.linkKey(RouteNames.home)),
-      findsWidgets,
-    );
+    expect(find.byKey(ResultScreen.backKey), findsOneWidget);
     await _tapContinue(tester);
     expect(currentLocation(tester), '/trip/line_hay.02');
   });
@@ -98,10 +100,8 @@ void main() {
   testWidgets('afterwards: no «كمّل»', (tester) async {
     await _result(tester, 'line_hay.05', finished: 5);
     expect(_continue, findsNothing);
-    expect(
-      find.byKey(PlaceholderScreen.linkKey(RouteNames.home)),
-      findsWidgets,
-    );
+    expect(find.byKey(ResultScreen.againKey), findsOneWidget);
+    expect(find.byKey(ResultScreen.backKey), findsOneWidget);
   });
 
   testWidgets('a returning player: no «كمّل»', (tester) async {

@@ -15,6 +15,10 @@ final class SharedPrefsSettingsStore implements SettingsStore {
     'pref.trip_sound',
     'pref.trip_haptics',
     'pref.trip_hints_seen',
+    // The optional update the player closed (M06, `dismissedUpdateKey`).
+    'update.dismissedVersion',
+    // The pre-trip card's setting (specs/013-m08-home-result, research R6).
+    'pref.pre_trip_card',
   };
 
   final SharedPreferencesWithCache _prefs;

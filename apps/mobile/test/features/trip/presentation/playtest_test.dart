@@ -4,26 +4,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/core/art/rive_art.dart';
-import 'package:wassal/core/economy/economy_providers.dart';
-import 'package:wassal/core/l10n/digit_style.dart';
-import 'package:wassal/core/l10n/number_formatter.dart';
-import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/features/trip/application/art_tier.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/playtest/debug_panel.dart';
-import 'package:wassal/features/trip/presentation/playtest/result_summary.dart';
+import 'package:wassal/features/home/presentation/debug_sheet.dart';
 import 'package:wassal/features/trip/presentation/playtest/trip_list.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 import '../../../helpers/economy.dart';
+import '../../../helpers/home.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/trip.dart';
 
 // The playtest tools of internal builds (tasks.md T089, research R21): the
-// trip list on Home, the debug panel, and the result placeholder.
-
-const _numbers = NumberFormatter(DigitStyle.arabicIndic);
+// trip list on Home and the debug panel. The result placeholder went with
+// M08's result screen (specs/013-m08-home-result).
 
 void main() {
   group('the trip list', () {
@@ -32,6 +28,7 @@ void main() {
         tester,
       ) async {
         await pumpWassalApp(tester, flavor: flavor, initialLocation: '/home');
+        await openDebugSheet(tester);
         final content = sampleContent();
         var trips = 0;
         for (final line in content.lines) {
@@ -60,6 +57,7 @@ void main() {
         flavor: Flavor.prod,
         initialLocation: '/home',
       );
+      expect(find.byKey(HomeDebugButton.buttonKey), findsNothing);
       expect(find.byType(TripList), findsNothing);
     });
   });
@@ -168,68 +166,6 @@ void main() {
       await pumpTrip(tester, flavor: Flavor.prod);
       expect(find.byKey(TripHud.pauseKey), findsOneWidget);
       expect(find.byKey(TripHud.debugKey), findsNothing);
-    });
-  });
-
-  group('the result placeholder', () {
-    testWidgets('shows the outcome, stars and pay the trip passed', (
-      tester,
-    ) async {
-      final container = await pumpWassalApp(tester, initialLocation: '/home');
-      final result = loadFixture('ending__two_stars').expectedResult;
-      container
-          .read(routerProvider)
-          .go('/trip/${result.tripId}/result', extra: result);
-      await tester.pumpAndSettle();
-      final summary = find.byType(ResultSummary);
-      expect(summary, findsOneWidget);
-      Finder inSummary(String text) =>
-          find.descendant(of: summary, matching: find.text(text));
-      expect(inSummary('وصلنا'), findsOneWidget);
-      expect(
-        inSummary('النجوم: ${_numbers.integer(result.stars)}'),
-        findsOneWidget,
-      );
-      for (final (condition, label, met) in [
-        ('reached', 'وصلت', result.starFlags.reached),
-        ('no_fights', 'من غير خناقات', result.starFlags.noFights),
-        ('no_mistakes', 'كل باقي صح من أول مرة', result.starFlags.noMistakes),
-      ]) {
-        expect(inSummary(label), findsOneWidget);
-        expect(
-          find.byKey(ResultSummary.conditionKey(condition, met: met)),
-          findsOneWidget,
-          reason: label,
-        );
-      }
-      expect(
-        inSummary('القبض: ${_numbers.integer(result.earningsJenehat)} جنيه'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('without it, the economy\'s last result', (tester) async {
-      final container = await pumpTrip(tester);
-      await finishTrip(tester);
-      expect(currentLocation(tester), '/trip/line_hay.01/result');
-      final last = container.read(economyViewProvider).lastResult!;
-      container.read(routerProvider).go('/trip/line_hay.01/result');
-      await tester.pumpAndSettle();
-      final summary = find.byType(ResultSummary);
-      expect(
-        find.descendant(of: summary, matching: find.text('وصلنا')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: summary,
-          matching: find.text(
-            'القبض: ${_numbers.integer(last.earningsJenehat)} جنيه',
-          ),
-        ),
-        findsOneWidget,
-      );
-      expect(find.byKey(ResultSummary.starsKey), findsNothing);
     });
   });
 }

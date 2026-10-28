@@ -39,7 +39,7 @@ The backend (see [`architecture-backend.md`](./architecture-backend.md)) is auth
 | Field | Value |
 | --- | --- |
 | Language/Version | Dart 3.x, Flutter stable channel. Exact version pinned at kickoff with FVM (`.fvmrc`). |
-| Primary dependencies | `flame` (trip scene), `rive` (character animation, 0.14 with `rive_native`) drawn in the scene by `flame_rive`, `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus`, `flutter_localizations` + `intl`, `flame_audio`, `flutter_svg` (the design's icons and illustrations, from 008.5). Tests add `flame_test` (M02). |
+| Primary dependencies | `flame` (trip scene), `rive` (character animation, 0.14 with `rive_native`) drawn in the scene by `flame_rive`, `flutter_riverpod` + `riverpod_generator` (state), `go_router` (navigation), `freezed` + `json_serializable` (models), `drift` (SQLite persistence), `flutter_secure_storage` (tokens), `dio` (HTTP), `google_mobile_ads` + AdMob mediation adapters, `in_app_purchase`, `firebase_core`, `firebase_analytics`, `firebase_crashlytics`, `firebase_remote_config`, `firebase_messaging`, `flutter_local_notifications`, `google_sign_in`, `sign_in_with_apple`, `share_plus` (the result's picture, behind `ShareGateway`; M08), `flutter_localizations` + `intl`, `flame_audio`, `flutter_svg` (the design's icons and illustrations, from 008.5). Tests add `flame_test` (M02). |
 | Storage | Local SQLite via `drift` (game state, ledger, sync queue, content cache). Secure storage for auth tokens. Bundled assets for the initial content pack. |
 | Testing | `test` for the pure-Dart engine, `flutter_test` + golden tests for widgets, `integration_test` for end-to-end trip flows, shared JSON fixtures for engine ↔ solver parity |
 | Target platform | Android first (minSdk 24, targetSdk 36), iOS second (iOS 15.0). Portrait only. Decided in M03: `specs/001-m03-app-shell/research.md` R1. |
@@ -179,6 +179,10 @@ wassal/
 │       │   │   ├── economy/        # wallet, ledger, fuel (§13)
 │       │   │   ├── content/        # pack decoder, store, updater, switch at Home (§14.1)
 │       │   │   │   └── domain/     # ContentSource: how features read content (no Flutter imports)
+│       │   │   ├── progress/       # the unlock and completion rules (M08)
+│       │   │   │   ├── domain/     # PlayerProgress, unlocks.dart: a port of the server's unlocks.py (no Flutter)
+│       │   │   │   └── application/ # playerProgressProvider: the projection's stars and ownership
+│       │   │   ├── platform/       # clock, uptime, connectivity, app info, store launcher, ShareGateway (M08)
 │       │   │   ├── config/         # Remote Config wrapper + defaults
 │       │   │   ├── ads/            # AdsGateway (§15)
 │       │   │   ├── iap/            # PurchaseGateway (§15)
@@ -191,10 +195,19 @@ wassal/
 │       │       │   ├── application/ # FirstSessionService, the late-restore lifecycle
 │       │       │   ├── data/       # DriftFirstSessionStore: the only writer of `first_session`
 │       │       │   └── presentation/ # ScenePage, NameScreen/NameSheet, CoachLayer, FuelLessonScreen
-│       │       ├── home/           # الموقف
-│       │       ├── pre_trip/       # كارت ما قبل المشوار
+│       │       ├── home/           # الموقف (M08)
+│       │       │   ├── domain/     # the next trip (FR-010), the line card's figures, the savings target
+│       │       │   ├── application/ # HomeModel, the arrival queue, the slots later features fill, the between-trips checkpoint
+│       │       │   └── presentation/ # HomeScreen: header, street scene, line card, savings card, start button, debug sheet
+│       │       ├── pre_trip/       # كارت ما قبل المشوار (M08)
+│       │       │   ├── domain/     # the briefing, «جديد» subjects, the met set, the card's mode
+│       │       │   ├── application/ # the briefing, the card's setting (`pref.pre_trip_card`), buying a booster
+│       │       │   └── presentation/ # PreTripCard: stop prices, star goals, the new card, boosters, BuyDialog
 │       │       ├── trip/           # trip screen: Flame scene + HUD + dashboard
-│       │       ├── result/
+│       │       ├── result/         # النتيجة (M08)
+│       │       │   ├── domain/     # ResultArgs, the summary, the quote and its speaker
+│       │       │   ├── application/ # ResultModel, the quote's run, the slots M11 fills
+│       │       │   └── presentation/ # ResultScreen: stars, breakdown, mistakes, pay, apartment, quote, ShareCard and its action
 │       │       ├── lines/          # lines map, line detail, vehicle purchase
 │       │       ├── garage/         # upgrades + cosmetics (phase 2)
 │       │       ├── apartment/      # rooms, item sheet, requests, chapters
@@ -255,7 +268,7 @@ Rules:
 
 - **Domain** never imports Flutter, Flame, Firebase or any plugin. It exposes interfaces (`Clock`, `Random`, `ContentSource`) that infrastructure implements.
 - **Presentation** never mutates game state directly. It sends commands and renders state/events.
-- **Infrastructure** wraps every plugin behind an interface (`AdsGateway`, `PurchaseGateway`, `AnalyticsSink`, `ApiClient`, `ConfigSource`) so features can be tested with fakes.
+- **Infrastructure** wraps every plugin behind an interface (`AdsGateway`, `PurchaseGateway`, `AnalyticsSink`, `ApiClient`, `ConfigSource`, `ShareGateway`) so features can be tested with fakes. `ShareGateway` (M08, `lib/core/platform/share_gateway.dart`) hands a PNG and its caption to the phone's share sheet through `share_plus`.
 
 ---
 
@@ -462,6 +475,10 @@ Rules from the UX doc that the renderer must enforce:
 
 The last six routes come from the design (`docs/design/HANDOFF.md` §7), which shows each screen's presentation (shell tab, sheet, dialog or full screen) and where each tap goes (§11). Each owning feature adds its route.
 
+M08 adds no route; it fills `/home`, `/home/pre-trip/:tripId` and `/trip/:tripId/result`. The result reads the trip's hand-over (`ResultArgs`, the route's `extra`); opened without one, it shows the last finished result the phone kept, and with nothing kept the router sends it to `/home` before any page is built (`specs/013-m08-home-result` FR-036).
+
+**Home's arrival queue** (M08, `lib/features/home/application/arrival_queue.dart`). Each arrival at `/home` opens at most one `ArrivalItem`, the due one with the lowest rank: 10 a story scene that is due, 20 the name sheet (both M07's, which opened them on their own before), 30 the notification ask (M14), 40 the morning piggy (M13). Nothing opens while an item is open or on the arrival that returns from one, and an item opens only if Home is still on top when the frame ends. Later features add their items to `arrivalItemsProvider`.
+
 Global rules: back button top-right; Android system back on the trip route opens the pause overlay; sheets dismiss by swipe-down; no Material ripples, so tappables press down onto their lip (HANDOFF §2.3).
 
 System bars: the app is portrait from its first frame (the native splash too) and runs edge to edge. Each screen sets the bars through `SystemBars`: the status bar is clear, and the navigation bar takes the colour along the screen's bottom edge, so a phone in three-button mode never shows a band of another colour. That colour is `ground` by default, `paper` under the bottom nav and under a sheet, `sun` on Loading, and `dashboardBg` on the trip, whose bars are hidden until swiped in. Icons are dark on a light colour and light on a dark one. Android 15+ ignores the bar's colour and shows the screen through it.
@@ -548,6 +565,7 @@ The rules, the API and the storage contract are in `specs/007-m05-local-economy/
 - **Fuel.** `fuel_max` liters, one back every `fuel_regen_minutes`, counted from the start of the current countdown; at or above the maximum nothing counts. Every trip start costs a liter, replays included, unless an unlimited-fuel window runs. Each operation records the fuel tunables it applied with, so a fold gives the same fuel after Remote Config changes them. Exact rules: `contracts/fuel-and-time.md`, which B03 must agree with.
 - **Trusted time** (constitution VI, as amended in 1.3.0). Time is an anchor advanced by the phone's monotonic uptime (`SystemClock.elapsedRealtime`, through the `wassal/clock` channel). The anchor is the last server time, or the device clock until there is one. The device clock is read only to take a new anchor, at the first open or after a restart while offline, and a new anchor never moves time back. Clock changes while the phone stays on have no effect. The server recomputes fuel, rewards and daily resets from its own clock, and its state replaces the client's on sync (M06).
 - **Prices** (JENEHAT for items, vehicles and chapters; BONAT for boosters, fuel, revives and cosmetics) come from the active pack's catalog when the purchase applies, never from code or the caller. The kind decides the currency.
+- **Unlock rules** (M08, `lib/core/progress/domain/unlocks.dart`, `specs/013-m08-home-result/contracts/progress-rules.md`). A port of the server's `backend/apps/progress/services/unlocks.py`, with its names, argument order and edge cases, and its tests ported too: a vehicle owned, a line unlocked and complete, a trip unlocked, a chapter unlocked and complete, a room complete, an item purchasable, the current chapter. They read `PlayerProgress` (best stars by trip and what is owned, from the projection). Each is permissive where a mistake is harmless and strict where it protects value. The server still decides; the phone checks first so it never offers a start or a purchase the server would refuse as `not_unlocked`. A change to `unlocks.py` changes the port in the same PR.
 - **Rule from product doc:** BONAT can never be converted into JENEHAT in v1. No code path may do it: no device operation adds BONAT, and none spends BONAT and adds JENEHAT (`direction_test.dart` builds every one).
 
 ---

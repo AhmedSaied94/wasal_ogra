@@ -23,14 +23,28 @@ final class SpeechResolver {
   final String Function(String stationId) station;
 
   /// The line [event] says, or null when its pool is missing or empty.
-  String? lineOf(PassengerSpeaks event) {
-    final lines = pool(event.speechKey)?.lines;
+  String? lineOf(PassengerSpeaks event) => resolve(
+    speechKey: event.speechKey,
+    variant: event.variant,
+    amountPiasters: event.amountPiasters,
+    stationId: event.stationId,
+  );
+
+  /// The line of [speechKey]'s pool that [variant] draws, its amount and
+  /// station filled in (the result's quote, specs/013-m08-home-result).
+  String? resolve({
+    required String speechKey,
+    required int variant,
+    int? amountPiasters,
+    String? stationId,
+  }) {
+    final lines = pool(speechKey)?.lines;
     if (lines == null || lines.isEmpty) return null;
-    var text = lines[event.variant % lines.length].text.arEg;
-    if (event.amountPiasters case final amount?) {
+    var text = lines[variant % lines.length].text.arEg;
+    if (amountPiasters case final amount?) {
       text = text.replaceAll('{amount}', piasters(amount));
     }
-    if (event.stationId case final stationId?) {
+    if (stationId case final stationId?) {
       text = text.replaceAll('{station}', station(stationId));
     }
     return text;
