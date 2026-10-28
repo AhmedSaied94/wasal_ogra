@@ -108,7 +108,7 @@ glossary, and merged decisions win on behaviour.
 | 008.5 M21 | `Tokens`, `Components`, `Characters`, `Passengers`, `Vehicles` (as Rive art), `Loading`, `C-Trip`, `TripEvents`, `StoryTrip`, `Pause`, `Fail`, `States` 9–10 (empty, loading) | #5 ledger badge 5 s against the 10 s booster |
 | B03 | none | #8 the comeback-gift and family-request grants (no op yet); longest streak and trip count |
 | M06 | `States` 1, 7, 8 (offline, update required, maintenance): placed with 008.5's components, not redrawn (`test/goldens/server_states_goldens_test.dart`) | none |
-| Before M07 | none | #4 routing money around أبو سمّاعة. If yes, it is a rules change: `RULES.md`, both engines and fixtures in one PR (constitution III), before M07 teaches it and M08's PreTrip mentions it. |
+| Before M07 | none | #4 routing money around أبو سمّاعة: settled "no" in 013 (Clarifications 2026-10-27). He must be called twice, the pre-trip card says so, and the engine's rule stays. |
 | M07 | `Intro`, `Name`, `Tutorial`, `FuelLesson` | #3 the coach line of each tutorial trip (resolved in M07's research R18) |
 | 012.5 M22 | none new: the six comic panels of `Intro` and the `Panel*` boards, animated in a second Rive file, `wassal_scenes.riv` (its board «حركة المشاهد») | none |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
@@ -454,8 +454,8 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 - **Resolve:**
   - nothing open in the architecture docs;
   - from the design (HANDOFF §9.3): before M07, whether money can be passed around a muted
-    أبو سمّاعة through the neighbouring seat (#4; the engine blocks it today). If yes, it is a rules
-    change with its parity fixtures (constitution III), in its own PR. In M07, each tutorial trip's
+    أبو سمّاعة through the neighbouring seat (#4; settled "no" in 013: he must be called twice,
+    and the engine's rule stays). In M07, each tutorial trip's
     coach line (#3; resolved in M07's research R18). In M10, when the Apartment tab opens (#2: the ux-spec locks it in chapters
     1–2, the design shows the goal from the start).
 - **Handed over from M02** (research "Handed to later features"):
@@ -756,7 +756,13 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     under `inset + 764` pt. Resolved HANDOFF §9.3 #3 (research R18).
   - [ ] `012.5-m22-animated-scenes`. Added on 2026-10-28: the comic panels as Rive animations, from
     a second file the owner has Claude Design make with the Rive MCP.
-  - [ ] `013-m08-home-result`
+  - [ ] `013-m08-home-result`. Built on 2026-10-28; ticked after merge. Decided in its
+    clarifications: Home follows the line played last, then the earliest open line with an
+    unfinished trip, then a replay of the fewest stars; «عيد المشوار» stays M02's direct restart;
+    أبو سمّاعة must be called twice (HANDOFF §9.3 #4 closed as "no"); one item opens per arrival at
+    Home, in a fixed order, and M07's due scene and name re-ask became its first two. Home's
+    offline banner follows `HomeStates` (40 high, 10 under the header) where `States` draws it
+    alone.
   - [ ] `014-m09-lines-vehicles`
   - [ ] `015-m10-apartment-story`
 - [ ] Step 8: Ads
