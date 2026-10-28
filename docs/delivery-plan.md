@@ -65,12 +65,16 @@ The numbers below assume you follow this plan; if you don't, the numbers shift b
 stay the same. Put the feature ID in the short name, so the folder, the branch and the ID line up:
 `001-m03-app-shell`.
 
-**008.5 is the one spec number that isn't a whole number.** It was added between 008 and 009 after
-both were numbered, so the later numbers stay as they are. The scripts only generate whole numbers,
-so give `/speckit-specify` both names explicitly (see [Step 5.5](#step-55-the-new-design)):
-`GIT_BRANCH_NAME=008.5-m21-design-refresh` and
-`SPECIFY_FEATURE_DIRECTORY=specs/008.5-m21-design-refresh`. The next generated number is still 009,
-because the number scan ignores `008.5-`.
+**008.5 and 012.5 are the spec numbers that aren't whole numbers.** Each was added after its
+neighbours were numbered, so the later numbers stay as they are. The scripts only generate whole
+numbers, so give `/speckit-specify` both names explicitly:
+
+- 008.5 ([Step 5.5](#step-55-the-new-design)): `GIT_BRANCH_NAME=008.5-m21-design-refresh` and
+  `SPECIFY_FEATURE_DIRECTORY=specs/008.5-m21-design-refresh`;
+- 012.5 ([Step 7](#0125-the-animated-scenes)): `GIT_BRANCH_NAME=012.5-m22-animated-scenes` and
+  `SPECIFY_FEATURE_DIRECTORY=specs/012.5-m22-animated-scenes`.
+
+The next generated number stays whole, because the number scan ignores `008.5-` and `012.5-`.
 
 **One active feature at a time.** The active feature is the one `.specify/feature.json` points to,
 which is the one you specified last. To return to another feature, ask Claude to make
@@ -106,6 +110,7 @@ glossary, and merged decisions win on behaviour.
 | M06 | `States` 1, 7, 8 (offline, update required, maintenance): placed with 008.5's components, not redrawn (`test/goldens/server_states_goldens_test.dart`) | none |
 | Before M07 | none | #4 routing money around أبو سمّاعة. If yes, it is a rules change: `RULES.md`, both engines and fixtures in one PR (constitution III), before M07 teaches it and M08's PreTrip mentions it. |
 | M07 | `Intro`, `Name`, `Tutorial`, `FuelLesson` | #3 the coach line of each tutorial trip (resolved in M07's research R18) |
+| 012.5 M22 | none new: the six comic panels of `Intro` and the `Panel*` boards, animated in a second Rive file, `wassal_scenes.riv` (its board «حركة المشاهد») | none |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
 | M09 | `Lines`, `LineDetails`, `BuyVehicle` | none |
 | M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` | #2 when the Apartment tab opens |
@@ -133,7 +138,7 @@ pass owned, the Invite redeem code) are designed before those phases start.
 | 5 | 008 M02 | **The first playable trip, fully offline** |
 | 5.5 | 008.5 M21 | Everything built so far in the new design, with the Rive art in its style |
 | 6 | 009 B02 · 010 B03 · 011 M06 | Server-backed accounts and wallet |
-| 7 | 012 M07 · 013 M08 · 014 M09 · 015 M10 | The full game loop |
+| 7 | 012 M07 · 012.5 M22 · 013 M08 · 014 M09 · 015 M10 | The full game loop |
 | 8 | 016 B10 · 017 B07 · 018 M11 | Rewarded ads and interstitials |
 | 9 | 019 B06 · 020 M12 | Real-money purchases |
 | 10 | 021 B08 · 022 M13 | The daily return loop |
@@ -441,6 +446,7 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 | Spec | ID | Feature | Depends on | Specify from |
 | --- | --- | --- | --- | --- |
 | `012-m07-onboarding` | M07 | Onboarding and tutorial overlays (5 tutorial trips) | M02 | ux-spec «البداية وأول جلسة»; product-spec «تجربة المستخدم» (أول جلسة); design `Intro`, `Name`, `Tutorial`, `FuelLesson` |
+| `012.5-m22-animated-scenes` | M22 | Animated scenes: the comic panels as Rive animations, with the characters and the tuktuk moving | M07, M21 | `wassal_scenes.riv` and its board «حركة المشاهد»; M07's `contracts/scenes.md`; 008.5's `contracts/rive-characters.md` (see [012.5](#0125-the-animated-scenes)) |
 | `013-m08-home-result` | M08 | Home, pre-trip card, result screen | M02, M05 | ux-spec «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة»; design `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` |
 | `014-m09-lines-vehicles` | M09 | Lines map, line detail, vehicle purchase | M05 | ux-spec «الخطوط والعربية والجراج»; product-spec «التقدم: الخطوط والعربيات»; design `Lines`, `LineDetails`, `BuyVehicle` |
 | `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا»; design `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` |
@@ -472,6 +478,61 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
   - The integration test from onboarding through the first 5 trips passes.
 - **Option:** the closed test (50–100 players) could start here. Its KPI, 80% of new players
   finishing the first session, needs analytics, so pull M15 forward if you take this route.
+
+#### 012.5: The animated scenes
+
+Added on 2026-10-28, after M07 was built. M07's comic panels are still drawings: they slide in and
+their bubbles pop, but nothing moves inside them. 012.5 plays them as Rive animations from a second
+file, so the characters and the tuktuk move, and the character whose bubble shows talks.
+
+```text
+/speckit-specify M22 Animated scenes (short name: m22-animated-scenes).
+GIT_BRANCH_NAME=012.5-m22-animated-scenes SPECIFY_FEATURE_DIRECTORY=specs/012.5-m22-animated-scenes.
+Play the comic panels as Rive animations from a second file, wassal_scenes.riv: the characters and
+the tuktuk move, and the character whose bubble shows talks. The still drawings stay the fallback.
+Sources: the file and its board «حركة المشاهد» on the design canvas; specs/012-m07-onboarding/
+contracts/scenes.md "Panel art" and "The player"; specs/008.5-m21-design-refresh/contracts/
+rive-characters.md (how the app loads, checks and falls back from Rive art).
+Out of scope: new scenes or drawings; the trip's passengers; any rule, economy or schema change.
+```
+
+- **In scope:**
+  - **The file.** `apps/mobile/assets/rive/wassal_scenes.riv`, decoded and checked at boot like
+    `wassal.riv`: artboards are opened by name, and the free plan's extra artboards are ignored. An
+    artboard that fails its check falls back to its drawing, and the debug panel lists the problems.
+  - **The contract,** as the file was ordered from Claude Design:
+    - one 358×540 artboard per panel slug: `opening_key`, `opening_stand`, `opening_go`,
+      `stand_morning`, `salma_waiting`, `usta_decides`;
+    - a state machine `Panel` that plays by itself;
+    - a view model `Panel` with four Booleans: `moallem`, `usta`, `belya`, `salma`.
+  - **`PanelArt`** draws a panel's Rive artboard when there is one, else its drawing, else
+    `PanelFallback`. Under reduced motion it draws the still drawing.
+  - **Talking in turn.** A panel's bubbles appear one after the other, and the speaker's property is
+    true while their bubble shows.
+  - **The release draft's names.** The draft's سلمى scene (`first_sight`) uses `ch1_stand_morning`,
+    `ch1_salma_asks` and `ch1_usta_dreams`, the names its brief gives. They are drawn with the same
+    art as `stand_morning`, `salma_waiting` and `usta_decides`, both the drawing and the animation.
+  - **Tests:**
+    - the order of the fallbacks, and a missing or broken file;
+    - the talking property for each bubble;
+    - reduced motion;
+    - Rive goldens (tag `rive`) of each panel's first frame, beside its drawing.
+- **Out of scope:**
+  - new scenes or drawings (M10 brings chapters 2–4's scenes; their panels can follow the same path);
+  - the trip's passengers and vehicles, which stay in `wassal.riv`;
+  - any rule, engine, economy or content-schema change.
+- **Owner, before 012.5 is specified:** `wassal_scenes.riv`, made by Claude Design with the Rive
+  MCP from the canvas's six panel drawings, with its board «حركة المشاهد». It is exported from
+  Rive's free plan, and its editable source stays in the owner's Rive account. Specify from the file
+  as delivered: anything Claude Design reports it couldn't do is recorded in the spec, not worked
+  around in the app.
+- **Done when:**
+  - The opening and the سلمى scene animate on the Redmi Note 7 and the Galaxy A06, and the character
+    who talks is the one whose bubble shows.
+  - Without the file, with a broken artboard, or under reduced motion, every panel shows its
+    drawing, and M07's goldens are unchanged.
+  - A scene on the A06 keeps 008.5's gate (≥ 45 fps, memory under 300 MB) with both Rive files
+    loaded.
 
 ### Step 8: Ads
 
@@ -693,6 +754,8 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     refusal reopens it as a sheet on Home; المعلم's fuel lesson before trip 5 is a new artboard,
     `FuelLesson`. Closed M02's exception to constitution XI with the trip screen's compact profile
     under `inset + 764` pt. Resolved HANDOFF §9.3 #3 (research R18).
+  - [ ] `012.5-m22-animated-scenes`. Added on 2026-10-28: the comic panels as Rive animations, from
+    a second file the owner has Claude Design make with the Rive MCP.
   - [ ] `013-m08-home-result`
   - [ ] `014-m09-lines-vehicles`
   - [ ] `015-m10-apartment-story`

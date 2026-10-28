@@ -1021,7 +1021,7 @@ Suggested order for MVP: B01 → B04 → B05 → B02 → B03 → B10 → B07 →
 | Push notifications | M14 | B11 | `POST /v1/push-tokens` + FCM |
 | Second device | M06 | B03 | `state_stale` → `GET /v1/state` |
 
-Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (the new design, spec 008.5) → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
+Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (the new design, spec 008.5) → B02 + B03 + M06 → M07 → M22 (the animated scenes, spec 012.5) → M08–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
 
 ---
 

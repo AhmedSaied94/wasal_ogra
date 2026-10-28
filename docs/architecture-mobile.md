@@ -761,8 +761,9 @@ Crashlytics for crashes and non-fatal errors (sync rejections, purchase failures
 | M19 | Seasonal events + season pass (phase 3) | M12 | B14 |
 | M20 | Referral + share clips (phase 3) | M06, M01 | B15 |
 | M21 | Design refresh: the Style C design (`docs/design/`) applied to what M02 and M03 built: tokens, components, shell, boot screen, trip screen, Rive art in the new style. Spec `008.5`. | M02, M03 | — |
+| M22 | Animated scenes: the comic panels as Rive animations from a second file, `wassal_scenes.riv` (the characters and the tuktuk move; the speaker talks with their bubble). Spec `012.5`. | M07, M21 | — |
 
-Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M21 → M07 → M08 → M06 → M09 → M10 → M15 → M11 → M12 → M13 → M14.
+Suggested order for MVP: M03 → M01 → M04 → M05 → M02 → M21 → M07 → M22 → M08 → M06 → M09 → M10 → M15 → M11 → M12 → M13 → M14.
 
 ---
 
