@@ -194,13 +194,19 @@ class Segmented<T> extends StatelessWidget {
 }
 
 /// A one-line text field: 52 high, white, a 2 pt `ground.lip` ring that
-/// turns `primary` with focus.
+/// turns `primary` with focus. An artboard that draws another [height],
+/// [fill] or [textStyle] passes it (`Name`: 54, `ground`, 20 pt).
 class AppTextField extends StatefulWidget {
   const AppTextField({
     required this.controller,
     required this.semanticLabel,
     this.onChanged,
     this.maxLength,
+    this.textInputAction,
+    this.onSubmitted,
+    this.height = defaultHeight,
+    this.fill = ColorTokens.paper,
+    this.textStyle = DesignExtras.fieldText,
     super.key,
   });
 
@@ -209,8 +215,16 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final int? maxLength;
 
+  /// The keyboard's action key, and what it does.
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+
+  final double height;
+  final Color fill;
+  final TextStyle textStyle;
+
   static const frameKey = Key('AppTextField.frame');
-  static const double height = 52;
+  static const double defaultHeight = 52;
   static const double _padding = 14;
 
   @override
@@ -256,11 +270,11 @@ class _AppTextFieldState extends State<AppTextField> {
       duration: MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
           : MotionTokens.press,
-      height: AppTextField.height,
+      height: widget.height,
       padding: const EdgeInsets.symmetric(horizontal: AppTextField._padding),
       alignment: AlignmentDirectional.centerStart,
       decoration: BoxDecoration(
-        color: ColorTokens.paper,
+        color: widget.fill,
         borderRadius: BorderRadius.circular(RadiusTokens.m),
         border: Border.all(
           color: ring.color,
@@ -278,10 +292,18 @@ class _AppTextFieldState extends State<AppTextField> {
             focusNode: _focus,
             onChanged: widget.onChanged,
             maxLength: widget.maxLength,
+            textInputAction: widget.textInputAction,
+            onSubmitted: widget.onSubmitted,
             cursorColor: ColorTokens.primary,
-            style: DesignExtras.fieldText.copyWith(color: ColorTokens.ink),
+            style: widget.textStyle.copyWith(color: ColorTokens.ink),
+            textAlignVertical: TextAlignVertical.center,
+            // As tall as the frame, so its semantics node, the screen
+            // reader's target, is too (minimum 44, constitution XI).
             decoration: const InputDecoration.collapsed(hintText: null)
-                .copyWith(counterText: ''),
+                .copyWith(
+                  counterText: '',
+                  constraints: BoxConstraints(minHeight: widget.height),
+                ),
           ),
         ),
       ),

@@ -195,7 +195,7 @@ def chapter_part(chapter: Chapter) -> dict[str, Any]:
 
 def scene_part(scene: Any) -> dict[str, Any]:
     lines = sorted(scene.lines.all(), key=lambda line: (line.panel, line.order))
-    return {
+    part: dict[str, Any] = {
         "scene_id": scene.scene_id,
         "panels": [
             {
@@ -209,6 +209,12 @@ def scene_part(scene: Any) -> dict[str, Any]:
             for number, art in enumerate(scene.panel_art, start=1)
         ],
     }
+    if scene.plays_kind:
+        plays: dict[str, Any] = {"kind": scene.plays_kind}
+        if scene.plays_trip is not None:
+            plays["trip_id"] = scene.plays_trip.trip_id
+        part["plays"] = plays
+    return part
 
 
 def room_part(room: Room) -> dict[str, Any]:
@@ -312,7 +318,7 @@ def trips() -> Any:
 def chapters() -> Any:
     return Chapter.objects.select_related(
         "goal_line", "goal_vehicle", "goal_room", "story_trip__line"
-    ).prefetch_related("scenes__lines")
+    ).prefetch_related("scenes__lines", "scenes__plays_trip__line")
 
 
 def rooms() -> Any:

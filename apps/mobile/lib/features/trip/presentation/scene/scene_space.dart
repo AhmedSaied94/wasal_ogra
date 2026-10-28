@@ -3,6 +3,7 @@
 // bottom, and below 408 pt both scale (contracts/trip-layout.md).
 import 'dart:ui';
 
+import 'package:content_models/content_models.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 
 extension SceneSpace on SceneLayout {
@@ -22,6 +23,25 @@ extension SceneSpace on SceneLayout {
         rectOf(x, y, w, h),
         Radius.circular(radius * scale),
       );
+
+  /// A design rect with rounded corners that belongs to [row], such as its
+  /// bench: it keeps its distance from the row's faces (M07's compact table
+  /// moves the rows).
+  RRect rowRRectOf(
+    SeatRow row,
+    double x,
+    double y,
+    double w,
+    double h,
+    double radius,
+  ) {
+    final a = placeOnRow(row, x, y);
+    final b = placeOnRow(row, x + w, y + h);
+    return RRect.fromRectAndRadius(
+      Rect.fromLTRB(a.x, a.y, b.x, b.y),
+      Radius.circular(radius * scale),
+    );
+  }
 
   /// A design length across, such as a stroke's width.
   double across(double length) => length * scale;

@@ -4,7 +4,9 @@ import 'package:wassal/core/routing/routes.dart';
 
 import '../../helpers/pump_app.dart';
 
-// The destination table (contracts/routes.md, FR-014, FR-017).
+// The destination table (contracts/routes.md, FR-014, FR-017), with M07's
+// two first-session routes (specs/012-m07-onboarding/contracts/
+// first-session.md "New routes").
 
 const _p = Presentation.page;
 const _s = Presentation.sheet;
@@ -14,7 +16,14 @@ const _none = Section.none;
 const expected = <String, (String?, Presentation, Section, List<String>)>{
   'boot': ('/boot', _p, _none, []),
   'onboardingIntro': ('/onboarding/intro', _p, _none, ['onboardingName']),
-  'onboardingName': ('/onboarding/name', _p, _none, ['home']),
+  'onboardingName': ('/onboarding/name', _p, _none, ['trip', 'home']),
+  'onboardingScene': (
+    '/onboarding/scene/:sceneId',
+    _p,
+    _none,
+    ['trip', 'home'],
+  ),
+  'onboardingFuel': ('/onboarding/fuel', _p, _none, ['trip']),
   'home': (
     '/home',
     _t,
@@ -117,6 +126,31 @@ void main() {
         d.location,
         reason: d.name,
       );
+    }
+  });
+
+  group('safeThen: only a trip or الموقف (first-session.md "Router")', () {
+    test('a trip by a valid id, and /home, pass', () {
+      expect(safeThen('/trip/line_hay.01'), '/trip/line_hay.01');
+      expect(safeThen('/home'), '/home');
+    });
+
+    for (final bad in [
+      null,
+      '',
+      'https://evil.example/trip/line_hay.01',
+      '//evil.example',
+      '/trip/line_xyz.01',
+      '/trip/line_hay.01/result',
+      '/trip/line_hay.01?x=1',
+      '/settings/account',
+      '/onboarding/fuel',
+      'trip/line_hay.01',
+      '/home/pre-trip/line_hay.01',
+    ]) {
+      test('${bad ?? 'null'} becomes /home', () {
+        expect(safeThen(bad), '/home');
+      });
     }
   });
 }

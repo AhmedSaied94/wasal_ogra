@@ -5,12 +5,12 @@ import 'package:wassal/core/l10n/digit_style.dart';
 import '../../helpers/trip.dart';
 
 // The trip screen's US3 goldens (tasks.md T063): what the archetypes
-// show, on the three trip surfaces, in RTL, in both digit styles, with the
-// stand-in art. Generated on Linux.
+// show, on the trip surfaces but `mid`, in RTL, in both digit styles, with
+// the stand-in art. Generated on Linux.
 
 void main() {
   for (final state in us3TripCases()) {
-    for (final surface in TripSurface.values) {
+    for (final surface in tripGoldenSurfaces(state)) {
       for (final digits in DigitStyle.values) {
         final name = '${state.name}_${surface.name}_${digits.name}';
         testWidgets(name, (tester) async {

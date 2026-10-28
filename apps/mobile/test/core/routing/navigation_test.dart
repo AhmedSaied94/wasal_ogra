@@ -1,15 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/bootstrap/flavor.dart';
+import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
+import 'package:wassal/features/onboarding/presentation/driver_name_line.dart';
+import 'package:wassal/features/onboarding/presentation/name_screen.dart';
+import 'package:wassal/features/onboarding/presentation/scene_player.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
 import '../../helpers/trip.dart';
 
-const _onboarding = {'onboardingIntro', 'onboardingName'};
+/// Reached by boot and the first session's redirects, not by links.
+const _onboarding = {
+  'onboardingIntro',
+  'onboardingName',
+  'onboardingScene',
+  'onboardingFuel',
+};
 
 Iterable<Destination> get _routable =>
     destinations.where((d) => d.path != null && d.name != 'boot');
@@ -35,14 +46,44 @@ void main() {
       });
     }
 
-    testWidgets('onboarding opens directly and leads to الموقف', (
-      tester,
-    ) async {
-      await pumpWassalApp(tester, initialLocation: '/onboarding/intro');
-      await tapLink(tester, 'onboardingName');
+    testWidgets('a new player: intro, the Name card, then trip 1, by the '
+        "screens' own buttons", (tester) async {
+      await pumpWassalApp(tester, newPlayer: true);
+      expect(currentLocation(tester), '/onboarding/intro');
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byKey(ScenePlayer.nextKey));
+        await tester.pumpAndSettle();
+      }
       expect(currentLocation(tester), '/onboarding/name');
-      await tapLink(tester, 'home');
-      expect(currentLocation(tester), '/home');
+      await tester.tap(find.byKey(NameScreen.ctaKey));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/trip/line_hay.01');
+    });
+  });
+
+  group("the playtest Home shows the driver's name", () {
+    testWidgets('«الأسطى» before one is saved', (tester) async {
+      await pumpWassalApp(tester);
+      expect(
+        tester.widget<Text>(find.byKey(DriverNameLine.nameKey)).data,
+        'الأسطى',
+      );
+    });
+
+    testWidgets('the saved one after', (tester) async {
+      final container = await pumpWassalApp(tester);
+      final economy = container.read(economyProvider).requireValue;
+      await economy.setDisplayName(economy.newRequestId(), 'حمادة');
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(DriverNameLine.nameKey)).data,
+        'حمادة',
+      );
+    });
+
+    testWidgets('not on prod', (tester) async {
+      await pumpWassalApp(tester, flavor: Flavor.prod);
+      expect(find.byKey(DriverNameLine.nameKey), findsNothing);
     });
   });
 

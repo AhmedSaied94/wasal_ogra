@@ -263,6 +263,7 @@ class _Applier:
         self.dropped: list[models.Model] = []
         self.pending_unlocks: list[tuple[Line, Mapping[str, Any]]] = []
         self.pending_goals: list[tuple[Chapter, Mapping[str, Any]]] = []
+        self.pending_plays: list[tuple[Scene, Mapping[str, Any] | None]] = []
 
     def run(self) -> ImportResult:
         self.each(
@@ -279,6 +280,8 @@ class _Applier:
             self.unlock(line, part)
         for chapter, part in self.pending_goals:
             self.goal(chapter, part)
+        for scene, plays in self.pending_plays:
+            self.plays(scene, plays)
         requests = {r.request_id: r for r in snapshot.requests()}
         self.each("family_requests", requests, snapshot.request_part, self.request)
         pools = {pool.speech_key: pool for pool in snapshot.pools()}
@@ -442,6 +445,8 @@ class _Applier:
             scene.order = order
             scene.panel_art = [panel["art"] for panel in scene_part["panels"]]
             scene.save()
+            # After the trips: an after_trip scene may name a trip this import adds.
+            self.pending_plays.append((scene, scene_part.get("plays")))
             SceneLine.objects.filter(scene=scene).delete()
             SceneLine.objects.bulk_create(
                 SceneLine(
@@ -470,6 +475,13 @@ class _Applier:
         story = part.get("story_trip_id")
         chapter.story_trip = self.trips[story] if story else None
         chapter.save()
+
+    def plays(self, scene: Scene, plays: Mapping[str, Any] | None) -> None:
+        """When the scene plays by itself, its trip resolved like `story_trip_id`."""
+        trip_id = (plays or {}).get("trip_id")
+        scene.plays_kind = (plays or {}).get("kind", "")
+        scene.plays_trip = self.trips[trip_id] if trip_id else None
+        scene.save(update_fields=["plays_kind", "plays_trip", "updated_at"])
 
     def room(self, room: Room | None, part: Mapping[str, Any]) -> Room:
         room = room or Room(room_id=part["room_id"])

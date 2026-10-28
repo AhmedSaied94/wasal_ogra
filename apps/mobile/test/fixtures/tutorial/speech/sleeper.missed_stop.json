@@ -1,0 +1,25 @@
+{
+  "lines": [
+    {
+      "text": {
+        "ar-EG": "{station} فاتت؟! ليه ما صحّتنيش؟"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "نمت وفوّتّ {station}!"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "يا نهار.. {station} راحت"
+      }
+    },
+    {
+      "text": {
+        "ar-EG": "كان المفروض أنزل {station}!"
+      }
+    }
+  ],
+  "speech_key": "sleeper.missed_stop"
+}

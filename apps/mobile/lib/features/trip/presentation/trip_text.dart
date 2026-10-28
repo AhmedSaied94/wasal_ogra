@@ -4,6 +4,7 @@ import 'package:content_models/content_models.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -174,6 +175,29 @@ extension TripText on AppLocalizations {
   /// pounds.
   String trayLabel(int denomination, NumberFormatter numbers) =>
       denomination == 50 ? tripTrayHalf : numbers.piasters(denomination);
+
+  /// What بلية says for a coach [line] (M07 contracts/coach.md "Lines");
+  /// [station] names a stop by its id.
+  String coachLine(
+    CoachLine line,
+    NumberFormatter numbers,
+    String Function(String stationId) station,
+  ) => switch (line) {
+    FareArrivedLine() => coachFareArrived,
+    GiveChangeLine(:final amountPiasters, :final coin?, :final count?) =>
+      coachGiveChange(
+        numbers.piasters(amountPiasters),
+        coachCoinName('v$coin'),
+        count,
+        numbers.integer(count),
+      ),
+    GiveChangeLine(:final amountPiasters) => coachGiveChangeAny(
+      numbers.piasters(amountPiasters),
+    ),
+    TapRiderLine() => coachTapRider,
+    StopNearLine(:final stationId) => coachStopNear(station(stationId)),
+    WakeSleeperLine() => coachWakeSleeper,
+  };
 }
 
 /// The trip's text scale (research R8): the HUD, the strip, the dashboard,

@@ -319,6 +319,12 @@ void main() {
       expect(snapshot.raw, _bootstrap());
     });
 
+    // B03 sends "" for a name never given (M07: the re-ask and «الأسطى»).
+    test('reads a blank name as none', () {
+      final json = _with(_bootstrap(), ['player', 'display_name'], '');
+      expect(BootstrapSnapshot.fromJson(json).player.displayName, isNull);
+    });
+
     test('takes a null content version, no name and no level', () {
       var json = _with(_bootstrap(), ['content', 'version'], null);
       json = _with(json, ['player', 'display_name'], null);
@@ -415,6 +421,11 @@ void main() {
       expect(state.raw['story'], _state()['story']);
       expect(state.raw['grants'], {'tutorial': true});
       expect(state.raw['stats'], {'trips_played': 31});
+    });
+
+    test('reads a blank name as none', () {
+      final json = _with(_state(), ['player', 'display_name'], '');
+      expect(StateSnapshot.fromJson(json).displayName, isNull);
     });
 
     test('reads null open_trip and last_result', () {

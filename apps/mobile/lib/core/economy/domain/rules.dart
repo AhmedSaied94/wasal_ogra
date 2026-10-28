@@ -9,6 +9,7 @@ import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/economy/domain/fuel.dart';
 import 'package:wassal/core/economy/domain/gift_rules.dart';
 import 'package:wassal/core/economy/domain/op.dart';
+import 'package:wassal/core/economy/domain/profile_rules.dart';
 import 'package:wassal/core/economy/domain/spend_rules.dart';
 import 'package:wassal/core/economy/domain/trip_rules.dart';
 import 'package:wassal/core/economy/domain/txn_id.dart';
@@ -112,6 +113,8 @@ final class ProductionRules implements Rules {
       BuyRequest() => validateBuy(s, request, ctx),
       UseBoosterRequest() => validateUseBooster(s, request, ctx),
       ComebackGiftRequest() => validateComebackGift(s, request, ctx),
+      SettingsUpdateRequest() => validateSettingsUpdate(s, request, ctx),
+      TutorialGiftRequest() => validateTutorialGift(s, request, ctx),
     };
   }
 
@@ -132,6 +135,8 @@ final class ProductionRules implements Rules {
       OpType.spendJenehat || OpType.spendBonat => applySpend(s, op),
       OpType.useBooster => applyUseBooster(s, op),
       OpType.comebackGift => applyComebackGift(s, op),
+      OpType.settingsUpdate => applySettingsUpdate(s, op),
+      OpType.tutorialGift => applyTutorialGift(s, op),
     };
   }
 
@@ -143,6 +148,8 @@ final class ProductionRules implements Rules {
     OpType.spendJenehat || OpType.spendBonat => spendStillValid(state, op),
     OpType.useBooster => useBoosterStillValid(state, op),
     OpType.comebackGift => true,
+    OpType.settingsUpdate => true,
+    OpType.tutorialGift => tutorialGiftStillValid(state, op),
   };
 }
 
@@ -164,4 +171,6 @@ bool requestMatches(Op op, OpRequest request) => switch (request) {
     op.type == OpType.useBooster &&
         op.payload['booster_id'] == boosterWire[booster],
   ComebackGiftRequest() => op.type == OpType.comebackGift,
+  SettingsUpdateRequest() => settingsUpdateMatches(op, request),
+  TutorialGiftRequest() => op.type == OpType.tutorialGift,
 };

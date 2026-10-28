@@ -48,6 +48,9 @@ Portrait. The trip hides the system bars (`immersiveSticky`, M02).
   unchanged until M07 (spec Clarifications; plan Complexity Tracking): only the scene's faces and its
   drawn sizes shrink. The HUD, dashboard, notes, bubbles, choice buttons and every hit area keep their
   minimums, since hit areas are clamped to 44×44 after scaling.
+  **Closed by M07:** below the threshold the trip now takes the compact profile (a 72 pt HUD, a
+  226 pt dashboard and the compact seat tables), where every minimum holds:
+  [`specs/012-m07-onboarding/contracts/compact-trip-layout.md`](../../012-m07-onboarding/contracts/compact-trip-layout.md).
 
 ## Width
 
@@ -170,6 +173,6 @@ The constants come from `MotionTokens`. The hop times stay tunables.
 | --- | --- | --- | --- |
 | reference | 390×844 | 36 | artboard goldens and layout tests; every M02 trip state |
 | a06 | 360×800 | 24 | M02's trip states; minimum sizes |
-| small | 360×640 | 24 | the exception: HUD, dashboard and hit areas keep their sizes; no overlap |
+| small | 360×640 | 24 | the exception: HUD, dashboard and hit areas keep their sizes; no overlap. Since M07, the compact profile, with every minimum; M07 adds `mid` (360×720) |
 
 M02's 360×744 surface is retired: it falls under the exception now (research R20).

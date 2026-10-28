@@ -6,9 +6,9 @@ import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
-import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/trip_screen.dart';
+import 'package:wassal/core/theme/components/characters.dart';
 
 import '../../helpers/trip.dart';
 

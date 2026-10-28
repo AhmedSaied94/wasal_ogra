@@ -101,6 +101,9 @@ hands over (contracts/loading.md "Launch").
 **It never switches** on `/home/pre-trip/:tripId`, `/trip/:tripId`, `/trip/:tripId/result`, a sheet,
 or any other screen. It also never switches while Home is already showing: only an arrival counts.
 
+**Since M07,** a new player's «تمام» on the Name card also calls `switchIfReady()`, before trip 1,
+so the tutorial plays the newest pack (`specs/012-m07-onboarding/research.md` R3).
+
 ## What the player sees
 
 Nothing. There is no banner, toast or «محتاج نت» mark for content updates (spec Assumptions). A

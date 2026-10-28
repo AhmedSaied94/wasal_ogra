@@ -45,6 +45,13 @@ final class WireObject {
 
   String? optionalString(String key) => raw[key] == null ? null : string(key);
 
+  /// [key]'s text, or null when it is absent, null or empty: B03 sends ""
+  /// for a name never given.
+  String? optionalText(String key) => switch (optionalString(key)) {
+    final text? when text.isNotEmpty => text,
+    _ => null,
+  };
+
   bool boolean(String key) {
     final value = raw[key];
     if (value is! bool) {

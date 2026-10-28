@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/bootstrap/status_overlay_host.dart';
+import 'package:wassal/core/account/account_providers.dart';
 import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/content/content_controller.dart';
 import 'package:wassal/core/content/content_providers.dart';
@@ -16,6 +17,9 @@ import 'package:wassal/core/sync/sync_providers.dart';
 import 'package:wassal/core/theme/app_theme.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/onboarding/application/first_session_lifecycle.dart';
+import 'package:wassal/features/onboarding/application/first_session_service.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// The only locale: Egyptian Arabic, right to left, whatever the device
@@ -37,6 +41,8 @@ class _WassalAppState extends ConsumerState<WassalApp> {
   ContentLifecycle? _content;
   AppLifecycleListener? _lifecycle;
   ProviderSubscription<AsyncValue<SyncLifecycle>>? _sync;
+  ProviderSubscription<FirstSessionService>? _firstSession;
+  ProviderSubscription<AsyncValue<void>>? _restored;
 
   @override
   void initState() {
@@ -63,6 +69,10 @@ class _WassalAppState extends ConsumerState<WassalApp> {
         if (economy != null) unawaited(economy.handleLifecycle(state));
       },
     );
+    // The first session's flags follow the economy from here on
+    // (specs/012-m07-onboarding/contracts/first-session.md).
+    _firstSession ??= ref.listenManual(firstSessionServiceProvider, (_, _) {});
+    _restored ??= _listenForRestore();
     // The sync, from here to dispose (specs/011-m06-identity-sync). It never
     // blocks play: one that can't start is reported, and the app stays
     // offline.
@@ -79,11 +89,37 @@ class _WassalAppState extends ConsumerState<WassalApp> {
     });
   }
 
+  /// A returning player found after the hand-over leaves the opening
+  /// (specs/012-m07-onboarding/contracts/first-session.md "A late restore").
+  ProviderSubscription<AsyncValue<void>> _listenForRestore() {
+    final lifecycle = FirstSessionLifecycle(
+      router: ref.read(routerProvider),
+      flags: ref.read(firstSessionFlagsProvider.notifier),
+      view: () => ref.read(economyViewProvider),
+    );
+    return ref.listenManual(progressRestoredProvider, (_, next) {
+      if (next is! AsyncData<void>) return;
+      unawaited(
+        lifecycle.restored().catchError((Object error, StackTrace stack) {
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stack,
+              library: 'onboarding',
+            ),
+          );
+        }),
+      );
+    });
+  }
+
   @override
   void dispose() {
     _content?.dispose();
     _lifecycle?.dispose();
     _sync?.close();
+    _firstSession?.close();
+    _restored?.close();
     super.dispose();
   }
 

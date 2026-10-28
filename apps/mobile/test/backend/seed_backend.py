@@ -5,12 +5,13 @@ Run from `backend/`, on the host, against the dev compose stack:
 
     uv run manage.py shell < ../apps/mobile/test/backend/seed_backend.py
 
-It creates the staff user `ci`, imports `content/examples/sample`, reviews its speech lines (an
-import leaves them unreviewed, and the build's review stage refuses those), builds it and
-publishes it as version 1, the version dev builds bundle, through `apps.content.services`
-(publishing has no command of its own), and writes the rules index. Dev's solver stage is the
-stand-in. A stack that already has a current pack is left as it is. It prints the current version,
-and exits 1 unless it is 1.
+It creates the staff user `ci` and puts `FILTERED` in the name filter (specs/012-m07-onboarding
+T088: a name the phone lets through and the server refuses). It imports `content/examples/sample`,
+reviews its speech lines (an import leaves them unreviewed, and the build's review stage refuses
+those), builds it and publishes it as version 1, the version dev builds bundle, through
+`apps.content.services` (publishing has no command of its own), and writes the rules index. Dev's
+solver stage is the stand-in. A stack that already has a current pack is left as it is. It prints
+the current version, and exits 1 unless it is 1.
 
 The pack files go to the host's packs directory (`backend/var/packs` by default), which it creates,
 not to the containers' `packs` volume. The server reads packs from the database, so the tests don't
@@ -23,12 +24,14 @@ from pathlib import Path
 from django.contrib.auth.models import Group
 from django.db import transaction
 
-from apps.accounts.models import User
+from apps.accounts.models import NameFilterEntry, User
 from apps.content.models import SpeechLine
 from apps.content.models.packs import Status
 from apps.content.services import build, files, importer, lookups, publish, review
 
 STAFF = "ci"
+# `first_session_sync_test.dart`'s refused name.
+FILTERED = "ممنوع"
 SAMPLE = Path.cwd().parent / "content" / "examples" / "sample"
 
 
@@ -39,6 +42,9 @@ def seed() -> int:
     user.groups.add(*Group.objects.filter(name__in=["content_author", "content_publisher"]))
     # A fresh read: the permission cache predates the groups.
     user = User.objects.get(pk=user.pk)
+
+    if not NameFilterEntry.objects.filter(term=FILTERED).exists():
+        NameFilterEntry.objects.create(term=FILTERED, added_by=user)
 
     if build.current_pack() is None:
         importer.import_dir(SAMPLE, user)

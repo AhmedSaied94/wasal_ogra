@@ -9,6 +9,7 @@ import 'package:wassal/core/config/config_providers.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/trip/application/art_tier.dart';
 import 'package:wassal/features/trip/application/trip_ad_offers.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
@@ -106,6 +107,8 @@ TripController tripController(Ref ref, String tripId) {
     onHintSeen: (wire) => unawaited(settings.markHintSeen(wire)),
     ads: ref.read(tripAdOffersProvider),
     fixedTrip: ref.read(tripFixedProvider),
+    coachLesson: () => ref.read(tutorialCoachProvider(tripId)),
+    boostersLocked: () => ref.read(firstSessionProvider).boostersLocked,
   );
   ref.onDispose(controller.dispose);
   unawaited(controller.open(tripId));

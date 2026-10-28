@@ -33,6 +33,9 @@ const _tables = {
   // v3: the account and the last bootstrap (specs/011-m06-identity-sync).
   'account',
   'server_info',
+  // v4: the driver's name and the first session (specs/012-m07-onboarding).
+  'player_state',
+  'first_session',
 };
 
 final _anchor = firstAnchor(
@@ -63,7 +66,7 @@ String _sha256(File file) => sha256.convert(file.readAsBytesSync()).toString();
 
 void main() {
   group('first open', () {
-    test('creates exactly the 13 tables', () async {
+    test('creates exactly the 15 tables', () async {
       final db = await _opened(tempDbFile());
       final names = await _rows(
         db,
@@ -157,10 +160,10 @@ void main() {
       );
     });
 
-    test('stamps schema version 3', () async {
+    test('stamps schema version 4', () async {
       final db = await _opened(tempDbFile());
       expect(await _rows(db, 'PRAGMA user_version'), [
-        {'user_version': 3},
+        {'user_version': 4},
       ]);
     });
   });
@@ -258,13 +261,13 @@ void main() {
   });
 
   group('a file the app cannot open stays as it is', () {
-    test('user_version 4 fails with DatabaseFromNewerApp', () async {
+    test('user_version 5 fails with DatabaseFromNewerApp', () async {
       final file = tempDbFile();
       final first = _open(file);
       await first.customSelect('SELECT 1').get();
       await first.close();
       sqlite3.open(file.path)
-        ..execute('PRAGMA user_version = 4')
+        ..execute('PRAGMA user_version = 5')
         ..close();
       final before = _sha256(file);
 
@@ -274,8 +277,8 @@ void main() {
         db.customSelect('SELECT 1').get(),
         throwsA(
           isA<DatabaseFromNewerApp>()
-              .having((e) => e.fileVersion, 'fileVersion', 4)
-              .having((e) => e.appVersion, 'appVersion', 3),
+              .having((e) => e.fileVersion, 'fileVersion', 5)
+              .having((e) => e.appVersion, 'appVersion', 4),
         ),
       );
       await db.close();

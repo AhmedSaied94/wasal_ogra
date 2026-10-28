@@ -628,6 +628,7 @@ Fourteen schema files, one per pack part plus the shared definitions. Every `$id
 - **`schema-set.json`** holds the set's `version` (`major.minor`, now `1.0`) and `min_client_version_by_major`. A breaking change needs a major bump, and CI refuses one without it once `content/source/pack.json` exists.
 - **The schemas use a restricted profile** so both generators can map every construct: closed objects, integers only (no `number`, no `null`), no `default`, no combinators or conditionals, and every object and enum named in `$defs`. The profile is `specs/003-b04-content-pipeline/research.md` R3; the field-by-field contract is `contracts/content-schemas.md` there.
 - **Code generation.** `wassal-content codegen` (`tools/content_kit`) writes the Pydantic models (`wassal_content.models`, shared by `backend/apps/content` and later `tools/solver`) and the freezed models in `packages/content_models`. Both are committed, and CI fails if regenerating changes a file. Hand-edited models are not allowed.
+- **Scenes (M07).** A chapter's `Scene` may carry `plays`, which says when the app plays it by itself: `{"kind": "opening"}` at the first open, before the Name card, or `{"kind": "after_trip", "trip_id": …}` after that trip's first finish. A scene without it is left to M10's rules (album, chapter end). A panel line whose `speaker` is `narrator` is the panel's caption, not a bubble. The content kit's rules `V-C3`–`V-C5` check both. B04 stores `plays` as `Scene.plays_kind` and `Scene.plays_trip` (a database check allows a trip only on an `after_trip` scene, and requires one there), and the narrator line as an ordinary `SceneLine`. Sync never reads `plays`: `PackRulesIndex` lists scene ids only. Contract: `specs/012-m07-onboarding/contracts/scenes.md`.
 
 ### 9.3 Trip definition example
 
@@ -1020,7 +1021,7 @@ Suggested order for MVP: B01 → B04 → B05 → B02 → B03 → B10 → B07 →
 | Push notifications | M14 | B11 | `POST /v1/push-tokens` + FCM |
 | Second device | M06 | B03 | `state_stale` → `GET /v1/state` |
 
-Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (the new design, spec 008.5) → B02 + B03 + M06 → M07–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
+Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M02 → M21 (the new design, spec 008.5) → B02 + B03 + M06 → M07 → M22 (the animated scenes, spec 012.5) → M08–M10 → B10 + B07 + M11 → B06 + M12 → B08 + M13 → B09 + B11 + M14 → M15.
 
 ---
 

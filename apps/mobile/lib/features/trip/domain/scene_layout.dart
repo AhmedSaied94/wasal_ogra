@@ -1,7 +1,8 @@
 // Where everything sits on the trip screen (specs/008.5-m21-design-refresh,
-// contracts/trip-layout.md). The Flame scene and the Flutter overlays both
-// read this, so they line up by construction (M02 research R3). Units are
-// logical points; the scene's origin is its top left.
+// contracts/trip-layout.md; under the threshold, specs/012-m07-onboarding
+// contracts/compact-trip-layout.md). The Flame scene and the Flutter
+// overlays both read this, so they line up by construction (M02 research
+// R3). Units are logical points; the scene's origin is its top left.
 //
 // The design's seat table is copied here as constants: the generated tokens
 // import Flutter, which the domain can't. scene_layout_test.dart checks the
@@ -28,8 +29,20 @@ const designSceneHeight = 444.0;
 /// never a face or a tag.
 const maxCrop = 36.0;
 
-/// Below this the cropped scene scales down: M02's exception (research R7).
+/// From this scene up, 008.5's seat table with its crop; under it, the
+/// compact table (M07).
 const unscaledSceneMin = designSceneHeight - maxCrop;
+
+/// The compact profile's HUD and dashboard (M07).
+const compactHudHeight = 72.0;
+const compactDashboardHeight = 226.0;
+
+/// The scene the compact table is drawn for (360×640, T 24). Under it the
+/// table scales, outside the supported range.
+const compactSceneHeight = 334.0;
+
+/// A bubble's anchor keeps this far inside the scene's top.
+const bubbleTopMargin = 10.0;
 
 /// Over this width the zones keep the design's width, centred.
 const maxZonesWidth = 430.0;
@@ -52,13 +65,17 @@ const microOldFrontY = 392.0;
 /// The driver's hand, where his notes rest.
 const driverHand = Point<double>(162, 398);
 
-/// The smallest screen height that keeps every minimum, for a top [inset].
+/// The smallest screen height for the regular profile, for a top [inset];
+/// under it the trip takes the compact one.
 double minCompliantHeight(double inset) =>
     inset +
     tripHudHeight +
     dashboardHeight -
     dashboardOverlap +
     unscaledSceneMin;
+
+/// The trip screen's two layouts (M07 research R19).
+enum TripProfile { regular, compact }
 
 /// A hit rect from a face's centre.
 final class HitSpec {
@@ -132,6 +149,35 @@ const microOldNearRightHit = HitSpec(-56, -46, 100, 80);
 const microOldFrontHit = HitSpec(-50, -48, 90, 80);
 const microOldFrontTag = 30.0;
 
+/// The compact `micro_old` table at a [compactSceneHeight] scene. The near
+/// rows' 0.952 is exactly 80/84, so their faces are 80.
+const _compactNearRig = nearFaceMin / (2 * rigHeadRadius);
+const microOldCompactRows = <SeatRow, RowSpec>{
+  SeatRow.c: RowSpec(
+    rigScale: 0.6,
+    y: 46,
+    x: [126, 195, 264],
+    tag: 24,
+    hit: HitSpec(-34, -30, 68, 80),
+  ),
+  SeatRow.b: RowSpec(
+    rigScale: 0.66,
+    y: 122,
+    x: [98, 195, 292],
+    tag: 26,
+    hit: HitSpec(-46, -36, 92, 100),
+  ),
+  SeatRow.a: RowSpec(
+    rigScale: _compactNearRig,
+    y: 206,
+    x: [62, 176, 290],
+    tag: 30,
+    hit: HitSpec(-56, -46, 112, 112),
+  ),
+};
+const microOldCompactFrontY = 284.0;
+const compactDriverHandY = 290.0;
+
 /// The tuktuk's one bench (`Tutorial`, research R7).
 const tuktukRow = RowSpec(
   rigScale: 1.15,
@@ -158,7 +204,8 @@ const bubbleGap = 8.0;
 /// the rig scale.
 const handsBelow = 50.0;
 
-/// The screen's zones, top to bottom (contracts/trip-layout.md "Zones").
+/// The screen's zones, top to bottom (contracts/trip-layout.md "Zones";
+/// compact-trip-layout.md "Profiles").
 final class TripZones {
   factory TripZones({
     required double width,
@@ -166,12 +213,23 @@ final class TripZones {
     required double viewPaddingTop,
   }) {
     final inset = max(viewPaddingTop, minTopInset);
-    final room =
-        height - inset - tripHudHeight - dashboardHeight + dashboardOverlap;
-    final gap = (room - designSceneHeight).clamp(0.0, tripGap);
+    final profile = height < minCompliantHeight(inset)
+        ? TripProfile.compact
+        : TripProfile.regular;
+    final (hud, dashboard) = switch (profile) {
+      TripProfile.regular => (tripHudHeight, dashboardHeight),
+      TripProfile.compact => (compactHudHeight, compactDashboardHeight),
+    };
+    final room = height - inset - hud - dashboard + dashboardOverlap;
+    final gap = profile == TripProfile.compact
+        ? 0.0
+        : (room - designSceneHeight).clamp(0.0, tripGap);
     final zonesWidth = width > maxZonesWidth ? designSceneWidth : width;
     return TripZones._(
+      profile: profile,
       inset: inset,
+      hud: hud,
+      dashboard: dashboard,
       room: room,
       gap: gap,
       scene: max(0, room - gap),
@@ -181,7 +239,10 @@ final class TripZones {
   }
 
   const TripZones._({
+    required this.profile,
     required this.inset,
+    required this.hud,
+    required this.dashboard,
     required this.room,
     required this.gap,
     required this.scene,
@@ -189,8 +250,12 @@ final class TripZones {
     required this.left,
   });
 
+  final TripProfile profile;
+
   /// `max(viewPadding.top, 24)`.
   final double inset;
+  final double hud;
+  final double dashboard;
 
   /// The gap and the scene together: `S0`.
   final double room;
@@ -201,8 +266,7 @@ final class TripZones {
   final double width;
   final double left;
 
-  double get hud => tripHudHeight;
-  double get dashboard => dashboardHeight;
+  bool get compact => profile == TripProfile.compact;
   double get overlap => dashboardOverlap;
   double get sceneTop => inset + hud + gap;
   double get dashboardTop => sceneTop + scene - overlap;
@@ -261,7 +325,8 @@ final class SeatLayout {
 }
 
 /// Every seat's places in a scene of [width] × [height] for [vehicle]
-/// (contracts/trip-layout.md "Height", "Width", "Seats").
+/// (contracts/trip-layout.md "Height", "Width", "Seats"; under 408 pt,
+/// compact-trip-layout.md "Seats").
 final class SceneLayout {
   factory SceneLayout(
     List<Seat> seats, {
@@ -269,14 +334,22 @@ final class SceneLayout {
     required double width,
     required double height,
   }) {
+    final compact = height < unscaledSceneMin;
     final crop = (designSceneHeight - height).clamp(0.0, maxCrop);
-    final scale = height < unscaledSceneMin ? height / unscaledSceneMin : 1.0;
+    final scale = height < compactSceneHeight
+        ? height / compactSceneHeight
+        : 1.0;
     final xFactor = width / designSceneWidth;
-    double y(double designY) => _sceneY(designY, height, scale);
+    double y(double tableY) => _tableY(tableY, height, scale, compact: compact);
 
-    final layouts = <String, SeatLayout>{};
+    final specs = {
+      for (final seat in seats)
+        seat.seatId: _specOf(vehicle, seat.row, seat.col, compact),
+    };
+    final hits = <String, Rectangle<double>>{};
+    final faces = <String, Point<double>>{};
     for (final seat in seats) {
-      final spec = _specOf(vehicle, seat);
+      final spec = specs[seat.seatId]!;
       final isFront = seat.row == SeatRow.front;
       final face = Point(
         isFront
@@ -284,32 +357,33 @@ final class SceneLayout {
             : spec.row.xOf(seat.col) * xFactor,
         y(spec.y),
       );
-      final rig = spec.row.rigScale * scale;
-      var left = face.x + spec.hit.dx * scale;
-      var right = left + spec.hit.width * scale;
-      var top = face.y + spec.hit.dy * scale;
-      var bottom = top + spec.hit.height * scale;
+      faces[seat.seatId] = face;
+      // 008.5's rect, times the compact table's share of its rig scale.
+      final k = spec.hitScale * scale;
+      var left = face.x + spec.hit.dx * k;
+      var right = left + spec.hit.width * k;
       // Narrowed to the row's seat spacing, so neighbours never overlap.
       if (!isFront) {
         final half = spec.row.spacing * xFactor / 2;
         left = max(left, face.x - half);
         right = min(right, face.x + half);
       }
-      left = max(0, left);
-      right = min(width, right);
-      top = max(0, top);
-      bottom = min(height, bottom);
-      // Never under 44×44, around its centre.
-      var w = right - left;
-      var h = bottom - top;
-      if (w < minTouch) {
-        left = (left + right - minTouch) / 2;
-        w = minTouch;
-      }
-      if (h < minTouch) {
-        top = (top + bottom - minTouch) / 2;
-        h = minTouch;
-      }
+      final top = face.y + spec.hit.dy * k;
+      hits[seat.seatId] = Rectangle(
+        left,
+        top,
+        right - left,
+        spec.hit.height * k,
+      );
+    }
+    if (compact) _apart(hits, seats);
+
+    final layouts = <String, SeatLayout>{};
+    for (final seat in seats) {
+      final spec = specs[seat.seatId]!;
+      final isFront = seat.row == SeatRow.front;
+      final face = faces[seat.seatId]!;
+      final rig = spec.row.rigScale * scale;
       layouts[seat.seatId] = SeatLayout(
         seatId: seat.seatId,
         row: seat.row,
@@ -318,11 +392,17 @@ final class SceneLayout {
         rigScale: rig,
         tag: face + (isFront ? frontTagOffset * scale : tagOffset * rig),
         tagSize: spec.row.tag,
-        hit: Rectangle(left, top, w, h),
-        bubbleAnchor: Point(face.x, face.y - rigHeadRadius * rig - bubbleGap),
+        hit: _atLeastTouch(hits[seat.seatId]!, width, height),
+        bubbleAnchor: Point(
+          face.x,
+          max(bubbleTopMargin, face.y - rigHeadRadius * rig - bubbleGap),
+        ),
         tokenAnchor: Point(face.x, face.y + handsBelow * rig),
       );
     }
+    final handY = vehicle != VehicleId.tuktuk && compact
+        ? compactDriverHandY
+        : driverHand.y - (compact ? designSceneHeight - compactSceneHeight : 0);
     return SceneLayout._(
       width: width,
       height: height,
@@ -330,7 +410,15 @@ final class SceneLayout {
       scale: scale,
       xFactor: xFactor,
       vehicle: vehicle,
-      hand: Point(driverHand.x * xFactor, y(driverHand.y)),
+      compact: compact,
+      hand: Point(driverHand.x * xFactor, y(handY)),
+      rowY: {
+        for (final row in SeatRow.values)
+          row: (
+            design: _designRowY(vehicle, row),
+            here: y(_specOf(vehicle, row, SeatCol.m, compact).y),
+          ),
+      },
       seats: Map.unmodifiable(layouts),
     );
   }
@@ -342,7 +430,9 @@ final class SceneLayout {
     required this.scale,
     required this.xFactor,
     required this.vehicle,
+    required this.compact,
     required this.hand,
+    required this._rowY,
     required this.seats,
   });
 
@@ -353,8 +443,14 @@ final class SceneLayout {
   /// 36.
   final double crop;
 
-  /// 1, or `height / 408` below 408 (faces and drawn sizes only).
+  /// 1, or `height / 334` below 334 (faces and drawn sizes only).
   final double scale;
+
+  /// On the compact table: a scene under 408 (M07).
+  final bool compact;
+
+  /// Each row's faces: on the design, and here.
+  final Map<SeatRow, ({double design, double here})> _rowY;
 
   /// `width / 390`.
   final double xFactor;
@@ -383,6 +479,14 @@ final class SceneLayout {
   Point<double> place(double designX, double designY) =>
       Point(designX * xFactor, _sceneY(designY, height, scale));
 
+  /// Where a design point that belongs to [row] lands, such as its bench:
+  /// as far from the row's faces as on the design. On 008.5's table, the
+  /// same as [place].
+  Point<double> placeOnRow(SeatRow row, double designX, double designY) {
+    final y = _rowY[row]!;
+    return Point(designX * xFactor, y.here + (designY - y.design) * scale);
+  }
+
   /// The anchor of [holder]'s hands: a seat's, or the driver's.
   Point<double> anchorOf(String? seatId) => seats[seatId]?.tokenAnchor ?? hand;
 
@@ -405,40 +509,174 @@ final class SceneLayout {
 
 /// Where a design y lands in a scene of [height]. Seats keep their distance
 /// from the scene's bottom: a taller scene grows the wall, a shorter one
-/// loses it first, then scales from the crop line.
+/// loses it first; under the compact frame, everything scales from its top.
 double _sceneY(double designY, double height, double scale) => scale < 1
-    ? (designY - maxCrop) * scale
+    ? (designY - (designSceneHeight - compactSceneHeight)) * scale
     : designY + height - designSceneHeight;
 
-/// A seat's row and its hit area in [vehicle].
-typedef _Spec = ({RowSpec row, HitSpec hit, double y});
+/// Where a seat table's y lands: 008.5's from the 444 frame, the compact
+/// table's from the 334 one.
+double _tableY(
+  double tableY,
+  double height,
+  double scale, {
+  required bool compact,
+}) {
+  if (!compact) return tableY + height - designSceneHeight;
+  return scale < 1 ? tableY * scale : tableY + height - compactSceneHeight;
+}
 
-_Spec _specOf(VehicleId vehicle, Seat seat) {
+/// A hit rect, inside the scene and at least 44×44 around its centre.
+Rectangle<double> _atLeastTouch(
+  Rectangle<double> rect,
+  double width,
+  double height,
+) {
+  var left = max(0.0, rect.left);
+  var top = max(0.0, rect.top);
+  final right = min(width, rect.right);
+  final bottom = min(height, rect.bottom);
+  var w = right - left;
+  var h = bottom - top;
+  if (w < minTouch) {
+    left = (left + right - minTouch) / 2;
+    w = minTouch;
+  }
+  if (h < minTouch) {
+    top = (top + bottom - minTouch) / 2;
+    h = minTouch;
+  }
+  return Rectangle(left, top, w, h);
+}
+
+/// The compact table's rects, apart (compact-trip-layout.md "Hit rects"):
+/// two rows that meet are cut at the middle of their overlap; the front
+/// seat keeps its whole rect, and a seat it meets gives way along the
+/// shorter side of the overlap.
+void _apart(Map<String, Rectangle<double>> hits, List<Seat> seats) {
+  for (var i = 0; i < seats.length; i++) {
+    for (var j = i + 1; j < seats.length; j++) {
+      final a = seats[i];
+      final b = seats[j];
+      final ra = hits[a.seatId]!;
+      final rb = hits[b.seatId]!;
+      final overlap = ra.intersection(rb);
+      // Neighbours that only touch: rounding, not an overlap.
+      if (overlap == null ||
+          overlap.width < _touching ||
+          overlap.height < _touching) {
+        continue;
+      }
+      if (a.row == SeatRow.front || b.row == SeatRow.front) {
+        final (front, other) = a.row == SeatRow.front ? (a, b) : (b, a);
+        hits[other.seatId] = _giveWay(hits[other.seatId]!, hits[front.seatId]!);
+        continue;
+      }
+      if (a.row == b.row) {
+        // Side by side: cut at the middle across.
+        final (start, end) = ra.left <= rb.left ? (a, b) : (b, a);
+        final l = hits[start.seatId]!;
+        final r = hits[end.seatId]!;
+        final middle = (r.left + l.right) / 2;
+        hits[start.seatId] = Rectangle(
+          l.left,
+          l.top,
+          middle - l.left,
+          l.height,
+        );
+        hits[end.seatId] = Rectangle(middle, r.top, r.right - middle, r.height);
+        continue;
+      }
+      // Different rows: one above the other.
+      final (upper, lower) = ra.top <= rb.top ? (a, b) : (b, a);
+      final up = hits[upper.seatId]!;
+      final down = hits[lower.seatId]!;
+      final middle = (down.top + up.bottom) / 2;
+      hits[upper.seatId] = Rectangle(
+        up.left,
+        up.top,
+        up.width,
+        middle - up.top,
+      );
+      hits[lower.seatId] = Rectangle(
+        down.left,
+        middle,
+        down.width,
+        down.bottom - middle,
+      );
+    }
+  }
+}
+
+/// Less than this of overlap is two edges touching.
+const _touching = 0.001;
+
+/// [rect] cut back from [winner] along the shorter side of their overlap.
+Rectangle<double> _giveWay(Rectangle<double> rect, Rectangle<double> winner) {
+  final overlap = rect.intersection(winner)!;
+  if (overlap.height <= overlap.width) {
+    return rect.top < winner.top
+        ? Rectangle(rect.left, rect.top, rect.width, winner.top - rect.top)
+        : Rectangle(
+            rect.left,
+            winner.bottom,
+            rect.width,
+            rect.bottom - winner.bottom,
+          );
+  }
+  return rect.left < winner.left
+      ? Rectangle(rect.left, rect.top, winner.left - rect.left, rect.height)
+      : Rectangle(
+          winner.right,
+          rect.top,
+          rect.right - winner.right,
+          rect.height,
+        );
+}
+
+/// A seat's row, its hit area and its face's y, in its table's frame; and
+/// how much of 008.5's hit rect it keeps.
+typedef _Spec = ({RowSpec row, HitSpec hit, double y, double hitScale});
+
+/// [row]'s faces on the design (444 frame), for [placeOnRow].
+double _designRowY(VehicleId vehicle, SeatRow row) =>
+    _specOf(vehicle, row, SeatCol.m, false).y;
+
+_Spec _specOf(VehicleId vehicle, SeatRow seatRow, SeatCol col, bool compact) {
   if (vehicle == VehicleId.tuktuk) {
-    return (row: tuktukRow, hit: tuktukRow.hit, y: tuktukRow.y);
+    // One bench, `scene − 136` on either table.
+    final y = compact
+        ? tuktukRow.y - (designSceneHeight - compactSceneHeight)
+        : tuktukRow.y;
+    return (row: tuktukRow, hit: tuktukRow.hit, y: y, hitScale: 1);
   }
   // The other microbuses use the old one's table until their art arrives;
   // row D (phase 2) sits with the back row.
-  final row = switch (seat.row) {
-    SeatRow.front || SeatRow.a => microOldRows[SeatRow.a]!,
-    SeatRow.b => microOldRows[SeatRow.b]!,
-    SeatRow.c || SeatRow.d => microOldRows[SeatRow.c]!,
+  final tableRow = switch (seatRow) {
+    SeatRow.front || SeatRow.a => SeatRow.a,
+    SeatRow.b => SeatRow.b,
+    SeatRow.c || SeatRow.d => SeatRow.c,
   };
-  if (seat.row == SeatRow.front) {
+  final design = microOldRows[tableRow]!;
+  final row = compact ? microOldCompactRows[tableRow]! : design;
+  final hitScale = row.rigScale / design.rigScale;
+  if (seatRow == SeatRow.front) {
+    final y = compact ? microOldCompactFrontY : microOldFrontY;
     return (
       row: RowSpec(
         rigScale: row.rigScale,
-        y: microOldFrontY,
+        y: y,
         x: row.x,
         tag: microOldFrontTag,
         hit: microOldFrontHit,
       ),
       hit: microOldFrontHit,
-      y: microOldFrontY,
+      y: y,
+      hitScale: hitScale,
     );
   }
-  final hit = seat.row == SeatRow.a && seat.col == SeatCol.r
+  final hit = seatRow == SeatRow.a && col == SeatCol.r
       ? microOldNearRightHit
-      : row.hit;
-  return (row: row, hit: hit, y: row.y);
+      : design.hit;
+  return (row: row, hit: hit, y: row.y, hitScale: hitScale);
 }

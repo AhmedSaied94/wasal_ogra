@@ -1,0 +1,115 @@
+{
+  "chapter_id": "ch1_first_job",
+  "completion_bonat": 5,
+  "goal": {
+    "kind": "complete_line",
+    "line_id": "line_hay"
+  },
+  "order": 1,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "opening_key",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "الموقف، الصبح بدري"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "خد مفتاح التوكتوك. لمّ الأجرة صح، والباقي يرجع لصاحبه."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_stand",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "الركاب بيدفعوا، والفلوس بتيجي لحد الدرج."
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "وأنا أرجّع الباقي لكل واحد."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_go",
+          "lines": [
+            {
+              "speaker": "belya",
+              "text": {
+                "ar-EG": "وأنا معاك أول كام مشوار يا أسطى"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "يلا، على الله."
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "opening"
+      },
+      "scene_id": "opening"
+    },
+    {
+      "panels": [
+        {
+          "art": "stand_morning",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "يا صباح الفل يا موقف"
+              }
+            }
+          ]
+        },
+        {
+          "art": "salma_waiting",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "هو الميكروباص ده رايح الجامعة؟"
+              }
+            }
+          ]
+        },
+        {
+          "art": "usta_decides",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "خلاص، من النهارده هحوّش قرش قرش"
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "trip_id": "line_hay.03"
+      },
+      "scene_id": "the_stand"
+    }
+  ],
+  "story_trip_id": "line_hay.03",
+  "title": {
+    "ar-EG": "أول شغلانة"
+  }
+}

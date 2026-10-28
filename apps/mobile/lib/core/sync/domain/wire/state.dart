@@ -50,6 +50,14 @@ final class StateOpenTrip {
   final int trafficJamAds;
 }
 
+/// `grants`: what the server gave once (M07 research R8).
+final class StateGrants {
+  const StateGrants({required this.tutorial});
+
+  /// The fuel lesson's gift. Absent reads as false.
+  final bool tutorial;
+}
+
 /// `last_result`, in M05's `LastResult` JSON shape.
 final class StateLastResult {
   const StateLastResult(this.json);
@@ -67,6 +75,7 @@ final class StateSnapshot {
     required this.ownership,
     required this.trips,
     required this.raw,
+    this.grants = const StateGrants(tutorial: false),
     this.displayName,
     this.driverLevel,
     this.openTrip,
@@ -79,10 +88,11 @@ final class StateSnapshot {
     final inventory = o.object('inventory');
     final open = o.optionalObject('open_trip');
     final last = o.optionalObject('last_result');
+    final grants = o.optionalObject('grants');
     return StateSnapshot(
       stateVersion: o.integer('state_version'),
       serverTimeMs: o.time('server_time'),
-      displayName: player.optionalString('display_name'),
+      displayName: player.optionalText('display_name'),
       driverLevel: player.optionalInteger('driver_level'),
       wallet: ServerWallet.fromJson(o.raw['wallet']),
       inventory: {
@@ -122,6 +132,11 @@ final class StateSnapshot {
               'earnings_jenehat': last.integer('earnings_jenehat'),
               'doubled': last.boolean('doubled'),
             }),
+      grants: StateGrants(
+        tutorial: grants != null && grants.has('tutorial')
+            ? grants.boolean('tutorial')
+            : false,
+      ),
       raw: o.raw,
     );
   }
@@ -138,8 +153,9 @@ final class StateSnapshot {
   final List<StateTrip> trips;
   final StateOpenTrip? openTrip;
   final StateLastResult? lastResult;
+  final StateGrants grants;
 
-  /// The answer as it arrived: `story`, `grants` and `stats` are read by
-  /// later features (M07, M10, M13).
+  /// The answer as it arrived: `story` and `stats` are read by later
+  /// features (M10, M13).
   final Map<String, Object?> raw;
 }

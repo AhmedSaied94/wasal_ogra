@@ -10,7 +10,9 @@ import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/theme/components/pressable.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
+import 'package:wassal/features/trip/presentation/coach_anchors.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashed_outline.dart';
 import 'package:wassal/features/trip/presentation/trip_colors.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
@@ -21,7 +23,10 @@ import 'package:wassal/l10n/generated/app_localizations.dart';
 const traySlotGap = SpaceTokens.s6;
 
 class Tray extends StatelessWidget {
-  const Tray({super.key});
+  const Tray({this.rowGap = traySlotGap, super.key});
+
+  /// Between its two rows: 4 in the compact dashboard (M07).
+  final double rowGap;
 
   static Key slotKey(int denomination) => ValueKey('trip-tray-$denomination');
 
@@ -33,16 +38,21 @@ class Tray extends StatelessWidget {
       builder: (context, slots) {
         if (slots.isEmpty) return const SizedBox.shrink();
         final rows = [slots.take(4).toList(), slots.skip(4).toList()];
-        return Column(
+        final grid = Column(
           children: [
             for (final (i, row) in rows.indexed) ...[
-              if (i > 0) const SizedBox(height: traySlotGap),
+              if (i > 0) SizedBox(height: rowGap),
               Expanded(
                 child: Row(
                   children: [
                     for (final (j, slot) in row.indexed) ...[
                       if (j > 0) const SizedBox(width: traySlotGap),
-                      Expanded(child: _TraySlot(slot: slot)),
+                      Expanded(
+                        child: CoachAnchor(
+                          target: TrayCellTarget(slot.denomination),
+                          child: _TraySlot(slot: slot),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -50,6 +60,7 @@ class Tray extends StatelessWidget {
             ],
           ],
         );
+        return CoachAnchor(target: const TrayTarget(), child: grid);
       },
     );
   }

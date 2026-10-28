@@ -2,7 +2,41 @@
   "catalog/egp_currency.json": "$.prices[0].currency",
   "catalog/gift_kind.json": "$.prices[0].sku_kind",
   "catalog/zero_amount.json": "$.prices[0].amount",
+  "chapter/after_trip_unknown_trip.json": {
+    "code": "V-C4",
+    "path": "$.scenes[1].plays.trip_id"
+  },
+  "chapter/after_trip_without_trip.json": {
+    "code": "V-C4",
+    "path": "$.scenes[1].plays"
+  },
+  "chapter/narrator_not_first.json": {
+    "code": "V-C5",
+    "path": "$.scenes[0].panels[0].lines[1].speaker"
+  },
+  "chapter/opening_outside_chapter_one.json": {
+    "code": "V-C3",
+    "path": "$.scenes[0].plays.kind"
+  },
+  "chapter/opening_with_trip.json": {
+    "code": "V-C3",
+    "path": "$.scenes[0].plays.trip_id"
+  },
+  "chapter/plays_unknown_kind.json": "$.scenes[1].plays.kind",
+  "chapter/plays_without_kind.json": "$.scenes[1].plays.kind",
+  "chapter/two_narrators.json": {
+    "code": "V-C5",
+    "path": "$.scenes[0].panels[0].lines[1].speaker"
+  },
+  "chapter/two_openings.json": {
+    "code": "V-C3",
+    "path": "$.scenes[1].plays.kind"
+  },
   "chapter/two_panels.json": "$.scenes[0].panels",
+  "chapter/two_scenes_one_trip.json": {
+    "code": "V-C4",
+    "path": "$.scenes[2].plays.trip_id"
+  },
   "chapter/unknown_chapter.json": "$.chapter_id",
   "chapter/unknown_goal_kind.json": "$.goal.kind",
   "daily_reward/day_8.json": "$.day_index",

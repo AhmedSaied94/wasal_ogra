@@ -15,10 +15,12 @@ import 'package:wassal/core/sync/domain/wire/state.dart';
 /// - trips as progress, with no first completion time;
 /// - the open trip only when [hasTripRecord] says this phone has its
 ///   record and [content] has the trip, for its earnings bound;
-/// - the last result.
+/// - the last result;
+/// - since M07, the player's name and the tutorial grant
+///   (specs/012-m07-onboarding research R8).
 ///
-/// `story`, `grants` and `stats` aren't mapped yet (M07, M10, M13). Ids the
-/// pack lacks are kept (FR-026).
+/// `story` and `stats` aren't mapped yet (M10, M13). Ids the pack lacks are
+/// kept (FR-026).
 EconomyState stateFromSnapshot(
   StateSnapshot snapshot, {
   required bool Function(TxnId start) hasTripRecord,
@@ -51,6 +53,8 @@ EconomyState stateFromSnapshot(
     final last? => LastResult.fromJson(last.json),
     null => null,
   },
+  displayName: snapshot.displayName,
+  tutorialGranted: snapshot.grants.tutorial,
 );
 
 (OwnedKey, Owned)? _owned(StateOwnership row, int serverTimeMs) {

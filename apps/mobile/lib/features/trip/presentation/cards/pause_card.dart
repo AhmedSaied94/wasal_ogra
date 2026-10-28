@@ -13,6 +13,7 @@ import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/trip/presentation/cards/restart_button.dart';
 import 'package:wassal/features/trip/presentation/cards/trip_card.dart';
+import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/features/trip/trip_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -22,6 +23,7 @@ class PauseCard extends StatelessWidget {
     required this.onRestart,
     required this.onHome,
     required this.restartEnabled,
+    this.showTripTitle = false,
     super.key,
   });
 
@@ -29,6 +31,12 @@ class PauseCard extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onHome;
   final bool restartEnabled;
+
+  /// The compact profile's HUD has no title: the card carries it (M07
+  /// contracts/compact-trip-layout.md, spec FR-041).
+  final bool showTripTitle;
+
+  static const tripTitleKey = ValueKey('trip-pause-trip-title');
 
   static const resumeKey = ValueKey('trip-pause-resume');
   static const soundKey = ValueKey('trip-pause-sound');
@@ -48,6 +56,12 @@ class PauseCard extends StatelessWidget {
       designTop: DesignExtras.pauseTop,
       padding: DesignExtras.pausePadding,
       children: [
+        // Its text's height only: the short screens need the room.
+        if (showTripTitle)
+          const TripTitle(
+            key: tripTitleKey,
+            alignment: AlignmentDirectional.center,
+          ),
         Text(
           l10n.pauseSubtitle,
           textAlign: TextAlign.center,

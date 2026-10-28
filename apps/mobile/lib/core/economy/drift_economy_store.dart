@@ -26,6 +26,9 @@ enum EconomyKillPoint {
   afterOwnership,
   afterProgress,
   afterSession,
+
+  /// After `player_state` (M07).
+  afterPlayer,
   afterAnchor,
 
   /// After the transaction committed, before the caller hears of it.
@@ -173,6 +176,11 @@ final class DriftEconomyStore {
         await _writeSession(after);
       }
       _kill(EconomyKillPoint.afterSession);
+      if (before.displayName != after.displayName ||
+          before.tutorialGranted != after.tutorialGranted) {
+        await _writePlayer(after);
+      }
+      _kill(EconomyKillPoint.afterPlayer);
       await _raiseLatest(op.occurredAtMs);
       _kill(EconomyKillPoint.afterAnchor);
       return LedgerOp(seq: seq, op: op, syncStatus: SyncStatus.pending);
@@ -246,6 +254,21 @@ final class DriftEconomyStore {
               ..limit(1))
             .getSingleOrNull();
     return row != null;
+  }
+
+  /// Whether the newest `settings_update` was refused by the server (M07
+  /// research R8). A name another account's state dropped
+  /// ([accountChangedReason]) wasn't refused.
+  Future<bool> nameRefused() async {
+    final row =
+        await (_db.select(_db.ledgerOps)
+              ..where((t) => t.opType.equals(OpType.settingsUpdate.wire))
+              ..orderBy([(t) => OrderingTerm.desc(t.seq)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null &&
+        row.syncStatus == SyncStatus.rejected.wire &&
+        row.syncReason != accountChangedReason;
   }
 
   /// The highest `seq` with an answer, accepted or rejected; 0 when none.
@@ -424,6 +447,7 @@ final class DriftEconomyStore {
     final ownership = await _db.select(_db.ownershipTable).get();
     final progress = await _db.select(_db.tripProgressTable).get();
     final session = await _db.select(_db.tripSessionTable).getSingle();
+    final player = await _db.select(_db.playerStateTable).getSingleOrNull();
     return EconomyState(
       jenehat: wallet.jenehat,
       bonat: wallet.bonat,
@@ -459,6 +483,8 @@ final class DriftEconomyStore {
       },
       unfinished: _unfinishedOf(session),
       lastResult: _lastResultOf(session),
+      displayName: player?.displayName,
+      tutorialGranted: player?.tutorialGranted ?? false,
     );
   }
 
@@ -586,6 +612,8 @@ final class DriftEconomyStore {
     if (kills) _kill(EconomyKillPoint.afterProgress);
     await _writeSession(state);
     if (kills) _kill(EconomyKillPoint.afterSession);
+    await _writePlayer(state);
+    if (kills) _kill(EconomyKillPoint.afterPlayer);
   }
 
   Future<void> _writeWallet(EconomyState state, int lastSeq) => _db
@@ -684,6 +712,16 @@ final class DriftEconomyStore {
           ),
         );
   }
+
+  Future<void> _writePlayer(EconomyState state) => _db
+      .into(_db.playerStateTable)
+      .insertOnConflictUpdate(
+        PlayerStateTableCompanion.insert(
+          id: const Value(1),
+          displayName: Value(state.displayName),
+          tutorialGranted: Value(state.tutorialGranted),
+        ),
+      );
 
   Future<void> _writeBase(ProjectionBase base) => _db
       .update(_db.projectionBaseTable)

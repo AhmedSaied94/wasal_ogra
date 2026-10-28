@@ -17,7 +17,15 @@ import 'package:wassal/l10n/generated/app_localizations.dart';
 typedef _Talk = ({List<LogLine> lines, RejectionCode? rejection});
 
 class LastWordsLog extends ConsumerWidget {
-  const LastWordsLog({super.key});
+  const LastWordsLog({this.oneLine = false, super.key});
+
+  /// The compact dashboard's: the newest line only, 13/600 in
+  /// `dashboard.text` (M07 contracts/compact-trip-layout.md).
+  final bool oneLine;
+
+  static final _oneLine = TypeTokens.caption
+      .weight(600)
+      .copyWith(color: ColorTokens.dashboardText, height: 1.3);
 
   static final _older = TypeTokens.caption
       .weight(500)
@@ -42,7 +50,8 @@ class LastWordsLog extends ConsumerWidget {
           final code? => l10n.rejection(code),
           null => null,
         };
-        final lines = talk.lines;
+        final all = talk.lines;
+        final lines = oneLine && all.isNotEmpty ? [all.last] : all;
         return Semantics(
           container: true,
           liveRegion: true,
@@ -52,10 +61,12 @@ class LastWordsLog extends ConsumerWidget {
               if (said != null)
                 Text(
                   said,
-                  maxLines: 2,
+                  maxLines: oneLine ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: _older.weight(700).copyWith(color: ColorTokens.sun),
+                  style: (oneLine ? _oneLine : _older)
+                      .weight(700)
+                      .copyWith(color: ColorTokens.sun),
                 )
               else
                 for (final (i, line) in lines.indexed)
@@ -64,7 +75,11 @@ class LastWordsLog extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: i == lines.length - 1 ? _newest : _older,
+                    style: oneLine
+                        ? _oneLine
+                        : i == lines.length - 1
+                        ? _newest
+                        : _older,
                   ),
             ],
           ),

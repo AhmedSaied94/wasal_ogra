@@ -108,7 +108,7 @@ final class BootstrapPlayer {
     return BootstrapPlayer(
       playerId: o.string('player_id'),
       providers: o.strings('providers'),
-      displayName: o.optionalString('display_name'),
+      displayName: o.optionalText('display_name'),
       driverLevel: o.optionalInteger('driver_level'),
     );
   }

@@ -63,6 +63,10 @@ def test_the_sample_round_trips_byte_for_byte(author: User) -> None:
 
     assert len(result.added) == 61
     assert unzipped(exporter.export_current(author)) == sample_files()
+    # M07: the round trip carries each scene's `plays` and the panels' narrator lines.
+    chapter = json.loads(sample_files()["chapters/ch1_first_job.json"])
+    assert [scene["plays"]["kind"] for scene in chapter["scenes"]] == ["opening", "after_trip"]
+    assert chapter["scenes"][0]["panels"][0]["lines"][0]["speaker"] == "narrator"
 
 
 def test_importing_the_same_content_again_changes_nothing(sample_imported: User) -> None:

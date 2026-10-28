@@ -94,9 +94,36 @@
           },
           "minItems": 3,
           "maxItems": 5
+        },
+        "plays": {
+          "$ref": "#/$defs/ScenePlays"
         }
       },
       "additionalProperties": false
+    },
+    "ScenePlays": {
+      "description": "When the app plays the scene by itself. Absent: M10's rules (album, chapter end).",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ScenePlaysKind"
+        },
+        "trip_id": {
+          "$ref": "common.schema.json#/$defs/TripId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScenePlaysKind": {
+      "description": "opening: at the first open, before the Name card. after_trip: right after the trip's first finish.",
+      "type": "string",
+      "enum": [
+        "opening",
+        "after_trip"
+      ]
     },
     "Panel": {
       "description": "One comic panel: its art and its lines.",

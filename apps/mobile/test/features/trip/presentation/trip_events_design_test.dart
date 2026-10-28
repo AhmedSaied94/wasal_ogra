@@ -26,7 +26,7 @@ import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
-import 'package:wassal/features/trip/presentation/scene/character_avatar.dart';
+import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
 import 'package:wassal/features/trip/presentation/top_bar/top_bar.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
@@ -35,7 +35,7 @@ import 'package:wassal/l10n/generated/app_localizations.dart';
 import '../../../design/samples/c_trip.dart';
 import '../../../design/samples/story_trip.dart';
 import '../../../design/samples/trip_events.dart';
-import '../../../design/samples/tutorial_hint.dart';
+import '../../../design/samples/hint.dart';
 import '../../../helpers/trip.dart';
 
 // The trip's events in the new look (specs/008.5-m21-design-refresh,
@@ -537,7 +537,7 @@ void main() {
     testWidgets('his head at the bottom-end corner, his bubble, the hand', (
       tester,
     ) async {
-      await pumpTutorialHint(tester);
+      await pumpHintSample(tester);
       final l10n = l10nOf(tester);
       final scene = sceneOf(tester);
       final head = tester.getRect(find.byKey(HintLayer.headKey));
@@ -561,7 +561,7 @@ void main() {
       expect(box.left, closeTo(scene.left + 14, 0.5));
       expect(box.right, closeTo(scene.right - 104, 0.5));
 
-      final layout = layoutOf(tester, tutorialTripId);
+      final layout = layoutOf(tester, hintTripId);
       final face = layout.seats['A_m']!.head;
       final target = Rect.fromLTWH(
         scene.left + face.left,
@@ -575,7 +575,7 @@ void main() {
     });
 
     testWidgets('no scrim, and taps reach what is under it', (tester) async {
-      await pumpTutorialHint(tester);
+      await pumpHintSample(tester);
       final c = controllerOf(tester);
       expect(
         find.ancestor(

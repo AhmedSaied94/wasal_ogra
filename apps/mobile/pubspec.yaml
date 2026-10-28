@@ -15,6 +15,9 @@ dependencies:
   connectivity_plus: ^7.3.2
   content_models:
     path: ../../packages/content_models
+  # Grapheme-cluster lengths in the pure name rules (specs/012-m07-onboarding,
+  # research R7). The version Flutter already brings.
+  characters: ^1.4.1
   crypto: ^3.0.7
   dio: ^5.11.1
   # The app database (specs/007-m05-local-economy, research R1). SQLite comes
@@ -88,6 +91,8 @@ flutter:
     - assets/illustrations/characters/
     - assets/illustrations/vehicles/
     - assets/illustrations/screens/
+    # The scenes' panel drawings (specs/012-m07-onboarding/contracts/scenes.md).
+    - assets/illustrations/panels/
     - path: assets/config/tunables.dev.json
       flavors:
         - dev

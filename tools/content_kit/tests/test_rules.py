@@ -17,6 +17,7 @@ from wassal_content.schemas import SchemaSet
 from wassal_content.validate import SIZE_WARNING_BYTES, validate_pack
 
 PACK: dict[str, Any] = load_json_file(EXAMPLES / "valid" / "pack" / "core.json")
+EXPECTED: dict[str, Any] = load_json_file(EXAMPLES / "invalid" / "expected.json")
 Mutation = Callable[[dict[str, Any]], None]
 
 # Indexes into the sample pack, whose arrays are sorted by identifier.
@@ -249,13 +250,19 @@ def test_each_rule_names_what_it_refuses(
 
 
 def test_every_rule_code_has_a_case() -> None:
-    codes = {code for _, _, code, _, _ in CASES}
+    # V-C3 to V-C5 (M07) are cases of the example set: invalid/expected.json gives their codes.
+    codes = {code for _, _, code, _, _ in CASES} | {
+        entry["code"] for entry in EXPECTED.values() if isinstance(entry, dict)
+    }
     assert codes == {
         *(f"V-T{n}" for n in range(1, 8)),
         "V-L1",
         "V-L2",
         "V-C1",
         "V-C2",
+        "V-C3",
+        "V-C4",
+        "V-C5",
         "V-R1",
         "V-R2",
         "V-K1",

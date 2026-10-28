@@ -30,6 +30,15 @@ const _accountStore = 'lib/core/account/drift_account_store.dart';
 const _accountProviders = 'lib/core/account/account_providers.dart';
 const _accountTables = ['accountTable', 'serverInfoTable'];
 
+// The first session's store (specs/012-m07-onboarding/data-model.md
+// "first_session"): only it writes the first session's flags, and it never
+// writes the economy's, the trip's or the account's tables.
+const _firstSessionStore =
+    'lib/features/onboarding/data/drift_first_session_store.dart';
+const _firstSessionProviders =
+    'lib/features/onboarding/onboarding_providers.dart';
+const _firstSessionTables = ['firstSessionTable'];
+
 const _tables = [
   'ledgerOps',
   'walletTable',
@@ -39,6 +48,8 @@ const _tables = [
   'tripSessionTable',
   'projectionBaseTable',
   'clockAnchorTable',
+  // v4: the driver's name and the tutorial grant (M07 data-model.md).
+  'playerStateTable',
 ];
 
 final _importsDatabase = RegExp(
@@ -54,6 +65,9 @@ final _tripTableWrite = RegExp(
 );
 final _accountTableWrite = RegExp(
   '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_accountTables.join('|')})\\b',
+);
+final _firstSessionTableWrite = RegExp(
+  '\\b(?:into|update|delete)\\(\\s*(?:[\\w.]+\\.)?(?:${_firstSessionTables.join('|')})\\b',
 );
 final _rawWrite = RegExp(
   r'\.batch\(|\bcustomStatement\(|\bcustomUpdate\(|\bcustomInsert\(',
@@ -71,7 +85,9 @@ bool _mayImportDatabase(String path) =>
     path == _tripStore ||
     path == _tripProviders ||
     path == _accountStore ||
-    path == _accountProviders;
+    path == _accountProviders ||
+    path == _firstSessionStore ||
+    path == _firstSessionProviders;
 
 bool _mayWrite(String path) => path.startsWith(_storage) || path == _store;
 
@@ -101,6 +117,17 @@ List<String> tripTableWrites(String source) {
   return [
     for (var i = 0; i < lines.length; i++)
       if (_tripTableWrite.hasMatch(lines[i]) || _rawWrite.hasMatch(lines[i]))
+        '${i + 1}: ${lines[i].trim()}',
+  ];
+}
+
+/// Lines of [source] that write the first session's table.
+List<String> firstSessionTableWrites(String source) {
+  final lines = stripComments(source).split('\n');
+  return [
+    for (var i = 0; i < lines.length; i++)
+      if (_firstSessionTableWrite.hasMatch(lines[i]) ||
+          _rawWrite.hasMatch(lines[i]))
         '${i + 1}: ${lines[i].trim()}',
   ];
 }
@@ -223,6 +250,44 @@ void main() {
     final source = File(_accountStore).readAsStringSync();
     expect(directWrites(source), isEmpty);
     expect(tripTableWrites(source), isEmpty);
+  });
+
+  test('the first-session store exists, so its rules scan real code', () {
+    expect(File(_firstSessionStore).existsSync(), isTrue);
+  });
+
+  test('nothing but storage and its store writes the first session', () {
+    final violations = [
+      for (final file in files)
+        if (!_path(file).startsWith(_storage) &&
+            _path(file) != _firstSessionStore)
+          for (final hit in firstSessionTableWrites(file.readAsStringSync()))
+            '${_path(file)}:$hit',
+    ];
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
+
+  test('the first-session store writes no economy, trip or account table', () {
+    final source = File(_firstSessionStore).readAsStringSync();
+    expect(directWrites(source), isEmpty);
+    expect(tripTableWrites(source), isEmpty);
+    expect(accountTableWrites(source), isEmpty);
+  });
+
+  test('the scans catch first-session and player-state writes', () {
+    expect(
+      firstSessionTableWrites('db.into(db.firstSessionTable).insert(x);'),
+      hasLength(1),
+    );
+    expect(
+      firstSessionTableWrites('db.select(db.firstSessionTable).get();'),
+      isEmpty,
+    );
+    expect(
+      directWrites('await _db.into(_db.playerStateTable).insert(x);'),
+      hasLength(1),
+    );
+    expect(directWrites('db.into(db.firstSessionTable).insert(x);'), isEmpty);
   });
 
   test('ledger_ops rows change only in their sync columns', () {

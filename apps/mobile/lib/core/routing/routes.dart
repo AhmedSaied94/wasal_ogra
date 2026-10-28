@@ -27,6 +27,7 @@ const sampleParams = {
   'vehicleId': 'micro_old',
   'itemId': 'salon.nish',
   'chapterId': 'ch1_first_job',
+  'sceneId': 'the_stand',
 };
 
 /// One MVP destination (data-model.md «Destination»). Later features keep
@@ -69,6 +70,8 @@ abstract final class RouteNames {
   static const boot = 'boot';
   static const onboardingIntro = 'onboardingIntro';
   static const onboardingName = 'onboardingName';
+  static const onboardingScene = 'onboardingScene';
+  static const onboardingFuel = 'onboardingFuel';
   static const home = 'home';
   static const preTrip = 'preTrip';
   static const trip = 'trip';
@@ -114,7 +117,26 @@ final List<Destination> destinations = List.unmodifiable([
     path: '/onboarding/name',
     presentation: Presentation.page,
     title: (l) => l.destOnboardingName,
-    links: const [RouteNames.home],
+    // Home: after the playtest card's `?then=/home`.
+    links: const [RouteNames.trip, RouteNames.home],
+  ),
+  // The first session's own stops (specs/012-m07-onboarding/contracts/
+  // first-session.md "New routes"): a scene before a trip or Home, and
+  // المعلم's fuel lesson before a trip. Each takes `?then=`.
+  Destination(
+    name: RouteNames.onboardingScene,
+    path: '/onboarding/scene/:sceneId',
+    presentation: Presentation.page,
+    params: const {'sceneId': ParamValidators.sceneId},
+    title: (l) => l.destStory,
+    links: const [RouteNames.trip, RouteNames.home],
+  ),
+  Destination(
+    name: RouteNames.onboardingFuel,
+    path: '/onboarding/fuel',
+    presentation: Presentation.page,
+    title: (l) => l.destFuel,
+    links: const [RouteNames.trip],
   ),
   Destination(
     name: RouteNames.home,

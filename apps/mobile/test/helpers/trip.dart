@@ -34,6 +34,8 @@ import 'package:wassal/features/trip/application/trip_ad_offers.dart';
 import 'package:wassal/features/trip/application/trip_settings.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
+import 'package:wassal/features/trip/domain/scene_layout.dart'
+    show minCompliantHeight;
 import 'package:wassal/features/trip/domain/projection.dart';
 import 'package:wassal/features/trip/domain/speech.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
@@ -197,19 +199,30 @@ void playWithMemory(
 /// The trip screen's test frames, in logical points, each with the status
 /// bar the phone reports (specs/008.5-m21-design-refresh,
 /// contracts/trip-layout.md "Golden surfaces"). M03's [Surface] stays as it
-/// is. [compliant] surfaces keep every minimum size; [small] is the
-/// exception, where only the scene's faces shrink.
+/// is. Every one keeps every minimum size: [small] and [mid] are under the
+/// threshold, in the compact profile (specs/012-m07-onboarding,
+/// contracts/compact-trip-layout.md).
 enum TripSurface {
-  reference(Size(390, 844), inset: designTopInset, compliant: true),
-  a06(Size(360, 800), inset: 24, compliant: true),
-  small(Size(360, 640), inset: 24, compliant: false);
+  reference(Size(390, 844), inset: designTopInset),
+  a06(Size(360, 800), inset: 24),
+  mid(Size(360, 720), inset: 24),
+  small(Size(360, 640), inset: 24);
 
-  const TripSurface(this.size, {required this.inset, required this.compliant});
+  const TripSurface(this.size, {required this.inset});
 
   final Size size;
   final double inset;
-  final bool compliant;
+
+  /// Under the threshold: the compact HUD and dashboard.
+  bool get compact => size.height < minCompliantHeight(inset);
 }
+
+/// The surfaces a trip state's goldens are drawn on: `mid` only for US1
+/// and بلية's hint, 008.5's `Tutorial` (specs/012-m07-onboarding T096).
+List<TripSurface> tripGoldenSurfaces(TripCase state, {bool mid = false}) => [
+  for (final surface in TripSurface.values)
+    if (surface != TripSurface.mid || mid || state.name == 'hint') surface,
+];
 
 void applyTripSurface(WidgetTester tester, TripSurface surface) =>
     applyDesignSurface(tester, surface.size, topInset: surface.inset);
@@ -359,6 +372,8 @@ TripController testController(
   void Function(String wire)? onHintSeen,
   DigitStyle digits = DigitStyle.western,
   bool disposeAtTearDown = true,
+  int? Function()? coachLesson,
+  bool Function()? boostersLocked,
 }) {
   final controller = TripController(
     economy: service ?? economy.service,
@@ -373,6 +388,8 @@ TripController testController(
     ads: ads,
     onKillPoint: onKillPoint,
     fixedTrip: fixed,
+    coachLesson: coachLesson,
+    boostersLocked: boostersLocked,
   );
   // A killed controller is never disposed: its process is gone.
   if (disposeAtTearDown) addTearDown(controller.dispose);
@@ -432,6 +449,13 @@ final class ScriptedEconomy implements Economy {
   @override
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
       inner.applyAdReward(id, placement: placement);
+
+  @override
+  Future<OpOutcome> setDisplayName(TxnId id, String name) =>
+      inner.setDisplayName(id, name);
+
+  @override
+  Future<OpOutcome> grantTutorialGift(TxnId id) => inner.grantTutorialGift(id);
 }
 
 /// Advances [controller] by [ms] on the trip clock, one step a frame.
@@ -567,13 +591,17 @@ Future<ProviderContainer> pumpTrip(
   TripAdOffers ads = const NoTripAdOffers(),
   SettingsStore? settingsStore,
   Flavor flavor = Flavor.dev,
+  List<Override>? content,
   List<Override> overrides = const [],
   bool settle = true,
+  bool newPlayer = false,
 }) async {
   applyTripSurface(tester, surface);
   await preloadTripArt(tester);
   return pumpWassalApp(
     tester,
+    content: content,
+    newPlayer: newPlayer,
     flavor: flavor,
     settle: settle,
     size: surface.size,

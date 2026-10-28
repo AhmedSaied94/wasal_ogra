@@ -113,6 +113,9 @@ List<Op> _everyOp() {
     for (final booster in inTripBoosters)
       accept(_inTrip, UseBoosterRequest(booster)),
     accept(_stocked, const ComebackGiftRequest()),
+    // M07: the driver's name and the tutorial gift add neither currency.
+    accept(_stocked, const SettingsUpdateRequest('Hamada')),
+    accept(_stocked, const TutorialGiftRequest()),
   ];
 }
 

@@ -49,6 +49,32 @@ bool _syncAllowed(String uri) =>
     uri.startsWith('package:wassal/core/sync/domain/') ||
     _sameFolder(uri);
 
+/// The first session's domain (specs/012-m07-onboarding, contracts/
+/// ci-checks.md "Guards"): grapheme clusters for the name rules, a seeded
+/// `Random` for the suggested names, the engine and the trip's domain for
+/// the coach, the economy and content domains for the first session's
+/// facts, and M06's first-open outcome.
+bool _onboardingAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'dart:math' ||
+    uri == 'package:characters/characters.dart' ||
+    uri == 'package:wassal/core/account/domain/account.dart' ||
+    uri.startsWith('package:trip_engine/') ||
+    uri.startsWith('package:wassal/core/content/domain/') ||
+    uri.startsWith('package:wassal/core/economy/domain/') ||
+    uri.startsWith('package:wassal/features/trip/domain/') ||
+    uri.startsWith('package:wassal/features/onboarding/domain/') ||
+    _sameFolder(uri);
+
+/// Files allowed one more import than their folder: the economy checks a
+/// name with the onboarding's rules, the one check the phone and the economy
+/// share (M07 research R7, R8). Nothing else of `features/`.
+const _fileExceptions = <String, Set<String>>{
+  'lib/core/economy/domain/profile_rules.dart': {
+    'package:wassal/features/onboarding/domain/name_rules.dart',
+  },
+};
+
 /// A file of the same folder, by relative path.
 bool _sameFolder(String uri) =>
     !uri.contains(':') && !uri.contains('/') && !uri.contains('..');
@@ -59,6 +85,7 @@ const _domains = <String, bool Function(String)>{
   'lib/features/trip/domain': _tripAllowed,
   'lib/core/account/domain': _syncAllowed,
   'lib/core/sync/domain': _syncAllowed,
+  'lib/features/onboarding/domain': _onboardingAllowed,
 };
 
 final _directive = RegExp(
@@ -92,7 +119,15 @@ void main() {
       expect(files, isNotEmpty);
       final violations = [
         for (final file in files)
-          for (final hit in forbiddenImports(file.readAsStringSync(), allowed))
+          for (final hit in forbiddenImports(
+            file.readAsStringSync(),
+            (uri) =>
+                allowed(uri) ||
+                (_fileExceptions[file.path.replaceAll(r'\', '/')]?.contains(
+                      uri,
+                    ) ??
+                    false),
+          ))
             '${file.path}:$hit',
       ];
       expect(violations, isEmpty, reason: violations.join('\n'));
@@ -190,6 +225,43 @@ void main() {
     ]) {
       expect(scan(bad), hasLength(1), reason: bad);
     }
+  });
+
+  test('the onboarding scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _onboardingAllowed);
+    for (final ok in [
+      'name_rules.dart',
+      'package:characters/characters.dart',
+      'package:trip_engine/trip_engine.dart',
+      'package:content_models/content_models.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:wassal/core/economy/domain/economy_state.dart',
+      'package:wassal/features/trip/domain/trip_view.dart',
+      'package:wassal/features/onboarding/domain/name_rules.dart',
+      'package:wassal/core/account/domain/account.dart',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/widgets.dart',
+      'package:drift/drift.dart',
+      'package:wassal/features/trip/application/trip_controller.dart',
+      'package:wassal/features/onboarding/data/drift_first_session_store.dart',
+      'package:wassal/core/economy/economy.dart',
+      'dart:io',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
+  });
+
+  test('only profile_rules.dart may import a features/ file, and one only', () {
+    expect(_fileExceptions.keys, [
+      'lib/core/economy/domain/profile_rules.dart',
+    ]);
+    expect(_fileExceptions.values.single, {
+      'package:wassal/features/onboarding/domain/name_rules.dart',
+    });
   });
 
   test('the trip scan allows its list and refuses the rest', () {

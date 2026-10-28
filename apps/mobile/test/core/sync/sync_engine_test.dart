@@ -733,6 +733,48 @@ void main() {
       expect(rig.toasts, 0);
     });
 
+    // M07 research R7: a refused name is asked again on Home instead.
+    test('not for a refused name; its reason is kept', () async {
+      final name = _op(
+        1,
+        type: OpType.settingsUpdate,
+        payload: {'display_name': 'x'},
+      );
+      final rig = _Rig([name]);
+      rig.api.always(
+        'POST',
+        ApiPaths.sync,
+        (ApiRequest r) => syncAnswerFor(
+          r,
+          rejected: {name.op.txnId.value: 'validation_error'},
+        ),
+      );
+
+      await rig.run();
+
+      expect(rig.events.whereType<OpRejected>(), hasLength(1));
+      expect(rig.toasts, 0);
+      expect(rig.economy.statusOf(name), SyncStatus.rejected);
+      expect(rig.economy.reasonOf(name), 'validation_error');
+    });
+
+    test('but for a refused tutorial gift', () async {
+      final gift = _op(1, type: OpType.tutorialGift, payload: const {});
+      final rig = _Rig([gift]);
+      rig.api.always(
+        'POST',
+        ApiPaths.sync,
+        (ApiRequest r) => syncAnswerFor(
+          r,
+          rejected: {gift.op.txnId.value: 'already_granted'},
+        ),
+      );
+
+      await rig.run();
+
+      expect(rig.toasts, 1);
+    });
+
     test('not for account_changed', () async {
       final rig = _Rig(_ops(2), basePlayer: otherPlayer)..acceptAll();
       rig.api.always('GET', ApiPaths.state, apiOk(stateJson()));

@@ -44,8 +44,11 @@ final class BubbleQueue extends ViewValue {
 
   /// The queue at [tMs]: bubbles that had their time leave, lines that
   /// waited too long are dropped, and waiting lines fill the room in emit
-  /// order, skipping a passenger who already has a bubble.
-  BubbleQueue at(int tMs, {required int bubbleMinMs}) {
+  /// order, skipping a passenger who already has a bubble. [reserved]
+  /// slots are another speaker's (بلية's, specs/012-m07-onboarding/
+  /// contracts/coach.md): bubbles already up keep their time, and no new
+  /// one takes the room.
+  BubbleQueue at(int tMs, {required int bubbleMinMs, int reserved = 0}) {
     final shown = [
       for (final bubble in visible)
         if (tMs - bubble.shownAtMs < bubbleMinMs) bubble,
@@ -54,7 +57,7 @@ final class BubbleQueue extends ViewValue {
     for (final line in waiting) {
       if (tMs - line.emittedAtMs > 2 * bubbleMinMs) continue;
       final speaking = shown.any((b) => b.passengerId == line.passengerId);
-      if (shown.length < maxVisibleBubbles && !speaking) {
+      if (shown.length < maxVisibleBubbles - reserved && !speaking) {
         shown.add(
           BubbleView(
             passengerId: line.passengerId,

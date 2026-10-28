@@ -1,58 +1,59 @@
-import 'package:content_models/content_models.dart';
-import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/story.dart';
-import 'package:wassal/features/trip/domain/scene_layout.dart';
-import 'package:wassal/features/trip/presentation/dashboard/boosters_row.dart';
-import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
-import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
-import 'package:wassal/features/trip/presentation/scene/trip_game.dart';
-import 'package:wassal/l10n/generated/app_localizations.dart';
+import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
+import 'package:wassal/features/onboarding/presentation/coach_layer.dart';
+import 'package:wassal/features/trip/presentation/dashboard/boosters_locked_bar.dart';
+import 'package:wassal/features/trip/presentation/dashboard/tray.dart';
 
-import '../helpers/trip.dart';
 import 'boxes.dart';
 import 'design_check.dart';
-import 'samples/tutorial_hint.dart';
-import 'trip_labels.dart';
+import 'samples/tutorial.dart';
 
-// `Tutorial`'s hint against its measured boxes (contracts/design-checks.md
-// "Skips and pairings"): the HUD and the dashboard's taps, then بلية's head,
-// his bubble and the hand as rects (HANDOFF `Tutorial` blocks 5–7). The
-// scrim, the hole and the locked boosters are M07's, so the app's boosters
-// and riders are app-only here. The hand points at a passenger, not the
-// artboard's tray cell, so its placement is checked against its target.
+// `Tutorial` against its measured boxes (contracts/design-checks.md; M07
+// contracts/coach.md "The overlay"). While a step shows, a screen reader
+// reaches only its target, so the «١» cell is the one tap node, paired
+// with box 34; the artboard's other taps are C-Trip's controls under the
+// scrim, which C-Trip's layout test checks on the same dashboard. Then the
+// coach's parts as rects: the hole on the cell, the hand (58), بلية (57),
+// his bubble (53), and the locked bar (48) with its lock (49). Still, so
+// the hand doesn't bob.
 
-const _noMegaphone =
-    'the artboard drops the megaphone; the app keeps C-Trip\'s call button';
+const _underScrim =
+    'under the coach only its target reaches a screen reader (FR-024); '
+    'the control is C-Trip\'s, checked there';
+
+/// The artboard's taps other than the «١» cell.
+const _scrimmed = [1, 26, 29, 32, 36, 38, 40, 42, 44, 46];
+
+const _cellBox = 34;
+
+Future<void> _pumpStill(WidgetTester tester) async {
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  await pumpTutorial(tester);
+}
 
 void main() {
   testWidgets('Tutorial: the boxes', (tester) async {
     final semantics = tester.ensureSemantics();
-    await pumpTutorialHint(tester);
-    final l10n = AppLocalizations.of(
-      tester.element(find.byType(TripDashboard)),
-    );
+    await _pumpStill(tester);
+    final target = find.byKey(CoachLayer.targetKey(const TrayCellTarget(100)));
     expectLayoutMatches(
       tester,
       'Tutorial',
-      skip: {26: _noMegaphone, 29: _noMegaphone},
-      appOnly: {
-        l10n.tripDebugOpen,
-        ...megaphoneLabels(tester),
-        for (final b in BoosterId.values)
-          if (find.byKey(BoostersRow.slotKey(b)).evaluate().isNotEmpty)
-            tester.getSemantics(find.byKey(BoostersRow.slotKey(b))).label,
-        ...passengerLabels(tester, [
-          for (final p in tutorialView().passengers) p.passengerId,
-        ]),
-      },
+      skip: {for (final id in _scrimmed) id: _underScrim},
+      // The fixture's drawer holds what the artboard's does in this cell.
+      pairings: {_cellBox: tester.getSemantics(target).label},
     );
     semantics.dispose();
   });
 
-  testWidgets('Tutorial: بلية, his bubble and the hand', (tester) async {
-    await pumpTutorialHint(tester);
+  testWidgets('Tutorial: the hole, the hand, بلية, his bubble and the '
+      'locked bar', (tester) async {
+    await _pumpStill(tester);
     final board = loadBoard('Tutorial');
     Rect box(int id) {
       final b = board.boxes.firstWhere((b) => b.id == id);
@@ -74,33 +75,31 @@ void main() {
       }
     }
 
-    within(tester.getRect(find.byKey(HintLayer.headKey)), box(57), 'head');
-    within(tester.getRect(find.byKey(HintLayer.bubbleKey)), box(53), 'bubble');
-
-    final scene = tester.getRect(find.byType(GameWidget<TripGame>));
-    final definition = sampleTrip(tutorialTripId);
-    final face = SceneLayout(
-      definition.seats,
-      vehicle: definition.vehicleId,
-      width: scene.width,
-      height: scene.height,
-    ).seats['A_m']!.head;
-    final target = Rect.fromLTWH(
-      scene.left + face.left,
-      scene.top + face.top,
-      face.width,
-      face.height,
+    final cell = tester.getRect(find.byKey(Tray.slotKey(100)));
+    within(cell, box(_cellBox), 'cell');
+    expect(tester.widget<CoachMark>(find.byType(CoachMark)).target, cell);
+    within(
+      tester.getRect(
+        find.descendant(
+          of: find.byType(CoachMark),
+          matching: find.byType(CoachHand),
+        ),
+      ),
+      box(58),
+      'hand',
     );
-    // The artboard's hand points up at its cell (box 34) from box 58; the
-    // app's points the same way at its target, unless that would cover
-    // the bubble, as it does on the tuktuk, where it points down.
-    final cell = box(34);
-    expect(CoachHand.placeFor(cell), box(58).topLeft);
-    final hand = tester.getRect(find.byKey(HintLayer.pointerKey));
-    final below = CoachHand.placeFor(target) & CoachHand.size;
-    final bubble = tester.getRect(find.byKey(HintLayer.bubbleKey));
-    expect(below.overlaps(bubble), isTrue);
-    within(hand, CoachHand.placeAbove(target) & CoachHand.size, 'hand');
-    expect(hand.overlaps(bubble), isFalse);
+    within(tester.getRect(find.byKey(CoachLayer.headKey)), box(57), 'head');
+    within(tester.getRect(find.byKey(CoachLayer.bubbleKey)), box(53), 'bubble');
+    within(tester.getRect(find.byType(BoostersLockedBar)), box(48), 'bar');
+    within(
+      tester.getRect(
+        find.descendant(
+          of: find.byType(BoostersLockedBar),
+          matching: find.byType(AppIcon),
+        ),
+      ),
+      box(49),
+      'lock',
+    );
   });
 }

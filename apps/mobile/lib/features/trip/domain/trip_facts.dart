@@ -26,6 +26,7 @@ final class TripFacts {
     required this.params,
     required this.bubbleMinMs,
     required this.hintMode,
+    this.boostersLocked = false,
   });
 
   final TripDefinition definition;
@@ -36,8 +37,16 @@ final class TripFacts {
   final int bubbleMinMs;
   final HintMode hintMode;
 
+  /// The tutorial isn't done: the boosters are a locked bar (M07 FR-038).
+  final bool boostersLocked;
+
   late final Map<String, PassengerSpec> specs = {
     for (final p in definition.passengers) p.passengerId: p,
+  };
+
+  /// Each passenger's drop-off station.
+  late final Map<String, String> destinations = {
+    for (final p in definition.passengers) p.passengerId: p.destStationId,
   };
 
   late final Map<String, Look> looks = {

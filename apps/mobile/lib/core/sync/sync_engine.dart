@@ -680,10 +680,13 @@ final class SyncRunner implements SyncEngine {
   }
 
   /// A rejection the player could see (R14): every type but the ad
-  /// rewards whose effects are counters.
-  static bool _isVisible(Op op) =>
-      !(op.type == OpType.adReward &&
-          _counterPlacements.contains(op.payload['ad_placement']));
+  /// rewards whose effects are counters, and the name, which Home asks for
+  /// again instead (specs/012-m07-onboarding research R7).
+  static bool _isVisible(Op op) => switch (op.type) {
+    OpType.adReward => !_counterPlacements.contains(op.payload['ad_placement']),
+    OpType.settingsUpdate => false,
+    _ => true,
+  };
 }
 
 /// What a pass counted.

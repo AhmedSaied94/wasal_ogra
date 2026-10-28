@@ -18,6 +18,7 @@ import 'package:wassal/core/audio_haptics/sfx.dart';
 import 'package:wassal/core/routing/trip_pause_overlay.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/onboarding/presentation/coach_layer.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
@@ -247,6 +248,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
                         width: zones.width,
                         height: zones.hud,
                         child: TripHud(
+                          compact: zones.compact,
                           onPause: () => _controller.pause(PauseReason.button),
                           onDebug: ref.read(flavorProvider) == Flavor.prod
                               ? null
@@ -258,9 +260,12 @@ class _TripScreenState extends ConsumerState<TripScreen> {
                         left: zones.left,
                         width: zones.width,
                         height: zones.dashboard + bottom,
-                        child: const TripDashboard(),
+                        child: TripDashboard(compact: zones.compact),
                       ),
-                      Positioned.fill(child: _card()),
+                      // Over the HUD, the scene and the dashboard, whose
+                      // controls it points at; under the cards.
+                      Positioned.fill(child: CoachLayer(zones: zones)),
+                      Positioned.fill(child: _card(compact: zones.compact)),
                     ],
                   );
                 },
@@ -359,7 +364,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
     return game;
   }
 
-  Widget _card() {
+  Widget _card({required bool compact}) {
     final model = _model.value;
     final retry = model.retry;
     // A purchase's or a revive's retry is said on its card.
@@ -409,6 +414,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
           null => const SizedBox.shrink(),
         },
       TripPhase.paused => PauseCard(
+        showTripTitle: compact,
         restartEnabled: model.restartEnabled,
         onResume: _controller.resume,
         onRestart: () => unawaited(_controller.restart()),

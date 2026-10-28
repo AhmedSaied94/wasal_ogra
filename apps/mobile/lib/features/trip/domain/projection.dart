@@ -155,7 +155,6 @@ List<PassengerView> _passengers(
 ) {
   final peek = state.ledgerPeekActive;
   final warning = memory.warning;
-  final nextStation = state.nextStation?.stationId;
   final failed = state.status == TripStatus.failed;
   final views = <PassengerView>[];
   for (final p in state.passengers) {
@@ -184,12 +183,7 @@ List<PassengerView> _passengers(
         waking: p.alertness == Alertness.waking,
         headphones: p.alertness == Alertness.muted,
         attentive: p.alertness == Alertness.attentive,
-        nearStopPulse:
-            !leaving &&
-            warning != null &&
-            warning.stationId == nextStation &&
-            warning.owed.contains(p.passengerId) &&
-            p.isOwed,
+        nearStopPulse: !leaving && isNearStop(state, warning, p),
         dropMeHere: !leaving && p.deadlineMs != null,
         ledgerBadge: peek && !leaving ? _badge(state, facts, p) : null,
         outcome: leaving ? p.outcome : null,
@@ -282,3 +276,12 @@ BoosterSlotView _booster(
         : null,
   );
 }
+
+/// [p] is still owed, and the last station warning named them before that
+/// station: the pulse on their tag, and the tutorial's lesson 2
+/// (specs/012-m07-onboarding/contracts/coach.md).
+bool isNearStop(TripState state, WarningMemory? warning, PassengerState p) =>
+    warning != null &&
+    warning.stationId == state.nextStation?.stationId &&
+    warning.owed.contains(p.passengerId) &&
+    p.isOwed;

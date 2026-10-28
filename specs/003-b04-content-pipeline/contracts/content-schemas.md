@@ -154,6 +154,9 @@ id, path, message}`. Codes are stable, so tests can name them.
 | `V-L2` | error | `difficulty_band.min ≤ max`. Station ids are unique within a line. |
 | `V-C1` | error | `goal.kind` has exactly its field, and the reference resolves. `purchase` needs a catalog price `(chapter, chapter_id)`. |
 | `V-C2` | error | `story_trip_id`, if present, is a `story` trip |
+| `V-C3` | error | (M07) A scene's `plays.kind` `opening` is only in the chapter with `order` 1, at most once in the pack, and with no `trip_id` |
+| `V-C4` | error | (M07) A scene's `plays.kind` `after_trip` needs a `trip_id` naming a trip in the pack, and at most one scene names each trip |
+| `V-C5` | error | (M07) A panel's `narrator` line (its caption), if any, is its first line, and there is at most one |
 | `V-R1` | error | Every room's `chapter_id` and every item's `room_id` exist, `item_id` starts with `room_id + "."`, and variant ids are unique per item |
 | `V-R2` | error | A family request's `item_id` is in its `room_id`, and its `variant_id` is a variant of that item |
 | `V-K1` | error | Catalog prices and purchasable products match one to one. Each item, each non-starter vehicle, each `purchase` chapter, and each BONAT SKU listed in data-model.md `CatalogPrice` has exactly one price. Nothing else has a price. |

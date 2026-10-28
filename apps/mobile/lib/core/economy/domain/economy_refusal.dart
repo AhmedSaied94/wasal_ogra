@@ -29,7 +29,13 @@ enum EconomyRefusal {
 
   /// A comeback gift the cached bootstrap doesn't offer, or one already
   /// claimed (specs/011-m06-identity-sync R16).
-  notEligible('not_eligible');
+  notEligible('not_eligible'),
+
+  /// A name the phone's name rules refuse (specs/012-m07-onboarding R7).
+  invalidName('invalid_name'),
+
+  /// The tutorial gift, already granted (M07 R8).
+  alreadyGranted('already_granted');
 
   const EconomyRefusal(this.wire);
 

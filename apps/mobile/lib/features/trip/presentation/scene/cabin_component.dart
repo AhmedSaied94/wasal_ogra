@@ -99,17 +99,32 @@ class CabinComponent extends Component with HasGameReference<TripGame> {
     ], 5);
   }
 
+  /// Each bench under its row's faces, wherever the table puts the row.
   static void _microBenches(Canvas canvas, SceneLayout layout) {
-    for (final (x, y, w, h, r, hi) in const [
-      (88.0, 104.0, 214.0, 42.0, 16.0, (96.0, 108.0, 198.0, 8.0, 4.0)),
-      (46.0, 212.0, 298.0, 50.0, 18.0, (54.0, 216.0, 282.0, 9.0, 4.5)),
-      (6.0, 326.0, 378.0, 58.0, 22.0, (16.0, 331.0, 358.0, 10.0, 5.0)),
+    for (final (row, (x, y, w, h, r), (hx, hy, hw, hh, hr)) in const [
+      (
+        SeatRow.c,
+        (88.0, 104.0, 214.0, 42.0, 16.0),
+        (96.0, 108.0, 198.0, 8.0, 4.0),
+      ),
+      (
+        SeatRow.b,
+        (46.0, 212.0, 298.0, 50.0, 18.0),
+        (54.0, 216.0, 282.0, 9.0, 4.5),
+      ),
+      (
+        SeatRow.a,
+        (6.0, 326.0, 378.0, 58.0, 22.0),
+        (16.0, 331.0, 358.0, 10.0, 5.0),
+      ),
     ]) {
-      final (hx, hy, hw, hh, hr) = hi;
       canvas
-        ..drawRRect(layout.rrectOf(x, y, w, h, r), _fill(ColorTokens.sceneSeat))
         ..drawRRect(
-          layout.rrectOf(hx, hy, hw, hh, hr),
+          layout.rowRRectOf(row, x, y, w, h, r),
+          _fill(ColorTokens.sceneSeat),
+        )
+        ..drawRRect(
+          layout.rowRRectOf(row, hx, hy, hw, hh, hr),
           _fill(ColorTokens.sceneSeatHi),
         );
     }

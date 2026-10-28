@@ -348,8 +348,9 @@ final class LastResult {
   }
 }
 
-/// The balances, the tank, the inventory, ownership and progress.
-/// `apply(state, op)` returns a new one (research R5).
+/// The balances, the tank, the inventory, ownership and progress, and since
+/// M07 the driver's name and the tutorial grant (specs/012-m07-onboarding,
+/// research R8). `apply(state, op)` returns a new one (research R5).
 final class EconomyState {
   EconomyState({
     required this.jenehat,
@@ -360,6 +361,8 @@ final class EconomyState {
     Map<String, TripProgress> progress = const {},
     this.unfinished,
     this.lastResult,
+    this.displayName,
+    this.tutorialGranted = false,
   }) : inventory = UnmodifiableMapView({
          for (final MapEntry(:key, :value) in inventory.entries)
            if (value != 0) key: value,
@@ -391,6 +394,13 @@ final class EconomyState {
   final UnfinishedTrip? unfinished;
   final LastResult? lastResult;
 
+  /// The driver's name: the server's, or a `settings_update` not refused
+  /// yet. Null until one is chosen.
+  final String? displayName;
+
+  /// The tutorial gift was given (on this phone, or by the server's state).
+  final bool tutorialGranted;
+
   EconomyState copyWith({
     int? jenehat,
     int? bonat,
@@ -400,6 +410,8 @@ final class EconomyState {
     Map<String, TripProgress>? progress,
     UnfinishedTrip? Function()? unfinished,
     LastResult? Function()? lastResult,
+    String? Function()? displayName,
+    bool? tutorialGranted,
   }) => EconomyState(
     jenehat: jenehat ?? this.jenehat,
     bonat: bonat ?? this.bonat,
@@ -409,6 +421,8 @@ final class EconomyState {
     progress: progress ?? this.progress,
     unfinished: unfinished == null ? this.unfinished : unfinished(),
     lastResult: lastResult == null ? this.lastResult : lastResult(),
+    displayName: displayName == null ? this.displayName : displayName(),
+    tutorialGranted: tutorialGranted ?? this.tutorialGranted,
   );
 
   @override
@@ -421,7 +435,9 @@ final class EconomyState {
       _mapEquals(other.ownership, ownership) &&
       _mapEquals(other.progress, progress) &&
       other.unfinished == unfinished &&
-      other.lastResult == lastResult;
+      other.lastResult == lastResult &&
+      other.displayName == displayName &&
+      other.tutorialGranted == tutorialGranted;
 
   @override
   int get hashCode => Object.hash(
@@ -433,13 +449,17 @@ final class EconomyState {
     progress.length,
     unfinished,
     lastResult,
+    displayName,
+    tutorialGranted,
   );
 
+  // The name is the player's own; it stays out of logs (M07 plan "Security
+  // & privacy").
   @override
   String toString() =>
       'EconomyState(J $jenehat, B $bonat, $fuel, $inventory, '
       '${ownership.length} owned, ${progress.length} trips, $unfinished, '
-      '$lastResult)';
+      '$lastResult, named ${displayName != null}, tutorial $tutorialGranted)';
 
   /// The base's JSON, as `projection_base.state` holds it in canonical form.
   Map<String, Object> toJson() {
@@ -472,6 +492,9 @@ final class EconomyState {
       },
       'unfinished': ?unfinished?.toJson(),
       'last_result': ?lastResult?.toJson(),
+      'display_name': ?displayName,
+      // Absent when false, so a v3 base's JSON is unchanged.
+      if (tutorialGranted) 'tutorial_granted': true,
     };
   }
 
@@ -486,7 +509,13 @@ final class EconomyState {
       'progress',
       'unfinished',
       'last_result',
+      'display_name',
+      'tutorial_granted',
     });
+    final displayName = map['display_name'];
+    if (displayName is! String?) {
+      throw FormatException('display_name must be a string', displayName);
+    }
     final inventory = <BoosterId, int>{};
     for (final MapEntry(:key, :value) in _object(
       map['inventory'],
@@ -553,6 +582,9 @@ final class EconomyState {
       lastResult: map['last_result'] == null
           ? null
           : LastResult.fromJson(map['last_result']),
+      displayName: displayName,
+      tutorialGranted:
+          map['tutorial_granted'] != null && _bool(map, 'tutorial_granted'),
     );
   }
 }

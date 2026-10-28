@@ -1,12 +1,12 @@
 import 'package:content_models/content_models.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
@@ -14,7 +14,6 @@ import 'package:wassal/features/trip/presentation/dashboard/boosters_row.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 import 'package:wassal/features/trip/presentation/dashboard/hand_slot.dart';
 import 'package:wassal/features/trip/presentation/dashboard/tray.dart';
-import 'package:wassal/features/trip/presentation/overlays/bubbles_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/token_layer.dart';
@@ -333,41 +332,7 @@ void main() {
     });
   });
 
-  group('SpeechBubble', () {
-    for (final (variant, bg) in [
-      (SpeechBubbleVariant.normal, ColorTokens.paper),
-      (SpeechBubbleVariant.warn, ColorTokens.dangerSoft),
-      (SpeechBubbleVariant.fight, ColorTokens.danger),
-      (SpeechBubbleVariant.thanks, ColorTokens.primarySoft),
-      (SpeechBubbleVariant.character, ColorTokens.paper),
-    ]) {
-      testWidgets('${variant.name}: its fill, 16 pt text never scaled', (
-        tester,
-      ) async {
-        await pumpDesignComponent(
-          tester,
-          SpeechBubble(
-            text: 'الباقي يا أسطى!',
-            variant: variant,
-            name: variant == SpeechBubbleVariant.character ? 'بلية' : null,
-          ),
-          textScale: 1.3,
-        );
-        final bubble = find.byType(SpeechBubble);
-        expect(fills(tester, bubble), contains(bg));
-        final paragraph = tester.renderObject<RenderParagraph>(
-          find.descendant(of: bubble, matching: find.byType(RichText)).last,
-        );
-        expect(paragraph.textScaler.scale(16), 16);
-        expect(
-          find.descendant(of: bubble, matching: find.text('بلية')),
-          variant == SpeechBubbleVariant.character
-              ? findsOneWidget
-              : findsNothing,
-        );
-      });
-    }
-
+  group('SpeechBubble in the scene', () {
     testWidgets('at most 2; the tail 8 pt above the head; clamped inside', (
       tester,
     ) async {

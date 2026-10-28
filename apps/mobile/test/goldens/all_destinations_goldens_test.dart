@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/bootstrap/app.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/routing/routes.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
 
+import '../design/samples/name.dart';
 import '../helpers/pump_app.dart';
 import '../helpers/routing.dart';
 import '../helpers/screens.dart';
@@ -36,6 +38,8 @@ void main() {
               tester,
               initialLocation: d.location,
               digits: digits,
+              // The Name card's suggestion, else the clock's.
+              overrides: [nameSeedProvider.overrideWithValue(nameSampleSeed)],
             );
             expect(currentLocation(tester), d.location);
         }

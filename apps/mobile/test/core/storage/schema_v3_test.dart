@@ -103,7 +103,7 @@ void main() {
     },
   );
 
-  test('a v2 file with an economy opens as v3, every row kept', () async {
+  test('a v2 file with an economy opens through v3, every row kept', () async {
     // An economy with trips and a purchase, written by the current code.
     var e = await testEconomy(dbFile: tempDbFile(), firstState: _rich);
     await seedOps(e.db, e.store, count: 30, bonat: 40);
@@ -120,7 +120,8 @@ void main() {
     // The same rows in a file v2 made.
     final db = await olderFile(2, rows);
     addTearDown(db.close);
-    await olderSchemas.migrateAndValidate(db, 3);
+    // Through v3 to the current version: the economy reads every table of it.
+    await olderSchemas.migrateAndValidate(db, db.schemaVersion);
     expect(await dumpTables(db), rows);
     final account = (await _rows(db, 'account')).single;
     expect(account['status'], 'none');
@@ -158,19 +159,6 @@ void main() {
     expect(
       {for (final i in indexes) i.data['name']},
       {'ledger_ops_sync', 'ledger_ops_ref'},
-    );
-  });
-
-  test('the log refuses an op type v3 doesn\'t list', () async {
-    final e = await testEconomy();
-    await expectLater(
-      e.db.customStatement(
-        'INSERT INTO ledger_ops (txn_id, op_type, payload, occurred_at_ms, '
-        'content_version, fuel_max, fuel_regen_minutes) VALUES '
-        "('0192f3a1-7b2c-7d4e-8f00-00000000fffe', 'tutorial_gift', '{}', 1, 1,"
-        ' 5, 20)',
-      ),
-      throwsA(anything),
     );
   });
 }
