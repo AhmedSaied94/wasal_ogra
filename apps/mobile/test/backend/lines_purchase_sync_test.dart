@@ -25,7 +25,10 @@ void main() {
 
   test('the microbus and خط الجامعة\'s first trip are accepted', () async {
     final device = await e2eDevice();
-    final engine = e2eEngine(device);
+    // Ahead of any base: the first pass takes the full state, staff's
+    // coins with it (as offline_sync_test.dart).
+    int? serverVersion = 1 << 30;
+    final engine = e2eEngine(device, serverStateVersion: () => serverVersion);
     final economy = device.economy.service;
     final content = device.economy.content;
 
@@ -34,6 +37,7 @@ void main() {
     final player = device.account.playerId!;
     await grantJenehat(player, 2000);
     await engine.syncNow();
+    serverVersion = null;
     expect(economy.view.jenehat, 2000);
 
     // Offline: the purchase, as the sheet makes it.
