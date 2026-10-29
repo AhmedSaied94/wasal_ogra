@@ -19,9 +19,11 @@ import 'package:wassal/core/config/tunable.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/features/home/application/checkpoint.dart';
 import 'package:wassal/features/lines/application/lines_model.dart';
+import 'package:wassal/features/lines/domain/line_standing.dart';
 import 'package:wassal/features/lines/presentation/line_card.dart';
 import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
 import 'package:wassal/features/lines/presentation/line_map.dart';
@@ -188,7 +190,17 @@ void main() {
     await pumpUntil(tester, () => currentLocation(tester) == '/home');
     await _tap(tester, find.byKey(BottomNav.cellKey(1)));
     await pumpUntil(tester, () => currentLocation(tester) == '/lines');
-    // خط الجامعة's next trip is now its second.
+    // خط الجامعة's next trip is now its second, and its first keeps the
+    // star the result earned (T108).
+    final gamaa = container
+        .read(linesModelProvider)
+        .cards
+        .firstWhere((card) => card.line == LineId.lineGamaa);
+    expect((gamaa.state as LineCurrent).next.number, 2);
+    expect(
+      container.read(playerProgressProvider).starsOf('line_gamaa.01'),
+      greaterThanOrEqualTo(1),
+    );
     await pumpUntil(
       tester,
       () => find

@@ -32,8 +32,10 @@ lib/features/lines/
 - `seats` and `currentSeats`;
 - `opensLine` (`LineId?`, the first line by order unlocked by this vehicle);
 - `sale` (`VehicleSale`, [progress-rules.md](./progress-rules.md));
-- `price` and `balance`;
-- `shortfall` (`int?`);
+- `price` (only when `ForSale`) and `balance`;
+- `listPrice` (the catalog's price whatever `sale` says; the price card of a vehicle not for sale
+  yet);
+- `shortfall` (`int?`, from `price`);
 - `impact` (`Impact?`).
 
 `impactAfterPurchase`:
@@ -52,15 +54,16 @@ lib/features/lines/
 | --- | --- | --- | --- | --- |
 | Header: name + close | ✓ | ✓ | ✓ | ✓ |
 | Preview (`VehicleSprite`, no «بزينتك») | ✓ | ✓ | ✓ | ✓ |
-| Benefits: «{n} كرسي بدل {m}» · «بيفتح {line}» (if any) · «قبض أكتر في كل مشوار» | ✓ | ✓ | owner's board | owner's board |
-| Price card «السعر» / «معاك» | ✓ | ✓ | — | owner's board |
-| Impact «بعد الشرا، فاضل {amount} ج على {goal}» | when not null | owner's board | — | — |
-| «ناقصك {n} ج» + gold `ProgressBar` (balance / price) | — | ✓ (§9.2) | — | — |
-| Status line | — | — | «دي عربيتك» (starter: «دي عربية المعلم، وانت شغال عليها») | «اشتري {vehicle} الأول» / «العربية دي مش للبيع دلوقتي» |
-| Buttons | «اشتريها» + «لسه» | «اشتريها» disabled (§9.1 #5) + «لسه» | one close button «تمام» | one close button «تمام» |
+| Benefits: «{n} كرسي بدل {m}» · «بيفتح {line}» (if any) · «قبض أكتر في كل مشوار» | ✓ | ✓ | — | ✓ |
+| Price card «السعر» / «معاك» | ✓ | ✓ | — | `NeedsFirst` with `listPrice`; `NoPrice`: — |
+| Impact «بعد الشرا، فاضل {amount} ج على {goal}» | when not null | — | — | — |
+| «ناقصك {n} ج» (15/700 `danger.ink`) + gold `ProgressBar` 10 high (balance / price), 10 over the buttons | — | ✓ | — | — |
+| Status row (`StatusRow`, 44 high, 15/700, radius 18), 12 over the button | — | — | owned: a 24 `primary` tick on `primary.soft`, «دي عربيتك» (starter: «دي عربية المعلم، وانت شغال عليها») | locked look, a 24 lock: «اشتري {vehicle} الأول» / «العربية دي مش للبيع دلوقتي» |
+| Buttons (64, radius 22) | «اشتريها» + «لسه» (2:1) | «اشتريها» disabled (§9.1 #5) + «لسه» | «تمام», the primary button, full width | «تمام», the primary button, full width |
+| The sheet's height | the full sheet | the full sheet | as tall as its content | the full sheet |
 
-"Owner's board" means the owner's design decides it ([design-briefs.md](./design-briefs.md)). Until
-the board lands, the sheet follows the brief.
+As the owner's boards draw it (`BuyVehicleShort`, `BuyVehicleOwned`, `BuyVehicleNotForSale`,
+2026-10-29; [design-briefs.md](./design-briefs.md)).
 
 ## Buying
 
@@ -113,7 +116,7 @@ the board lands, the sheet follows the brief.
   - an id the pack lacks → `/lines`.
 - **Integration:** `integration_test/lines_loop_test.dart`.
 - **Against the dev stack** (`backend` tag): the purchase syncs and is accepted.
-- **Design:**
-  - `test/design/samples/buy_vehicle.dart`, its layout test and goldens;
-  - `BuyVehicleShort`, `BuyVehicleOwned` and `BuyVehicleNotForSale` when exported.
+- **Design:** `test/design/samples/buy_vehicle.dart` for `BuyVehicle`, `BuyVehicleShort`,
+  `BuyVehicleOwned` and `BuyVehicleNotForSale`, with their layout tests and goldens; the plain and
+  no-price sheets as goldens only.
 - **Sizes:** `test/a11y/buy_vehicle_minimum_sizes_test.dart`.

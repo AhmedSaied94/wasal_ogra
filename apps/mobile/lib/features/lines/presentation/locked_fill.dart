@@ -13,7 +13,8 @@ BoxDecoration lockedFill(BorderRadius radius) => BoxDecoration(
   border: RingTokens.locked.border,
 );
 
-/// The lock on a locked tile or cell.
+/// The lock on a locked tile or cell, `ink.muted` as the boards of
+/// 2026-10-29 draw it.
 class LockGlyph extends StatelessWidget {
   const LockGlyph({this.size = 14, super.key});
 
@@ -21,5 +22,5 @@ class LockGlyph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      AppIcon('lock', size: size, color: ColorTokens.iconOff);
+      AppIcon('lock', size: size, color: ColorTokens.inkMuted);
 }

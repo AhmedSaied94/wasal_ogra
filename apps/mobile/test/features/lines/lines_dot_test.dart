@@ -5,6 +5,7 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/routing/new_dot_providers.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/routing/routes.dart';
@@ -93,6 +94,8 @@ void main() {
       skuId: 'micro_old',
     );
     await tester.pumpAndSettle();
+    // The dot is on before any return to Lines (T108).
+    expect(_dot(container), isTrue);
     final news = container.read(linesNewsKeysProvider);
     expect(news, contains('line:line_gamaa'));
     expect(
@@ -108,5 +111,46 @@ void main() {
     container.read(routerProvider).go('/home');
     await tester.pumpAndSettle();
     expect(_dot(container), isFalse);
+  });
+
+  testWidgets('news that goes away and comes back raises the dot again '
+      '(T101)', (tester) async {
+    final store = MemorySettingsStore();
+    final (container, economy) = await pumpLinesApp(
+      tester,
+      state: playerState(jenehat: 2000),
+      location: '/home',
+      settingsStore: store,
+    );
+    // The microbus is affordable, and its news is seen on the first read.
+    expect(_dot(container), isFalse);
+    EconomyState state(int jenehat) =>
+        EconomyState.newPlayer(fuelMax: 5, nowMs: 0).copyWith(jenehat: jenehat);
+    // A sync spends below its price: the news goes away, and so does its
+    // seen key.
+    await economy.service.replaceFromServer(
+      state(1200),
+      playerId: 'test-player',
+      stateVersion: 2,
+    );
+    await tester.pumpAndSettle();
+    expect(container.read(linesNewsKeysProvider), isEmpty);
+    expect(
+      LinesSeenNotifier.decode(store.values[LinesSeenNotifier.key]!),
+      isEmpty,
+    );
+    // The price earned back while on Home: it is news again, so the dot is
+    // on.
+    await economy.service.replaceFromServer(
+      state(2000),
+      playerId: 'test-player',
+      stateVersion: 3,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      container.read(linesNewsKeysProvider),
+      contains('vehicle:micro_old'),
+    );
+    expect(_dot(container), isTrue);
   });
 }

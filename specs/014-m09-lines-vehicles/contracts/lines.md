@@ -44,9 +44,9 @@ It is rebuilt on every view, so a sync, a rollback or a purchase redraws the scr
 | Block | Content | Rule |
 | --- | --- | --- |
 | Header | «الخطوط» (`display.l`); `CurrencyPill.coin` (no tap, label `homeA11yCoins`); `CurrencyPill.bonat` → `/shop`. Offline: no tap, label `homeA11yBonatOffline`, as M08's Home. | FR-014, FR-015 |
-| Vehicle strip | `role=list` «العربيات». One `VehicleTile` per vehicle, from the right, 4 columns at 83.5 with gap 8. With fewer vehicles, the owner's `LinesFirst` decides the width. Tile states: done (tick), current («{short} · عربيتك», `sun`), for sale (price, locked look), not for sale (locked look, no price). Every tile → `/lines/vehicle/<id>`. | FR-016, FR-017 |
-| Line map | A scroll view; cards bottom-up (first line at the bottom), gap 12; `RoadPainter` (6 wide, 10 on / 8 off, `icon.off`) behind them at the start edge, as tall as the content and never shorter than the map. Nodes: current 32 `sun` with the route glyph, done 24 tick, locked 24 ring. | FR-018, FR-020 |
-| Line card, current | `AppCard`, a 3 pt `primary` ring. Name + `FareChip`; what's new; star + «{earned}/{max} · المشوار {n} من {total}»; «كمّل» (own `Pressable`, 63×44, `primary`) | FR-018, FR-019 |
+| Vehicle strip | `role=list` «العربيات». One `VehicleTile` per vehicle, from the right, gap 8. Up to four tiles share the width between the gutters (`LinesFirst`: two of 175; `Lines`: four of 83.5); more scroll at four columns' width. Tile states: done (a 20 tick badge), current («{short} · عربيتك», `sun`), for sale (price, locked look, a 16 `ink.muted` lock), not for sale (locked look, no price). Every tile → `/lines/vehicle/<id>`. | FR-016, FR-017 |
+| Line map | A scroll view, 12 above the bar; cards bottom-up (first line at the bottom, standing on the map's bottom), gap 12; `RoadPainter` (6 wide, 10 on / 8 off, `icon.off`, from 20 below the top to 20 above the bottom) behind them at the start edge, as tall as the content and never shorter than the map. At the road's far end, at the top of the content, an empty node 8 below the top with «خطوط جديدة جاية» (`linesRoadEnd`, 13/500 `ink.muted`) at the cards' start (`LinesFirst`). Nodes: current 32 `sun` with the bus (`MicrobusGlyph`, 20×15, body and wheels), done 24 tick, locked 24 ring. | FR-018, FR-020 |
+| Line card, current | `AppCard`, a 3 pt `primary` ring, padded 14 with 3 between rows (112 with two lines of what's new). Name + `FareChip`; what's new; star + «{earned}/{max} · المشوار {n} من {total}»; «كمّل» (own `Pressable`, 63×44, `primary`) | FR-018, FR-019 |
 | Line card, done | name + `StatusChip.done` «خلص»; «{earned}/{max} · عيد عشان النجوم» (stars alone when `allThree`); fare | FR-018 |
 | Line card, locked | `AppCard(locked: true)`: lock, name, «محتاج {vehicle}» or «بعد {line}» + « · {what's new}», fare | FR-018, FR-046 |
 | Bottom nav | `BottomNav`, «الخطوط» active; the lines dot from `LinesDotWatcher` | FR-053, FR-041 |
@@ -64,8 +64,11 @@ Long names and reasons wrap and the card grows (FR-047).
 | Locked card, `vehicle` rule | `/lines/vehicle/<that vehicle>` |
 | Locked card, `line_complete` rule | `/lines/<line>` (its locked details) |
 
-On first frame the focus card is scrolled into view (`ensureVisible`, no animation under reduced
-motion).
+On the first frame the focus card is scrolled into view, centred (`Scrollable.ensureVisible`,
+alignment 0.5, no animation). It scrolls back into view whenever the focus moves (a purchase, a
+finished line) and whenever Lines is entered from outside its branch (the tab, Home's line card,
+back from a trip). Closing a line's details or a vehicle's sheet leaves the map where the player left
+it (T111).
 
 ## The «new» dot
 

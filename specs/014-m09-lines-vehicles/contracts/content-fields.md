@@ -78,3 +78,20 @@ A pack built before this change has no fields. The new app refuses it as unreada
 to the bundled pack (M04), and production's promote would refuse it against the new schema. No pack
 is promoted yet. After the deploy, staging rebuilds and publishes a fresh pack
 (`docs/runbooks/content-publishing.md`, owner action).
+
+The required fields make this an expand-only schema change with four operational consequences
+(constitution "migrations expand/contract"; T110):
+
+- **Production must carry M09 before the first M09 pack is promoted.** `promote.py` validates the
+  incoming pack with production's own schemas, so an earlier production refuses the new properties.
+  Tag and deploy production first, then promote.
+- **Packs built before `content.0010` can't be rolled back to.** A rollback rebuilds the old pack's
+  parts and validates them against today's schema (`build.py`), so it fails on the missing fields.
+  Only post-deploy packs are rollback targets.
+- **A draft built before the deploy must not be published.** `publish.py` doesn't re-run the schema
+  stage, so the pack would go out and every M09 app would refuse it. Rebuild first.
+- **Exports of pre-M09 versions don't import**, for the same reason: they lack the required fields.
+
+The admin rows the migration created hold a fare of 50 (a valid fare) and empty texts (refused by a
+build). Every line's fare must be set by hand; a build warning when a fare still equals 50 would
+make a missed one visible, but isn't implemented.

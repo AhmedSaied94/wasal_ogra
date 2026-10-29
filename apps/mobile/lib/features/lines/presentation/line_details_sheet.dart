@@ -1,7 +1,9 @@
 // A line's details (specs/014-m09-lines-vehicles, contracts/line-details.md,
-// HANDOFF `LineDetails`): the line's name and stars, the trip grid
-// scrolling above the pinned «العب المشوار {n}», the hint and the note. A
-// done line has no button; a locked line shows what opens it instead.
+// HANDOFF `LineDetails`, `LineDetailsStory`, `LineDetailsDone`,
+// `LineDetailsLocked`): the line's name and stars, the trip grid scrolling
+// above the pinned «العب المشوار {n}», the hint and the note. A done line
+// has the note's first sentence in the button's place; a locked line shows
+// what opens it there, with no note.
 import 'dart:async';
 
 import 'package:content_models/content_models.dart';
@@ -18,6 +20,7 @@ import 'package:wassal/features/lines/application/line_details_model.dart';
 import 'package:wassal/features/lines/domain/line_standing.dart';
 import 'package:wassal/features/lines/domain/trip_cells.dart';
 import 'package:wassal/features/lines/presentation/board_sheet.dart';
+import 'package:wassal/features/lines/presentation/status_row.dart';
 import 'package:wassal/features/lines/presentation/trip_grid.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -48,6 +51,22 @@ class LineDetailsSheet extends ConsumerStatefulWidget {
 
 class _LineDetailsSheetState extends ConsumerState<LineDetailsSheet> {
   bool _leaving = false;
+  final _nextKey = GlobalKey(debugLabel: 'LineDetailsSheet.next');
+
+  @override
+  void initState() {
+    super.initState();
+    // The next trip in view on the first frame, when the rows run past the
+    // sheet (FR-025): the grid scrolls only as far as its row.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final next = _nextKey.currentContext;
+      if (!mounted || next == null) return;
+      Scrollable.ensureVisible(
+        next,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
 
   /// A line the pack lacks: back to the map, once.
   void _leave() {
@@ -98,13 +117,20 @@ class _LineDetailsSheetState extends ConsumerState<LineDetailsSheet> {
             Expanded(
               child: SingleChildScrollView(
                 key: LineDetailsSheet.scrollKey,
-                clipBehavior: Clip.none,
+                // Room for a story chip on the first row, which rises above
+                // its cell (`LineDetailsStory`: the list's 6 on top).
+                padding: EdgeInsets.only(
+                  top: shown.take(cellsPerRow).any((c) => c.isStory)
+                      ? TripGrid.chipRise
+                      : 0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: LineDetailsSheet.gap,
                   children: [
                     TripGrid(
                       cells: shown,
+                      nextKey: _nextKey,
                       onTap: (cell) => _start(cell.tripId),
                     ),
                     if (model.range.hidden case (final from, final to))
@@ -119,7 +145,7 @@ class _LineDetailsSheetState extends ConsumerState<LineDetailsSheet> {
                             .weight(500)
                             .copyWith(color: ColorTokens.inkMuted),
                       ),
-                    _Note(done: state is LineDone),
+                    if (state is LineCurrent) const _Note(done: false),
                   ],
                 ),
               ),
@@ -134,51 +160,13 @@ class _LineDetailsSheetState extends ConsumerState<LineDetailsSheet> {
                   onTap: () => _start(next.tripId),
                 ),
               ),
+              LineDone() => const Padding(
+                padding: EdgeInsets.only(top: LineDetailsSheet.gap),
+                child: _Note(done: true),
+              ),
               LineLocked() when reason != null => Padding(
                 padding: const EdgeInsets.only(top: LineDetailsSheet.gap),
-                child: Semantics(
-                  key: LineDetailsSheet.reasonKey,
-                  container: true,
-                  label: l10n.lineDetailsLockedA11y(reason),
-                  child: ExcludeSemantics(
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        minHeight: LayoutTokens.ctaH,
-                      ),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: SpaceTokens.s16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ColorTokens.lockedBg,
-                        borderRadius: BorderRadius.circular(
-                          LayoutTokens.ctaRadius,
-                        ),
-                        border: RingTokens.locked.border,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: SpaceTokens.s8,
-                        children: [
-                          const AppIcon(
-                            'lock',
-                            size: _Note.icon,
-                            color: ColorTokens.iconOff,
-                          ),
-                          Flexible(
-                            child: Text(
-                              reason,
-                              textAlign: TextAlign.center,
-                              style: DesignExtras.linesCardTitle.copyWith(
-                                color: ColorTokens.ink2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                child: _Reason(reason: reason),
               ),
               _ => const SizedBox.shrink(),
             },
@@ -259,8 +247,25 @@ class _Header extends ConsumerWidget {
   }
 }
 
-/// The note (`LineDetails` block 2e): both sentences, or the first only for
-/// a done line, which has nothing left to open.
+/// What opens a locked line, in the button's place (`LineDetailsLocked`
+/// box 75): read, never tapped.
+class _Reason extends StatelessWidget {
+  const _Reason({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    key: LineDetailsSheet.reasonKey,
+    container: true,
+    label: AppLocalizations.of(context).lineDetailsLockedA11y(reason),
+    child: ExcludeSemantics(child: StatusRow.locked(text: reason)),
+  );
+}
+
+/// The note (`LineDetails` block 2e): both sentences under a current
+/// line's grid, or the first only, in the button's place, for a done line,
+/// which has nothing left to open (`LineDetailsDone`).
 class _Note extends StatelessWidget {
   const _Note({required this.done});
 
@@ -281,7 +286,6 @@ class _Note extends StatelessWidget {
         borderRadius: BorderRadius.circular(RadiusTokens.bubble),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         spacing: SpaceTokens.s10,
         children: [
           const AppIcon('info_filled', size: icon, color: ColorTokens.primary),

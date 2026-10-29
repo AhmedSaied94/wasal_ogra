@@ -21,25 +21,29 @@ lib/features/lines/
 
 ## The cells
 
-`tripCells(c, p, line)` returns one `TripCell` per trip of `c.tripsOf(line)`, by trip number:
+`tripCells(c, p, line)` returns one `TripCell` per trip of `c.tripsOf(line)`, by trip number. A cell
+has a `state` (`CellState`), `isStory`, `stars` and `playable`, whether the rules let the trip start
+now (`tripPlayable`, FR-026); a tap starts it when `playable` and the state isn't `locked`:
 
 | State | When | Look (board) |
 | --- | --- | --- |
-| `done(stars)` | regular, stars ≥ 1 | `ground`, number, `Stars` 12 |
-| `storyDone(stars)` | story, stars ≥ 1 | `sun.soft`, «قصة» chip above |
+| `done` | stars ≥ 1, `playable` | `ground` (`sun.soft` for a story), number, `Stars` 12 |
+| `done`, not `playable` | stars ≥ 1, but the rules refuse it now (a newer pack, a rolled-back purchase) | the locked look with its stars kept and a 12 lock at the top end; inert, no tap semantics |
 | `next` | the line's next trip: the first by number that is `tripPlayable` with no star | `primary` + lip, number + «كمّل» |
-| `playable` | another `tripPlayable` trip with no star | `primary` + lip, number, no «كمّل» (owner's `LineDetailsStory`) |
-| `locked` | not `tripPlayable`, no star | the §9.1 #6 locked look + lock 14 |
-| `storyLocked` | story, not `tripPlayable`, no star | the locked look + «قصة» chip |
+| `playable` | another `tripPlayable` trip with no star | `primary` + lip, number, no «كمّل» (`LineDetailsStory`) |
+| `locked` | not `tripPlayable`, no star | the §9.1 #6 locked look + an `ink.muted` lock 14 |
 
-A story cell that is `next` or `playable` keeps its «قصة» chip.
+A story cell keeps its «قصة» chip in every state; on the first row the grid leaves 6 above it, so
+the chip isn't cut.
 
-`visibleRange(cells)`:
+`visibleRange(cells)` (FR-025, as `LineDetailsStory` draws it):
 
-- `rows = max(4, nextRow + 2)`, capped at the line's rows;
-- every row for a done line;
-- 4 for a locked line;
+- `rows = max(4, furthestRow + 1)`, capped at the line's rows, where `furthestRow` is the row of the
+  last cell drawn done, next or playable;
+- so every row for a done line, and 4 for a locked line;
 - `hidden = (from, to)` or null.
+
+When the rows run past the sheet, the grid opens scrolled just far enough to show the next trip.
 
 ## Layout (`LineDetails`)
 
@@ -49,8 +53,8 @@ A story cell that is `next` or `playable` keeps its «قصة» chip.
 | Header | the line's name (`display.m`); star + `lineDetailsSummary` «{stars} من {max} نجمة · {done} مشوار خلص» (plurals); `IconCircleButton` close | FR-023 |
 | Grid | `role=list` `lineDetailsTripsA11y` «مشاوير الخط»; 5 per row from the right, ≈65×62, gap 8; scrolls above the button | FR-024, FR-025 |
 | Hint | `lineDetailsHint` «والمشاوير من {from} لـ {to} بتظهر لما تقرّب», when hidden | FR-025 |
-| Info note | the board's two sentences. A done line keeps the first only (owner's `LineDetailsDone`). | FR-023 |
-| Button | `AppButton.primary(xl)` «العب المشوار {n}», pinned. A done line: none. A locked line: the reason in its place, nothing to tap. | FR-023, FR-027, FR-028 |
+| Info note | the board's two sentences under the grid, scrolling with it. A done line has the first only, pinned in the button's place (`LineDetailsDone`). A locked line has none (`LineDetailsLocked`). | FR-023 |
+| Button | `AppButton.primary(xl)` «العب المشوار {n}», pinned. A done line: none. A locked line: the reason in its place as a locked `StatusRow` (44 high, a 24 lock, 15/700), nothing to tap. | FR-023, FR-027, FR-028 |
 
 ## Starting a trip
 
@@ -93,7 +97,7 @@ for `Section.lines`, so a card left for a trip is never rebuilt on the next visi
 
 - **Unit:** `trip_cells_test.dart`. Every state; the next trip with a story cell before it; the two
   playable cells after the shabka; the range for 3, 20, 30 and 40 trips with next at 1, 12, 19 and
-  none; locked and done lines.
+  none; `LineDetailsStory`'s six rows; locked and done lines.
 - **Widget** (`line_details_sheet_test.dart`):
   - each cell's tap and its location (card or trip, by the card setting);
   - a locked cell inert;
@@ -108,7 +112,6 @@ for `Section.lines`, so a card left for a trip is never rebuilt on the next visi
   - Home's and the result's paths are unchanged.
 - **Shell** (`test/core/routing/shell_test.dart`): card → «اطلع» → result → Home → «الخطوط» shows
   `/lines`.
-- **Design:**
-  - `test/design/samples/line_details.dart`, its layout test and goldens;
-  - `LineDetailsStory`, `LineDetailsDone` and `LineDetailsLocked` when exported.
+- **Design:** `test/design/samples/line_details.dart` for `LineDetails`, `LineDetailsStory`,
+  `LineDetailsDone` and `LineDetailsLocked`, with their layout tests and goldens.
 - **Sizes:** `test/a11y/line_details_minimum_sizes_test.dart`.

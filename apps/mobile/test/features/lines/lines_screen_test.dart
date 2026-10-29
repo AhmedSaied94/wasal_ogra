@@ -7,9 +7,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/sync/server_status.dart';
+import 'package:wassal/core/theme/components/nav.dart';
+import 'package:wassal/features/home/presentation/line_card.dart'
+    show HomeLineCard;
 import 'package:wassal/features/lines/presentation/line_card.dart';
+import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
 import 'package:wassal/features/lines/presentation/line_map.dart';
 import 'package:wassal/features/lines/presentation/lines_screen.dart';
+import 'package:wassal/features/lines/presentation/vehicle_sheet.dart';
 import 'package:wassal/features/lines/presentation/vehicle_strip.dart';
 import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 
@@ -162,6 +167,79 @@ void main() {
     );
     expect(scroll.position.maxScrollExtent, greaterThan(0));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('returning to Lines scrolls the focus card back into view '
+      '(T100)', (tester) async {
+    final (container, _) = await pumpLinesApp(
+      tester,
+      state: _board,
+      surface: Surface.small,
+      textScale: 1.3,
+    );
+    final map = find.byKey(LineMap.scrollKey);
+    final focus = find.byKey(LineCard.keyOf(LineId.lineGamaa));
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(of: map, matching: find.byType(Scrollable)),
+    );
+    bool fullyVisible() {
+      final m = tester.getRect(map);
+      final r = tester.getRect(focus);
+      return r.top >= m.top - 0.5 && r.bottom <= m.bottom + 0.5;
+    }
+
+    // Scroll away from it, then go Home and come back by the tab.
+    scrollable.position.jumpTo(0);
+    await tester.pumpAndSettle();
+    expect(fullyVisible(), isFalse);
+    container.read(routerProvider).go('/home');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(BottomNav.cellKey(1)));
+    await tester.pumpAndSettle();
+    expect(locationOf(container), '/lines');
+    expect(fullyVisible(), isTrue);
+
+    // And by Home's line card.
+    scrollable.position.jumpTo(0);
+    await tester.pumpAndSettle();
+    expect(fullyVisible(), isFalse);
+    container.read(routerProvider).go('/home');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(HomeLineCard));
+    await tester.pumpAndSettle();
+    expect(locationOf(container), '/lines');
+    expect(fullyVisible(), isTrue);
+  });
+
+  testWidgets('closing a line\'s details or a vehicle\'s sheet leaves the '
+      'map where the player left it (T111, R2-1)', (tester) async {
+    final (container, _) = await pumpLinesApp(
+      tester,
+      state: _board,
+      surface: Surface.small,
+      textScale: 1.3,
+    );
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(LineMap.scrollKey),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    // Scrolled up to the last lines, away from the focus.
+    scrollable.position.jumpTo(0);
+    await tester.pumpAndSettle();
+    for (final (sheet, close) in [
+      ('/lines/line_masyaf', LineDetailsSheet.closeKey),
+      ('/lines/vehicle/micro_safar', VehicleSheet.closeKey),
+    ]) {
+      container.read(routerProvider).go(sheet);
+      await tester.pumpAndSettle();
+      expect(locationOf(container), sheet);
+      await tester.tap(find.byKey(close));
+      await tester.pumpAndSettle();
+      expect(locationOf(container), '/lines');
+      expect(scrollable.position.pixels, 0, reason: sheet);
+    }
   });
 
   testWidgets('a balance or progress change redraws without reopening', (

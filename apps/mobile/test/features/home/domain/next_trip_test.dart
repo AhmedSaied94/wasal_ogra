@@ -5,6 +5,7 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
+import 'package:wassal/core/content/pack_content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/player_progress.dart';
@@ -16,6 +17,7 @@ import 'package:wassal/features/onboarding/domain/first_session.dart';
 import '../../../helpers/economy.dart';
 import '../../../helpers/progress.dart';
 import '../../../helpers/tutorial_content.dart';
+import '../../../helpers/content.dart' show samplePackJson;
 
 /// Short names: `h1` is line_hay.01, `g2` line_gamaa.02, `s1` line_souq.01.
 String _long(String short) {
@@ -329,6 +331,39 @@ void main() {
         ),
         nextTrip(tutorial, p, lastFinishedTripId: tutorialTripIds.last),
       );
+    });
+
+    test('a story tutorial trip the rules refuse is never Home\'s next trip '
+        '(T098)', () {
+      // A pack whose third tutorial trip is a story trip whose chapter (the
+      // sample's ch1, which completes خط الحي) still waits: a regular trip
+      // is added, so the line isn't complete.
+      final json = samplePackJson();
+      final trips = json['trips']! as List<Object?>;
+      final hay = trips.cast<Map<String, Object?>>().firstWhere(
+        (t) => t['trip_id'] == 'line_hay.01',
+      );
+      trips.add({...hay, 'trip_id': 'line_hay.99'});
+      final c = PackContentSource(Pack.fromJson(json));
+      final ids = tutorialTripsOf(c);
+      expect(ids[2], 'line_hay.03');
+      final p = player({for (final id in ids.take(2)) id: 1});
+      const done = TripProgress(bestStars: 1, plays: 1, firstCompletedAtMs: 1);
+      final s = FirstSession(
+        FirstSessionFacts(
+          flags: const FirstSessionFlags(),
+          tutorialTrips: ids,
+          progress: {for (final id in ids.take(2)) id: done},
+          fuelLiters: 5,
+          fuelUnlimited: false,
+          tutorialGranted: false,
+        ),
+      );
+      expect(s.nextTutorialTrip, ids[2]);
+      expect(tripPlayable(c, p, ids[2]), isFalse);
+      final next = homeNextTrip(c, p, s, lastFinishedTripId: ids[1]);
+      expect(next?.tripId, isNot(ids[2]));
+      expect(next?.tripId, nextTrip(c, p, lastFinishedTripId: ids[1])?.tripId);
     });
   });
 }

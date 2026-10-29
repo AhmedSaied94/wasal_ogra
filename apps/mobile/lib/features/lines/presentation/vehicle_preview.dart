@@ -3,6 +3,7 @@
 // decorative; the drawing brings its own sun. No «بزينتك»: there are no cosmetics before M16.
 import 'package:content_models/content_models.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:rive/rive.dart' as rive;
 import 'package:wassal/core/theme/components/vehicle_sprite.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/lines/presentation/vehicle_art.dart';
@@ -58,6 +59,9 @@ class VehiclePreview extends StatelessWidget {
               width: _vehicle.width,
               child: VehicleSprite(
                 vehicle: vehicle,
+                // The box is wider than the 236×150 artboard: keep its
+                // aspect rather than stretch the vehicle (FR-031).
+                fit: rive.Fit.contain,
                 fallback: VehicleArt(vehicle: vehicle),
               ),
             ),

@@ -2,9 +2,22 @@
 // US3, US4): the affordable and short offers, each outcome of «اشتريها»,
 // a sync that flips short and affordable, a rollback, closing with nothing
 // spent, the owned and not-for-sale sheets, and an id the pack lacks.
+import 'dart:ui' show Tristate;
+
 import 'package:content_models/content_models.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/content/content_providers.dart';
+import 'package:wassal/core/content/pack_content_source.dart';
+import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/unlocks.dart';
+import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/core/sync/domain/wire/server_wallet.dart';
+import 'package:wassal/core/sync/domain/wire/sync_answer.dart';
+import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/features/lines/presentation/vehicle_sheet.dart';
 
@@ -14,6 +27,50 @@ import '../../helpers/lines.dart';
 import '../../helpers/progress.dart';
 import '../../helpers/routing.dart';
 import '../../helpers/synthetic_packs.dart';
+
+/// Whether the widget at [finder] sits in a live region.
+bool _live(WidgetTester tester, Finder finder) =>
+    tester
+        .widget<Semantics>(
+          find.ancestor(of: finder, matching: find.byType(Semantics)).first,
+        )
+        .properties
+        .liveRegion ??
+    false;
+
+/// Captures `SemanticsService`'s announcements for the test.
+List<Object?> _captureAnnouncements() {
+  final calls = <Object?>[];
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockDecodedMessageHandler<Object?>(SystemChannels.accessibility, (
+        message,
+      ) async {
+        calls.add(message);
+        return null;
+      });
+  addTearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+          SystemChannels.accessibility,
+          null,
+        ),
+  );
+  return calls;
+}
+
+/// The server's wallet with [jenehat] and a full tank.
+ServerWallet _walletWith(int jenehat) => ServerWallet(
+  jenehat: jenehat,
+  bonat: 0,
+  fuel: 5,
+  fuelMax: 5,
+  fuelUpdatedAtMs: testEpochMs,
+  fuelUnlimitedUntilMs: null,
+);
+
+/// A server state holding [jenehat].
+EconomyState _serverState(int jenehat) =>
+    EconomyState.newPlayer(fuelMax: 5, nowMs: 0).copyWith(jenehat: jenehat);
 
 void main() {
   testWidgets('affordable: the facts, the price card, the impact and two '
@@ -60,6 +117,16 @@ void main() {
     );
     expect(shows('ناقصك ٣٠٠ ج'), findsOneWidget);
     expect(find.textContaining('بعد الشرا'), findsNothing);
+    // The button is a control the screen reader says is disabled, and the
+    // bar is 1,200 of 1,500 (T108).
+    final button = tester.getSemantics(find.byKey(VehicleSheet.buyKey));
+    expect(button.flagsCollection.isEnabled, Tristate.isFalse);
+    expect(
+      tester
+          .widget<FractionallySizedBox>(find.byKey(ProgressBar.fillKey))
+          .widthFactor,
+      closeTo(1200 / 1500, 0.001),
+    );
     await tester.tap(find.byKey(VehicleSheet.buyKey));
     await tester.pumpAndSettle();
     expect(container.read(economyViewProvider).jenehat, 1200);
@@ -227,5 +294,168 @@ void main() {
       location: '/lines/vehicle/micro_safar',
     );
     expect(locationOf(container), '/lines');
+  });
+
+  group('refusals and rollback (T096, R1-1)', () {
+    testWidgets('short of money after the offer was built: the sheet stays '
+        'with «ناقصك»', (tester) async {
+      final (container, economy) = await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+      );
+      // The balance falls while the sheet still draws the old offer.
+      await economy.service.buy(
+        economy.service.newRequestId(),
+        kind: SkuKind.chapter,
+        skuId: 'ch3_shabka',
+      );
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(locationOf(container), '/lines/vehicle/micro_old');
+      expect(find.byKey(VehicleSheet.shortfallKey), findsOneWidget);
+      expect(economy.service.view.owns(SkuKind.vehicle, 'micro_old'), isFalse);
+      expect(_live(tester, find.byKey(VehicleSheet.shortfallKey)), isTrue);
+    });
+
+    testWidgets('bought elsewhere before the tap: the owned sheet', (
+      tester,
+    ) async {
+      final (container, economy) = await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+      );
+      await economy.service.buy(
+        economy.service.newRequestId(),
+        kind: SkuKind.vehicle,
+        skuId: 'micro_old',
+      );
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(locationOf(container), '/lines/vehicle/micro_old');
+      expect(shows('دي عربيتك'), findsOneWidget);
+      expect(find.byKey(VehicleSheet.buyKey), findsNothing);
+    });
+
+    testWidgets('a catalog that changed under the offer: the toast and the '
+        'map', (tester) async {
+      final (container, economy) = await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+      );
+      // The economy's pack loses the vehicle's price: not for sale.
+      final noPrice = artboardLines();
+      final catalog = noPrice['catalog']! as Map<String, Object?>;
+      catalog['prices'] = [
+        for (final price in catalog['prices']! as List<Object?>)
+          if ((price! as Map<String, Object?>)['sku_id'] != 'micro_old') price,
+      ];
+      economy.content = PackContentSource(Pack.fromJson(noPrice));
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(locationOf(container), '/lines');
+      expect(find.text('العربية دي مش للبيع دلوقتي'), findsOneWidget);
+      expect(economy.service.view.jenehat, 2000);
+      expect(economy.service.view.owns(SkuKind.vehicle, 'micro_old'), isFalse);
+    });
+
+    testWidgets('a rollback puts the vehicle back for sale, its line locked '
+        'and the money back', (tester) async {
+      final (container, economy) = await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+      );
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(economy.service.view.jenehat, 500);
+      expect(economy.service.view.owns(SkuKind.vehicle, 'micro_old'), isTrue);
+
+      final spend = (await economy.service.pendingOps()).single;
+      await economy.service.applyAnswer(
+        SyncAnswer(
+          stateVersion: 2,
+          stateStale: false,
+          results: [OpResult.rejected(spend.op.txnId.value, 'invalid_state')],
+          wallet: _walletWith(2000),
+        ),
+        batch: [spend],
+        playerId: 'test-player',
+      );
+      await tester.pumpAndSettle();
+
+      expect(container.read(economyViewProvider).jenehat, 2000);
+      expect(economy.service.view.owns(SkuKind.vehicle, 'micro_old'), isFalse);
+      expect(
+        lineUnlocked(
+          container.read(contentSourceProvider),
+          container.read(playerProgressProvider),
+          LineId.lineGamaa,
+        ),
+        isFalse,
+      );
+      // The sheet follows: for sale again, at the full price.
+      container.read(routerProvider).go('/lines/vehicle/micro_old');
+      await tester.pumpAndSettle();
+      expect(find.byKey(VehicleSheet.buyKey), findsOneWidget);
+      expect(find.byKey(VehicleSheet.shortfallKey), findsNothing);
+    });
+
+    testWidgets('a sync flips short and affordable both ways', (tester) async {
+      final (container, economy) = await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 1200),
+        location: '/lines/vehicle/micro_old',
+      );
+      expect(find.byKey(VehicleSheet.shortfallKey), findsOneWidget);
+      // The server has more money: affordable.
+      await economy.service.replaceFromServer(
+        _serverState(2000),
+        playerId: 'test-player',
+        stateVersion: 2,
+      );
+      await tester.pumpAndSettle();
+      expect(container.read(economyViewProvider).jenehat, 2000);
+      expect(find.byKey(VehicleSheet.shortfallKey), findsNothing);
+      expect(find.byKey(VehicleSheet.buyKey), findsOneWidget);
+      // And less again: short.
+      await economy.service.replaceFromServer(
+        _serverState(1200),
+        playerId: 'test-player',
+        stateVersion: 3,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(VehicleSheet.shortfallKey), findsOneWidget);
+    });
+
+    testWidgets('a purchase announces its result', (tester) async {
+      final announced = _captureAnnouncements();
+      await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+      );
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(announced, hasLength(1));
+      expect(announced.single.toString(), contains('اشتريت ميكروباص قديم'));
+    });
+
+    testWidgets('a failed write announces its retry line', (tester) async {
+      final interceptor = FailingInterceptor();
+      await pumpLinesApp(
+        tester,
+        state: playerState(jenehat: 2000),
+        location: '/lines/vehicle/micro_old',
+        interceptor: interceptor,
+      );
+      interceptor.failInserts = true;
+      await tester.tap(find.byKey(VehicleSheet.buyKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(VehicleSheet.retryKey), findsOneWidget);
+      expect(_live(tester, find.byKey(VehicleSheet.retryKey)), isTrue);
+    });
   });
 }

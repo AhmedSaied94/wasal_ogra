@@ -14,11 +14,19 @@ import 'package:wassal/features/lines/presentation/locked_fill.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class TripGrid extends StatelessWidget {
-  const TripGrid({required this.cells, required this.onTap, super.key});
+  const TripGrid({
+    required this.cells,
+    required this.onTap,
+    this.nextKey,
+    super.key,
+  });
 
   /// The cells shown, in trip order.
   final List<TripCell> cells;
   final void Function(TripCell cell) onTap;
+
+  /// Given to the next trip's cell, so the sheet can scroll it into view.
+  final GlobalKey? nextKey;
 
   static const double gap = SpaceTokens.s8;
 
@@ -45,6 +53,7 @@ class TripGrid extends StatelessWidget {
                 children: [
                   for (final cell in cells.skip(start).take(cellsPerRow))
                     SizedBox(
+                      key: cell.state == CellState.next ? nextKey : null,
                       width: width,
                       child: TripCellView(cell: cell, onTap: onTap),
                     ),
@@ -87,7 +96,11 @@ class TripCellView extends ConsumerWidget {
         : l10n.lineDetailsCellA11y(n, state);
     final primary =
         cell.state == CellState.next || cell.state == CellState.playable;
+    // A done cell the rules no longer allow keeps its stars, drawn locked
+    // (§9.1 #6) and not as a link (FR-026).
+    final inert = cell.state == CellState.done && !cell.playable;
     final decoration = switch (cell.state) {
+      CellState.done when inert => lockedFill(radius),
       CellState.done => BoxDecoration(
         color: cell.isStory ? ColorTokens.sunSoft : ColorTokens.ground,
         borderRadius: radius,
@@ -121,6 +134,8 @@ class TripCellView extends ConsumerWidget {
                 DesignExtras.lineDetailsCell
                     .weight(600)
                     .copyWith(color: ColorTokens.ink2),
+              CellState.done when inert =>
+                DesignExtras.lineDetailsCell.copyWith(color: ColorTokens.ink2),
               CellState.done => DesignExtras.lineDetailsCell.copyWith(
                 color: ColorTokens.ink,
               ),
@@ -152,6 +167,13 @@ class TripCellView extends ConsumerWidget {
             child: ExcludeSemantics(
               child: StatusChip.story(label: l10n.lineDetailsStory),
             ),
+          ),
+        // A done cell the rules refuse is marked locked as well as filled.
+        if (inert)
+          const PositionedDirectional(
+            top: SpaceTokens.s2,
+            end: SpaceTokens.s2,
+            child: LockGlyph(size: 12),
           ),
       ],
     );

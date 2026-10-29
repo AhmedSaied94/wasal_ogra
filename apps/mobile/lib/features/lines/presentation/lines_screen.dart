@@ -41,6 +41,16 @@ class LinesScreen extends ConsumerStatefulWidget {
 class _LinesScreenState extends ConsumerState<LinesScreen> {
   late final _router = ref.read(routerProvider);
 
+  /// Bumped whenever Lines is entered from outside its branch (the tab,
+  /// Home's line card, back from a trip), so the map scrolls its focus line
+  /// back into view (FR-020). Closing a line's details or a vehicle's sheet
+  /// keeps the player's scroll (R2-1).
+  int _revision = 0;
+  String? _lastLocation;
+
+  static bool _inLines(String? path) =>
+      path == '/lines' || (path?.startsWith('/lines/') ?? false);
+
   @override
   void initState() {
     super.initState();
@@ -49,14 +59,23 @@ class _LinesScreenState extends ConsumerState<LinesScreen> {
     // Lines or one of its sheets is on top, so a purchase made here raises
     // no dot (research R8).
     WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen());
-    _router.routerDelegate.addListener(_seenLater);
+    _router.routerDelegate.addListener(_routeChanged);
     ref.listenManual(linesNewsKeysProvider, (_, _) => _seenLater());
   }
 
   @override
   void dispose() {
-    _router.routerDelegate.removeListener(_seenLater);
+    _router.routerDelegate.removeListener(_routeChanged);
     super.dispose();
+  }
+
+  void _routeChanged() {
+    _seenLater();
+    final location = _router.routerDelegate.currentConfiguration.uri.path;
+    if (location == '/lines' && !_inLines(_lastLocation)) {
+      setState(() => _revision++);
+    }
+    _lastLocation = location;
   }
 
   void _seenLater() =>
@@ -104,6 +123,7 @@ class _LinesScreenState extends ConsumerState<LinesScreen> {
               child: LineMap(
                 cards: model.cards,
                 focus: model.focus,
+                revision: _revision,
                 cardOf: (standing) => _card(context, content, standing),
               ),
             ),

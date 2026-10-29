@@ -23,25 +23,40 @@ class VehicleStrip extends StatelessWidget {
 
   static const double height = 96;
 
-  /// Four columns fill the 358 between the gutters.
-  static const double tileWidth = 83.5;
+  /// Up to four tiles share the width between the gutters (`LinesFirst`:
+  /// two of 175; `Lines`: four of 83.5); more scroll at four columns' width.
+  static const int columns = 4;
   static const double _gap = SpaceTokens.s8;
+
+  /// A tile's width in a strip [width] wide holding [count] tiles.
+  static double tileWidthFor(double width, int count) {
+    final across = count.clamp(1, columns);
+    return (width - 2 * LayoutTokens.gutter - _gap * (across - 1)) / across;
+  }
 
   @override
   Widget build(BuildContext context) => Semantics(
     container: true,
     explicitChildNodes: true,
     label: AppLocalizations.of(context).linesVehiclesA11y,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: LayoutTokens.gutter),
-      // The tiles' lips and presses stay inside the strip.
-      clipBehavior: Clip.none,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: _gap,
-        children: [for (final tile in tiles) VehicleTileView(tile: tile)],
-      ),
+    child: LayoutBuilder(
+      builder: (context, box) {
+        final width = tileWidthFor(box.maxWidth, tiles.length);
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: LayoutTokens.gutter),
+          // The tiles' lips and presses stay inside the strip.
+          clipBehavior: Clip.none,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: _gap,
+            children: [
+              for (final tile in tiles)
+                VehicleTileView(tile: tile, width: width),
+            ],
+          ),
+        );
+      },
     ),
   );
 }
@@ -49,9 +64,10 @@ class VehicleStrip extends StatelessWidget {
 /// One tile: done (a tick), current (`sun`), for sale (the locked look
 /// with its price) or not for sale (the locked look).
 class VehicleTileView extends ConsumerWidget {
-  const VehicleTileView({required this.tile, super.key});
+  const VehicleTileView({required this.tile, required this.width, super.key});
 
   final VehicleTile tile;
+  final double width;
 
   static Key keyOf(VehicleId vehicle) =>
       Key('VehicleTile.${vehicleWire[vehicle]}');
@@ -62,6 +78,10 @@ class VehicleTileView extends ConsumerWidget {
   static const double _tick = 14;
   static const double _coin = 12;
   static const double _badgeInset = SpaceTokens.s6;
+
+  /// `LinesFirst` box 15: the lock 16, 8 in from the top and end.
+  static const double _lock = 16;
+  static const double _lockInset = SpaceTokens.s8;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,7 +123,7 @@ class VehicleTileView extends ConsumerWidget {
       borderRadius: radius,
       semanticLabel: label,
       child: Container(
-        width: VehicleStrip.tileWidth,
+        width: width,
         constraints: const BoxConstraints(minHeight: VehicleStrip.height),
         decoration: decoration,
         padding: const EdgeInsets.symmetric(
@@ -167,9 +187,9 @@ class VehicleTileView extends ConsumerWidget {
               ),
             if (locked)
               const PositionedDirectional(
-                top: -SpaceTokens.s8 + _badgeInset,
-                end: -SpaceTokens.s4 + _badgeInset,
-                child: LockGlyph(),
+                top: -SpaceTokens.s8 + _lockInset,
+                end: -SpaceTokens.s4 + _lockInset,
+                child: LockGlyph(size: _lock),
               ),
           ],
         ),

@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
+import 'package:wassal/features/lines/presentation/locked_fill.dart';
 import 'package:wassal/features/lines/presentation/trip_grid.dart';
 import 'package:wassal/features/pre_trip/application/card_mode_provider.dart';
 import 'package:wassal/core/config/tunable.dart';
@@ -16,6 +17,7 @@ import '../../helpers/memory_settings_store.dart';
 import '../../helpers/progress.dart';
 import '../../helpers/routing.dart';
 import '../../helpers/surfaces.dart';
+import '../../helpers/synthetic_packs.dart';
 
 String _t(String line, int n) => '$line.${n.toString().padLeft(2, '0')}';
 
@@ -196,6 +198,56 @@ void main() {
     final button = tester.getRect(find.byKey(LineDetailsSheet.playKey));
     final scroll = tester.getRect(find.byKey(LineDetailsSheet.scrollKey));
     expect(scroll.bottom, lessThanOrEqualTo(button.top));
+  });
+
+  testWidgets('a starred trip the rules refuse is inert and no button '
+      '(T097)', (tester) async {
+    // A newer pack adds a trip behind the player: ch1 needs it, so the
+    // finished story trip .20 is drawn but can't start.
+    final extended = draftShaped();
+    final trips = extended['trips']! as List<Object?>;
+    final hay = trips.cast<Map<String, Object?>>().firstWhere(
+      (t) => t['trip_id'] == 'line_hay.01',
+    );
+    trips.add({...hay, 'trip_id': 'line_hay.21'});
+    final (container, _) = await pumpLinesApp(
+      tester,
+      pack: extended,
+      state: playerState(
+        stars: {
+          for (var n = 1; n <= 20; n++) _t('line_hay', n): 1,
+          for (var n = 1; n <= 19; n++) _t('line_gamaa', n): 1,
+        },
+        owned: {microOld, shabka},
+      ),
+      location: '/lines/line_hay',
+    );
+    final cell = find.byKey(TripCellView.keyOf('line_hay.20'));
+    expect(cell, findsOneWidget);
+    // Its stars stay, and it is drawn locked.
+    expect(find.descendant(of: cell, matching: shows('٢٠')), findsOneWidget);
+    expect(
+      find.descendant(of: cell, matching: find.byType(LockGlyph)),
+      findsOneWidget,
+    );
+    await tester.tap(cell, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(locationOf(container), '/lines/line_hay');
+    expect(tester.getSemantics(cell).flagsCollection.isButton, isFalse);
+  });
+
+  testWidgets('a locked line with more than 20 trips: four rows and the hint '
+      '(T108)', (tester) async {
+    // No microbus: خط الجامعة is locked, and its 30 trips still show four
+    // rows with the hint.
+    await pumpLinesApp(
+      tester,
+      state: playerState(),
+      location: '/lines/line_gamaa',
+    );
+    expect(find.byKey(LineDetailsSheet.reasonKey), findsOneWidget);
+    expect(find.byType(TripCellView), findsNWidgets(20));
+    expect(shows('والمشاوير من ٢١ لـ ٣٠ بتظهر لما تقرّب'), findsOneWidget);
   });
 
   testWidgets('a line the pack lacks goes to the map', (tester) async {

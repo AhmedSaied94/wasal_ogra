@@ -4,6 +4,7 @@ import 'package:content_models/content_models.dart';
 import 'package:drift/drift.dart' show ApplyInterceptor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter/widgets.dart' show Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/content/pack_content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
@@ -49,7 +50,7 @@ EconomyState Function(int nowMs) playerState({
     );
 
 /// The app on [pack] ([artboardLines] by default) for [state], at
-/// [location].
+/// [location], on [surface]'s frame or [size].
 Future<(ProviderContainer, TestEconomy)> pumpLinesApp(
   WidgetTester tester, {
   Map<String, Object?>? pack,
@@ -57,11 +58,13 @@ Future<(ProviderContainer, TestEconomy)> pumpLinesApp(
   String location = '/lines',
   ServerStatusState serverStatus = const ServerStatusState(),
   Surface surface = Surface.reference,
+  Size? size,
   double textScale = 1.0,
   DigitStyle digits = DigitStyle.arabicIndic,
   SettingsStore? settingsStore,
   List<Override> overrides = const [],
   bool settle = true,
+  bool newPlayer = false,
   FailingInterceptor? interceptor,
 }) async {
   final json = pack ?? artboardLines();
@@ -80,11 +83,13 @@ Future<(ProviderContainer, TestEconomy)> pumpLinesApp(
     economy: economyOverridesOf(economy),
     serverStatus: serverStatus,
     surface: surface,
+    size: size,
     textScale: textScale,
     digits: digits,
     settingsStore: settingsStore,
     overrides: overrides,
     settle: settle,
+    newPlayer: newPlayer,
   );
   container.read(routerProvider).go(location);
   if (settle) {

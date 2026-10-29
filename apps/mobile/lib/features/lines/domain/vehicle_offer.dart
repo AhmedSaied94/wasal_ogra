@@ -4,6 +4,7 @@
 // player's JENEHAT, and the purchase's impact.
 import 'package:content_models/content_models.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
+import 'package:wassal/core/economy/domain/wire.dart';
 import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/player_progress.dart';
 
@@ -20,6 +21,7 @@ final class VehicleOffer {
     required this.sale,
     required this.jenehat,
     required this.impact,
+    this.listPrice,
   });
 
   final VehicleId vehicle;
@@ -39,6 +41,11 @@ final class VehicleOffer {
   /// The player's JENEHAT.
   final int jenehat;
   final Impact? impact;
+
+  /// The catalog's JENEHAT price whatever the sale state, so a vehicle not
+  /// for sale yet still shows what it costs (`BuyVehicleNotForSale`); null
+  /// when the catalog has none.
+  final int? listPrice;
 
   /// The catalog price, only when for sale.
   int? get price => switch (sale) {
@@ -67,7 +74,8 @@ final class VehicleOffer {
       other.opensLine == opensLine &&
       other.sale == sale &&
       other.jenehat == jenehat &&
-      other.impact == impact;
+      other.impact == impact &&
+      other.listPrice == listPrice;
 
   @override
   int get hashCode => Object.hash(
@@ -80,6 +88,7 @@ final class VehicleOffer {
     sale,
     jenehat,
     impact,
+    listPrice,
   );
 
   @override
@@ -113,5 +122,9 @@ VehicleOffer? vehicleOffer(
     sale: vehicleSale(c, p, vehicle),
     jenehat: jenehat,
     impact: impactAfterPurchase(c, p, jenehat, vehicle),
+    listPrice: switch (c.price(SkuKind.vehicle, vehicleWire[vehicle]!)) {
+      CatalogPrice(currency: Currency.jenehat, :final amount) => amount,
+      _ => null,
+    },
   );
 }

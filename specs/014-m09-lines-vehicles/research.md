@@ -58,7 +58,11 @@ they are, since none of them can reach a locked story trip:
 
 - the debug list (allowed by FR-012);
 - the boot resume of an unfinished trip, which was playable when it started;
-- M07's first-session paths, which start only tutorial trips, all regular.
+- M07's first-session paths: they offer only tutorial trips, and a tutorial trip can be a story
+  trip (the sample's `line_hay.03` is one), so `homeNextTrip` and `FirstSession.nextAfterResult`
+  check `tripPlayable` too: Home never offers one the rules refuse, and the result's «كمّل» goes
+  Home instead of a dead end. Nothing keeps story trips out of a pack's first five, and the sample
+  itself has one, so no content rule requires it.
 
 Tests that change with it: `next_trip_test.dart` (a story trip waiting for its chapter's goal),
 `sample_sweep_test.dart` (its expected table for the sample's story trip `line_hay.03`),
@@ -112,13 +116,22 @@ read the lines top to bottom (FR-049).
   shows as a story cell when `kind == story`.
 - **The next trip** is the first trip by number that is `tripPlayable` and has no star (FR-008).
 - **Visible range** (FR-025):
-  - rows = `max(4, nextRow + 2)`, capped at the line's rows, five cells to a row;
-  - a done line (no next trip) shows every row: every cell is a replay;
-  - a locked line shows four rows.
-  - The hint «والمشاوير من {from} لـ {to} بتظهر لما تقرّب» names the first and last hidden trip and
-    hides when none is hidden.
+  - rows = `max(4, furthestRow + 1)`, capped at the line's rows, five cells to a row, where
+    `furthestRow` is the row of the last cell drawn done, next or playable;
+  - so a done line shows every row (every cell is a replay), and a locked line four;
+  - the hint «والمشاوير من {from} لـ {to} بتظهر لما تقرّب» names the first and last hidden trip and
+    hides when none is hidden;
+  - when the rows run past the sheet, the grid opens scrolled just far enough to show the next trip.
 
-  This reproduces the drawn sample (next 12, rows 1–4, hint 21–30) and HANDOFF's 20-trip line.
+  This reproduces the drawn samples: `LineDetails` (next and furthest 12, rows 1–4, hint 21–30),
+  `LineDetailsStory` (next 18, furthest 23, six rows, no hint) and HANDOFF's 20-trip line.
+
+  **History.** The plan had `max(4, nextRow + 2)`. Round 1's review (T099) found it hid trips the
+  player had already finished behind a story trip that opened late, and the code changed to "every
+  row through the last done or playable cell, at least one row past the next trip's". On 2026-10-29
+  the owner chose `LineDetailsStory`'s rule, one row past the furthest trip played or playable, over
+  that: the two differ only when the furthest playable trip is more than one row past the next
+  (`LineDetailsStory`: five rows before, six now).
 - **The button** reads «العب المشوار {n}» for the next trip. A done line has none (FR-027). A locked
   line shows the reason in its place (FR-028).
 - The grid scrolls above the pinned button. The summary uses the plural strings of R14.
@@ -303,7 +316,8 @@ M10 owns its next change. Importing it is enough.
   `docs/design/illustrations/vehicles/`, so every vehicle has its own fallback. The board's sample
   is `micro_new`, and later packs will sell it. `design_assets_test` follows the tool.
 - **The tiles** use the same art at 64×40 inside the 83.5×96 tile. The node glyph on the current
-  card is the route icon (`route_bold`), as drawn.
+  card is the white microbus of the `Loading` marker (`MicrobusGlyph`), as drawn: the board draws a
+  20×15 bus on the sun square, not a route icon.
 
 ## R11. Looks and components (FR-045–FR-047, FR-051)
 
@@ -353,6 +367,39 @@ uses them. M16 can move the tile when the garage needs it.
     - the plain preview with no «بزينتك» (R10);
     - LineDetails' summary (25, not 27);
     - the ✕ labelled «قفل» against the board's «اقفل» (M08's pairing).
+  - **Against the `Lines` board**, after M09's round-1 review settled them: the marker's bus (R10),
+    the lock at the card's start (R11), the current and done titles at 18 and the done tick at 12 now
+    match the board. Two measured differences remain, both listed in the layout test:
+    - the BONAT pill (box 4) is 5 pt wider: Flutter measures its digits wider than the browser
+      did, and its hit area is 44 high;
+    - the map's last two cards (boxes 43, 52) sit 2 pt lower: the app's bottom bar measures 2 pt
+      taller than the board's, and the map stands on it by its 44 pt gap. They pass at the standard
+      ±2.
+
+    After the owner's boards (2026-10-29), which the app follows where they and `Lines` disagree:
+    - the five cards sit 32 pt lower: the new boards stand the cards on the map's bottom, 12 above
+      the bar, under the road's end, where `Lines` hung them from the top (boxes 25, 31, 37, 43, 52,
+      listed as offsets);
+    - خط الجامعة's card (box 43) is 4 pt taller and the three above it 4 pt higher: the new boards pad
+      a card 14 with 3 between rows, where `Lines` fixed every card at 92 (box 43 at ±5);
+    - the road's end node and «خطوط جديدة جاية» show, which `Lines` doesn't draw.
+- **The owner's boards** (2026-10-29, all eight) have their samples, layout tests and goldens in both
+  digit styles (T076–T078). Their expected differences, listed in each test:
+  - the sheets: the real Lines under the scrim; the ✕ labelled «قفل»;
+  - `LinesFirst`, `LinesOwned`: the BONAT pill 5 pt wider (box 4), as on `Lines`;
+  - `LinesFirst`, `LinesOwned`, `BuyVehicle*`: the old microbus keeps its bead row, which the boards
+    dropped (the vehicles' own art; an owner's question for the art, not M09's);
+  - `LineDetailsStory`, `LineDetailsDone`: the cells' stars as `LineDetails`' icons, not the boards'
+    text stars; the cells' labels read «خلص بـ…» and the story cell's «…، مشوار قصة» after the state
+    (R13);
+  - `BuyVehicleShort`: «اشتريها» and «لسه» split 2:1 as `BuyVehicle` does; the board draws the
+    disabled one as a `<button>`, whose default padding moves the split 4 pt (boxes 31, 32 at ±5);
+  - `BuyVehicleNotForSale`: its sample makes خط السوق open after خط الجامعة, so the new microbus
+    opens no line and shows the two tiles the brief asked for.
+- **The states no board draws get goldens**, beside the drawn ones (T104, FR-045): `LinesDoneAtThree`,
+  `LinesOffline`, `LinesSmall` (360×640 at 1.3×, its size set before the first frame, T112),
+  `LineDetailsShort`, `BuyVehiclePlain` (the impact hidden) and `BuyVehicleNoPrice` (no catalog
+  price), in both digit styles.
 - **What the boards don't draw is the owner's to draw**, not Claude's. The brief is
   [contracts/design-briefs.md](./contracts/design-briefs.md), in the shape of a HANDOFF §11 section,
   as M07's `FuelLesson` was. The owner draws on the Claude Design canvas «وصّل الأجرة — Design» and
@@ -388,7 +435,8 @@ uses them. M16 can move the tile when the garage needs it.
 - **Order of work, M07's way (T079/T080).** Claude builds every state from the brief, so nothing
   waits. Only the new boards' samples, goldens and layout tests wait for the export. The owner's
   boards decide; Claude then aligns the widgets to them. `docs/delivery-plan.md`'s "Design sources"
-  row for M09 gains the boards when they land.
+  row for M09 gains the boards when they land. Done 2026-10-29: the eight boards landed, and
+  `contracts/design-briefs.md` notes how each settled the brief.
 - **The owner's boards are listed now** in `docs/owner-actions.md` (section 014), so they can be
   drawn while the code is built.
 

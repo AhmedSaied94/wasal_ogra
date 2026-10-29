@@ -425,17 +425,22 @@ FR-007).
   (number and «كمّل»), **locked** (number and lock), **story locked** (the «قصة» chip and a lock). If
   more than one trip is playable and not done (a story trip that opened after the player played past
   it, FR-007), the next trip is drawn as next and the others as next without «كمّل».
-- **FR-025**: The grid MUST show the rows up to and including the row after the next trip's row, never
-  fewer than four rows (20 trips) and never more than the line has. The hint «والمشاوير من {from} لـ
-  {to} بتظهر لما تقرّب» MUST name the trips left out, and MUST NOT show when none are. When the rows
-  don't fit, the grid MUST scroll above the pinned button.
+- **FR-025**: The grid MUST show every row up to the furthest trip played or playable, plus one more
+  row, never fewer than four rows (20 trips) and never more than the line has (the owner's choice of
+  2026-10-29, as `LineDetailsStory` draws it). So a done line shows every row, and a locked line
+  four. A story trip can open behind trips the player already finished, so the finished ones beyond
+  it stay visible and replayable. The hint «والمشاوير من {from} لـ {to} بتظهر لما تقرّب» MUST name
+  the trips left out, and MUST NOT show when none are. When the rows don't fit, the grid MUST scroll
+  above the pinned button, and open with the next trip's row in view.
 - **FR-026**: A tap on a done, story-done or playable cell, or on the button, MUST start that trip
   through M08's one start path, `startNextTrip` (`specs/013-m08-home-result/contracts/home.md`): the
   fuel sheet on an empty tank, then the between-trips checkpoint (M11's), then the pre-trip card or,
   for a tutorial trip in the first session or a trip the card setting skips, the trip itself. A second
   tap while a start is under way MUST do nothing. Closing the card without starting MUST return to the
   line's details; today the card always returns to Home, so this feature changes it to return to
-  where it was opened. A locked cell MUST do nothing and MUST NOT present itself as tappable.
+  where it was opened. A locked cell MUST do nothing and MUST NOT present itself as tappable; a
+  starred cell the rules no longer allow (a story trip whose chapter waits after a rollback, or a
+  line a newer pack extends) keeps its stars and is drawn locked and inert the same way.
 - **FR-027**: When the line has no next trip, the button MUST NOT show; replays start from the cells.
 - **FR-028**: The details of a locked line MUST show every cell locked and, in the button's place, the
   reason («بعد {line}» or «محتاج {vehicle}»), with nothing to start.
@@ -623,7 +628,10 @@ FR-007).
     four tiles to the sheet but draws no owned version. From phase 2, the garage (M16) takes those
     taps.
   - **The grid's visible range** (FR-025) reproduces the drawn sample (next trip 12, trips 1–20 shown)
-    and HANDOFF's "20-trip line: 4 rows, no hint". HANDOFF left the rule open.
+    and HANDOFF's "20-trip line: 4 rows, no hint". HANDOFF left the rule open. On 2026-10-29 the
+    owner chose to also reach the last done or playable cell, because a story trip opening behind a
+    finished stretch hid those trips (release draft `line_gamaa`); `LineDetailsStory`'s 6 rows is
+    the expected shape.
   - **A done line has no button** (FR-027), HANDOFF's first proposal; the cells are the replays.
   - **A locked line's details** (FR-028) show the locked grid with the reason; HANDOFF doesn't draw
     them.

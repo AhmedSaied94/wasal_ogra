@@ -205,7 +205,7 @@ imports guard.
     - `tests/test_models.py`: a 475 fare and a 0 fare are refused.
   - **Run:** `uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest
     -n 4 --cov --cov-fail-under=80`. (Depends on T008, T006.)
-- [ ] T010 Update the release draft in the `content-core-r1` worktree, uncommitted like the rest of
+- [X] T010 Update the release draft in the `content-core-r1` worktree, uncommitted like the rest of
   the draft (research R9):
   - `../wasal_ogra-core-r1/content/drafts/core-r1/pack/lines/{line_hay,line_gamaa}.json` gain T006's
     fares and texts;
@@ -734,27 +734,27 @@ FR-012).
 ([contracts/design-briefs.md](./contracts/design-briefs.md)). Phases 3–8 build every state from the
 brief, so only these checks wait for the export.
 
-- [ ] T074 **Owner:** draw the six boards the first release needs, on the Claude Design canvas:
+- [x] T074 **Owner:** draw the six boards the first release needs, on the Claude Design canvas:
   `LinesFirst`, `LinesOwned`, `LineDetailsStory`, `LineDetailsDone`, `BuyVehicleShort`,
   `BuyVehicleOwned`. Export them with `docs/design/tools` into `docs/design/{screens,png,boxes}/`,
   or hand the export to Claude (`docs/owner-actions.md` section 014, item 1).
-- [ ] T075 **Owner, optional:** draw `LineDetailsLocked` and `BuyVehicleNotForSale` (item 2). If they
+- [x] T075 **Owner, optional:** draw `LineDetailsLocked` and `BuyVehicleNotForSale` (item 2). If they
   aren't drawn, T088 approves those states' goldens instead.
-- [ ] T076 After T074's Lines boards land:
+- [x] T076 After T074's Lines boards land:
   - align `vehicle_strip.dart`, `line_map.dart` and `line_card.dart` to `LinesFirst` and
     `LinesOwned` (the two-tile strip, two-card placement, the road's ends, the locked tile);
   - add `test/design/samples/{lines_first,lines_owned}.dart` (`draftShaped()` states) with their
     layout tests and goldens;
   - move the boards' copy into `app_ar.arb`.
-- [ ] T077 After T074's LineDetails boards land, align `trip_grid.dart` and `line_details_sheet.dart`
+- [x] T077 After T074's LineDetails boards land, align `trip_grid.dart` and `line_details_sheet.dart`
   to `LineDetailsStory` and `LineDetailsDone` (the story next cell, the playable cell, the locked
   cell, the done line's bottom). Add their samples, layout tests and goldens; also for
   `LineDetailsLocked` if drawn.
-- [ ] T078 After T074's BuyVehicle boards land, align `vehicle_sheet.dart` to `BuyVehicleShort` and
+- [x] T078 After T074's BuyVehicle boards land, align `vehicle_sheet.dart` to `BuyVehicleShort` and
   `BuyVehicleOwned` (the shortfall label, the bar, the disabled button, the impact line's fate, the
   owned sheet). Add their samples, layout tests and goldens; also for `BuyVehicleNotForSale` if
   drawn.
-- [ ] T079 Write "As drawn (date)" notes in `specs/014-m09-lines-vehicles/contracts/design-briefs.md`
+- [x] T079 Write "As drawn (date)" notes in `specs/014-m09-lines-vehicles/contracts/design-briefs.md`
   for each board, as `fuel-lesson.md` has. Add the boards to M09's row of `docs/delivery-plan.md`
   "Design sources".
 
@@ -810,13 +810,17 @@ brief, so only these checks wait for the export.
 - [ ] T088 **Owner approval** of:
   - the departures (plan "Complexity Tracking");
   - the expected golden differences of the three artboards (research R12);
-  - the goldens of the composed states:
-    - a done card at all three stars;
-    - a line under 20 trips;
-    - the impact line hidden;
-    - the plain affordable sheet;
-    - Lines offline;
-    - 360 pt and 1.3×;
+  - the goldens of the composed and undrawn states, in both digit styles
+    (`apps/mobile/test/goldens/design/goldens/`):
+    - a done card at all three stars: `LinesDoneAtThree_{arabicIndic,western}.png`;
+    - Lines offline: `LinesOffline_{…}.png`;
+    - Lines at 360 pt and 1.3×: `LinesSmall_{…}.png`;
+    - a line under 20 trips: `LineDetailsShort_{…}.png`;
+    - a done line's details: `LineDetailsDone_{…}.png`;
+    - a locked line's details: `LineDetailsLocked_{…}.png`;
+    - the plain affordable sheet, the impact line hidden: `BuyVehiclePlain_{…}.png`;
+    - the owned sheet: `BuyVehicleOwned_{…}.png`;
+    - the not-for-sale sheet: `BuyVehicleNoSale_{…}.png`;
     - T075's two states if not drawn.
 - [ ] T089 **Owner approval** of the release draft's line texts and short names (T010), the product
   spec's wording unless rewritten.
@@ -948,3 +952,193 @@ T051 test/features/lines/vehicle_sheet_test.dart
 4. US6: the «new» dot.
 5. The owner's boards as they land (Phase 9). Each board aligns its state and adds its checks.
 6. Polish: the integration tests, the documents, the checks, the reviews and the owner's approvals.
+
+---
+
+## Phase 11: Review fixes (round 1)
+
+These tasks come from [reviews/round-1.md](./reviews/round-1.md); each cites its finding. Paths are
+from the repo root. Write each test first and watch it fail before the fix.
+
+- [X] T096 [R1-1] Complete `apps/mobile/test/features/lines/vehicle_sheet_test.dart` (T051's missing
+  cases), against the real economy (in-memory SQLite, as the file's existing applied test): (a) a
+  balance spent between building the offer and the tap → `insufficientFunds` → the sheet stays, shows
+  «ناقصك» and the request id is kept; (b) the vehicle bought elsewhere before the tap →
+  `alreadyOwned` → the owned sheet; (c) a refusal such as `catalogMismatch` or `notForSale` → the
+  neutral toast and `/lines`; (d) a rollback: buy, then reject the `spend_jenehat` through
+  `EconomySync.applyAnswer` with Lines and the sheet open → the vehicle is for sale again, its line
+  locked, the balance back; (e) the flip both ways (affordable → short and short → affordable) through
+  a balance change while the sheet is open; (f) the applied purchase sends its announcement
+  (`SemanticsService.sendAnnouncement` at `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart:89-103`;
+  capture it from the accessibility channel). Fix the sheet if any case fails. (HIGH, per T051, FR-037,
+  FR-038, FR-039)
+- [X] T097 [R1-2] In `apps/mobile/lib/features/lines/domain/trip_cells.dart`, a cell with stars that
+  `tripPlayable` refuses must not start: today `:76-77` makes every starred cell `done` and `:46`
+  makes `done` startable, so `trip_grid.dart` draws a button whose tap `startNextTrip`
+  (`apps/mobile/lib/features/home/application/start_next_trip.dart:54-59`) silently refuses. Keep its
+  stars but give it no tap and no button semantics (a done-but-locked look per HANDOFF §9.1 #6), and
+  have `startable` follow `tripPlayable`. Tests in `test/features/lines/domain/trip_cells_test.dart`
+  and `test/features/lines/line_details_sheet_test.dart`: `line_gamaa.18` starred with the shabka not
+  owned, and a finished line that a newer pack extends (its done story trips become unplayable); the
+  cell is inert and not announced as a button. (MEDIUM, per FR-026, FR-013)
+- [X] T098 [R1-3] Make the first session use `tripPlayable` too: in
+  `apps/mobile/lib/features/home/application/home_model.dart:138-140` (`homeNextTrip`) return the
+  tutorial trip only when `tripPlayable` allows it, else fall back to `nextTrip`; do the same in
+  `FirstSession.nextAfterResult` (used by
+  `apps/mobile/lib/features/onboarding/presentation/first_session_continue.dart:31`). Then either
+  keep story trips out of `tutorialTripsOf`
+  (`apps/mobile/lib/features/onboarding/domain/first_session.dart:296`) or add a content-kit rule in
+  `tools/content_kit` that the start line's first five trips are regular (with an invalid example).
+  Correct research.md R2's claim (line 61) that tutorial trips are all regular: the sample's
+  `line_hay.03` is a story trip. Test: a synthetic pack whose third tutorial trip is a story trip
+  whose chapter isn't complete; Home never offers it and the result's continue never starts it.
+  (MEDIUM, per FR-012, SC-003a)
+- [X] T099 [R1-4] **Ask the owner first**, then implement: FR-025's visible rows count only from the
+  next trip, so when a story trip opens behind trips already finished (release draft `line_gamaa`:
+  `.19`–`.30` played, then the shabka bought, next = `.18`) the finished trips 26–30 are hidden and
+  can't be replayed. Propose: rows through the last done or playable cell, at least four, and at least
+  one row past the next trip's (the `LineDetailsStory` brief in `contracts/design-briefs.md` §3
+  expects 6 rows). Record the answer in spec.md FR-025 and research.md, then change `visibleRange` in
+  `apps/mobile/lib/features/lines/domain/trip_cells.dart:124-146` and add a `trip_cells_test.dart`
+  case for that state. (MEDIUM, per FR-025, US2, SC-001)
+- [X] T100 [R1-5] In `apps/mobile/lib/features/lines/presentation/line_map.dart`, scroll the focus
+  line into view whenever Lines is shown, not only in `initState` (`:51-60`): when the location
+  becomes `/lines` (the tab, Home's line card) and when `focus` changes (`didUpdateWidget`). Test in
+  `test/features/lines/lines_screen_test.dart` with five lines at 360×640 and 1.3×: scroll to the top,
+  go Home, come back by the tab and by Home's line card; the focus card is in view each time.
+  (MEDIUM, per FR-020, FR-010, US1 acceptance 6 and 7)
+- [X] T101 [R1-6] In `apps/mobile/lib/features/lines/application/lines_seen.dart`, stop the seen set
+  only growing (`:40-44`): whenever the news keys change, keep only the seen keys that are still news
+  (`seen ∩ news`) and persist that, so a vehicle that becomes affordable again or a line unlocked again
+  after a rollback counts as new. Do it where the news is watched (`lines_dot_watcher.dart` or the
+  notifier). Test in `test/features/lines/lines_dot_test.dart`: affordable and seen → unaffordable →
+  affordable again while on Home → the dot shows. (MEDIUM, per FR-041, US6 acceptance 1 and 2)
+- [X] T102 [R1-7] Stop stretching the Rive vehicle in the BuyVehicle preview:
+  `apps/mobile/lib/features/lines/presentation/vehicle_preview.dart:21` gives `VehicleSprite` a
+  322×150 box while its artboard is 236×150 and it draws with `Fit.fill`
+  (`apps/mobile/lib/core/theme/components/vehicle_sprite.dart:27,40`). Keep the artboard's aspect
+  (size the box from `VehicleSprite.size` scaled uniformly, or a uniform fit for this caller) without
+  changing the other callers (`street_scene.dart`, `boot_screen.dart`). Add a `rive`-tagged golden of
+  the preview beside `test/features/trip/rive_art_goldens_test.dart`. (MEDIUM, per FR-031)
+- [X] T103 [R1-8] In `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart`, announce the
+  retry line «ما عرفناش نكمّل الشرا.» after a failed write (`:104-109`, `:194`) and the shortfall
+  after an `insufficientFunds` refusal (`:178-193`): make them live regions or call
+  `SemanticsService.sendAnnouncement`. Test both in `vehicle_sheet_test.dart`. (MEDIUM, per SC-007,
+  FR-038, FR-049)
+- [X] T104 [R1-9] Add goldens (390×844, RTL, both digit styles) for the states FR-045 and research
+  R12 require that no board draws, with a sample builder for each under
+  `apps/mobile/test/design/samples/` and golden tests under `apps/mobile/test/goldens/design/`: a done
+  card at all three stars; a line under 20 trips; the impact line hidden; the plain affordable sheet;
+  Lines offline; Lines at 360 pt and 1.3×; a done line's details; a locked line's details; the owned
+  sheet; the not-for-sale sheet. T076–T078 later align them to the owner's boards. Update T088's list
+  to name the files. (MEDIUM, per FR-045, R12, T088)
+- [X] T105 [R1-10] Settle the unlisted differences from the `Lines` board
+  (`docs/design/png/Lines.png`, `docs/design/screens/Lines.html`): the current marker's glyph
+  (`apps/mobile/lib/features/lines/presentation/line_map.dart:132` draws `route_bold`, the board a
+  microbus; research R10 wrongly says "as drawn"), the locked card's lock position (`line_card.dart:75`
+  via `AppCard(locked: true)`: top end vs the board's start side, centred), the current and done card
+  titles (17 pt vs the board's 18, boxes 46 and 55) and the done node's tick (14 vs 12). Match the
+  board, or list each in research R12, in the header lists of `test/design/lines_layout_test.dart` and
+  `test/goldens/design/lines_goldens_test.dart`, and in T088. In `lines_layout_test.dart:40`, find why
+  boxes 43 and 52 need ±3 (the comment's "bottom bar 3 pt lower" doesn't fit the nav boxes passing at
+  ±2) and fix it or state the measured offset; list the three widened tolerances in R12 and T088.
+  (MEDIUM, per FR-045, FR-046, SC-005, docs/design/README.md)
+- [X] T106 [R1-11] Extend `apps/mobile/test/a11y/{lines,line_details,buy_vehicle}_minimum_sizes_test.dart`
+  beyond the artboard sample to: the shortfall sheet, the owned and not-for-sale sheets, the retry
+  line after a failed write, a done line's details and a locked line's details (with the reason
+  panel), and long line and vehicle names; each at 360×640, 360×800 and 390×844, scales 1.0 and 1.3,
+  checking targets ≥ 44×44, text ≥ 12 pt, no clipped text and every control reachable. Fix any
+  overflow found. (MEDIUM, per FR-048, SC-006)
+- [X] T107 [R1-12] Add T034's missing cases to
+  `apps/mobile/test/features/home/application/start_next_trip_test.dart` for `StartFrom.lines`: a
+  tutorial trip in the first session goes straight to `/trip/<id>`; a second tap while the checkpoint
+  is held does nothing. Replace the story case with one the port accepts and `tripPlayable` refuses:
+  `line_gamaa.18` after `line_gamaa.17` with the shabka not bought → no start, no fuel spent.
+  (MEDIUM, per T034, FR-026)
+- [X] T108 [R1-13] Make five tests able to fail: (a) `apps/mobile/test/features/lines/domain/focus_line_test.dart`:
+  add a state where Home's line and the fallback differ (`player({'line_hay.01': 1}, {microOld})` with
+  Home's next `line_hay.02` → hay, where the fallback gives gamaa); (b)
+  `apps/mobile/test/features/lines/lines_dot_test.dart:78-111`: assert the dot is on right after the
+  purchase made on Home, before returning to Lines; (c) `vehicle_sheet_test.dart:53`: assert
+  «اشتريها»'s semantics are disabled and the progress bar's value is balance ÷ price; (d)
+  `trip_cells_test.dart:165`: call `visibleRange` with all-locked cells (no next) and `locked: true`,
+  and add a widget test of a locked line with more than 20 trips (`artboardLines()`'s gamaa without
+  the microbus) showing four rows and the hint; (e)
+  `apps/mobile/integration_test/lines_loop_test.dart:191-198`: assert `line_gamaa.01` is starred and
+  «كمّل» names trip ٢. (MEDIUM, per FR-010, FR-041, FR-033, FR-025, FR-028, SC-002)
+- [X] T109 [R1-14] Do T010 now: in the worktree `/mnt/endeavour/home/saied-dev/Work/wasal_ogra-core-r1`
+  (branch `content-core-r1`), add `whats_new` and `display_fare_piasters` to
+  `content/drafts/core-r1/pack/lines/{line_hay,line_gamaa}.json` and `short_name` to
+  `pack/vehicles/{tuktuk,micro_old}.json`, with the sample's values (خط الحي 700 «تعلّم اللمّ
+  والباقي، الحاجة، النايم، المستعجل»; خط الجامعة 850 «نص الأجرة، الدفع الجماعي، "أنا دافع!"، أبو
+  سمّاعة»; «توكتوك», «قديم»), uncommitted there as T010 says. Check the draft with `uv run
+  wassal-content validate-source` from this repo's `tools/content_kit`. Copy `line_hay.json` again to
+  `apps/mobile/test/fixtures/tutorial/lines/` if it changes. Tick T010, and rewrite
+  `docs/owner-actions.md` §014 before-merge item 1 (`:1085-1087`) as the owner's approval of the texts
+  (T089), dropping "wasn't on the machine". (MEDIUM, per T010, FR-042, R9)
+- [X] T110 [R1-15] Document the required-field schema change's consequences in
+  `docs/runbooks/content-publishing.md` (the §1 paragraph at `:46-51` and §4 at `:137-145`), in
+  `specs/014-m09-lines-vehicles/contracts/content-fields.md` "Deployment" and in
+  `docs/owner-actions.md` §014 after-merge item 1: (a) packs built before `content.0010` can't be
+  rolled back to (a rollback rebuilds their parts and validates them against today's schema,
+  `backend/apps/content/services/build.py:252`); (b) tag and deploy production with M09 before
+  promoting the first M09 pack (production validates with its own closed schemas,
+  `backend/apps/content/services/promote.py:179-185`); (c) don't publish a draft built before the
+  deploy (`publish.py` doesn't re-run the schema); (d) exports of older versions won't import. Correct
+  the claim that a build refuses rows from before the migration: it refuses the empty texts, but the
+  default fare of 50 is valid, so the author must set each line's fare by hand (optionally add a build
+  warning when a fare equals 50 with a test). (MEDIUM, per constitution expand/contract, B04 FR-028)
+
+---
+
+## Phase 12: Review fixes (round 2)
+
+These tasks come from [reviews/round-2.md](./reviews/round-2.md); each cites its finding. Paths are
+from the repo root. Write each test first and watch it fail before the fix.
+
+- [x] T111 [R2-1] Stop closing a sheet from scrolling Lines' map: in
+  `apps/mobile/lib/features/lines/presentation/lines_screen.dart:67-73`, `_routeChanged` bumps
+  `_revision` whenever the path becomes `/lines` from any other path, including the sheets under it
+  (`/lines/<line>`, `/lines/vehicle/<id>`), so `LineMap.didUpdateWidget`
+  (`apps/mobile/lib/features/lines/presentation/line_map.dart:64-70`) re-centres the focus line
+  and the card the player just opened scrolls away (360×640 at 1.3×: offset 204 → 577.5 after
+  closing خط المصيف's details). Bump the revision only when Lines is entered from outside its branch
+  (the previous path doesn't start with `/lines`), keeping the scroll on a focus change. Add tests to
+  `apps/mobile/test/features/lines/lines_screen_test.dart` beside T100's: at `Surface.small` and 1.3×,
+  scroll so خط المصيف is in view, open its details and close them with
+  `LineDetailsSheet.closeKey`, and the same through a vehicle sheet's «اقفل»; the map's offset is
+  unchanged each time. T100's two cases must still pass. (MEDIUM, per FR-029, FR-020)
+- [x] T112 [R2-2] Take the `LinesSmall` golden at its own size from the first frame: in
+  `apps/mobile/test/design/samples/lines.dart:63-68`, `pumpLinesBoard` pumps and settles at 390×844
+  (where the map's focus scroll runs) and only then applies `size`, so
+  `apps/mobile/test/goldens/design/goldens/LinesSmall_*.png` shows خط الجامعة half under the bottom
+  bar with «كمّل» hidden, which no 360×640 phone shows. Apply the size before the first pump (give
+  `pumpLinesApp` in `apps/mobile/test/helpers/lines.dart` a `Size` or apply the surface before
+  calling it), regenerate `LinesSmall_*` on Linux, and in
+  `apps/mobile/test/goldens/design/lines_goldens_test.dart` assert before the golden that the focus
+  card (`LineCard.keyOf(LineId.lineGamaa)`) lies fully inside `LineMap.scrollKey`'s rect, so the
+  assertion fails on today's sample. The a11y tests' `size:` variants use the same sample and follow.
+  (MEDIUM, per FR-020, FR-045, T088)
+- [ ] T113 [R2-3] Finish T106's long names: add a synthetic pack to
+  `apps/mobile/test/helpers/synthetic_packs.dart` (from `artboardLines()`) with long line names (such
+  as «خط الكورنيش والمعادي الجديدة»), a long `whats_new`, a long vehicle `short_name` (such as
+  «ميكروباص سفر مكيّف») and a five-digit price (12,000) on the vehicle for sale. Add it as a state in
+  `apps/mobile/test/a11y/{lines,line_details,buy_vehicle}_minimum_sizes_test.dart`, on the three
+  phones at 1.0 and 1.3, through `expectMinimumSizes`: targets ≥ 44×44, text ≥ 12, no overflow,
+  nothing clipped. Today nothing lays these out. Fix anything that overflows, such as the tile's
+  one-line price row in the fixed 83.5-wide tile (`apps/mobile/lib/features/lines/presentation/vehicle_strip.dart:27,134-146`),
+  so names wrap and cards and tiles grow. (MEDIUM, per T106, FR-047, FR-048, SC-006)
+  - Deferred on 2026-10-29, as proposed to the owner after round 2: the release draft has no long
+    names, so this waits
+    for the first pack that has them. The tiles now share the strip's width when there are four or
+    fewer, which leaves the release's two tiles 175 wide.
+- [x] T114 [R2-4] Bring the design documents up to the code round 1 changed:
+  `specs/014-m09-lines-vehicles/research.md:118-121` and `contracts/line-details.md:39` still say
+  `rows = max(4, nextRow + 2)`. Write FR-025's rule as built (every row through the last done or
+  playable cell, at least four, at least one row past the next trip's, every row for a done line,
+  four for a locked one) and record the owner's 2026-10-29 choice in research, as T099 asked. Add
+  `playable` to `TripCell` and the starred-but-unplayable cell (drawn locked, inert, its stars
+  kept; FR-026 as amended) in `contracts/line-details.md:25-33` and `data-model.md:70,116`. In
+  `contracts/lines.md`, write the current node's `MicrobusGlyph` for "the route glyph" (`:48`), and
+  write the focus scroll as built after T111 for "On first frame" (`:67`). Documents only. (MEDIUM,
+  per T099, T097, T100, T105)

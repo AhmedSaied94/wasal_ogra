@@ -5,6 +5,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/content/content_providers.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -28,7 +31,14 @@ class FirstSessionContinue extends ConsumerWidget {
       size: AppButtonSize.l,
       onTap: () {
         if (endedHere) ref.read(tutorialEndedOnProvider.notifier).tripId = null;
-        context.go(session.nextAfterResult(tripId));
+        final content = ref.read(contentSourceProvider);
+        final progress = ref.read(playerProgressProvider);
+        context.go(
+          session.nextAfterResult(
+            tripId,
+            playable: (id) => tripPlayable(content, progress, id),
+          ),
+        );
       },
     );
   }

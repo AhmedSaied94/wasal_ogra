@@ -27,6 +27,11 @@ class LinesSeenNotifier extends _$LinesSeenNotifier {
 
   @override
   Set<String> build() {
+    // Seen only means news the player has met: a key that stops being news
+    // (a piece bought) is dropped, so the same thing happening again (a
+    // price earned back, a line unlocked again after a rollback) is news
+    // again (FR-041, US6 acceptance 1 and 2).
+    ref.listen(linesNewsKeysProvider, (_, news) => _prune(news));
     final saved = ref.read(settingsStoreProvider).requireValue.readString(key);
     if (saved != null) return decode(saved);
     // The first read: what the player already has isn't news (an install,
@@ -41,6 +46,14 @@ class LinesSeenNotifier extends _$LinesSeenNotifier {
     if (state.containsAll(news)) return;
     state = {...state, ...news};
     _write(state);
+  }
+
+  /// Keeps only seen keys that are still news.
+  void _prune(Set<String> news) {
+    final kept = state.intersection(news);
+    if (kept.length == state.length) return;
+    state = kept;
+    _write(kept);
   }
 
   /// A read marker: a write that fails (a full disk) only shows the dot

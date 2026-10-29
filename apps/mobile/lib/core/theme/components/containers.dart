@@ -27,6 +27,7 @@ class AppCard extends StatelessWidget {
   const AppCard({
     required this.child,
     this.locked = false,
+    this.lockInline = false,
     this.padding = const EdgeInsets.all(SpaceTokens.s16),
     this.radius = RadiusTokens.card,
     this.lip = LipTokens.card,
@@ -35,15 +36,33 @@ class AppCard extends StatelessWidget {
 
   final Widget child;
   final bool locked;
+
+  /// A locked card whose lock sits at its start, vertically centred, before
+  /// the content (`Lines`' line cards), rather than over its top end.
+  final bool lockInline;
   final EdgeInsetsGeometry padding;
   final double radius;
   final BoxShadow lip;
 
   static const double _lock = 18;
+  static const double _inlineLock = 24;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(this.radius);
+    final content = locked && lockInline
+        ? Row(
+            spacing: SpaceTokens.s12,
+            children: [
+              const AppIcon(
+                'lock',
+                size: _inlineLock,
+                color: ColorTokens.inkMuted,
+              ),
+              Expanded(child: child),
+            ],
+          )
+        : child;
     final card = DecoratedBox(
       decoration: BoxDecoration(
         color: locked ? ColorTokens.lockedBg : ColorTokens.paper,
@@ -57,21 +76,23 @@ class AppCard extends StatelessWidget {
             : null,
         boxShadow: locked ? null : [lip],
       ),
-      child: Padding(padding: padding, child: child),
+      child: Padding(padding: padding, child: content),
     );
     if (!locked) return card;
-    return DefaultTextStyle.merge(
+    final styled = DefaultTextStyle.merge(
       style: const TextStyle(color: ColorTokens.ink2),
-      child: Stack(
-        children: [
-          card,
-          const PositionedDirectional(
-            top: SpaceTokens.s12,
-            end: SpaceTokens.s12,
-            child: AppIcon('lock', size: _lock, color: ColorTokens.iconOff),
-          ),
-        ],
-      ),
+      child: card,
+    );
+    if (lockInline) return styled;
+    return Stack(
+      children: [
+        styled,
+        const PositionedDirectional(
+          top: SpaceTokens.s12,
+          end: SpaceTokens.s12,
+          child: AppIcon('lock', size: _lock, color: ColorTokens.iconOff),
+        ),
+      ],
     );
   }
 }
@@ -291,12 +312,7 @@ class _RoadBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(_markerRadius),
                       boxShadow: const [DesignExtras.roadMarkerLip],
                     ),
-                    child: const Center(
-                      child: CustomPaint(
-                        size: _glyph,
-                        painter: _MicrobusGlyphPainter(),
-                      ),
-                    ),
+                    child: const Center(child: MicrobusGlyph(size: _glyph)),
                   ),
                 ),
               ],
@@ -330,10 +346,41 @@ class _LanePainter extends CustomPainter {
   bool shouldRepaint(_LanePainter oldDelegate) => false;
 }
 
+/// The microbus glyph the `Loading` HTML draws in a 32×24 viewBox: the
+/// white marker's (and the `Lines` current-line node's) little bus.
+class MicrobusGlyph extends StatelessWidget {
+  const MicrobusGlyph({
+    required this.size,
+    this.body = ColorTokens.paper,
+    this.window = ColorTokens.sceneWindow,
+    this.wheel = ColorTokens.sun,
+    super.key,
+  });
+
+  final Size size;
+  final Color body;
+  final Color window;
+  final Color wheel;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    size: size,
+    painter: _MicrobusGlyphPainter(body: body, window: window, wheel: wheel),
+  );
+}
+
 /// The marker's white microbus, facing left (the `Loading` HTML's 32×24
 /// glyph drawn at 26×18).
 class _MicrobusGlyphPainter extends CustomPainter {
-  const _MicrobusGlyphPainter();
+  const _MicrobusGlyphPainter({
+    this.body = ColorTokens.paper,
+    this.window = ColorTokens.sceneWindow,
+    this.wheel = ColorTokens.sun,
+  });
+
+  final Color body;
+  final Color window;
+  final Color wheel;
 
   static const Size _viewBox = Size(32, 24);
 
@@ -342,7 +389,7 @@ class _MicrobusGlyphPainter extends CustomPainter {
     canvas
       ..save()
       ..scale(size.width / _viewBox.width, size.height / _viewBox.height);
-    final body = Path()
+    final bodyPath = Path()
       ..moveTo(3, 17)
       ..lineTo(3, 9)
       ..quadraticBezierTo(4, 5, 8, 4)
@@ -353,26 +400,29 @@ class _MicrobusGlyphPainter extends CustomPainter {
       )
       ..lineTo(29, 17)
       ..close();
-    canvas.drawPath(body, Paint()..color = ColorTokens.paper);
-    final window = Paint()..color = ColorTokens.sceneWindow;
+    canvas.drawPath(bodyPath, Paint()..color = body);
+    final windowPaint = Paint()..color = window;
     for (final x in const [8.0, 17.0]) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(x, 6.5, 6, 4.5),
           const Radius.circular(_iconWindow),
         ),
-        window,
+        windowPaint,
       );
     }
-    final wheel = Paint()..color = ColorTokens.sun;
+    final wheelPaint = Paint()..color = wheel;
     for (final x in const [9.0, 24.0]) {
-      canvas.drawCircle(Offset(x, 18), 3, wheel);
+      canvas.drawCircle(Offset(x, 18), 3, wheelPaint);
     }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_MicrobusGlyphPainter oldDelegate) => false;
+  bool shouldRepaint(_MicrobusGlyphPainter oldDelegate) =>
+      oldDelegate.body != body ||
+      oldDelegate.window != window ||
+      oldDelegate.wheel != wheel;
 }
 
 /// A screen's header, 52 high under the top inset: the back control at the

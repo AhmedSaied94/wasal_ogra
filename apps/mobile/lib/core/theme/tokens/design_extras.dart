@@ -1063,6 +1063,17 @@ abstract final class DesignExtras {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  /// `Lines` blocks 3a, 3b: the current and done cards' title, 18 (the
+  /// locked one keeps 17).
+  static const linesCardTitleBig = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `Lines` blocks 3a, 3b: a card's reason or what's new, 12/500.
   static const linesCardText = TextStyle(
     fontFamily: TypeTokens.readexPro,
@@ -1090,6 +1101,17 @@ abstract final class DesignExtras {
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
     height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LinesFirst` box 17: «خطوط جديدة جاية» at the road's end, 13/500 on
+  /// the node's 24.
+  static const linesRoadEnd = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 24 / 13,
     leadingDistribution: TextLeadingDistribution.even,
   );
 
@@ -1164,6 +1186,17 @@ abstract final class DesignExtras {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  /// `LineDetailsLocked` box 77, `BuyVehicleOwned` box 17: a status row's
+  /// text, 15/700.
+  static const linesStatusRow = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `BuyVehicle` block 2d: the seats, Marhey 700 22.
   static const buyVehicleBenefitNumber = TextStyle(
     fontFamily: TypeTokens.marhey,
@@ -1224,13 +1257,14 @@ abstract final class DesignExtras {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
-  /// HANDOFF §9.2: «ناقصك {n} ج», 14/700.
+  /// `BuyVehicleShort` box 28: «ناقصك {n} ج», 15/700 (HANDOFF §9.2 said
+  /// 14).
   static const buyVehicleShortfall = TextStyle(
     fontFamily: TypeTokens.readexPro,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
-    height: 1.3,
+    height: 19 / 15,
     leadingDistribution: TextLeadingDistribution.even,
   );
 

@@ -23,6 +23,16 @@ this brief, and only that board's sample, golden and layout test wait. Sample va
 release draft (`content/drafts/core-r1`): the microbus costs 3,200; خط الحي has 20 trips (story
 trip `.20`); خط الجامعة has 30 (story trips `.01` and `.18`).
 
+**As drawn (2026-10-29).** All eight boards are drawn, the two optional ones included. Each section
+below notes how its board settled the brief. Across them:
+
+- every lock in M09 is `ink.muted` (#5B6475), on tiles, cells, cards and status rows;
+- خط الجامعة's what's new reads «نص الأجرة، الدفع الجماعي، «أنا دافع!»، أبو سمّاعة», in guillemets,
+  with a no-break space in «أبو سمّاعة»; the release draft now writes it so;
+- the boards drop the old microbus's bead row. The app keeps the vehicles' own art, so its goldens
+  show it (an expected difference until the art changes);
+- the boards draw the cells' stars as text; the app keeps `LineDetails`' star icons.
+
 ## Shared rules for every board
 
 - **The locked look is HANDOFF §9.1 #6**, on tiles and cells too: `locked.bg`, a 2 pt `outline`
@@ -52,6 +62,18 @@ trip `.20`); خط الجامعة has 30 (story trips `.01` and `.18`).
 **Purpose.** What every new player sees: one vehicle of theirs, one to save for, one line to play,
 one locked.
 
+**As drawn (2026-10-29):**
+
+- **The strip:** two tiles of 175 share the width. Up to four tiles share it; more scroll at four
+  columns' width (83.5 on the 390 frame).
+- **The locked tile:** `locked.bg` and the ring, «قديم» and «٣٬٢٠٠» in `ink.2`, a 16 lock 8 in from
+  the top and end.
+- **The map:** the cards stand on its bottom, 12 above the bar, and the map's top stays empty. The
+  road runs from 20 below the map's top to 20 above its bottom. Its far end is an empty node 8 below
+  the top, with «خطوط جديدة جاية» (13/500 `ink.muted`, on the node's 24) at the cards' start.
+- **The cards:** padded 14, with 3 between their rows. The current card with two lines of what's new
+  is 112; the locked card with its two-line reason keeps 92.
+
 **Layout** (proposal: `Lines`' header and nav unchanged):
 
 | # | Block | Content | Open question for the board |
@@ -80,6 +102,9 @@ one locked.
 | Route | `/lines` (tab) |
 | State | The microbus bought, خط الحي finished |
 
+**As drawn (2026-10-29):** as `LinesFirst`. The done tile's tick is a 20 `primary` badge, 6 in from
+the top and end; the current card is 112 with its two-line what's new.
+
 **Layout:** as `LinesFirst`, with:
 
 - **Tiles:** the tuktuk done (tick, «توكتوك»); the microbus current («قديم · عربيتك», `sun`).
@@ -103,6 +128,18 @@ one locked.
 
 **Purpose.** Three looks the board doesn't draw: a story trip as the **next** cell, a second playable
 cell without «كمّل», and locked cells in the §9.1 #6 look.
+
+**As drawn (2026-10-29):**
+
+- **Six rows:** every row through the furthest trip played or playable (`.23`, row 5), and one more,
+  at least four. This is FR-025 as the owner chose it on 2026-10-29 (research R4); the brief's
+  "rows up to the one after the next trip" would have drawn five.
+- **No hint:** every row shows.
+- **The scroll:** the grid and the note scroll between the header and the button, 6 above the first
+  row so its «قصة» chip isn't cut.
+- **The cells:** a done story cell on `sun.soft` with the chip; the next story cell `primary` with
+  «كمّل» and the chip; the playable cell `primary` with its number only; locked cells in the §9.1 #6
+  look.
 
 **Grid**, 30 trips, 6 rows (rows up to the one after the next trip, at least 4):
 
@@ -147,6 +184,9 @@ cell without «كمّل», and locked cells in the §9.1 #6 look.
 **Open question:** what fills the bottom where the button was (nothing, the note moved down, or a
 line such as «عيد أي مشوار عشان النجوم»).
 
+**As drawn (2026-10-29):** the note moved down. Its first sentence fills the button's place at the
+bottom (42 high, the icon centred); the space between the grid and it stays empty.
+
 ### 5. الميكروباص والفلوس مش كفاية — `BuyVehicleShort`
 
 | | |
@@ -172,6 +212,15 @@ line such as «عيد أي مشوار عشان النجوم»).
 - The bar's size and place.
 - Does the impact line stay? The draft hides it when short.
 - The disabled button at 64/25 (this sheet) or 56/21 (`Components`).
+
+**As drawn (2026-10-29):**
+
+- «ناقصك ١٬٩٦٠ ج» at 15/700 `danger.ink`, centred;
+- the bar 10 high across the sheet, 8 under the text and 10 over the buttons;
+- no impact line;
+- the disabled «اشتريها» at 64/Marhey 25, 45% and no lip, beside «لسه». The board draws it as a
+  `<button>`, whose default padding moves the 2:1 split by 4 pt; the app splits them as
+  `BuyVehicle` does.
 
 **Labels:**
 
@@ -206,6 +255,14 @@ player drives المعلم's tuktuk.
 
 **Open questions:** what replaces the price card; whether the benefits still show.
 
+**As drawn (2026-10-29):**
+
+- no benefits, price card, impact line or buy button: the preview, then a status row;
+- the status row: «دي عربيتك» at 15/700 `ink` on `primary.soft`, radius 18, 44 high, with a 24
+  `primary` tick;
+- «تمام» full width as the primary button (64, Marhey 25, lip);
+- the sheet is as tall as that (its top at 413 on the board), not the full sheet.
+
 **Labels:** «تمام», «اقفل».
 
 ---
@@ -225,6 +282,10 @@ this brief, and the owner approves their goldens.
 - **In the button's place,** the reason «بعد خط السوق», with nothing to tap.
 - **Open question:** whether the note shows.
 
+**As drawn (2026-10-29):** no note, and no hint (a 20-trip line shows its four rows). The reason is
+a status row in the locked look: `locked.bg` and the ring, radius 18, 44 high, a 24 lock and
+«بعد خط السوق» at 15/700 `ink.2`.
+
 ### 8. عربية مش للبيع دلوقتي — `BuyVehicleNotForSale`
 
 `/lines/vehicle/micro_new` while the old microbus isn't owned.
@@ -233,6 +294,10 @@ this brief, and the owner approves their goldens.
 - **The status** «اشتري الميكروباص القديم الأول» in place of the buy button, and one close button.
 - **Also show** the benefits row with **two** tiles (a vehicle that opens no line).
 - **The same layout serves a vehicle with no price,** with «العربية دي مش للبيع دلوقتي».
+
+**As drawn (2026-10-29):** the full sheet with the price card «٥٬٠٠٠» / «١٬٢٤٠ ج» and two benefit
+tiles of 175; the status row in the locked look (as `LineDetailsLocked`'s) with «اشتري الميكروباص
+القديم الأول», 12 over «تمام» as the primary button. A vehicle with no price drops the price card.
 
 ---
 
@@ -245,3 +310,7 @@ Claude:
 - moves the board's copy into `app_ar.arb`;
 - lists the boards in `docs/delivery-plan.md`'s Design sources row for M09;
 - writes "As drawn (date)" notes here, as `fuel-lesson.md` has.
+
+Done on 2026-10-29 (T076–T079): the samples are in `apps/mobile/test/design/samples/` (`lines.dart`,
+`line_details.dart`, `buy_vehicle.dart`), the layout tests beside them, the goldens in
+`apps/mobile/test/goldens/design/goldens/`. Research R12 lists each board's expected differences.

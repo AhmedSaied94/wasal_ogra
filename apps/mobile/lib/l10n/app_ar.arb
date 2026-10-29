@@ -2980,6 +2980,10 @@
   "@linesContinue": {
     "description": "The current line's button, which starts its next trip, and the next cell's label (HANDOFF lines.continue)."
   },
+  "linesRoadEnd": "خطوط جديدة جاية",
+  "@linesRoadEnd": {
+    "description": "Beside the empty node at the top of the line map's road: more lines will come (LinesFirst board, 2026-10-29)."
+  },
   "linesContinueA11y": "كمّل المشوار {n}",
   "@linesContinueA11y": {
     "description": "Screen reader: «كمّل» on a current line card (draft, R14). Preformatted.",

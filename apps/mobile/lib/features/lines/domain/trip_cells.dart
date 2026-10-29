@@ -28,6 +28,7 @@ final class TripCell {
     required this.isStory,
     required this.state,
     this.stars = 0,
+    this.playable = true,
   });
 
   final String tripId;
@@ -42,8 +43,12 @@ final class TripCell {
   /// The best stars of a done cell.
   final int stars;
 
+  /// Whether the rules let the trip start (FR-012, FR-026). A done cell
+  /// keeps its stars but isn't a link when they don't.
+  final bool playable;
+
   /// Whether a tap starts it.
-  bool get startable => state != CellState.locked;
+  bool get startable => playable && state != CellState.locked;
 
   @override
   bool operator ==(Object other) =>
@@ -52,14 +57,17 @@ final class TripCell {
       other.number == number &&
       other.isStory == isStory &&
       other.state == state &&
-      other.stars == stars;
+      other.stars == stars &&
+      other.playable == playable;
 
   @override
-  int get hashCode => Object.hash(tripId, number, isStory, state, stars);
+  int get hashCode =>
+      Object.hash(tripId, number, isStory, state, stars, playable);
 
   @override
   String toString() =>
-      'TripCell($number, ${state.name}${isStory ? ', story' : ''}, $stars)';
+      'TripCell($number, ${state.name}${isStory ? ', story' : ''}, $stars'
+      '${playable ? '' : ', locked'})';
 }
 
 /// [line]'s cells for [p]. A locked line's are all locked (FR-028).
@@ -70,12 +78,16 @@ List<TripCell> tripCells(ContentSource c, PlayerProgress p, LineId line) {
     for (final (index, trip) in c.tripsOf(line).indexed)
       () {
         final stars = p.starsOf(trip.tripId);
+        // The rules decide a tap, whatever the stars say (FR-026): a done
+        // trip that is no longer playable (a newer pack, a rolled-back
+        // purchase) keeps its stars but isn't a link.
+        final playable = open && tripPlayable(c, p, trip.tripId);
         final CellState state;
         if (!open) {
           state = CellState.locked;
         } else if (stars >= 1) {
           state = CellState.done;
-        } else if (tripPlayable(c, p, trip.tripId)) {
+        } else if (playable) {
           state = nextTaken ? CellState.playable : CellState.next;
           nextTaken = true;
         } else {
@@ -87,6 +99,7 @@ List<TripCell> tripCells(ContentSource c, PlayerProgress p, LineId line) {
           isStory: trip.kind == TripKind.story,
           state: state,
           stars: open ? stars.clamp(0, 3) : 0,
+          playable: open && playable,
         );
       }(),
   ];
@@ -98,8 +111,19 @@ const cellsPerRow = 5;
 /// The rows a locked line shows, and the least any line shows.
 const minVisibleRows = 4;
 
-/// Rows shown past the next trip's.
-const rowsAhead = 2;
+/// Rows shown past the furthest trip played or playable.
+const rowsAhead = 1;
+
+/// The row a 1-based trip number is in.
+int _rowOf(int number) => (number - 1) ~/ cellsPerRow + 1;
+
+/// The last cell drawn as done or playable, if any.
+TripCell? _lastUsed(List<TripCell> cells) {
+  for (final cell in cells.reversed) {
+    if (cell.state != CellState.locked) return cell;
+  }
+  return null;
+}
 
 final class VisibleRange {
   const VisibleRange({required this.rows, this.hidden});
@@ -121,23 +145,20 @@ final class VisibleRange {
   String toString() => 'VisibleRange($rows, $hidden)';
 }
 
-/// FR-025: `max(4, next row + 2)` rows, capped at the line's; every row for
-/// a done line (no next trip); four for a locked one.
+/// FR-025 (as `LineDetailsStory` draws it, 2026-10-29): every row through
+/// the furthest trip played or playable, and one more, at least four; so
+/// every row for a done line, and four for a locked one. A story trip can
+/// open behind trips the player already finished (the shabka, a newer
+/// pack), so the rows count from the furthest, and nothing played becomes
+/// unreachable.
 VisibleRange visibleRange(List<TripCell> cells, {bool locked = false}) {
   final total = (cells.length + cellsPerRow - 1) ~/ cellsPerRow;
-  final next = cells.where((c) => c.state == CellState.next).firstOrNull;
-  final int rows;
-  if (locked) {
-    rows = minVisibleRows < total ? minVisibleRows : total;
-  } else if (next == null) {
-    rows = total;
-  } else {
-    final nextRow = (next.number - 1) ~/ cellsPerRow;
-    final wanted = nextRow + rowsAhead > minVisibleRows
-        ? nextRow + rowsAhead
-        : minVisibleRows;
-    rows = wanted < total ? wanted : total;
+  var wanted = minVisibleRows;
+  final lastUsed = locked ? null : _lastUsed(cells);
+  if (lastUsed != null && _rowOf(lastUsed.number) + rowsAhead > wanted) {
+    wanted = _rowOf(lastUsed.number) + rowsAhead;
   }
+  final rows = wanted < total ? wanted : total;
   final shown = rows * cellsPerRow;
   return VisibleRange(
     rows: rows,

@@ -67,10 +67,14 @@ unlocked line (FR-010).
 
 ### `TripCell`
 
-`(tripId, number, isStory, state, stars)`. The states are `done`, `next`, `playable` and `locked`,
-and `isStory` adds the chip ([contracts/line-details.md](./contracts/line-details.md)).
+`(tripId, number, isStory, state, stars, playable)`. The states are `done`, `next`, `playable` and
+`locked`, and `isStory` adds the chip ([contracts/line-details.md](./contracts/line-details.md)).
+`playable` is whether the rules let the trip start now (`tripPlayable`, FR-026): a `done` cell the
+rules refuse keeps its stars but is drawn locked and isn't a link. `startable` is `playable` and not
+`locked`.
 
-**`VisibleRange`:** `rows`, `hidden: (from, to)?`.
+**`VisibleRange`:** `rows`, `hidden: (from, to)?`. Rows: every row through the furthest cell drawn
+done, next or playable, and one more, at least four, capped at the line's (FR-025).
 
 ### `VehicleOffer` and `Impact`
 
@@ -78,7 +82,8 @@ and `isStory` adds the chip ([contracts/line-details.md](./contracts/line-detail
 | --- | --- |
 | `seats`, `currentSeats` | `seats.length` of this vehicle and of `currentVehicle` |
 | `opensLine` | the first line by order whose `unlock` is this vehicle; null to hide «بيفتح» |
-| `sale`, `price`, `balance` | `vehicleSale`, the catalog, `EconomyView.jenehat` |
+| `sale`, `price`, `balance` | `vehicleSale`, the catalog, `EconomyView.jenehat`; `price` only when `ForSale` |
+| `listPrice` | the catalog's JENEHAT price whatever `sale` says, for the price card of a vehicle not for sale yet (`BuyVehicleNotForSale`); null when the catalog has none |
 | `shortfall` | `price − balance` when positive |
 | `impact` | `Impact(goalName, amount)` or null: M08's `savingsTarget` for the state after the purchase ([contracts/buy-vehicle.md](./contracts/buy-vehicle.md)) |
 

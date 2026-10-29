@@ -63,6 +63,21 @@ void main() {
     expect(vehicleOffer(c, p, 0, VehicleId.microSafar)!.price, isNull);
   });
 
+  test('the list price whatever the sale state, never a shortfall from '
+      'it (BuyVehicleNotForSale, T078)', () {
+    final c = artboardContent();
+    final p = player({}, {microOld});
+    final needsFirst = vehicleOffer(c, p, 1240, VehicleId.microSafar)!;
+    expect(needsFirst.listPrice, 12000);
+    expect(needsFirst.shortfall, isNull);
+    expect(needsFirst.affordable, isFalse);
+    // Owned, and still the sample's 1,500.
+    expect(vehicleOffer(c, p, 0, VehicleId.microOld)!.listPrice, 1500);
+    expect(vehicleOffer(c, p, 0, VehicleId.microNew)!.listPrice, 5000);
+    // The starter has no catalog price.
+    expect(vehicleOffer(c, p, 0, VehicleId.tuktuk)!.listPrice, isNull);
+  });
+
   test('the shortfall; exactly enough leaves none', () {
     final c = artboardContent();
     final p = player({}, {microOld});

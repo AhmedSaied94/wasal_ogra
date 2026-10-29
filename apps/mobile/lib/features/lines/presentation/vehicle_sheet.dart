@@ -1,7 +1,9 @@
 // A vehicle's sheet (specs/014-m09-lines-vehicles, contracts/buy-vehicle.md,
-// HANDOFF `BuyVehicle`, §9.2): the preview, what it brings, and either its
+// HANDOFF `BuyVehicle`, §9.2, `BuyVehicleShort`, `BuyVehicleOwned`,
+// `BuyVehicleNotForSale`): the preview, what it brings, and either its
 // price against the jenehat with «اشتريها» and «لسه», or why there is
-// nothing to buy with one close button. The sheet is the confirmation: no
+// nothing to buy in a status row over one «تمام». The player's own vehicle
+// shows its preview and status only. The sheet is the confirmation: no
 // dialog before the buy. Closing spends nothing.
 import 'dart:async';
 
@@ -27,6 +29,7 @@ import 'package:wassal/features/lines/presentation/benefits_row.dart';
 import 'package:wassal/features/lines/presentation/board_sheet.dart';
 import 'package:wassal/features/lines/presentation/impact_line.dart';
 import 'package:wassal/features/lines/presentation/price_card.dart';
+import 'package:wassal/features/lines/presentation/status_row.dart';
 import 'package:wassal/features/lines/presentation/vehicle_preview.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -133,51 +136,43 @@ class _VehicleSheetState extends ConsumerState<VehicleSheet> {
       ForSale() => null,
     };
     final shortfall = offer.shortfall;
-    return BoardSheet(
-      top: VehicleSheet.top,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          VehicleSheet._sideExtra,
-          0,
-          VehicleSheet._sideExtra,
-          VehicleSheet._footExtra,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(name: offer.name, onClose: _close),
+    // The player's own vehicle: the preview and its status only, the sheet
+    // as tall as that (`BuyVehicleOwned`).
+    final owned = sale is Owned;
+    final scroll = SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: VehicleSheet.gap,
+        children: [
+          VehiclePreview(vehicle: offer.vehicle),
+          if (!owned) BenefitsRow(offer: offer),
+          if (offer.listPrice case final price? when !owned)
+            PriceCard(price: price, jenehat: offer.jenehat),
+          if (offer.impact case final impact? when shortfall == null)
+            ImpactLine(impact: impact),
+        ],
+      ),
+    );
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        VehicleSheet._sideExtra,
+        0,
+        VehicleSheet._sideExtra,
+        VehicleSheet._footExtra,
+      ),
+      child: Column(
+        mainAxisSize: owned ? MainAxisSize.min : MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Header(name: offer.name, onClose: _close),
+          const SizedBox(height: VehicleSheet.gap),
+          if (owned) Flexible(child: scroll) else Expanded(child: scroll),
+          if (shortfall != null) ...[
             const SizedBox(height: VehicleSheet.gap),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: VehicleSheet.gap,
-                  children: [
-                    VehiclePreview(vehicle: offer.vehicle),
-                    BenefitsRow(offer: offer),
-                    if (offer.price case final price?)
-                      PriceCard(price: price, jenehat: offer.jenehat),
-                    if (offer.impact case final impact? when shortfall == null)
-                      ImpactLine(impact: impact),
-                    if (status != null)
-                      Semantics(
-                        key: VehicleSheet.statusKey,
-                        liveRegion: true,
-                        child: Text(
-                          status,
-                          textAlign: TextAlign.center,
-                          style: DesignExtras.buyVehicleImpact.copyWith(
-                            color: ColorTokens.ink,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (shortfall != null) ...[
-              const SizedBox(height: VehicleSheet.gap),
-              Text(
+            // A refusal says its shortfall to a screen reader too.
+            Semantics(
+              liveRegion: true,
+              child: Text(
                 key: VehicleSheet.shortfallKey,
                 l10n.buyVehicleShortfall(numbers.integer(shortfall)),
                 textAlign: TextAlign.center,
@@ -185,15 +180,19 @@ class _VehicleSheetState extends ConsumerState<VehicleSheet> {
                   color: ColorTokens.dangerInk,
                 ),
               ),
-              const SizedBox(height: SpaceTokens.s8),
-              ProgressBar(
-                value: offer.jenehat / (offer.price ?? 1),
-                color: ProgressColor.gold,
-              ),
-            ],
-            if (_writeFailed) ...[
-              const SizedBox(height: VehicleSheet.gap),
-              Text(
+            ),
+            const SizedBox(height: SpaceTokens.s8),
+            ProgressBar(
+              value: offer.jenehat / (offer.price ?? 1),
+              color: ProgressColor.gold,
+            ),
+          ],
+          if (_writeFailed) ...[
+            const SizedBox(height: VehicleSheet.gap),
+            // A write that failed is announced, not just drawn.
+            Semantics(
+              liveRegion: true,
+              child: Text(
                 key: VehicleSheet.retryKey,
                 l10n.tripRetryPurchase,
                 textAlign: TextAlign.center,
@@ -201,47 +200,64 @@ class _VehicleSheetState extends ConsumerState<VehicleSheet> {
                   color: ColorTokens.dangerInk,
                 ),
               ),
-            ],
-            const SizedBox(height: VehicleSheet.gap),
-            if (sale is ForSale)
-              Row(
-                spacing: SpaceTokens.s10,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: AppButton.primary(
-                      key: VehicleSheet.buyKey,
-                      label: l10n.buyVehicleBuy,
-                      height: VehicleSheet.buttonHeight,
-                      radius: LayoutTokens.ctaRadius,
-                      labelStyle: DesignExtras.buyVehicleBuy,
-                      enabled: offer.affordable,
-                      onTap: () => unawaited(_buy(offer)),
-                    ),
-                  ),
-                  Expanded(
-                    child: AppButton.secondary(
-                      key: VehicleSheet.laterKey,
-                      label: l10n.buyVehicleLater,
-                      height: VehicleSheet.buttonHeight,
-                      radius: LayoutTokens.ctaRadius,
-                      onTap: _close,
-                    ),
-                  ),
-                ],
-              )
-            else
-              AppButton.secondary(
-                key: VehicleSheet.doneKey,
-                label: l10n.buyVehicleDone,
-                height: VehicleSheet.buttonHeight,
-                radius: LayoutTokens.ctaRadius,
-                onTap: _close,
-              ),
+            ),
           ],
-        ),
+          if (status != null) ...[
+            const SizedBox(height: VehicleSheet.gap),
+            Semantics(
+              key: VehicleSheet.statusKey,
+              liveRegion: true,
+              child: owned
+                  ? StatusRow.owned(text: status)
+                  : StatusRow.locked(text: status),
+            ),
+          ],
+          // `BuyVehicleShort`: the bar sits 10 over the buttons.
+          SizedBox(
+            height: shortfall == null ? VehicleSheet.gap : SpaceTokens.s10,
+          ),
+          if (sale is ForSale)
+            Row(
+              spacing: SpaceTokens.s10,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: AppButton.primary(
+                    key: VehicleSheet.buyKey,
+                    label: l10n.buyVehicleBuy,
+                    height: VehicleSheet.buttonHeight,
+                    radius: LayoutTokens.ctaRadius,
+                    labelStyle: DesignExtras.buyVehicleBuy,
+                    enabled: offer.affordable,
+                    onTap: () => unawaited(_buy(offer)),
+                  ),
+                ),
+                Expanded(
+                  child: AppButton.secondary(
+                    key: VehicleSheet.laterKey,
+                    label: l10n.buyVehicleLater,
+                    height: VehicleSheet.buttonHeight,
+                    radius: LayoutTokens.ctaRadius,
+                    onTap: _close,
+                  ),
+                ),
+              ],
+            )
+          else
+            // Nothing to buy: one close button, the primary one
+            // (`BuyVehicleOwned`, `BuyVehicleNotForSale`).
+            AppButton.primary(
+              key: VehicleSheet.doneKey,
+              label: l10n.buyVehicleDone,
+              height: VehicleSheet.buttonHeight,
+              radius: LayoutTokens.ctaRadius,
+              labelStyle: DesignExtras.buyVehicleBuy,
+              onTap: _close,
+            ),
+        ],
       ),
     );
+    return owned ? content : BoardSheet(top: VehicleSheet.top, child: content);
   }
 }
 

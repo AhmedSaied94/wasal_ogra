@@ -34,6 +34,15 @@ void main() {
     expect(focusLine(c, p, null), LineId.lineHay);
   });
 
+  test('Home\'s line beats the fallback\'s pick (T108)', () {
+    // Both lines are current; the fallback takes the last by order (خط
+    // الجامعة), Home's next trip is on خط الحي.
+    final c = artboardContent();
+    final p = player({'line_hay.01': 1}, {microOld});
+    expect(focusLine(c, p, null), LineId.lineGamaa);
+    expect(focusLine(c, p, NextTrip.of(c, 'line_hay.02')), LineId.lineHay);
+  });
+
   test('a next trip the pack lacks falls back', () {
     final c = sampleContent();
     expect(

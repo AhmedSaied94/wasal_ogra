@@ -74,6 +74,7 @@ class LineCard extends ConsumerWidget {
           ),
           child: AppCard(
             locked: true,
+            lockInline: true,
             padding: const EdgeInsets.symmetric(horizontal: _side),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: minHeight),
@@ -114,6 +115,7 @@ class LineCard extends ConsumerWidget {
               Expanded(
                 child: _Lines(
                   title: s.name,
+                  big: true,
                   chip: StatusChip.done(label: l10n.linesStandingDone),
                   children: [
                     _StarLine(
@@ -150,6 +152,7 @@ class LineCard extends ConsumerWidget {
               Expanded(
                 child: _Lines(
                   title: s.name,
+                  big: true,
                   chip: FareChip(farePiasters: s.farePiasters),
                   children: [
                     Text(
@@ -255,26 +258,44 @@ class _Tappable extends StatelessWidget {
 
 /// The title with its chip, over the card's lines.
 class _Lines extends StatelessWidget {
-  const _Lines({required this.title, required this.children, this.chip});
+  const _Lines({
+    required this.title,
+    required this.children,
+    this.chip,
+    this.big = false,
+  });
 
   final String title;
   final Widget? chip;
   final List<Widget> children;
 
+  /// The current and done cards' 18 pt title.
+  final bool big;
+
+  static const double _rowGap = 3;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: SpaceTokens.s12),
+    // `LinesFirst` box 24: 14 above and below, 3 between the rows, so a
+    // current card with two lines of what's new is 112. `Lines` fixed its
+    // cards at 92, so its one-line current card is 4 pt shorter (R12).
+    padding: const EdgeInsets.symmetric(vertical: SpaceTokens.s14),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: SpaceTokens.s4,
+      spacing: _rowGap,
       children: [
         Wrap(
           spacing: SpaceTokens.s8,
           runSpacing: SpaceTokens.s4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(title, style: DesignExtras.linesCardTitle),
+            Text(
+              title,
+              style: big
+                  ? DesignExtras.linesCardTitleBig
+                  : DesignExtras.linesCardTitle,
+            ),
             ?chip,
           ],
         ),
