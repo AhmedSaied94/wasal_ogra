@@ -16,8 +16,8 @@ the content itself.
   (`tools/content_kit/src/wassal_content/models/_generated.py`), the app models
   (`packages/content_models/lib/src/generated/`) and a copy of `schemas/` inside the Python
   package. CI regenerates all three and fails on any difference.
-- **Checks** (from `tools/content_kit`; the full table is in the root `CLAUDE.md`, "Content
-  commands"):
+- **Checks** (from `tools/content_kit`; the full table is in
+  `tools/content_kit/CLAUDE.md`):
   - `uv run wassal-content validate <file>` validates one document, and
     `uv run wassal-content validate-source <dir>` a whole layout;
   - `uv run wassal-content schema-diff --base <ref>` refuses a breaking schema change without a

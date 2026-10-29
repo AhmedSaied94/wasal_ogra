@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: review
   name: "Implementation Review"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "Review a feature's implementation across every layer after /speckit-implement, verify each finding, and append the fixes to tasks.md"
   author: wassal
   repository: https://github.com/AhmedSaied94/wasal_ogra

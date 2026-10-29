@@ -4,7 +4,9 @@
 a Python mirror/solver, and content packs. Work is spec-driven.
 
 Read first:
-- `CLAUDE.md` — detailed feature map and full command tables (the best orientation).
+- `CLAUDE.md` — the cross-cutting rules and the map of areas (the best orientation). Then the
+  `CLAUDE.md` of the area you work in (`apps/mobile/`, `backend/`, `packages/trip_engine/`,
+  `tools/content_kit/`, `tools/solver/`): what it has built and its full command tables.
 - `.specify/memory/constitution.md` — overrides all other guidance.
 - `.specify/feature.json` — the active Spec Kit feature; its folder is under `specs/NNN-*`.
 - `README.md`'s "Status: design and planning" line is stale; the app and backend exist.
@@ -107,7 +109,7 @@ After changing `tools/content_kit` or `tools/solver`, run
 - `apps/mobile/lib/l10n/generated/` and `*.g.dart` are gitignored; run `pub get` + `build_runner`
   after a fresh checkout.
 - Content changes that alter a published schema need a major bump and `schema-diff`; see
-  `CLAUDE.md` "Content commands".
+  `tools/content_kit/CLAUDE.md`.
 
 ## Invariants that fail tests or break the game
 
