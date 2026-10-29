@@ -50,7 +50,7 @@ environment and assert the exit code and the message.
 | `LOG_LEVEL` | — | no | `INFO` | — |
 | `WASSAL_READ_DOTENV` | — | no | `1` | `dev` only: `0` stops `config/env.py` from reading `backend/.env` (the settings-guard tests and the image build set it) |
 | `GUNICORN_WORKERS`, `GUNICORN_THREADS` | — | no | `2`, `4` | Set per role and environment by `compose.yml` from the sizing files in `backend/docker/env/` |
-| `TEST_DATABASE_URL`, `TEST_CACHE_URL`, `TEST_BROKER_URL` | test | **yes** (placeholder in dev) | `postgres://postgres:change-me-postgres@127.0.0.1:5432/postgres`, `redis://127.0.0.1:6379/2`, `redis://127.0.0.1:6379/3` | pytest only, against the real PostgreSQL and Valkey (constitution XIII). The superuser URL lets pytest-django create its test database. |
+| `TEST_DATABASE_URL`, `TEST_CACHE_URL`, `TEST_BROKER_URL` | test | **yes** (placeholder in dev) | `postgres://postgres:change-me-postgres@127.0.0.1:5433/postgres`, `redis://127.0.0.1:6379/2`, `redis://127.0.0.1:6379/3` | pytest only, against the real PostgreSQL and Valkey (constitution XIII). The superuser URL lets pytest-django create its test database. |
 
 In `dev`, `backend/.env` points `DATABASE_URL`, `CACHE_URL` and `CELERY_BROKER_URL` at `127.0.0.1` for
 commands run on the host. `compose.dev.yml` overrides them with the service names inside the

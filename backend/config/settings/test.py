@@ -16,7 +16,7 @@ read_dotenv(prefix="TEST_")
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
 os.environ["WASSAL_ENV"] = "test"
 os.environ["DATABASE_URL"] = os.environ.get(
-    "TEST_DATABASE_URL", "postgres://postgres:change-me-postgres@127.0.0.1:5432/postgres"
+    "TEST_DATABASE_URL", "postgres://postgres:change-me-postgres@127.0.0.1:5433/postgres"
 )
 os.environ["CACHE_URL"] = os.environ.get("TEST_CACHE_URL", "redis://127.0.0.1:6379/2")
 os.environ["CELERY_BROKER_URL"] = os.environ.get("TEST_BROKER_URL", "redis://127.0.0.1:6379/3")

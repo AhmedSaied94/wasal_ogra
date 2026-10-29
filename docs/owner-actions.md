@@ -411,8 +411,8 @@ items 3–7 (T107). Then tick B04 in the
 ### Local, any time
 
 - Claude recreated the dev stack on 2026-10-19 with `WASSAL_DEV_PG_PORT=5433`, a rebuilt image and
-  the edge, because a native PostgreSQL holds port 5432 on this machine. Keep exporting it, with the
-  matching port in `backend/.env`'s URLs.
+  the edge, because a native PostgreSQL holds port 5432 on this machine. Since 2026-10-29 5433 is
+  `compose.dev.yml`'s default and `.env.example`'s, so there is nothing to export.
 - Dev packs now live on the `packs` Docker volume. The T106 smoke left a `smoke-author` staff user,
   the imported sample and published pack 2 in the dev database. `docker compose … down -v` wipes
   them with everything else.
