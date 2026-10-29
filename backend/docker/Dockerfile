@@ -13,14 +13,16 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 # The backend sits at /app, the toolkit at /tools/content_kit and the solver at /tools/solver, so
 # the lock's `../tools/content_kit` and `../tools/solver` paths resolve. Both install non-editable
-# into /opt/venv.
+# into /opt/venv, rebuilt every time: uv's cache keeps a local package's build until its
+# pyproject.toml changes, so a new schema or solver file would otherwise ship the old copy.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=backend/uv.lock,target=uv.lock \
     --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=backend/.python-version,target=.python-version \
     --mount=type=bind,source=tools/content_kit,target=/tools/content_kit \
     --mount=type=bind,source=tools/solver,target=/tools/solver \
-    uv sync --locked --no-dev --no-install-project
+    uv sync --locked --no-dev --no-install-project \
+        --reinstall-package wassal-content --reinstall-package wassal-solver
 COPY backend /app
 
 FROM python:3.13.16-slim-trixie AS runtime

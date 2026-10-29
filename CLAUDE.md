@@ -50,7 +50,7 @@ Python is pinned by `backend/.python-version` and managed with uv (never pip). R
 
 - The API is on <http://localhost:8000> (the Android emulator reaches it as `10.0.2.2:8000`), the admin on <http://localhost:8001/admin/>.
 - Tests need the stack's PostgreSQL and Valkey: they run against the real services, never mocks (constitution XIII). pytest reads only the `TEST_*` URLs from `backend/.env`.
-- If port 5432 or 6379 is taken on your machine, export `WASSAL_DEV_PG_PORT` or `WASSAL_DEV_VALKEY_PORT` before `docker compose up`, and use the same port in the URLs in `backend/.env`.
+- The dev stack's PostgreSQL is on port 5433 (beside a native PostgreSQL's 5432), Valkey on 6379. If either is taken on your machine, export `WASSAL_DEV_PG_PORT` or `WASSAL_DEV_VALKEY_PORT` before `docker compose up`, and use the same port in the URLs in `backend/.env`.
 - Every value comes from the environment (`specs/002-b01-backend-skeleton/contracts/environment.md`). Outside `dev` and `test`, a missing, empty or `change-me` secret stops the process at startup.
 - B04 adds the `CONTENT_*` variables (`specs/003-b04-content-pipeline/contracts/environment.md`): `CONTENT_ROLE` (`source` on dev and staging, `target` on prod), `CONTENT_PACKS_DIR`, `CONTENT_PACKS_PUBLIC_URL`, `CONTENT_VERSION_FLOOR_URL` (staging: production's packs URL), `CONTENT_PROMOTION_SOURCE_URL` (prod: staging's packs URL), `CONTENT_SOLVER_STAGE` (`solver`, the real stage, by default on staging and prod; `stand_in` in dev and test only), `CONTENT_MANIFEST_CACHE_SECONDS` and `CONTENT_HTTP_TIMEOUT_SECONDS`. The settings check refuses a role or URL in the wrong environment.
 - B02 adds the `AUTH_*`, `GOOGLE_*` and four `THROTTLE_*` variables (`specs/009-b02-accounts-auth/contracts/environment.md`). `AUTH_SIGNING_KEYS` is required everywhere, and `GOOGLE_OAUTH_CLIENT_IDS` outside dev and test.
@@ -154,6 +154,7 @@ The schemas in `content/schemas/` are the only definition of content. `tools/con
 | App models: coverage gate | `fvm dart run coverage:format_coverage --lcov --report-on=lib --in=coverage --out=coverage/lcov.info && fvm dart run ../../apps/mobile/tool/check_coverage.dart --min 80 --lcov coverage/lcov.info` |
 
 - After editing a schema: run `codegen`, then `build_runner` in `packages/content_models`, and commit the schema with `_generated.py`, `src/wassal_content/schemas/*.json` and `lib/src/generated/*.dart`. The `*.freezed.dart` and `*.g.dart` parts are gitignored.
+- The backend's image carries its own copy of `tools/content_kit` (and `tools/solver`). After a schema change, rebuild the dev stack's image (`docker compose … build`, then `up -d --wait`): until then its worker checks packs against the old schemas, and a build fails with "not an allowed property".
 - Never edit a generated file by hand: `codegen --check` fails on any difference.
 - The schemas follow a restricted profile (research R3 of B04): closed objects, integers only, no `null`, no `default`, no combinators, and every object and enum named in `$defs`. `codegen` refuses anything else.
 - `content/source/` holds only exports of packs promoted to production. Until its `pack.json` exists, schemas may change freely; after that, a breaking change needs a major bump in `content/schemas/schema-set.json`.
