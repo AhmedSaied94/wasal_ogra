@@ -226,6 +226,11 @@ void main() {
     testWidgets('an unknown or unplayable trip leaves to the line', (
       tester,
     ) async {
+      // A trip of another line, from a link, goes to the named line's.
+      await _card(tester);
+      appRouter(tester).go('/lines/line_hay/pre-trip/line_gamaa.01');
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/lines/line_hay');
       for (final trip in ['line_hay.99', 'line_hay.02', 'line_hay.03']) {
         await _card(tester);
         appRouter(tester).go('/lines/line_hay/pre-trip/$trip');

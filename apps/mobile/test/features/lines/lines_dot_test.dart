@@ -2,6 +2,7 @@
 // shown after news while away, cleared on opening Lines, still cleared
 // after a restart, never for a purchase made on Lines, and not on a first
 // read.
+import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/routing/new_dot_providers.dart';
@@ -72,5 +73,40 @@ void main() {
       LinesSeenNotifier.decode(store.values[LinesSeenNotifier.key]!),
       contains('line:line_gamaa'),
     );
+  });
+
+  testWidgets('news that comes while away is seen on the return to the tab, '
+      'and the dot stays off', (tester) async {
+    final store = MemorySettingsStore({LinesSeenNotifier.key: ''});
+    final (container, economy) = await pumpLinesApp(
+      tester,
+      state: playerState(jenehat: 2000),
+      settingsStore: store,
+    );
+    container.read(routerProvider).go('/home');
+    await tester.pumpAndSettle();
+    // Away, the microbus is bought (as Home's goal card will): خط الجامعة
+    // opens, news Lines hasn't shown.
+    await economy.service.buy(
+      economy.service.newRequestId(),
+      kind: SkuKind.vehicle,
+      skuId: 'micro_old',
+    );
+    await tester.pumpAndSettle();
+    final news = container.read(linesNewsKeysProvider);
+    expect(news, contains('line:line_gamaa'));
+    expect(
+      LinesSeenNotifier.decode(store.values[LinesSeenNotifier.key]!),
+      isNot(contains('line:line_gamaa')),
+    );
+    container.read(routerProvider).go('/lines');
+    await tester.pumpAndSettle();
+    expect(
+      LinesSeenNotifier.decode(store.values[LinesSeenNotifier.key]!),
+      containsAll(news),
+    );
+    container.read(routerProvider).go('/home');
+    await tester.pumpAndSettle();
+    expect(_dot(container), isFalse);
   });
 }

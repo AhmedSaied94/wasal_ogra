@@ -62,8 +62,17 @@ GoRouter router(Ref ref) {
           : rootNavigatorKey,
       redirect: d.params.isEmpty
           ? null
-          : (_, state) =>
-                d.acceptsParams(state.pathParameters) ? null : '/home',
+          : (_, state) {
+              final params = state.pathParameters;
+              if (!d.acceptsParams(params)) return '/home';
+              // A card opened from Lines sits under its own line's details:
+              // a trip of another line goes to the details it named.
+              if (d.name == RouteNames.linePreTrip &&
+                  !params['tripId']!.startsWith('${params['lineId']}.')) {
+                return '/lines/${params['lineId']}';
+              }
+              return null;
+            },
       pageBuilder: (context, state) => _page(context, state, d),
       routes: routes,
     );

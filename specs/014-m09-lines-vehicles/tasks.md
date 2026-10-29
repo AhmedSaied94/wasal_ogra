@@ -820,7 +820,7 @@ brief, so only these checks wait for the export.
     - T075's two states if not drawn.
 - [ ] T089 **Owner approval** of the release draft's line texts and short names (T010), the product
   spec's wording unless rewritten.
-- [ ] T090 Run every CI check and fix anything found:
+- [X] T090 Run every CI check and fix anything found:
   - **`tools/content_kit`:** `uv run ruff check . && uv run ruff format --check . && uv run mypy .
     && uv run pytest --cov --cov-fail-under=80`, `codegen --check`, `golden`,
     `bundle dev --check --out ../../apps/mobile/assets/content/dev`.
@@ -831,7 +831,7 @@ brief, so only these checks wait for the export.
   - **`apps/mobile`,** in CLAUDE.md's order: pub get, build_runner, Rive setup, format, analyze,
     `flutter test --coverage --exclude-tags backend`, `check_coverage --min 80`, the three
     integration tests headless, `flutter test --tags rive`.
-- [ ] T091 Run the reviews, fix CRITICAL and HIGH findings, then rerun T090:
+- [X] T091 Run the reviews, fix CRITICAL and HIGH findings, then rerun T090:
   - `flutter-reviewer` over the Dart diff: rebuild scope, `mounted` after awaits in the purchase and
     in `startNextTrip`, the watcher's disposal, the shell change;
   - `python-reviewer` over `backend/apps/content` and `tools/content_kit`;

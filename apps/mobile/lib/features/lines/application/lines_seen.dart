@@ -2,6 +2,8 @@
 // contracts/lines.md "The «new» dot", research R8): kept in the device
 // preference `pref.lines_seen`, sorted and comma-joined. A read marker,
 // not game state: losing it shows the dot once more.
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/bootstrap/startup.dart';
 import 'package:wassal/core/content/content_providers.dart';
@@ -41,10 +43,15 @@ class LinesSeenNotifier extends _$LinesSeenNotifier {
     _write(state);
   }
 
-  void _write(Set<String> seen) => ref
-      .read(settingsStoreProvider)
-      .requireValue
-      .writeString(key, encode(seen));
+  /// A read marker: a write that fails (a full disk) only shows the dot
+  /// once more, so it isn't reported.
+  void _write(Set<String> seen) => unawaited(
+    ref
+        .read(settingsStoreProvider)
+        .requireValue
+        .writeString(key, encode(seen))
+        .catchError((Object _) {}),
+  );
 
   static String encode(Set<String> keys) => (keys.toList()..sort()).join(',');
 

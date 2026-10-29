@@ -39,26 +39,32 @@ class LinesScreen extends ConsumerStatefulWidget {
 }
 
 class _LinesScreenState extends ConsumerState<LinesScreen> {
+  late final _router = ref.read(routerProvider);
+
   @override
   void initState() {
     super.initState();
-    // What Lines shows is seen: on the first frame, and on every change
-    // while Lines or one of its sheets is on top, so a purchase made here
-    // raises no dot (research R8).
+    // What Lines shows is seen: on the first frame, on every return to the
+    // tab (the screen stays mounted while away), and on every change while
+    // Lines or one of its sheets is on top, so a purchase made here raises
+    // no dot (research R8).
     WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen());
-    ref.listenManual(linesNewsKeysProvider, (_, _) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen());
-    });
+    _router.routerDelegate.addListener(_seenLater);
+    ref.listenManual(linesNewsKeysProvider, (_, _) => _seenLater());
   }
+
+  @override
+  void dispose() {
+    _router.routerDelegate.removeListener(_seenLater);
+    super.dispose();
+  }
+
+  void _seenLater() =>
+      WidgetsBinding.instance.addPostFrameCallback((_) => _markSeen());
 
   void _markSeen() {
     if (!mounted) return;
-    final location = ref
-        .read(routerProvider)
-        .routerDelegate
-        .currentConfiguration
-        .uri
-        .path;
+    final location = _router.routerDelegate.currentConfiguration.uri.path;
     if (!location.startsWith('/lines')) return;
     ref
         .read(linesSeenProvider.notifier)
