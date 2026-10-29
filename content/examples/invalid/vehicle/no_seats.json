@@ -4,6 +4,9 @@
   },
   "order": 2,
   "seats": [],
+  "short_name": {
+    "ar-EG": "قديم"
+  },
   "starter": false,
   "vehicle_id": "micro_old"
 }

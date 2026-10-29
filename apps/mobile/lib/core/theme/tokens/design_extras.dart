@@ -1030,6 +1030,253 @@ abstract final class DesignExtras {
     height: 1,
     leadingDistribution: TextLeadingDistribution.even,
   );
+
+  // Lines, a line's details and the vehicle sheet
+  // (specs/014-m09-lines-vehicles; `Lines`, `LineDetails`, `BuyVehicle`).
+  /// `Lines` block 2: a vehicle tile's name and price, 12/600.
+  static const linesTileName = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` block 2: the current tile's «{short} · عربيتك», 12/700.
+  static const linesTileCurrent = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` blocks 3a–3c: a line card's title, Marhey 700 17.
+  static const linesCardTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` blocks 3a, 3b: the current and done cards' title, 18 (the
+  /// locked one keeps 17).
+  static const linesCardTitleBig = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` blocks 3a, 3b: a card's reason or what's new, 12/500.
+  static const linesCardText = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.4,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` blocks 3b, 3c: the star line and the fare, 13/700.
+  static const linesCardStars = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Lines` block 3b: «كمّل», Marhey 700 17.
+  static const linesContinue = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LinesFirst` box 17: «خطوط جديدة جاية» at the road's end, 13/500 on
+  /// the node's 24.
+  static const linesRoadEnd = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 24 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` block 2b: the line's name, Marhey 700 26 on the
+  /// browser's normal line, measured 44.
+  static const lineDetailsTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.7,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` block 2b: the summary, 13/600 on a 19.5 line.
+  static const lineDetailsSummary = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` cells: a trip's number, 16/700.
+  static const lineDetailsCell = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` cells: the next trip's number, 18/700.
+  static const lineDetailsCellNext = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` cells: «كمّل» on the next cell, 12/700.
+  static const lineDetailsCellLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` block 2e: the note, 13/500 on 1.5.
+  static const lineDetailsNote = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetails` block 2f: «العب المشوار {n}», Marhey 700 24.
+  static const lineDetailsCta = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `LineDetailsLocked` box 77, `BuyVehicleOwned` box 17: a status row's
+  /// text, 15/700.
+  static const linesStatusRow = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2d: the seats, Marhey 700 22.
+  static const buyVehicleBenefitNumber = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2d: a benefit's label, 12/600.
+  static const buyVehicleBenefit = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2e: «السعر» and «معاك», 14/500.
+  static const buyVehiclePriceLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2e: the price, Marhey 700 22.
+  static const buyVehiclePrice = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.1,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2e: the balance, 15/700.
+  static const buyVehicleBalance = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2f: the impact line, 14/600 on 1.5.
+  static const buyVehicleImpact = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.5,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicleShort` box 28: «ناقصك {n} ج», 15/700 (HANDOFF §9.2 said
+  /// 14).
+  static const buyVehicleShortfall = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 19 / 15,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `BuyVehicle` block 2g: «اشتريها», Marhey 700 25.
+  static const buyVehicleBuy = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 25,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
 }
 
 /// A ring as decoration: an outside one spreads a shadow past the edge, an

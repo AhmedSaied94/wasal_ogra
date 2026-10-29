@@ -197,6 +197,9 @@ def test_unlock_fields_follow_the_kind(author_client: Client, world: dict[str, A
             "line_id": "line_souq",
             "name_ar_eg": "name",
             "name_ar": "",
+            "whats_new_ar_eg": "news",
+            "whats_new_ar": "",
+            "display_fare_piasters": "700",
             "order": "5",
             "unlock_kind": "vehicle",
             "unlock_vehicle": "",
@@ -219,7 +222,8 @@ def test_unlock_fields_follow_the_kind(author_client: Client, world: dict[str, A
 def test_arabic_fields_run_right_to_left(author_client: Client, world: dict[str, Any]) -> None:
     html = author_client.get(f"/admin/content/line/{world['line'].pk}/change/").content.decode()
 
-    for name in ("name_ar_eg", "name_ar", "stations-0-name_ar_eg", "stations-0-name_ar"):
+    names = ("name_ar_eg", "name_ar", "whats_new_ar_eg", "whats_new_ar", "stations-0-name_ar_eg")
+    for name in (*names, "stations-0-name_ar"):
         tag = re.search(rf'<input[^>]*name="{name}"[^>]*>', html)
         assert tag, name
         assert 'dir="rtl"' in tag[0]
@@ -288,6 +292,8 @@ def test_a_refused_inline_delete_names_the_version(
         "vehicle_id": "micro_old",
         "name_ar_eg": "name",
         "name_ar": "",
+        "short_name_ar_eg": "short",
+        "short_name_ar": "",
         "starter": "",
         "order": "1",
         **management("seats", 1, initial=1),

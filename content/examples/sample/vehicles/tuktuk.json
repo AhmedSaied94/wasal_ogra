@@ -23,6 +23,9 @@
       "seat_id": "A_l"
     }
   ],
+  "short_name": {
+    "ar-EG": "توكتوك"
+  },
   "starter": true,
   "vehicle_id": "tuktuk"
 }

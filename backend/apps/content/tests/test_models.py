@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 import pytest
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.utils import timezone
 
@@ -225,6 +226,32 @@ def test_a_review_needs_both_its_name_and_time() -> None:
     line.reviewed_by = "author1"
     with pytest.raises(IntegrityError), transaction.atomic():
         line.save()
+
+
+# -- a line's display fare (M09 FR-043) ------------------------------------------------------------
+
+
+@pytest.mark.parametrize("fare", [475, 0])
+def test_a_display_fare_off_the_coins_is_refused(fare: int) -> None:
+    line = make.line()
+    line.display_fare_piasters = fare
+
+    with pytest.raises(ValidationError) as caught:
+        line.full_clean()
+    assert "display_fare_piasters" in caught.value.message_dict
+    with (
+        pytest.raises(IntegrityError, match="content_line_display_fare_coins"),
+        transaction.atomic(),
+    ):
+        Line.objects.filter(pk=line.pk).update(display_fare_piasters=fare)
+    assert Line.objects.get().display_fare_piasters == 700
+
+
+def test_a_display_fare_of_coins_is_kept() -> None:
+    line = make.line(display_fare_piasters=850)
+
+    line.full_clean()
+    assert Line.objects.get().display_fare_piasters == 850
 
 
 # -- packs (FR-027) -------------------------------------------------------------------------------

@@ -229,12 +229,17 @@ final class FirstSession {
   };
 
   /// The result screen's main action in the first session (R12): the next
-  /// tutorial trip not finished, or Home.
-  String nextAfterResult(String tripId) {
+  /// tutorial trip not finished, or Home. [playable] refuses a trip the
+  /// rules won't start (FR-012, SC-003a), such as a story trip whose
+  /// chapter waits: the result goes Home instead of a dead end.
+  String nextAfterResult(
+    String tripId, {
+    bool Function(String tripId)? playable,
+  }) {
     if (!facts.tutorialTrips.contains(tripId)) return '/home';
     return switch (nextTutorialTrip) {
-      final trip? => '/trip/$trip',
-      null => '/home',
+      final trip? when playable == null || playable(trip) => '/trip/$trip',
+      _ => '/home',
     };
   }
 

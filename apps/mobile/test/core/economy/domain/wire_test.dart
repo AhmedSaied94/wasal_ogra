@@ -26,6 +26,7 @@ void main() {
       final vehicle = Vehicle.fromJson({
         'vehicle_id': vehicleWire[id],
         'name': {'ar-EG': 'x'},
+        'short_name': {'ar-EG': 'x'},
         'order': 1,
         'starter': false,
         'seats': <Object>[],

@@ -43,6 +43,28 @@ $ADMIN create_staff <name> --group content_author
 A published pack never changes. Its files are written once, and its record keeps only its minimum
 app version mutable.
 
+**After a schema change, build and publish a fresh pack.** A deploy that adds a required field (M09
+added a line's `whats_new` and `display_fare_piasters`, and a vehicle's `short_name`) leaves the
+published packs without it: apps from that release refuse them as unreadable and fall back to their
+bundled pack, and production's promote refuses them against the new schema. Right after the deploy,
+fill the new fields in the admin (rows from before the migration hold its defaults: a fare of 50 and
+empty texts; a build refuses the empty texts, but 50 is a valid fare, so set each line's fare by
+hand), then build and publish (steps 3–4).
+
+The same schema change has four consequences around a release:
+
+- **Deploy the release before promoting its first pack.** Production runs the schema stages again
+  with its own copy of the schemas (`promote.py`), so a pack carrying the new fields is refused by a
+  production that predates them. Tag and deploy production with M09 first, then promote.
+- **Packs built before the migration can't be rolled back to.** A rollback rebuilds an earlier
+  pack's parts and validates them against today's schema (`build.py`), so a pack built before
+  `content.0010` fails its build. Roll back only to packs built after the deploy.
+- **Don't publish a draft built before the deploy.** Publishing doesn't re-run the schema stage
+  (`publish.py`), so such a pack goes out and every M09 app refuses it. Rebuild the draft after the
+  deploy, then publish.
+- **Older exports won't import.** `content_export` of a pre-M09 version lacks the required fields,
+  and the import refuses it against today's schema. Export M09-era versions only.
+
 ### Authoring scenes
 
 A scene's page, and the scenes on its chapter's page, have two fields that tell the app when to
@@ -136,6 +158,11 @@ version, which you then publish and promote like any other.
 2. The build appears as a new draft with `rollback_of` set. Trips that differ from the current pack
    get a new `rev`.
 3. Publish it, test it, then promote it to production (sections 1 and 2).
+
+A pack built before a required-field schema change can't be rolled back to: the build reads the old
+pack's parts and validates them against today's schema, so a pack from before `content.0010` fails
+with the missing `whats_new`, `display_fare_piasters` or `short_name`. To undo an M09 pack, roll
+back to one built after the M09 deploy, or edit and rebuild the older draft first.
 
 ## 5. The minimum app version (kill switch)
 

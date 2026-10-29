@@ -1,0 +1,31 @@
+schema_version: "1.0"
+
+extension:
+  id: review
+  name: "Implementation Review"
+  version: "1.0.0"
+  description: "Review a feature's implementation across every layer after /speckit-implement, verify each finding, and append the fixes to tasks.md"
+  author: wassal
+  repository: https://github.com/AhmedSaied94/wasal_ogra
+  license: MIT
+
+requires:
+  speckit_version: ">=1.2.0"
+  tools:
+    - name: git
+      required: true
+
+provides:
+  commands:
+    - name: speckit.review.implementation
+      file: commands/speckit.review.implementation.md
+      description: "Review the active feature's implementation across spec, API, database, security, economy, engine, UI, tests and docs; write a review file and append fix tasks"
+
+# No after_implement hook on purpose: the review is meant to run in a different
+# agent (and often a different model) from the one that ran /speckit-implement,
+# so it is started by hand there.
+
+tags:
+  - "review"
+  - "quality"
+  - "workflow"

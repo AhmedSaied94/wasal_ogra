@@ -17,7 +17,13 @@ import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/fuel_lesson_screen.dart';
 import 'package:wassal/features/onboarding/presentation/name_screen.dart';
 import 'package:wassal/features/onboarding/presentation/scene_page.dart';
+import 'package:wassal/core/economy/domain/wire.dart';
+import 'package:wassal/core/glossary/ids.dart' as glossary;
 import 'package:wassal/features/home/presentation/home_screen.dart';
+import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
+import 'package:wassal/features/lines/presentation/lines_screen.dart';
+import 'package:wassal/features/lines/presentation/vehicle_sheet.dart';
+import 'package:wassal/features/trip/domain/line_ids.dart';
 import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 import 'package:wassal/features/result/domain/result_args.dart';
 import 'package:wassal/features/result/presentation/result_screen.dart';
@@ -56,8 +62,17 @@ GoRouter router(Ref ref) {
           : rootNavigatorKey,
       redirect: d.params.isEmpty
           ? null
-          : (_, state) =>
-                d.acceptsParams(state.pathParameters) ? null : '/home',
+          : (_, state) {
+              final params = state.pathParameters;
+              if (!d.acceptsParams(params)) return '/home';
+              // A card opened from Lines sits under its own line's details:
+              // a trip of another line goes to the details it named.
+              if (d.name == RouteNames.linePreTrip &&
+                  !params['tripId']!.startsWith('${params['lineId']}.')) {
+                return '/lines/${params['lineId']}';
+              }
+              return null;
+            },
       pageBuilder: (context, state) => _page(context, state, d),
       routes: routes,
     );
@@ -108,11 +123,26 @@ GoRouter router(Ref ref) {
             ),
         branches: [
           branch(RouteNames.home, [RouteNames.preTrip]),
-          // `vehicle/:vehicleId` before `:lineId`, which would match it.
-          branch(RouteNames.lines, [
-            RouteNames.vehiclePurchase,
-            RouteNames.lineDetail,
-          ]),
+          // `vehicle/:vehicleId` before `:lineId`, which would match it. The
+          // card opened from Lines sits under the line's details, so its
+          // close lands there (specs/014-m09-lines-vehicles, research R5).
+          StatefulShellBranch(
+            routes: [
+              route(
+                RouteNames.lines,
+                routes: [
+                  route(RouteNames.vehiclePurchase, under: '/lines'),
+                  route(
+                    RouteNames.lineDetail,
+                    under: '/lines',
+                    routes: [
+                      route(RouteNames.linePreTrip, under: '/lines/:lineId'),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
           branch(RouteNames.apartment, [
             RouteNames.apartmentItem,
             RouteNames.apartmentRequests,
@@ -220,6 +250,21 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       tripId: state.pathParameters['tripId']!,
     ),
     RouteNames.home => const HomeScreen(),
+    RouteNames.lines => const LinesScreen(),
+    RouteNames.lineDetail => LineDetailsSheet(
+      lineId: toContentLine(
+        glossary.LineId.fromWire(state.pathParameters['lineId']!)!,
+      ),
+    ),
+    RouteNames.vehiclePurchase => VehicleSheet(
+      vehicle: fromWire(vehicleWire, state.pathParameters['vehicleId'])!,
+    ),
+    // The card opened from Lines: an unopenable trip leaves to the line.
+    RouteNames.linePreTrip => PreTripCard(
+      key: ValueKey(state.pathParameters['tripId']),
+      tripId: state.pathParameters['tripId']!,
+      leaveTo: '/lines/${state.pathParameters['lineId']}',
+    ),
     // Keyed, as the trip is: another trip's card is another card.
     RouteNames.preTrip => PreTripCard(
       key: ValueKey(state.pathParameters['tripId']),
@@ -251,8 +296,15 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       key: state.pageKey,
       name: d.name,
       title: d.title(AppLocalizations.of(context)),
-      // The card's two-line heading is its own (`PreTrip` boxes 9–11).
-      ownHeader: d.name == RouteNames.preTrip,
+      // The card's two-line heading is its own (`PreTrip` boxes 9–11), and
+      // so are the details' and the vehicle sheet's (`LineDetails`,
+      // `BuyVehicle` block 2b).
+      ownHeader: const {
+        RouteNames.preTrip,
+        RouteNames.linePreTrip,
+        RouteNames.lineDetail,
+        RouteNames.vehiclePurchase,
+      }.contains(d.name),
       child: screen,
     ),
     Presentation.page || Presentation.overlay => AppPage(

@@ -185,6 +185,9 @@ void main() {
       ('unknown', 'line_hay.99'),
       ('locked (the microbus not owned)', 'line_gamaa.01'),
       ('locked (the trip before not played)', 'line_hay.02'),
+      // A story trip waits for its chapter's goal on the phone
+      // (specs/014-m09-lines-vehicles, FR-007).
+      ('a story trip before its chapter\'s goal', 'line_hay.03'),
     ]) {
       testWidgets(what, (tester) async {
         final (container, _) = await _card(tester, tripId: tripId);
@@ -193,6 +196,49 @@ void main() {
         expect(container.read(economyViewProvider).fuel.liters, 5);
       });
     }
+  });
+
+  group('opened from Lines (specs/014-m09-lines-vehicles, research R5)', () {
+    testWidgets('its four closes land on the line\'s details', (tester) async {
+      for (final close in <Future<void> Function()>[
+        () => tester.tap(find.byKey(PreTripCard.closeKey)),
+        () => pressBack(tester),
+        () async => tester.tapAt(const Offset(195, 20)),
+        () async {
+          final height = tester.getSize(find.byType(AppSheet).last).height;
+          await tester.drag(
+            find.byKey(AppSheet.grabberKey).last,
+            Offset(0, height * 0.4),
+          );
+        },
+      ]) {
+        final (container, _) = await _card(tester);
+        appRouter(tester).go('/lines/line_hay/pre-trip/line_hay.01');
+        await tester.pumpAndSettle();
+        expect(find.byType(PreTripCard), findsOneWidget);
+        await close();
+        await tester.pumpAndSettle();
+        expect(currentLocation(tester), '/lines/line_hay');
+        expect(container.read(economyViewProvider).fuel.liters, 5);
+      }
+    });
+
+    testWidgets('an unknown or unplayable trip leaves to the line', (
+      tester,
+    ) async {
+      // A trip of another line, from a link, goes to the named line's.
+      await _card(tester);
+      appRouter(tester).go('/lines/line_hay/pre-trip/line_gamaa.01');
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/lines/line_hay');
+      for (final trip in ['line_hay.99', 'line_hay.02', 'line_hay.03']) {
+        await _card(tester);
+        appRouter(tester).go('/lines/line_hay/pre-trip/$trip');
+        await tester.pumpAndSettle();
+        expect(currentLocation(tester), '/lines/line_hay', reason: trip);
+        expect(find.byType(PreTripCard), findsNothing, reason: trip);
+      }
+    });
   });
 
   testWidgets('a story trip: the chip and the condition bar', (tester) async {

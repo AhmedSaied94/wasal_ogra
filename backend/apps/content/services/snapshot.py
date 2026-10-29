@@ -90,6 +90,8 @@ def line_part(line: Line) -> dict[str, Any]:
         ],
         "unlock": unlock,
         "difficulty_band": {"min": line.difficulty_min, "max": line.difficulty_max},
+        "whats_new": text(line.whats_new_ar_eg, line.whats_new_ar),
+        "display_fare_piasters": line.display_fare_piasters,
     }
 
 
@@ -97,6 +99,7 @@ def vehicle_part(vehicle: Vehicle) -> dict[str, Any]:
     return {
         "vehicle_id": vehicle.vehicle_id,
         "name": text(vehicle.name_ar_eg, vehicle.name_ar),
+        "short_name": text(vehicle.short_name_ar_eg, vehicle.short_name_ar),
         "order": vehicle.order,
         "starter": vehicle.starter,
         "seats": seat_layout(vehicle.seats.all()),

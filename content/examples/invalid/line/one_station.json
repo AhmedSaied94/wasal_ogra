@@ -3,6 +3,7 @@
     "max": 55,
     "min": 20
   },
+  "display_fare_piasters": 850,
   "line_id": "line_gamaa",
   "name": {
     "ar-EG": "خط الجامعة"
@@ -19,5 +20,8 @@
   "unlock": {
     "kind": "vehicle",
     "vehicle_id": "micro_old"
+  },
+  "whats_new": {
+    "ar-EG": "نص الأجرة، الدفع الجماعي، \"أنا دافع!\"، أبو سمّاعة"
   }
 }

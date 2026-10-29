@@ -47,9 +47,14 @@ class ShellScaffold extends ConsumerWidget {
           currentIndex: shell.currentIndex,
           newDots: dots,
           disabled: disabled,
+          // A tab reopens where it was left, or at its root when tapped
+          // again (M03). Lines always opens at its root, so a card left for
+          // a trip isn't rebuilt there (specs/014-m09-lines-vehicles R5).
           onTap: (index) => shell.goBranch(
             index,
-            initialLocation: index == shell.currentIndex,
+            initialLocation:
+                index == shell.currentIndex ||
+                tabSections[index] == Section.lines,
           ),
         ),
       ),

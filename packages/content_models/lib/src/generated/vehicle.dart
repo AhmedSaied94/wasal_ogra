@@ -21,6 +21,7 @@ abstract class Vehicle with _$Vehicle {
   const factory Vehicle({
     @JsonKey(name: 'vehicle_id') required VehicleId vehicleId,
     @JsonKey(name: 'name') required LocalizedText name,
+    @JsonKey(name: 'short_name') required LocalizedText shortName,
     @JsonKey(name: 'order') required int order,
     @JsonKey(name: 'starter') required bool starter,
     @JsonKey(name: 'seats') required List<Seat> seats,

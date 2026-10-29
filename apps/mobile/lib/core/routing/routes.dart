@@ -79,6 +79,7 @@ abstract final class RouteNames {
   static const result = 'result';
   static const lines = 'lines';
   static const lineDetail = 'lineDetail';
+  static const linePreTrip = 'linePreTrip';
   static const vehiclePurchase = 'vehiclePurchase';
   static const apartment = 'apartment';
   static const apartmentItem = 'apartmentItem';
@@ -190,7 +191,8 @@ final List<Destination> destinations = List.unmodifiable([
     presentation: Presentation.tab,
     section: Section.lines,
     title: (l) => l.destLines,
-    links: const [RouteNames.lineDetail],
+    // A card opens its details; a tile its vehicle.
+    links: const [RouteNames.lineDetail, RouteNames.vehiclePurchase],
   ),
   Destination(
     name: RouteNames.lineDetail,
@@ -199,7 +201,21 @@ final List<Destination> destinations = List.unmodifiable([
     section: Section.lines,
     params: const {'lineId': ParamValidators.lineId},
     title: (l) => l.destLineDetail,
-    links: const [RouteNames.vehiclePurchase],
+    links: const [RouteNames.linePreTrip],
+  ),
+  // The pre-trip card opened from Lines, under the line's details, so its
+  // close lands there (specs/014-m09-lines-vehicles, research R5).
+  Destination(
+    name: RouteNames.linePreTrip,
+    path: '/lines/:lineId/pre-trip/:tripId',
+    presentation: Presentation.sheet,
+    section: Section.lines,
+    params: const {
+      'lineId': ParamValidators.lineId,
+      'tripId': ParamValidators.tripId,
+    },
+    title: (l) => l.destPreTrip,
+    links: const [RouteNames.trip],
   ),
   Destination(
     name: RouteNames.vehiclePurchase,

@@ -5,12 +5,18 @@ from __future__ import annotations
 from typing import ClassVar
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import F, Q
 from wassal_content.models import LineId, UnlockKind, VehicleId
 
-from apps.content.models.base import PermanentModel, choices, slug_validator
+from apps.content.models.base import (
+    COIN_PIASTERS,
+    PermanentModel,
+    choices,
+    multiple_of_coin,
+    slug_validator,
+)
 
 DIFFICULTY_MAX = 100
 SEAT_PATTERN = r"^(front|[A-D])_(r|m|l)$"
@@ -37,6 +43,15 @@ class Line(PermanentModel):
     difficulty_max = models.PositiveSmallIntegerField(
         validators=[MaxValueValidator(DIFFICULTY_MAX)]
     )
+    # M09: the line card's text after the name, and the fare its chip shows (display only:
+    # trips keep their own fares). The defaults only fill rows made before 0010.
+    whats_new_ar_eg = models.TextField(default="", db_default="")
+    whats_new_ar = models.TextField(blank=True, default="", db_default="")
+    display_fare_piasters = models.PositiveIntegerField(
+        validators=[MinValueValidator(COIN_PIASTERS)],
+        default=COIN_PIASTERS,
+        db_default=COIN_PIASTERS,
+    )
 
     class Meta:
         ordering: ClassVar[list[str]] = ["order"]
@@ -46,6 +61,11 @@ class Line(PermanentModel):
                     difficulty_min__lte=F("difficulty_max"), difficulty_max__lte=DIFFICULTY_MAX
                 ),
                 name="content_line_difficulty_band",
+            ),
+            models.CheckConstraint(
+                condition=Q(display_fare_piasters__gte=COIN_PIASTERS)
+                & multiple_of_coin("display_fare_piasters"),
+                name="content_line_display_fare_coins",
             ),
             models.CheckConstraint(
                 condition=(
@@ -90,6 +110,11 @@ class Line(PermanentModel):
             errors["unlock_after_line"] = f"An unlock of kind {self.unlock_kind} has no line."
         if self.unlock_after_line_id is not None and self.unlock_after_line_id == self.pk:
             errors["unlock_after_line"] = "A line can't unlock itself."
+        fare = self.display_fare_piasters
+        if fare is not None and (fare < COIN_PIASTERS or fare % COIN_PIASTERS):
+            errors["display_fare_piasters"] = (
+                f"Use a multiple of {COIN_PIASTERS} piasters, at least {COIN_PIASTERS}."
+            )
         if errors:
             raise ValidationError(errors)
 
@@ -126,6 +151,9 @@ class Vehicle(PermanentModel):
     vehicle_id = models.CharField(max_length=32, unique=True, choices=choices(VehicleId))
     name_ar_eg = models.TextField()
     name_ar = models.TextField(blank=True)
+    # M09: the name on the vehicle's tile. The defaults only fill rows made before 0010.
+    short_name_ar_eg = models.TextField(default="", db_default="")
+    short_name_ar = models.TextField(blank=True, default="", db_default="")
     starter = models.BooleanField(default=False)
     order = models.PositiveSmallIntegerField(unique=True)
 

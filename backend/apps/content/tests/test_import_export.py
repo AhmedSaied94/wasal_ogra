@@ -17,7 +17,7 @@ from wassal_content.packfile import build_pack_file, sha256_hex
 from wassal_content.source import assemble_pack, read_layout
 
 from apps.accounts.models import User
-from apps.content.models import Line, SpeechLine, Station, Trip
+from apps.content.models import Line, SpeechLine, Station, Trip, Vehicle
 from apps.content.models.packs import Status
 from apps.content.services import exporter, importer, permanence, review
 from apps.content.tests import factories as make
@@ -67,6 +67,19 @@ def test_the_sample_round_trips_byte_for_byte(author: User) -> None:
     chapter = json.loads(sample_files()["chapters/ch1_first_job.json"])
     assert [scene["plays"]["kind"] for scene in chapter["scenes"]] == ["opening", "after_trip"]
     assert chapter["scenes"][0]["panels"][0]["lines"][0]["speaker"] == "narrator"
+    # M09: a line's `whats_new` and display fare, and a vehicle's short name, round-trip too.
+    exported = unzipped(exporter.export_current(author))
+    for name in ("lines/line_hay.json", "lines/line_gamaa.json"):
+        line = json.loads(sample_files()[name])
+        stored = Line.objects.get(line_id=line["line_id"])
+        assert stored.whats_new_ar_eg == line["whats_new"]["ar-EG"]
+        assert stored.display_fare_piasters == line["display_fare_piasters"]
+        assert exported[name] == sample_files()[name]
+    for name in ("vehicles/tuktuk.json", "vehicles/micro_old.json"):
+        vehicle = json.loads(sample_files()[name])
+        stored_vehicle = Vehicle.objects.get(vehicle_id=vehicle["vehicle_id"])
+        assert stored_vehicle.short_name_ar_eg == vehicle["short_name"]["ar-EG"]
+        assert exported[name] == sample_files()[name]
 
 
 def test_importing_the_same_content_again_changes_nothing(sample_imported: User) -> None:

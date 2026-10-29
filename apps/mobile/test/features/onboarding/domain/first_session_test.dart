@@ -400,6 +400,22 @@ void main() {
         }
       }
     });
+
+    test('a next tutorial trip the rules refuse sends the result Home '
+        '(T098)', () {
+      final session = _session(progress: _done(2));
+      expect(session.nextTutorialTrip, _trips[2]);
+      expect(
+        session.nextAfterResult(_trips[1], playable: (_) => false),
+        '/home',
+      );
+      expect(
+        session.nextAfterResult(_trips[1], playable: (_) => true),
+        '/trip/${_trips[2]}',
+      );
+      // Without a rule, as the tests above: the trip as before.
+      expect(session.nextAfterResult(_trips[1]), '/trip/${_trips[2]}');
+    });
   });
 
   group('the state', () {

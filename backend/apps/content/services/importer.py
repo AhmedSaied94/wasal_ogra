@@ -390,6 +390,7 @@ class _Applier:
         name_ar_eg, name_ar = _text(part["name"])
         vehicle = vehicle or Vehicle(vehicle_id=part["vehicle_id"])
         vehicle.name_ar_eg, vehicle.name_ar = name_ar_eg, name_ar
+        vehicle.short_name_ar_eg, vehicle.short_name_ar = _text(part["short_name"])
         vehicle.starter, vehicle.order = part["starter"], part["order"]
         vehicle.save()
         stored = {seat.seat_id: seat for seat in Seat.objects.filter(vehicle=vehicle)}
@@ -403,6 +404,8 @@ class _Applier:
     def line(self, line: Line | None, part: Mapping[str, Any]) -> Line:
         line = line or Line(line_id=part["line_id"], unlock_kind="start")
         line.name_ar_eg, line.name_ar = _text(part["name"])
+        line.whats_new_ar_eg, line.whats_new_ar = _text(part["whats_new"])
+        line.display_fare_piasters = part["display_fare_piasters"]
         line.order = part["order"]
         line.difficulty_min = part["difficulty_band"]["min"]
         line.difficulty_max = part["difficulty_band"]["max"]

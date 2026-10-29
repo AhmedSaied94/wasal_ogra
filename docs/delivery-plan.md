@@ -112,7 +112,7 @@ glossary, and merged decisions win on behaviour.
 | M07 | `Intro`, `Name`, `Tutorial`, `FuelLesson` | #3 the coach line of each tutorial trip (resolved in M07's research R18) |
 | 012.5 M22 | none new: the six comic panels of `Intro` and the `Panel*` boards, animated in a second Rive file, `wassal_scenes.riv` (its board «حركة المشاهد») | none |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
-| M09 | `Lines`, `LineDetails`, `BuyVehicle` | none |
+| M09 | `Lines`, `LineDetails`, `BuyVehicle`, and the owner's eight (2026-10-29): `LinesFirst`, `LinesOwned`, `LineDetailsStory`, `LineDetailsDone`, `LineDetailsLocked`, `BuyVehicleShort`, `BuyVehicleOwned`, `BuyVehicleNotForSale` (`specs/014-m09-lines-vehicles/contracts/design-briefs.md`) | none |
 | M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` | #2 when the Apartment tab opens |
 | B10 | none | #8 a maintenance end time in the 503 response |
 | M11 | `States` 2–3 (ad not ready, daily ad limit), `RewardedAdButton` | none |
@@ -763,7 +763,14 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     Home, in a fixed order, and M07's due scene and name re-ask became its first two. Home's
     offline banner follows `HomeStates` (40 high, 10 under the header) where `States` draws it
     alone.
-  - [ ] `014-m09-lines-vehicles`
+  - [ ] `014-m09-lines-vehicles`. Built on 2026-10-29; ticked after merge. Decided in its
+    clarifications: a story trip waits for its chapter's goal on the phone (only ever stricter than
+    the server); the current card's «كمّل» starts its next trip; the impact line reads «فاضل
+    {amount} ج على {goal}»; the owner draws the undrawn states (all eight boards drawn on
+    2026-10-29, and the app follows them where they and `Lines` disagree). The trip grid shows one
+    row past the furthest trip played or playable, at least four (the owner's choice). Adds three
+    required content fields (a line's `whats_new` and `display_fare_piasters`, a vehicle's
+    `short_name`), so staging publishes a fresh pack after the deploy.
   - [ ] `015-m10-apartment-story`
 - [ ] Step 8: Ads
   - [ ] `016-b10-catalog-offers`

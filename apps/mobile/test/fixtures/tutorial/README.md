@@ -9,6 +9,10 @@ as they are, so its parity fixtures and the backend's tests don't change.
   sleeper names that the sample lacks) come from
   `content/drafts/core-r1/pack/` in the `content-core-r1` worktree
   (`wasal_ogra-core-r1`), copied on 2026-10-27.
+- `lines/line_hay.json`'s `display_fare_piasters` and `whats_new` were added
+  here on 2026-10-29, ahead of the draft, when M09 made them required
+  (`specs/014-m09-lines-vehicles/research.md` R9). They are the sample's
+  values; copy the draft's when it has them.
 - `test/helpers/tutorial_content.dart` layers them over the bundled sample:
   the draft's `line_hay` and its trips 01–05 replace the sample's, and the
   speech pools are added. Everything else stays the sample's.

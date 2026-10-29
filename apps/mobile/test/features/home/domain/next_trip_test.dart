@@ -5,7 +5,9 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
+import 'package:wassal/core/content/pack_content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/player_progress.dart';
 import 'package:wassal/core/progress/domain/unlocks.dart';
 import 'package:wassal/features/home/application/home_model.dart';
@@ -15,6 +17,7 @@ import 'package:wassal/features/onboarding/domain/first_session.dart';
 import '../../../helpers/economy.dart';
 import '../../../helpers/progress.dart';
 import '../../../helpers/tutorial_content.dart';
+import '../../../helpers/content.dart' show samplePackJson;
 
 /// Short names: `h1` is line_hay.01, `g2` line_gamaa.02, `s1` line_souq.01.
 String _long(String short) {
@@ -59,11 +62,12 @@ const _progressionNext = <String, Map<String, String>>{
   '': {'-': 'h1'},
   'h1': {'h1': 'h3', '-': 'h3'},
   'h1 h3': {'h3': 'h4', '-': 'h4'},
-  // Line hay's regular trips done: ch2 opens its story trip h2 mid-line.
-  'h1 h3 h4': {'h4': 'h2', '-': 'h2'},
+  // Line hay's regular trips done: ch2 names the story trip h2 mid-line,
+  // which waits for ch2's goal, line gamaa (specs/014-m09-lines-vehicles,
+  // FR-007), so Home goes on to gamaa.
+  'h1 h3 h4': {'h4': 'g1', '-': 'g1'},
   'h1 h2 h3 h4': {'h2': 'g1', '-': 'g1'},
-  // On gamaa, Home stays on gamaa; from hay, hay's h2 comes first.
-  'g1 h1 h3 h4': {'g1': 'g2', 'h4': 'h2', '-': 'h2'},
+  'g1 h1 h3 h4': {'g1': 'g2', 'h4': 'g2', '-': 'g2'},
   'g1 h1 h2 h3 h4': {'g1': 'g2', 'h2': 'g2', '-': 'g2'},
   'g1 g2 h1 h3 h4': {'g2': 'h2', 'g1': 'h2', '-': 'h2'},
   // Every open line finished (souq needs the micro_old): a replay, on the
@@ -100,9 +104,9 @@ void _sweep(ContentSource c, Map<String, Map<String, String>> table) {
       final next = nextTrip(c, p, lastFinishedTripId: last);
       expect(next, isNotNull, reason: 'after "$key"');
       expect(
-        tripUnlocked(c, p, next!.tripId),
+        tripPlayable(c, p, next!.tripId),
         isTrue,
-        reason: '${next.tripId} after "$key" must be startable',
+        reason: '${next.tripId} after "$key" must be playable',
       );
       final want = table[key]![last == null ? '-' : _short(last)];
       if (want == null) continue;
@@ -130,7 +134,7 @@ void main() {
 
     test('the line played last first', () {
       expect(_next(c, _played('g1 h1 h3 h4'), last: 'g1'), 'g2');
-      expect(_next(c, _played('g1 h1 h3 h4'), last: 'h4'), 'h2');
+      expect(_next(c, _played('g1 g2 h1 h3 h4'), last: 'h4'), 'h2');
     });
 
     test('then the earliest open line by order', () {
@@ -159,7 +163,7 @@ void main() {
     });
 
     test('index is 1-based in the line', () {
-      final next = nextTrip(c, _played('h1 h3 h4'))!;
+      final next = nextTrip(c, _played('g1 g2 h1 h3 h4'))!;
       expect(next.tripId, 'line_hay.02');
       expect(next.lineId, LineId.lineHay);
       expect(next.index, 2);
@@ -184,7 +188,7 @@ void main() {
       expect(
         nextTrip(
           c,
-          _played('g1 h1 h3 h4'),
+          _played('g1 g2 h1 h3 h4'),
           lastFinishedTripId: 'gone.01',
         )?.tripId,
         'line_hay.02',
@@ -228,6 +232,50 @@ void main() {
       expect(_next(c, PlayerProgress.empty), 'h1');
     });
   });
+
+  group(
+    'story trips wait for their chapter (specs/014-m09-lines-vehicles)',
+    () {
+      final draft = draftContent();
+      String t(String line, int n) => '$line.${n.toString().padLeft(2, '0')}';
+      final hay = {for (var n = 1; n <= 19; n++) t('line_hay', n): 1};
+
+      test('line_gamaa.18 waits for the shabka; .19 comes first', () {
+        final upTo17 = {for (var n = 1; n <= 17; n++) t('line_gamaa', n): 1};
+        final p = player({...hay, ...upTo17}, {microOld});
+        expect(
+          nextTrip(draft, p, lastFinishedTripId: 'line_gamaa.17')?.tripId,
+          'line_gamaa.19',
+        );
+        final bought = player({...hay, ...upTo17}, {microOld, shabka});
+        expect(
+          nextTrip(draft, bought, lastFinishedTripId: 'line_gamaa.17')?.tripId,
+          'line_gamaa.18',
+        );
+      });
+
+      test('line_hay.20 comes only after .01–.19', () {
+        for (var n = 1; n <= 19; n++) {
+          final p = player({for (var i = 1; i < n; i++) t('line_hay', i): 1});
+          expect(
+            nextTrip(draft, p)?.tripId,
+            t('line_hay', n),
+            reason: 'after ${n - 1}',
+          );
+        }
+        expect(nextTrip(draft, player(hay))?.tripId, 'line_hay.20');
+      });
+
+      test('the sample\'s story trip line_hay.03 waits for ch1\'s goal', () {
+        final sample = sampleContent();
+        expect(
+          nextTrip(sample, player({'line_hay.01': 1}))?.tripId,
+          'line_hay.02',
+        );
+        expect(nextTrip(sample, player(hayDone))?.tripId, 'line_hay.03');
+      });
+    },
+  );
 
   group('every reachable state', () {
     test('the sample pack', () => _sweep(sampleContent(), _sampleNext));
@@ -283,6 +331,39 @@ void main() {
         ),
         nextTrip(tutorial, p, lastFinishedTripId: tutorialTripIds.last),
       );
+    });
+
+    test('a story tutorial trip the rules refuse is never Home\'s next trip '
+        '(T098)', () {
+      // A pack whose third tutorial trip is a story trip whose chapter (the
+      // sample's ch1, which completes خط الحي) still waits: a regular trip
+      // is added, so the line isn't complete.
+      final json = samplePackJson();
+      final trips = json['trips']! as List<Object?>;
+      final hay = trips.cast<Map<String, Object?>>().firstWhere(
+        (t) => t['trip_id'] == 'line_hay.01',
+      );
+      trips.add({...hay, 'trip_id': 'line_hay.99'});
+      final c = PackContentSource(Pack.fromJson(json));
+      final ids = tutorialTripsOf(c);
+      expect(ids[2], 'line_hay.03');
+      final p = player({for (final id in ids.take(2)) id: 1});
+      const done = TripProgress(bestStars: 1, plays: 1, firstCompletedAtMs: 1);
+      final s = FirstSession(
+        FirstSessionFacts(
+          flags: const FirstSessionFlags(),
+          tutorialTrips: ids,
+          progress: {for (final id in ids.take(2)) id: done},
+          fuelLiters: 5,
+          fuelUnlimited: false,
+          tutorialGranted: false,
+        ),
+      );
+      expect(s.nextTutorialTrip, ids[2]);
+      expect(tripPlayable(c, p, ids[2]), isFalse);
+      final next = homeNextTrip(c, p, s, lastFinishedTripId: ids[1]);
+      expect(next?.tripId, isNot(ids[2]));
+      expect(next?.tripId, nextTrip(c, p, lastFinishedTripId: ids[1])?.tripId);
     });
   });
 }

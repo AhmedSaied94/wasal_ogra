@@ -14,6 +14,13 @@
           "speckit.git.remote",
           "speckit.git.initialize",
           "speckit.git.commit"
+        ],
+        "opencode": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
         ]
       },
       "registered_skills": [],
@@ -28,10 +35,30 @@
       "registered_commands": {
         "claude": [
           "speckit.feature-branch.ensure"
+        ],
+        "opencode": [
+          "speckit.feature-branch.ensure"
         ]
       },
       "registered_skills": [],
       "installed_at": "2026-10-17T22:12:32.746985+00:00"
+    },
+    "review": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:dd75c76a2bf68c48dba34d40838b1bcd166aecf93fabe477c6f963f48e490c08",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.review.implementation"
+        ],
+        "opencode": [
+          "speckit.review.implementation"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-10-29T07:41:45.706027+00:00"
     }
   }
 }

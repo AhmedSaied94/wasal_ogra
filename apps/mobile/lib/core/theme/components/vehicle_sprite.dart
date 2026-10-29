@@ -12,6 +12,7 @@ class VehicleSprite extends StatelessWidget {
     required this.vehicle,
     required this.fallback,
     this.driving = false,
+    this.fit = rive.Fit.fill,
     super.key,
   });
 
@@ -22,6 +23,10 @@ class VehicleSprite extends StatelessWidget {
 
   /// The wheels spin; otherwise the body bobs.
   final bool driving;
+
+  /// How the artboard fills the box. A caller whose box isn't 236×150
+  /// passes a uniform fit, so the vehicle isn't stretched.
+  final rive.Fit fit;
 
   /// The artboard's size.
   static const size = Size(236, 150);
@@ -37,7 +42,7 @@ class VehicleSprite extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RiveArtView(
     artboard: 'Vehicle',
-    fit: rive.Fit.fill,
+    fit: fit,
     bind: (model) {
       model.number('look')?.value = look(vehicle).toDouble();
       model.boolean('driving')?.value = driving;

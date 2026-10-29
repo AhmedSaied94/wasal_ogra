@@ -94,6 +94,19 @@ bool _screensAllowed(String uri) =>
     uri.startsWith('package:wassal/features/result/domain/') ||
     _sameFolder(uri);
 
+/// Lines' domain (specs/014-m09-lines-vehicles, research R18): the content
+/// models and source, the SKU ids' wire names, the progression rules, and
+/// Home's savings target and next trip, which it reuses rather than moves.
+bool _linesAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'package:wassal/core/content/domain/content_source.dart' ||
+    uri == 'package:wassal/core/economy/domain/wire.dart' ||
+    uri.startsWith('package:wassal/core/progress/domain/') ||
+    uri == 'package:wassal/features/home/domain/savings_target.dart' ||
+    uri == 'package:wassal/features/home/domain/next_trip.dart' ||
+    uri.startsWith('package:wassal/features/lines/domain/') ||
+    _sameFolder(uri);
+
 /// Files allowed one more import than their folder: the economy checks a
 /// name with the onboarding's rules, the one check the phone and the economy
 /// share (M07 research R7, R8). Nothing else of `features/`.
@@ -118,6 +131,7 @@ const _domains = <String, bool Function(String)>{
   'lib/features/home/domain': _screensAllowed,
   'lib/features/pre_trip/domain': _screensAllowed,
   'lib/features/result/domain': _screensAllowed,
+  'lib/features/lines/domain': _linesAllowed,
 };
 
 final _directive = RegExp(

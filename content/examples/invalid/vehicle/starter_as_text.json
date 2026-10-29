@@ -65,6 +65,9 @@
       "seat_id": "C_l"
     }
   ],
+  "short_name": {
+    "ar-EG": "قديم"
+  },
   "starter": "yes",
   "vehicle_id": "micro_old"
 }

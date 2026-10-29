@@ -79,6 +79,83 @@ class UncutTextContrastGuideline extends MinimumTextContrastGuideline {
   }
 }
 
+/// [iOSTapTargetGuideline], except for a target a scroll view cuts at its
+/// edge. The guideline skips those only in a view with implicit scrolling;
+/// in any scroll view a cut target is full size once scrolled into view
+/// (a line card half past the top of Lines' map). Targets in full view are
+/// checked as before.
+class UncutTapTargetGuideline extends MinimumTapTargetGuideline {
+  UncutTapTargetGuideline(WidgetTester tester)
+    : _viewports = [
+        for (final e in find.byType(Scrollable).evaluate())
+          if (e.renderObject case final RenderBox box? when box.hasSize)
+            box.localToGlobal(Offset.zero) & box.size,
+      ],
+      _ratio = tester.view.devicePixelRatio,
+      // As [iOSTapTargetGuideline].
+      super(
+        size: const Size(44, 44),
+        link: 'https://developer.apple.com/design/human-interface-guidelines/ios/visual-design/adaptivity-and-layout/',
+      );
+
+  final List<Rect> _viewports;
+  final double _ratio;
+
+  /// How near a scroll view's edge a cut target lies, in points.
+  static const double _edge = 0.5;
+
+  @override
+  bool shouldSkipNode(SemanticsNode node) {
+    if (super.shouldSkipNode(node)) return true;
+    // The node's rect is already cut to what shows; bring it to the view.
+    var rect = node.rect;
+    for (SemanticsNode? n = node; n != null; n = n.parent) {
+      if (n.transform case final transform?) {
+        rect = MatrixUtils.transformRect(transform, rect);
+      }
+    }
+    final target = Rect.fromLTRB(
+      rect.left / _ratio,
+      rect.top / _ratio,
+      rect.right / _ratio,
+      rect.bottom / _ratio,
+    );
+    return _viewports.any(
+      (v) =>
+          v.inflate(_edge).contains(target.topLeft) &&
+          v.inflate(_edge).contains(target.bottomRight) &&
+          ((target.top - v.top).abs() < _edge ||
+              (v.bottom - target.bottom).abs() < _edge ||
+              (target.left - v.left).abs() < _edge ||
+              (v.right - target.right).abs() < _edge),
+    );
+  }
+}
+
+/// Checks one state of a screen (T106): every target ≥ 44×44, readable
+/// contrast, text ≥ 12 after scaling, nothing overflowing, and no text cut
+/// short.
+Future<void> expectMinimumSizes(
+  WidgetTester tester,
+  Set<String> titles,
+  Future<void> Function(WidgetTester tester) pump,
+) async {
+  final semantics = tester.ensureSemantics();
+  await pump(tester);
+  await expectLater(tester, meetsGuideline(UncutTapTargetGuideline(tester)));
+  await expectLater(tester, meetsGuideline(UncutTextContrastGuideline(tester)));
+  for (final span in effectiveFontSizes(tester)) {
+    expect(
+      span.size,
+      greaterThanOrEqualTo(minTextSize),
+      reason: '"${span.text}"',
+    );
+  }
+  expect(tester.takeException(), isNull);
+  expect(clippedText(tester, titles), isEmpty);
+  semantics.dispose();
+}
+
 void main() {
   late Set<String> titles;
 

@@ -5,6 +5,7 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/unlocks.dart';
 
 import '../../helpers/economy.dart';
@@ -200,6 +201,21 @@ void _sweep(ContentSource c, Map<String, _Opens> table) {
 }
 
 void main() {
+  test('the sample\'s story trip waits for ch1\'s goal on the phone '
+      '(specs/014-m09-lines-vehicles, FR-007)', () {
+    final c = sampleContent();
+    // The server's rule opens line_hay.03 from the start; the phone's waits
+    // for line_hay to be complete.
+    for (final state in [
+      <String, int>{},
+      {'line_hay.01': 1},
+    ]) {
+      expect(tripUnlocked(c, player(state), 'line_hay.03'), isTrue);
+      expect(tripPlayable(c, player(state), 'line_hay.03'), isFalse);
+    }
+    expect(tripPlayable(c, player(hayDone), 'line_hay.03'), isTrue);
+  });
+
   test('the sample pack: every reachable state opens what the table says', () {
     _sweep(sampleContent(), _sampleTable);
   });

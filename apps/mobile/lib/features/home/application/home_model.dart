@@ -10,6 +10,7 @@ import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/domain/fuel.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/player_progress.dart';
 import 'package:wassal/core/sync/server_status.dart';
 import 'package:wassal/features/home/application/home_slots.dart';
@@ -128,7 +129,8 @@ final class HomeModel {
 }
 
 /// Home's next trip: M07's tutorial trip in the first session (FR-011),
-/// otherwise FR-010's rule.
+/// otherwise FR-010's rule. A tutorial trip the rules refuse (a story trip
+/// whose chapter waits) is never offered (FR-012, SC-003a).
 NextTrip? homeNextTrip(
   ContentSource content,
   PlayerProgress progress,
@@ -136,7 +138,10 @@ NextTrip? homeNextTrip(
   required String? lastFinishedTripId,
 }) {
   if (session.nextTutorialTrip case final tripId?) {
-    if (NextTrip.of(content, tripId) case final next?) return next;
+    if (NextTrip.of(content, tripId) case final next?
+        when tripPlayable(content, progress, tripId)) {
+      return next;
+    }
   }
   return nextTrip(content, progress, lastFinishedTripId: lastFinishedTripId);
 }

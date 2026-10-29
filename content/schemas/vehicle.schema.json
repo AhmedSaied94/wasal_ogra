@@ -9,13 +9,17 @@
     "name",
     "order",
     "starter",
-    "seats"
+    "seats",
+    "short_name"
   ],
   "properties": {
     "vehicle_id": {
       "$ref": "common.schema.json#/$defs/VehicleId"
     },
     "name": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "short_name": {
       "$ref": "common.schema.json#/$defs/LocalizedText"
     },
     "order": {

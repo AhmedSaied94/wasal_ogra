@@ -1,7 +1,7 @@
 # Local development overrides (quickstart "Setup", data-model dev column).
 # Publishes the database and cache on loopback only, so pytest and manage.py can run on the host.
-# If those ports are taken, export WASSAL_DEV_PG_PORT / WASSAL_DEV_VALKEY_PORT and change the
-# matching URLs in backend/.env.
+# The database is on 5433, beside a native PostgreSQL's 5432. If a port is taken, export
+# WASSAL_DEV_PG_PORT / WASSAL_DEV_VALKEY_PORT and change the matching URLs in backend/.env.
 
 name: wassal-dev
 
@@ -31,7 +31,7 @@ x-after-migrate: &after-migrate
 services:
   postgres:
     ports:
-      - "127.0.0.1:${WASSAL_DEV_PG_PORT:-5432}:5432"
+      - "127.0.0.1:${WASSAL_DEV_PG_PORT:-5433}:5432"
 
   valkey:
     ports:

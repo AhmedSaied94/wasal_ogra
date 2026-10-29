@@ -30,6 +30,8 @@ Conventions for every table below:
 | `unlock_vehicle` | FK `Vehicle`, null, PROTECT | Required if and only if `unlock_kind=vehicle` (form + build check) |
 | `unlock_after_line` | FK `Line`, null, PROTECT | Required if and only if `unlock_kind=line_complete`. Not itself. |
 | `difficulty_min`, `difficulty_max` | smallint 0–100 | `min ≤ max`. B05 defines the score. |
+| `whats_new_ar_eg`, `whats_new_ar` | text | What Lines shows the line brings (M09, migration `0010`; `''` for rows from before it, which a build refuses) |
+| `display_fare_piasters` | positive int | The card's fare chip, display only: ≥ 50 and a multiple of 50 (database check and `clean()`; M09, `0010`, default 50) |
 
 ### `content.Station`
 
@@ -46,6 +48,7 @@ Conventions for every table below:
 | --- | --- | --- |
 | `vehicle_id` | varchar, unique | Glossary closed set. Permanent. |
 | `name_ar_eg`, `name_ar` | text | — |
+| `short_name_ar_eg`, `short_name_ar` | text | Its name on the Lines tile (M09, `0010`) |
 | `starter` | bool | `true` for `tuktuk` (not owned, not sold). Starter vehicles have no catalog price, and every other vehicle has exactly one. |
 | `order` | smallint, unique | — |
 

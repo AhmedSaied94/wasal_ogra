@@ -6,7 +6,10 @@ import '../../helpers/pump_app.dart';
 
 // The destination table (contracts/routes.md, FR-014, FR-017), with M07's
 // two first-session routes (specs/012-m07-onboarding/contracts/
-// first-session.md "New routes").
+// first-session.md "New routes") and M09's card under a line's details
+// (specs/014-m09-lines-vehicles, data-model "Routes"). Lines' links are its
+// real controls since M09: a card opens its details, a tile its vehicle,
+// the details the card.
 
 const _p = Presentation.page;
 const _s = Presentation.sheet;
@@ -34,8 +37,14 @@ const expected = <String, (String?, Presentation, Section, List<String>)>{
   'trip': ('/trip/:tripId', _p, _none, ['result']),
   'tripPause': (null, Presentation.overlay, _none, ['home']),
   'result': ('/trip/:tripId/result', _p, _none, ['home', 'preTrip']),
-  'lines': ('/lines', _t, Section.lines, ['lineDetail']),
-  'lineDetail': ('/lines/:lineId', _s, Section.lines, ['vehiclePurchase']),
+  'lines': ('/lines', _t, Section.lines, ['lineDetail', 'vehiclePurchase']),
+  'lineDetail': ('/lines/:lineId', _s, Section.lines, ['linePreTrip']),
+  'linePreTrip': (
+    '/lines/:lineId/pre-trip/:tripId',
+    _s,
+    Section.lines,
+    ['trip'],
+  ),
   'vehiclePurchase': ('/lines/vehicle/:vehicleId', _s, Section.lines, []),
   'apartment': (
     '/apartment',

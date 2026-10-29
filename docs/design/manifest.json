@@ -216,6 +216,60 @@
   "h": 844
  },
  {
+  "file": "screens/LinesFirst.html",
+  "png": "png/LinesFirst.png",
+  "artboard": "LinesFirst",
+  "title": "الخطوط · الفصل ١",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/LinesOwned.html",
+  "png": "png/LinesOwned.png",
+  "artboard": "LinesOwned",
+  "title": "الخطوط · بعد الميكروباص",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/LineDetailsStory.html",
+  "png": "png/LineDetailsStory.png",
+  "artboard": "LineDetailsStory",
+  "title": "تفاصيل الخط · مشوار قصة جاي",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/LineDetailsDone.html",
+  "png": "png/LineDetailsDone.png",
+  "artboard": "LineDetailsDone",
+  "title": "تفاصيل الخط · خلص",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/BuyVehicleShort.html",
+  "png": "png/BuyVehicleShort.png",
+  "artboard": "BuyVehicleShort",
+  "title": "شراء العربية · الفلوس ناقصة",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/BuyVehicleOwned.html",
+  "png": "png/BuyVehicleOwned.png",
+  "artboard": "BuyVehicleOwned",
+  "title": "شراء العربية · عربيتك",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
   "file": "screens/AptGoal.html",
   "png": "png/AptGoal.png",
   "artboard": "AptGoal",
@@ -436,6 +490,24 @@
   "png": "png/Invite.png",
   "artboard": "Invite",
   "title": "ادعي صاحبك",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/LineDetailsLocked.html",
+  "png": "png/LineDetailsLocked.png",
+  "artboard": "LineDetailsLocked",
+  "title": "تفاصيل الخط · مقفول",
+  "page": "later",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/BuyVehicleNotForSale.html",
+  "png": "png/BuyVehicleNotForSale.png",
+  "artboard": "BuyVehicleNotForSale",
+  "title": "شراء العربية · مش للبيع لسه",
   "page": "later",
   "w": 390,
   "h": 844

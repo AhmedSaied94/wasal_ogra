@@ -204,6 +204,12 @@ CASES: list[tuple[str, Mutation, str, tuple[str, str], str]] = [
     ("V-M1", _jenehat_booster, "V-M1", ("catalog_price", "booster:change_bag"), "$.currency"),
     ("V-X1 trailing space", _text("lines", LINE_HAY, "name", "ar-EG", edit=lambda t: t + " "),
      "V-X1", ("line", "line_hay"), "$.name.ar-EG"),
+    ("V-X1 line whats_new digit", _text("lines", LINE_GAMAA, "whats_new", "ar-EG",
+                                        edit=lambda t: t + "2"),
+     "V-X1", ("line", "line_gamaa"), "$.whats_new.ar-EG"),
+    ("V-X1 vehicle short_name space", _text("vehicles", VEHICLE_TUKTUK, "short_name", "ar-EG",
+                                            edit=lambda t: t + " "),
+     "V-X1", ("vehicle", "tuktuk"), "$.short_name.ar-EG"),
     ("V-X1 leading space", _text("tasks", 0, "text", "ar-EG", edit=lambda t: " " + t), "V-X1",
      ("task", "task_exact_change"), "$.text.ar-EG"),
     ("V-X1 ascii digit", _text("rooms", 0, "name", "ar-EG", edit=lambda t: t + "3"), "V-X1",
@@ -250,7 +256,8 @@ def test_each_rule_names_what_it_refuses(
 
 
 def test_every_rule_code_has_a_case() -> None:
-    # V-C3 to V-C5 (M07) are cases of the example set: invalid/expected.json gives their codes.
+    # V-C3 to V-C5 (M07) and a V-X1 (M09) are cases of the example set: invalid/expected.json
+    # gives their codes.
     codes = {code for _, _, code, _, _ in CASES} | {
         entry["code"] for entry in EXPECTED.values() if isinstance(entry, dict)
     }

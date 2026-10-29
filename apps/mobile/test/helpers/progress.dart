@@ -90,3 +90,14 @@ List<Set<String>> reachableStates(
   }
   return states;
 }
+
+ContentSource? _draft;
+ContentSource? _artboard;
+
+/// [draftShaped] as content (specs/014-m09-lines-vehicles, T012).
+ContentSource draftContent() =>
+    _draft ??= PackContentSource(Pack.fromJson(draftShaped()));
+
+/// [artboardLines] as content (specs/014-m09-lines-vehicles, T012).
+ContentSource artboardContent() =>
+    _artboard ??= PackContentSource(Pack.fromJson(artboardLines()));

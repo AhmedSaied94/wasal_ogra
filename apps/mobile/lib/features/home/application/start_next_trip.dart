@@ -1,20 +1,26 @@
-// The one way into a trip from Home, the card's launcher and «مشوار تاني»
-// (specs/013-m08-home-result, contracts/home.md "startNextTrip"): the fuel
-// sheet on an empty tank; else the checkpoint, then the card or the trip.
+// The one way into a trip from Home, the card's launcher, «مشوار تاني» and
+// Lines (specs/013-m08-home-result, contracts/home.md "startNextTrip";
+// specs/014-m09-lines-vehicles, contracts/line-details.md "Starting a
+// trip"): nothing for a trip that may not start; the fuel sheet on an empty
+// tank; else the checkpoint, then the card or the trip.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
 import 'package:wassal/features/home/application/checkpoint.dart';
 import 'package:wassal/features/home/application/home_model.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/pre_trip/application/card_mode_provider.dart';
+import 'package:wassal/features/trip/domain/line_ids.dart';
 
 part 'start_next_trip.g.dart';
 
 /// Where a start came from, for M15's analytics.
-enum StartFrom { home, result }
+enum StartFrom { home, result, lines }
 
 /// The fuel sheet (M12's; a placeholder until then).
 const fuelSheetLocation = '/shop/fuel';
@@ -43,6 +49,14 @@ Future<bool> startNextTrip(
   required StartFrom from,
   CardSkip skipCard = skipPreTripCard,
 }) async {
+  // 0. A trip that may not start goes nowhere (specs/014-m09-lines-vehicles
+  // FR-012): every screen offers only playable trips, so this is a guard.
+  final content = ref.read(contentSourceProvider);
+  final trip = content.trip(tripId);
+  if (trip == null ||
+      !tripPlayable(content, ref.read(playerProgressProvider), tripId)) {
+    return false;
+  }
   if (ref.read(startUnderWayProvider)) return false;
   // 1. An empty tank, unless M07's fuel lesson is about to fill it.
   final fuel = homeFuelState(
@@ -69,5 +83,11 @@ Future<bool> startNextTrip(
   if (tutorial || skipCard(ref, tripId)) {
     return NavGuard.go(context, '/trip/$tripId');
   }
-  return NavGuard.go(context, '/home/pre-trip/$tripId');
+  // The card opens where the start came from, so its close lands there:
+  // under the line's details from Lines (research R5).
+  return NavGuard.go(context, switch (from) {
+    StartFrom.home || StartFrom.result => '/home/pre-trip/$tripId',
+    StartFrom.lines =>
+      '/lines/${toGlossaryLine(trip.lineId).wireName}/pre-trip/$tripId',
+  });
 }

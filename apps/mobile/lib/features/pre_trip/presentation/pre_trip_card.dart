@@ -10,7 +10,7 @@ import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/progress/application/player_progress_provider.dart';
-import 'package:wassal/core/progress/domain/unlocks.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
@@ -31,9 +31,13 @@ import 'package:wassal/features/pre_trip/presentation/stop_prices.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class PreTripCard extends ConsumerStatefulWidget {
-  const PreTripCard({required this.tripId, super.key});
+  const PreTripCard({required this.tripId, this.leaveTo = '/home', super.key});
 
   final String tripId;
+
+  /// Where an unknown or unplayable trip's card goes: الموقف, or the line's
+  /// details when opened from Lines (specs/014-m09-lines-vehicles, R5).
+  final String leaveTo;
 
   static const goKey = Key('PreTripCard.go');
   static const closeKey = Key('PreTripCard.close');
@@ -57,12 +61,13 @@ class _PreTripCardState extends ConsumerState<PreTripCard> {
   );
   bool _leaving = false;
 
-  /// A trip the pack lacks, or one not open: back to الموقف, once.
+  /// A trip the pack lacks, or one not playable: back where the card came
+  /// from, once.
   void _leave() {
     if (_leaving) return;
     _leaving = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) NavGuard.go(context, '/home');
+      if (mounted) NavGuard.go(context, widget.leaveTo);
     });
   }
 
@@ -85,7 +90,7 @@ class _PreTripCardState extends ConsumerState<PreTripCard> {
     final briefing = ref.watch(tripBriefingProvider(widget.tripId));
     final open =
         briefing != null &&
-        tripUnlocked(
+        tripPlayable(
           ref.watch(contentSourceProvider),
           ref.watch(playerProgressProvider),
           widget.tripId,

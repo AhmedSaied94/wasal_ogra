@@ -10,9 +10,7 @@ from django.contrib.postgres.validators import ArrayMaxLengthValidator, ArrayMin
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
-from django.db.models import F, Q
-from django.db.models.functions import Mod
-from django.db.models.lookups import Exact
+from django.db.models import Q
 from wassal_content.models import (
     Archetype,
     Denomination,
@@ -22,11 +20,16 @@ from wassal_content.models import (
     TripKind,
 )
 
-from apps.content.models.base import PermanentModel, TimestampedModel, choices
+from apps.content.models.base import (
+    COIN_PIASTERS,
+    PermanentModel,
+    TimestampedModel,
+    choices,
+    multiple_of_coin,
+)
 from apps.content.models.lines import Line, Seat, Station, Vehicle
 
 SEED_MAX = 4_294_967_295  # xorshift32 needs a non-zero 32-bit seed
-COIN_PIASTERS = 50
 PAYMENT_MAX = 10
 GROUP_SIZE_MIN, GROUP_SIZE_MAX = 2, 12
 DENOMINATIONS = tuple(int(d) for d in Denomination)
@@ -42,10 +45,6 @@ def parent_trip(row: models.Model) -> Trip | None:
         return row.trip  # type: ignore[attr-defined, no-any-return]
     except Trip.DoesNotExist:
         return None
-
-
-def multiple_of_coin(field: str) -> Q:
-    return Q(Exact(Mod(F(field), COIN_PIASTERS), 0))
 
 
 class Trip(PermanentModel):

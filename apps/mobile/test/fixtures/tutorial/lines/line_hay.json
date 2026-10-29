@@ -3,6 +3,7 @@
     "max": 30,
     "min": 0
   },
+  "display_fare_piasters": 700,
   "line_id": "line_hay",
   "name": {
     "ar-EG": "خط الحي"
@@ -48,5 +49,8 @@
   ],
   "unlock": {
     "kind": "start"
+  },
+  "whats_new": {
+    "ar-EG": "تعلّم اللمّ والباقي، الحاجة، النايم، المستعجل"
   }
 }

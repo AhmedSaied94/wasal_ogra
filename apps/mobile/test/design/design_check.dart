@@ -36,10 +36,12 @@ void applyDesignSurface(
 /// else by the node whose label contains its `text`. Exactly one node must
 /// match. A box in [tolerances] is checked within its own tolerance, for a
 /// control placed after others whose text Flutter measures a little wider
-/// than the browser did. Then every tappable node that no box matched must
-/// have a label in [appOnly]. A sheet's or dialog's [scrim], which the board
-/// draws as a box, is left out: the node with that label covering the whole
-/// frame. All problems are reported together, each naming the artboard.
+/// than the browser did. A box in [offsets] is expected moved by its offset,
+/// for a listed difference where a later board moved it. Then every
+/// tappable node that no box matched must have a label in [appOnly]. A
+/// sheet's or dialog's [scrim], which the board draws as a box, is left
+/// out: the node with that label covering the whole frame. All problems are
+/// reported together, each naming the artboard.
 void expectLayoutMatches(
   WidgetTester tester,
   String artboard, {
@@ -49,6 +51,7 @@ void expectLayoutMatches(
   Set<String> appOnly = const {},
   double tolerance = 2,
   Map<int, double> tolerances = const {},
+  Map<int, Offset> offsets = const {},
   String? scrim,
 }) {
   final design = board ?? loadBoard(artboard);
@@ -93,7 +96,12 @@ void expectLayoutMatches(
     }
     final node = found.single;
     matched.add(node.id);
-    final want = Rect.fromLTWH(box.x, box.y, box.w, box.h);
+    final want = Rect.fromLTWH(
+      box.x,
+      box.y,
+      box.w,
+      box.h,
+    ).shift(offsets[box.id] ?? Offset.zero);
     final within = tolerances[box.id] ?? tolerance;
     if (!_within(node.rect, want, within)) {
       problems.add(
