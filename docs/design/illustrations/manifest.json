@@ -66,6 +66,24 @@
   "label": ""
  },
  {
+  "file": "illustrations/screens/BuyVehicleNotForSale_01.svg",
+  "screen": "BuyVehicleNotForSale",
+  "size": "358x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/BuyVehicleOwned_01.svg",
+  "screen": "BuyVehicleOwned",
+  "size": "358x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/BuyVehicleShort_01.svg",
+  "screen": "BuyVehicleShort",
+  "size": "358x190",
+  "label": ""
+ },
+ {
   "file": "illustrations/screens/C-Home_01.svg",
   "screen": "C-Home",
   "size": "46x46",
