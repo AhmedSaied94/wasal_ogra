@@ -18,7 +18,7 @@ The repo is on GitHub (`origin` → `AhmedSaied94/wasal_ogra`, default branch `m
 - `docs/`: the source-of-truth design documents (see below).
 - `docs/design/`: the visual design, Style C «كرتون ناعم» (adopted 2026-10-23): `HANDOFF.md`, `tokens.json`, the artboards as HTML, PNGs and measured boxes, icons, illustrations, and Lottie files as a motion reference. Feature **008.5** (M21) moved what was built to it; every feature after it builds its screens from it, with a sample, a golden and a layout test per artboard (`docs/design/README.md` "Checking a screen against the design").
 - `.specify/`, `.claude/skills/` (plus older Codex and Copilot copies in `.agents/skills/` and `.github/skills/`): a [spec-kit](https://github.com/github/spec-kit) v1.2.1 scaffold for spec-driven development, with a ratified constitution.
-- `tools/speckit-extensions/feature-branch/`: source of the project's own Spec Kit extension (see "Spec-kit workflow").
+- `tools/speckit-extensions/`: source of the project's own Spec Kit extensions, `feature-branch` and `review` (see "Spec-kit workflow").
 - `.github/workflows/mobile.yml`: mobile CI (it also builds and tests `packages/content_models` and `packages/trip_engine`).
 - `codemagic.yaml`: the iOS build on Codemagic. Its one workflow, `ios-dev-unsigned`, builds the unsigned dev IPA (`docs/runbooks/ios-test-build.md`).
 
@@ -208,13 +208,15 @@ The design (`docs/design/`) decides how screens look:
 
 ## Spec-kit workflow
 
-- Spec-kit's integration is **Claude Code** (`.specify/integration.json`). Run each step as a slash command: `/speckit-constitution` → `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` (plus `/speckit-checklist`, `/speckit-converge` and `/speckit-taskstoissues`). The skill files live in `.claude/skills/speckit-<step>/SKILL.md`.
+- Spec-kit's default integration is **Claude Code** (`.specify/integration.json`). Run each step as a slash command: `/speckit-constitution` → `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` → `/speckit-review-implementation` (plus `/speckit-checklist`, `/speckit-converge` and `/speckit-taskstoissues`). The skill files live in `.claude/skills/speckit-<step>/SKILL.md`.
+- **opencode is installed too** (`.opencode/commands/speckit.<step>.md`), so `/speckit.implement` can run on another model there. Then run `/speckit-review-implementation` in Claude Code: it reviews the change set against the merge base layer by layer (spec, API, database, economy, engine, mobile, UI, security, tests, docs), runs the CI checks the change triggers, writes `specs/<feature>/reviews/round-<K>.md`, and appends a `Review fixes (round K)` phase to `tasks.md` for the next `/speckit.implement`. Its arguments: `base=<ref>`, `layers=<…>`, `no-run`, `fix`.
+- `specify extension add` writes commands for the default integration only. To give opencode an extension's commands as well, run `specify integration use opencode`, then `specify integration use claude`, then `chmod +x .specify/scripts/bash/*.sh` (the switch drops the bit).
 - The Specify CLI generates and hash-tracks these skill files, templates and scripts (`.specify/integrations/*.manifest.json`). Don't hand-edit them.
 - **Feature branches are handled by hooks** (`.specify/extensions.yml`):
   - The core `git` extension creates the feature branch during `/speckit-specify`.
   - The project's `feature-branch` extension runs before every later step (clarify, plan, tasks, analyze, checklist, implement, converge, taskstoissues). It checks out the branch of the active feature in `.specify/feature.json`; if that branch only exists on the remote, it tracks it, and if it exists nowhere, it creates it.
   - If git refuses the switch (local changes in the way), the step stops. Don't stash, reset or discard anything to get past it; ask the user.
-- To change the `feature-branch` extension, edit `tools/speckit-extensions/feature-branch/` and reinstall it with `specify extension add --dev tools/speckit-extensions/feature-branch --force`. Never edit the installed copy under `.specify/extensions/`.
+- To change the project's extensions (`feature-branch`, `review`), edit `tools/speckit-extensions/<name>/` and reinstall it with `specify extension add --dev tools/speckit-extensions/<name> --force`. Never edit the installed copy under `.specify/extensions/`.
 - **The constitution** (`.specify/memory/constitution.md`, v1.6.0, ratified 2026-10-18, amended 2026-10-27) overrides conflicting guidance, including this file.
   - Every `plan.md` must pass its Constitution Check.
   - Principles I, II, III, IV and VI allow no exceptions: engine purity, integer money, parity, server authority, idempotency.

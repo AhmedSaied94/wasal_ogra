@@ -1,6 +1,7 @@
 installed:
 - feature-branch
 - git
+- review
 settings:
   auto_execute_hooks: true
 hooks:
