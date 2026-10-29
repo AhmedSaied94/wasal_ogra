@@ -67,3 +67,21 @@ if created:
 adjust(Player.objects.get(pk="$playerId"), Currency.BONAT, $bonat, "app e2e", actor)
 ''');
 }
+
+/// Adds [jenehat] to [playerId]'s wallet, as [grantBonat] adds BONAT
+/// (specs/014-m09-lines-vehicles T081: enough for the old microbus).
+Future<void> grantJenehat(String playerId, int jenehat) {
+  if (!_uuid.hasMatch(playerId)) {
+    throw ArgumentError.value(playerId, 'playerId', 'not a UUID');
+  }
+  return backendShell('''
+from apps.accounts.models import Player, User
+from apps.economy.models import Currency
+from apps.economy.services.adjustments import adjust
+actor, created = User.objects.get_or_create(username="ci", defaults={"is_staff": True})
+if created:
+    actor.set_unusable_password()
+    actor.save()
+adjust(Player.objects.get(pk="$playerId"), Currency.JENEHAT, $jenehat, "app e2e", actor)
+''');
+}

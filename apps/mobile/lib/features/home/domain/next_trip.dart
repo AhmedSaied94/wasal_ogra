@@ -6,6 +6,7 @@
 import 'package:content_models/content_models.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
+import 'package:wassal/core/progress/domain/playable.dart';
 import 'package:wassal/core/progress/domain/player_progress.dart';
 import 'package:wassal/core/progress/domain/unlocks.dart';
 
@@ -64,7 +65,9 @@ NextTrip? nextTrip(
   PlayerProgress p, {
   String? lastFinishedTripId,
 }) {
-  bool startable(TripDefinition t) => tripUnlocked(c, p, t.tripId);
+  // A story trip comes at its moment in the story
+  // (specs/014-m09-lines-vehicles, FR-012).
+  bool startable(TripDefinition t) => tripPlayable(c, p, t.tripId);
   bool unfinished(TripDefinition t) => p.starsOf(t.tripId) == 0;
 
   // 3. The line played last; with no finished trip, the first by order.

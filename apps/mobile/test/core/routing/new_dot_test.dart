@@ -57,19 +57,19 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
+    // The shop: the lines dot follows Lines' news since M09.
     await pumpWassalApp(
       tester,
       overrides: [
-        newDotProvider(Section.lines)
-            .overrideWithBuild((ref, notifier) => true),
+        newDotProvider(Section.shop).overrideWithBuild((ref, notifier) => true),
       ],
     );
-    final dot = dotIn(1);
+    final dot = dotIn(3);
     expect(tester.getSize(dot), const Size.square(RingTokens.newDotSize));
 
     final icon = tester.getCenter(
       find.descendant(
-        of: find.byKey(BottomNav.cellKey(1)),
+        of: find.byKey(BottomNav.cellKey(3)),
         matching: find.byType(AppIcon),
       ),
     );
@@ -79,10 +79,10 @@ void main() {
 
     // The dot's label joins its tab's, so the tab reads as new.
     final cellLabel = tester
-        .getSemantics(find.byKey(BottomNav.cellKey(1)))
+        .getSemantics(find.byKey(BottomNav.cellKey(3)))
         .label;
     expect(cellLabel, contains('جديد'));
-    expect(cellLabel, contains('الخطوط'));
+    expect(cellLabel, contains('المحل'));
     semantics.dispose();
   });
 

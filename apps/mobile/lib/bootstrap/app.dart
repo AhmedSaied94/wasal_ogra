@@ -19,6 +19,7 @@ import 'package:wassal/core/theme/app_theme.dart';
 import 'package:wassal/core/theme/components/system_bars.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/home/application/arrival_queue.dart';
+import 'package:wassal/features/lines/application/lines_dot_watcher.dart';
 import 'package:wassal/features/onboarding/application/first_session_lifecycle.dart';
 import 'package:wassal/features/onboarding/application/first_session_service.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
@@ -42,6 +43,7 @@ class WassalApp extends ConsumerStatefulWidget {
 class _WassalAppState extends ConsumerState<WassalApp> {
   ContentLifecycle? _content;
   HomeArrivalQueue? _arrivals;
+  LinesDotWatcher? _linesDot;
   AppLifecycleListener? _lifecycle;
   ProviderSubscription<AsyncValue<SyncLifecycle>>? _sync;
   ProviderSubscription<FirstSessionService>? _firstSession;
@@ -68,6 +70,11 @@ class _WassalAppState extends ConsumerState<WassalApp> {
     // (specs/013-m08-home-result, research R9).
     _arrivals ??= HomeArrivalQueue(
       ref.read(routerProvider),
+      ProviderScope.containerOf(context, listen: false),
+    );
+    // The lines tab's «new» dot, from any tab (specs/014-m09-lines-vehicles,
+    // research R8).
+    _linesDot ??= LinesDotWatcher(
       ProviderScope.containerOf(context, listen: false),
     );
     // A fresh clock reading on every return to the foreground, and no fuel
@@ -126,6 +133,7 @@ class _WassalAppState extends ConsumerState<WassalApp> {
   void dispose() {
     _content?.dispose();
     _arrivals?.dispose();
+    _linesDot?.dispose();
     _lifecycle?.dispose();
     _sync?.close();
     _firstSession?.close();

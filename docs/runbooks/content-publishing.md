@@ -43,6 +43,13 @@ $ADMIN create_staff <name> --group content_author
 A published pack never changes. Its files are written once, and its record keeps only its minimum
 app version mutable.
 
+**After a schema change, build and publish a fresh pack.** A deploy that adds a required field (M09
+added a line's `whats_new` and `display_fare_piasters`, and a vehicle's `short_name`) leaves the
+published packs without it: apps from that release refuse them as unreadable and fall back to their
+bundled pack, and production's promote refuses them against the new schema. Right after the deploy,
+fill the new fields in the admin (rows from before the migration hold its defaults: a fare of 50 and
+empty texts, which a build refuses), then build and publish (steps 3–4).
+
 ### Authoring scenes
 
 A scene's page, and the scenes on its chapter's page, have two fields that tell the app when to

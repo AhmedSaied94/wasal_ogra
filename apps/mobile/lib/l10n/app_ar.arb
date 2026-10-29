@@ -2765,5 +2765,519 @@
   "resultAptGoalAffordable": "تقدر تشتريه!",
   "@resultAptGoalAffordable": {
     "description": "The apartment card when the pay covers the chapter goal before the apartment opens."
+  },
+  "linesTitle": "الخطوط",
+  "@linesTitle": {
+    "description": "Lines' title (HANDOFF lines.title)."
+  },
+  "linesVehiclesA11y": "العربيات",
+  "@linesVehiclesA11y": {
+    "description": "Screen reader: the vehicle strip, a list (HANDOFF lines.vehiclesA11y)."
+  },
+  "linesTileCurrent": "{short} · عربيتك",
+  "@linesTileCurrent": {
+    "description": "The current vehicle's tile: its short name from the pack (HANDOFF lines.vehicleCurrent).",
+    "placeholders": {
+      "short": {
+        "type": "String",
+        "example": "قديم"
+      }
+    }
+  },
+  "linesTileA11yDone": "{name}، خلصته",
+  "@linesTileA11yDone": {
+    "description": "Screen reader: a vehicle the player had before the current one (HANDOFF lines.vehicleDoneA11y).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "توكتوك المعلم"
+      }
+    }
+  },
+  "linesTileA11yCurrent": "{name}، عربيتك دلوقتي",
+  "@linesTileA11yCurrent": {
+    "description": "Screen reader: the player's vehicle (HANDOFF lines.vehicleCurrentA11y).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "الميكروباص القديم"
+      }
+    }
+  },
+  "linesTileA11yPrice": "{name}، بـ{price} جنيه",
+  "@linesTileA11yPrice": {
+    "description": "Screen reader: a vehicle for sale and its JENEHAT price, preformatted (HANDOFF lines.vehicleLockedA11y).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "ميكروباص جديد"
+      },
+      "price": {
+        "type": "String",
+        "example": "٥٬٠٠٠"
+      }
+    }
+  },
+  "linesTileA11yNotForSale": "{name}، مقفولة",
+  "@linesTileA11yNotForSale": {
+    "description": "Screen reader: a vehicle not for sale yet (draft, specs/014-m09-lines-vehicles R14).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "ميكروباص سفر"
+      }
+    }
+  },
+  "linesFare": "{fare} ج",
+  "@linesFare": {
+    "description": "A line's fare chip, preformatted from piasters (HANDOFF lines.fare).",
+    "placeholders": {
+      "fare": {
+        "type": "String",
+        "example": "٨٫٥"
+      }
+    }
+  },
+  "linesStars": "{stars}",
+  "@linesStars": {
+    "description": "A done line's stars when every trip has three (HANDOFF lines.stars), a preformatted ratio.",
+    "placeholders": {
+      "stars": {
+        "type": "String",
+        "example": "٦٠/٦٠"
+      }
+    }
+  },
+  "linesStarsCurrent": "{stars} · المشوار {n} من {total}",
+  "@linesStarsCurrent": {
+    "description": "A current line's star line (HANDOFF lines.stars + lines.tripOf): the stars as a preformatted ratio, then the next trip.",
+    "placeholders": {
+      "stars": {
+        "type": "String",
+        "example": "٢٧/٩٠"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "total": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "linesStarsDone": "{stars} · عيد عشان النجوم",
+  "@linesStarsDone": {
+    "description": "A done line's star line, while a trip lacks a star (HANDOFF lines.stars + lines.replayForStars): the stars as a preformatted ratio.",
+    "placeholders": {
+      "stars": {
+        "type": "String",
+        "example": "٥٤/٦٠"
+      }
+    }
+  },
+  "linesNeedsVehicle": "محتاج {vehicle}",
+  "@linesNeedsVehicle": {
+    "description": "A line locked behind a vehicle, named as the pack names it (HANDOFF lines.lockNeedsVehicle).",
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "ميكروباص جديد"
+      }
+    }
+  },
+  "linesAfterLine": "بعد {line}",
+  "@linesAfterLine": {
+    "description": "A line locked behind another line (HANDOFF lines.lockAfterLine).",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "خط السوق"
+      }
+    }
+  },
+  "linesReasonWithNew": "{reason} · {whatsNew}",
+  "@linesReasonWithNew": {
+    "description": "A locked card's reason followed by what the line brings (HANDOFF `Lines` 3a).",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "محتاج ميكروباص جديد"
+      },
+      "whatsNew": {
+        "type": "String",
+        "example": "الشنط والمتهرب"
+      }
+    }
+  },
+  "linesStandingCurrent": "الحالي",
+  "@linesStandingCurrent": {
+    "description": "Screen reader: a current line (draft, R14)."
+  },
+  "linesStandingDone": "خلص",
+  "@linesStandingDone": {
+    "description": "A done line's chip, and its standing for a screen reader (HANDOFF lines.done)."
+  },
+  "linesStandingLocked": "مقفول",
+  "@linesStandingLocked": {
+    "description": "Screen reader: a locked line (draft, R14)."
+  },
+  "linesDetailStars": "{earned} من {max} نجمة",
+  "@linesDetailStars": {
+    "description": "Screen reader: a line's stars. Both preformatted.",
+    "placeholders": {
+      "earned": {
+        "type": "String",
+        "example": "٢٧"
+      },
+      "max": {
+        "type": "String",
+        "example": "٩٠"
+      }
+    }
+  },
+  "linesDetailCurrent": "{earned} من {max} نجمة، المشوار {n} من {total}",
+  "@linesDetailCurrent": {
+    "description": "Screen reader: a current line's stars and next trip. All preformatted.",
+    "placeholders": {
+      "earned": {
+        "type": "String",
+        "example": "٢٧"
+      },
+      "max": {
+        "type": "String",
+        "example": "٩٠"
+      },
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "total": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "linesCardA11y": "{line}، {standing}، {detail}",
+  "@linesCardA11y": {
+    "description": "Screen reader: a line card (draft, R14), e.g. «خط الجامعة، الحالي، ٢٧ من ٩٠ نجمة، المشوار ١٢ من ٣٠».",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "خط الجامعة"
+      },
+      "standing": {
+        "type": "String",
+        "example": "الحالي"
+      },
+      "detail": {
+        "type": "String",
+        "example": "٢٧ من ٩٠ نجمة"
+      }
+    }
+  },
+  "linesContinue": "كمّل",
+  "@linesContinue": {
+    "description": "The current line's button, which starts its next trip, and the next cell's label (HANDOFF lines.continue)."
+  },
+  "linesContinueA11y": "كمّل المشوار {n}",
+  "@linesContinueA11y": {
+    "description": "Screen reader: «كمّل» on a current line card (draft, R14). Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "lineDetailsSummary": "{stars} من {maxCount, plural, few{{max} نجوم} other{{max} نجمة}} · {doneCount, plural, =1{مشوار واحد خلص} =2{مشوارين خلصوا} few{{done} مشاوير خلصوا} other{{done} مشوار خلص}}",
+  "@lineDetailsSummary": {
+    "description": "A line's details: stars of the most, and trips done (HANDOFF lineDetails.summary, with plurals). `maxCount` and `doneCount` pick the forms; `max` and `done` are the same numbers preformatted.",
+    "placeholders": {
+      "stars": {
+        "type": "String",
+        "example": "٢٧"
+      },
+      "maxCount": {
+        "type": "int",
+        "example": "90"
+      },
+      "max": {
+        "type": "String",
+        "example": "٩٠"
+      },
+      "doneCount": {
+        "type": "int",
+        "example": "11"
+      },
+      "done": {
+        "type": "String",
+        "example": "١١"
+      }
+    }
+  },
+  "lineDetailsTripsA11y": "مشاوير الخط",
+  "@lineDetailsTripsA11y": {
+    "description": "Screen reader: the trip grid, a list (HANDOFF lineDetails.tripsA11y)."
+  },
+  "lineDetailsHint": "والمشاوير من {from} لـ {to} بتظهر لما تقرّب",
+  "@lineDetailsHint": {
+    "description": "Under the grid: the trips not shown yet (HANDOFF lineDetails.moreTrips). Both preformatted.",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "٢١"
+      },
+      "to": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "lineDetailsNote1": "المشاوير اللي خلصت تتعاد عشان النجوم.",
+  "@lineDetailsNote1": {
+    "description": "The note's first sentence (HANDOFF lineDetails.info)."
+  },
+  "lineDetailsNote2": "الجاية بتتفتح لما اللي قبلها يخلص.",
+  "@lineDetailsNote2": {
+    "description": "The note's second sentence, hidden for a done line (HANDOFF lineDetails.info)."
+  },
+  "lineDetailsPlay": "العب المشوار {n}",
+  "@lineDetailsPlay": {
+    "description": "The details' button for the next trip (HANDOFF lineDetails.cta). Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      }
+    }
+  },
+  "lineDetailsStory": "قصة",
+  "@lineDetailsStory": {
+    "description": "The story chip on a cell (HANDOFF lineDetails.story)."
+  },
+  "lineDetailsCellA11y": "المشوار {n}، {state}",
+  "@lineDetailsCellA11y": {
+    "description": "Screen reader: a cell (HANDOFF lineDetails.tripA11y). `n` preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "state": {
+        "type": "String",
+        "example": "الجاي"
+      }
+    }
+  },
+  "lineDetailsCellStoryA11y": "المشوار {n}، {state}، مشوار قصة",
+  "@lineDetailsCellStoryA11y": {
+    "description": "Screen reader: a story trip's cell.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "١٠"
+      },
+      "state": {
+        "type": "String",
+        "example": "خلص بتلات نجوم"
+      }
+    }
+  },
+  "lineDetailsStateDone": "{count, plural, =1{خلص بنجمة} =2{خلص بنجمتين} other{خلص بتلات نجوم}}",
+  "@lineDetailsStateDone": {
+    "description": "Screen reader: a done cell by its best stars, 1 to 3 (draft, R13).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "lineDetailsStateNext": "الجاي",
+  "@lineDetailsStateNext": {
+    "description": "Screen reader: the next cell (HANDOFF lineDetails.stateNext)."
+  },
+  "lineDetailsStatePlayable": "تقدر تلعبه",
+  "@lineDetailsStatePlayable": {
+    "description": "Screen reader: another playable cell (draft, R13)."
+  },
+  "lineDetailsStateLocked": "مقفول",
+  "@lineDetailsStateLocked": {
+    "description": "Screen reader: a locked cell (HANDOFF lineDetails.stateLocked)."
+  },
+  "lineDetailsLockedA11y": "الخط مقفول، {reason}",
+  "@lineDetailsLockedA11y": {
+    "description": "Screen reader: a locked line's reason, in the button's place (draft, R14).",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "بعد خط السوق"
+      }
+    }
+  },
+  "buyVehicleSeats": "{count, plural, few{كراسي بدل {current}} other{كرسي بدل {current}}}",
+  "@buyVehicleSeats": {
+    "description": "Under the seats' number (HANDOFF buyVehicle.seatsVs). `count` is the new vehicle's seats; `current` the current vehicle's, preformatted.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "current": {
+        "type": "String",
+        "example": "١٠"
+      }
+    }
+  },
+  "buyVehicleSeatsA11y": "{count, plural, few{{seats} كراسي بدل {current}} other{{seats} كرسي بدل {current}}}",
+  "@buyVehicleSeatsA11y": {
+    "description": "Screen reader: the seats benefit. `count` picks the form; `seats` is the same number preformatted.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "seats": {
+        "type": "String",
+        "example": "١٢"
+      },
+      "current": {
+        "type": "String",
+        "example": "١٠"
+      }
+    }
+  },
+  "buyVehicleOpens": "بيفتح {line}",
+  "@buyVehicleOpens": {
+    "description": "The benefit of the line the vehicle opens (HANDOFF buyVehicle.unlocksLine).",
+    "placeholders": {
+      "line": {
+        "type": "String",
+        "example": "خط السوق"
+      }
+    }
+  },
+  "buyVehicleMorePay": "قبض أكتر في كل مشوار",
+  "@buyVehicleMorePay": {
+    "description": "The pay benefit (HANDOFF buyVehicle.moreEarnings)."
+  },
+  "buyVehiclePrice": "السعر",
+  "@buyVehiclePrice": {
+    "description": "The price card's first row (HANDOFF buyVehicle.price)."
+  },
+  "buyVehicleHave": "معاك",
+  "@buyVehicleHave": {
+    "description": "The price card's second row (HANDOFF buyVehicle.balance)."
+  },
+  "buyVehicleBalance": "{n} ج",
+  "@buyVehicleBalance": {
+    "description": "The player's JENEHAT on the price card (HANDOFF buyVehicle.balanceValue). Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٦٬١٠٠"
+      }
+    }
+  },
+  "buyVehiclePriceA11y": "السعر {price} جنيه، معاك {balance} جنيه",
+  "@buyVehiclePriceA11y": {
+    "description": "Screen reader: the price card as one node. Both preformatted.",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "٥٬٠٠٠"
+      },
+      "balance": {
+        "type": "String",
+        "example": "٦٬١٠٠"
+      }
+    }
+  },
+  "buyVehicleImpact": "بعد الشرا، فاضل {amount} ج على {goal}",
+  "@buyVehicleImpact": {
+    "description": "What is left for the savings goal after the purchase (Clarifications Q4, reworded from HANDOFF buyVehicle.apartmentImpact). `amount` preformatted; `goal` as the pack names it.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "٢٬٤٠٠"
+      },
+      "goal": {
+        "type": "String",
+        "example": "النجفة"
+      }
+    }
+  },
+  "buyVehicleShortfall": "ناقصك {n} ج",
+  "@buyVehicleShortfall": {
+    "description": "The JENEHAT the player lacks, above the disabled button (HANDOFF §9.2). Preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٣٠٠"
+      }
+    }
+  },
+  "buyVehicleBuy": "اشتريها",
+  "@buyVehicleBuy": {
+    "description": "The buy button (HANDOFF buyVehicle.buy)."
+  },
+  "buyVehicleLater": "لسه",
+  "@buyVehicleLater": {
+    "description": "Closes the sheet, spending nothing (HANDOFF buyVehicle.later)."
+  },
+  "buyVehicleBought": "اشتريت {vehicle}!",
+  "@buyVehicleBought": {
+    "description": "Screen reader: the purchase applied, for a vehicle that opens no line.",
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "الميكروباص القديم"
+      }
+    }
+  },
+  "buyVehicleBoughtA11y": "اشتريت {vehicle}! {line} اتفتح.",
+  "@buyVehicleBoughtA11y": {
+    "description": "Screen reader: the purchase applied and the line it opened (draft, R14).",
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "الميكروباص القديم"
+      },
+      "line": {
+        "type": "String",
+        "example": "خط الجامعة"
+      }
+    }
+  },
+  "buyVehicleNotForSaleToast": "العربية دي مش للبيع دلوقتي",
+  "@buyVehicleNotForSaleToast": {
+    "description": "Toast: the economy refused the vehicle as not for sale."
+  },
+  "buyVehicleOwned": "دي عربيتك",
+  "@buyVehicleOwned": {
+    "description": "The sheet of a vehicle the player owns (draft, R14)."
+  },
+  "buyVehicleOwnedStarter": "دي عربية المعلم، وانت شغال عليها",
+  "@buyVehicleOwnedStarter": {
+    "description": "The starter vehicle's sheet (draft, R14)."
+  },
+  "buyVehicleNeedsFirst": "اشتري {vehicle} الأول",
+  "@buyVehicleNeedsFirst": {
+    "description": "The sheet of a vehicle after one the player lacks (draft, R14).",
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "الميكروباص القديم"
+      }
+    }
+  },
+  "buyVehicleNoPrice": "العربية دي مش للبيع دلوقتي",
+  "@buyVehicleNoPrice": {
+    "description": "The sheet of a vehicle with no price (draft, R14)."
+  },
+  "buyVehicleDone": "تمام",
+  "@buyVehicleDone": {
+    "description": "The owned and not-for-sale sheets' one close button (draft, R14)."
   }
 }

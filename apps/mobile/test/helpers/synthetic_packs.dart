@@ -174,3 +174,225 @@ Map<String, Object?> progressionPackJson() {
     ],
   };
 }
+
+/// The sample's [key] list, as maps a builder can copy.
+List<Map<String, Object?>> _list(Map<String, Object?> json, String key) => [
+  for (final item in json[key]! as List<Object?>)
+    (item! as Map<String, dynamic>).cast<String, Object?>(),
+];
+
+String _tripId(String line, int n) => '$line.${n.toString().padLeft(2, '0')}';
+
+/// [prices] with the [sku] of [kind] at [amount] JENEHAT, added or replaced.
+List<Map<String, Object?>> _withPrice(
+  List<Map<String, Object?>> prices,
+  String kind,
+  String sku,
+  int amount,
+) => [
+  for (final price in prices)
+    if (price['sku_kind'] != kind || price['sku_id'] != sku) price,
+  {'amount': amount, 'currency': 'JENEHAT', 'sku_id': sku, 'sku_kind': kind},
+];
+
+/// The release draft's shape (specs/014-m09-lines-vehicles, T012), built
+/// from the sample:
+/// - line_hay (start, tuktuk): 19 regular trips and the story trip `.20`;
+/// - line_gamaa (micro_old): 30 trips, the story trips `.01` and `.18`;
+/// - ch1 completes line_hay (story `line_hay.20`), ch2 owns the micro_old
+///   (story `line_gamaa.01`), ch3 buys the shabka (story `line_gamaa.18`),
+///   then the sample's ch4;
+/// - the micro_old at 3,200 and the shabka at 6,000 (the draft's catalog
+///   isn't in this repository, so the shabka's price is this pack's own).
+Map<String, Object?> draftShaped() {
+  final json = samplePackJson();
+  final trips = _list(json, 'trips');
+  Map<String, Object?> template(String id) =>
+      trips.firstWhere((t) => t['trip_id'] == id);
+  Map<String, Object?> trip(String from, String id, String kind) => {
+    ...template(from),
+    'trip_id': id,
+    'kind': kind,
+  };
+  const gamaaStories = {1, 18};
+  return {
+    ...json,
+    'trips': [
+      for (var n = 1; n <= 19; n++)
+        trip('line_hay.01', _tripId('line_hay', n), 'regular'),
+      trip('line_hay.03', _tripId('line_hay', 20), 'story'),
+      for (var n = 1; n <= 30; n++)
+        trip(
+          'line_gamaa.01',
+          _tripId('line_gamaa', n),
+          gamaaStories.contains(n) ? 'story' : 'regular',
+        ),
+    ],
+    'chapters': [
+      for (final chapter in _list(json, 'chapters'))
+        switch (chapter['chapter_id']) {
+          'ch1_first_job' => {...chapter, 'story_trip_id': 'line_hay.20'},
+          'ch2_her_father' => {...chapter, 'story_trip_id': 'line_gamaa.01'},
+          'ch3_shabka' => {...chapter, 'story_trip_id': 'line_gamaa.18'},
+          _ => chapter,
+        },
+    ],
+    'catalog': {
+      ...(json['catalog']! as Map<String, dynamic>).cast<String, Object?>(),
+      'prices': _withPrice(
+        _withPrice(
+          _list(
+            (json['catalog']! as Map<String, dynamic>).cast<String, Object?>(),
+            'prices',
+          ),
+          'vehicle',
+          'micro_old',
+          3200,
+        ),
+        'chapter',
+        'ch3_shabka',
+        6000,
+      ),
+    },
+  };
+}
+
+/// The artboards' four vehicles and five lines (specs/014-m09-lines-vehicles,
+/// T012; `Lines`, `LineDetails`, `BuyVehicle`), built from the sample:
+/// - the tuktuk and the micro_old («ميكروباص قديم», as the boards name it)
+///   as the sample has them; the micro_new (12 seats, 5,000) and the
+///   micro_safar (13 seats, 12,000);
+/// - line_hay (٧ ج, 20 trips, the story trip `.20`) and line_gamaa (٨٫٥ ج,
+///   30 trips with a story trip at `.10` and `.20`); line_souq (١٣ ج, with
+///   the micro_new), line_masyaf
+///   (١١ ج, after line_souq) and line_safar (٤٣ ج, with the micro_safar),
+///   each with two trips; ch1 names `line_hay.20`, ch2 `line_gamaa.10` and
+///   ch3 `line_gamaa.20`;
+/// - the boards' names and what's new. The boards draw no what's new for
+///   line_masyaf and line_safar, so theirs are this pack's own.
+Map<String, Object?> artboardLines() {
+  final json = samplePackJson();
+  final trips = _list(json, 'trips');
+  final lines = {for (final l in _list(json, 'lines')) l['line_id']: l};
+  final vehicles = {
+    for (final v in _list(json, 'vehicles')) v['vehicle_id']: v,
+  };
+  final oldSeats = (vehicles['micro_old']!['seats']! as List<Object?>)
+      .cast<Object?>();
+  Map<String, Object?> seat(String row, String col) => {
+    'col': col,
+    'reachable_by_driver': false,
+    'row': row,
+    'seat_id': '${row}_$col',
+  };
+  Map<String, Object?> template(String id) =>
+      trips.firstWhere((t) => t['trip_id'] == id);
+  Map<String, Object?> trip(String line, int n, String vehicle, String kind) =>
+      {
+        ...template(line == 'line_hay' ? 'line_hay.01' : 'line_gamaa.01'),
+        'trip_id': _tripId(line, n),
+        'line_id': line,
+        'vehicle_id': vehicle,
+        'kind': kind,
+      };
+  Map<String, Object?> line(
+    String id,
+    int order,
+    String name,
+    int fare,
+    String whatsNew,
+    Map<String, Object?> unlock,
+  ) => {
+    ...lines['line_gamaa']!,
+    'line_id': id,
+    'order': order,
+    'name': {'ar-EG': name},
+    'display_fare_piasters': fare,
+    'whats_new': {'ar-EG': whatsNew},
+    'unlock': unlock,
+  };
+  const gamaaStories = {10, 20};
+  final catalog = (json['catalog']! as Map<String, dynamic>)
+      .cast<String, Object?>();
+  return {
+    ...json,
+    'vehicles': [
+      vehicles['tuktuk'],
+      {
+        ...vehicles['micro_old']!,
+        'name': {'ar-EG': 'ميكروباص قديم'},
+      },
+      {
+        ...vehicles['micro_old']!,
+        'vehicle_id': 'micro_new',
+        'order': 3,
+        'name': {'ar-EG': 'ميكروباص جديد'},
+        'short_name': {'ar-EG': 'جديد'},
+        'seats': [...oldSeats, seat('D', 'r'), seat('D', 'l')],
+      },
+      {
+        ...vehicles['micro_old']!,
+        'vehicle_id': 'micro_safar',
+        'order': 4,
+        'name': {'ar-EG': 'ميكروباص سفر'},
+        'short_name': {'ar-EG': 'سفر'},
+        'seats': [...oldSeats, seat('D', 'r'), seat('D', 'm'), seat('D', 'l')],
+      },
+    ],
+    'lines': [
+      {...lines['line_hay']!, 'display_fare_piasters': 700},
+      {
+        ...lines['line_gamaa']!,
+        'display_fare_piasters': 850,
+        'whats_new': {'ar-EG': 'نص الأجرة، الدفع الجماعي، «أنا دافع!»'},
+      },
+      line('line_souq', 3, 'خط السوق', 1300, 'الشنط والمتهرب', {
+        'kind': 'vehicle',
+        'vehicle_id': 'micro_new',
+      }),
+      line('line_masyaf', 4, 'خط المصيف', 1100, 'زحمة الصيف', {
+        'kind': 'line_complete',
+        'line_id': 'line_souq',
+      }),
+      line('line_safar', 5, 'خط السفر', 4300, 'الطريق الطويل', {
+        'kind': 'vehicle',
+        'vehicle_id': 'micro_safar',
+      }),
+    ],
+    'trips': [
+      for (var n = 1; n <= 20; n++)
+        trip('line_hay', n, 'tuktuk', n == 20 ? 'story' : 'regular'),
+      for (var n = 1; n <= 30; n++)
+        trip(
+          'line_gamaa',
+          n,
+          'micro_old',
+          gamaaStories.contains(n) ? 'story' : 'regular',
+        ),
+      for (final (id, vehicle) in [
+        ('line_souq', 'micro_new'),
+        ('line_masyaf', 'micro_new'),
+        ('line_safar', 'micro_safar'),
+      ])
+        for (var n = 1; n <= 2; n++) trip(id, n, vehicle, 'regular'),
+    ],
+    'chapters': [
+      for (final chapter in _list(json, 'chapters'))
+        switch (chapter['chapter_id']) {
+          'ch1_first_job' => {...chapter, 'story_trip_id': 'line_hay.20'},
+          'ch2_her_father' => {...chapter, 'story_trip_id': 'line_gamaa.10'},
+          'ch3_shabka' => {...chapter, 'story_trip_id': 'line_gamaa.20'},
+          _ => chapter,
+        },
+    ],
+    'catalog': {
+      ...catalog,
+      'prices': _withPrice(
+        _withPrice(_list(catalog, 'prices'), 'vehicle', 'micro_new', 5000),
+        'vehicle',
+        'micro_safar',
+        12000,
+      ),
+    },
+  };
+}

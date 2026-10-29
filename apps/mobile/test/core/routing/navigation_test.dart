@@ -88,12 +88,14 @@ void main() {
     );
     final closers = <String, Future<void> Function(WidgetTester)>{
       'drag down': (tester) =>
-          tester.drag(find.byType(AppSheet), const Offset(0, 600)),
+          tester.drag(find.byType(AppSheet).last, const Offset(0, 600)),
       'close button': (tester) => tester.tap(
-        find.descendant(
-          of: find.byType(AppSheet),
-          matching: find.bySemanticsLabel('قفل'),
-        ),
+        find
+            .descendant(
+              of: find.byType(AppSheet).last,
+              matching: find.bySemanticsLabel('قفل'),
+            )
+            .last,
       ),
       'tap outside': (tester) => tester.tapAt(const Offset(195, 20)),
     };
@@ -101,11 +103,19 @@ void main() {
       for (final MapEntry(key: how, value: close) in closers.entries) {
         testWidgets('${d.name} by $how', (tester) async {
           await pumpWassalApp(tester, initialLocation: d.location);
-          expect(find.byType(AppSheet), findsOneWidget);
+          // The card opened from Lines is a sheet over the line's details,
+          // and closes to them (specs/014-m09-lines-vehicles, R5).
+          final nested = d.name == RouteNames.linePreTrip;
+          expect(find.byType(AppSheet), findsNWidgets(nested ? 2 : 1));
           await close(tester);
           await tester.pumpAndSettle();
-          expect(find.byType(AppSheet), findsNothing);
-          expect(currentLocation(tester), tabFor(d.section).location);
+          expect(find.byType(AppSheet), findsNWidgets(nested ? 1 : 0));
+          expect(
+            currentLocation(tester),
+            nested
+                ? destinationNamed(RouteNames.lineDetail).location
+                : tabFor(d.section).location,
+          );
         });
       }
     }
@@ -113,7 +123,9 @@ void main() {
 
   group('tabs (FR-016)', () {
     testWidgets('a tab keeps its state while another is open', (tester) async {
-      await pumpWassalApp(tester, initialLocation: '/lines');
+      // The apartment is still a placeholder; the lines tab opens at its
+      // root since M09 (shell_test).
+      await pumpWassalApp(tester, initialLocation: '/apartment');
       final before = tester.state<ScrollableState>(
         find.descendant(
           of: find.byType(PlaceholderScreen),
@@ -121,7 +133,7 @@ void main() {
         ),
       );
       await tapTab(tester, Section.shop);
-      await tapTab(tester, Section.lines);
+      await tapTab(tester, Section.apartment);
       final after = tester.state<ScrollableState>(
         find.descendant(
           of: find.byType(PlaceholderScreen),

@@ -19,6 +19,9 @@ final class SharedPrefsSettingsStore implements SettingsStore {
     'update.dismissedVersion',
     // The pre-trip card's setting (specs/013-m08-home-result, research R6).
     'pref.pre_trip_card',
+    // The news Lines has shown (specs/014-m09-lines-vehicles, research R8):
+    // a read marker, not game state. Losing it shows the «new» dot once more.
+    'pref.lines_seen',
   };
 
   final SharedPreferencesWithCache _prefs;

@@ -94,13 +94,13 @@ description: "Task list for M09 Lines Map, Line Details and Vehicle Purchase"
 
 **Purpose**: The vehicle fallbacks and the one preference key.
 
-- [ ] T001 [P] Add `microbus_new.svg` and `microbus_travel.svg` (from
+- [X] T001 [P] Add `microbus_new.svg` and `microbus_travel.svg` (from
   `docs/design/illustrations/vehicles/`) to the vehicle list in
   `apps/mobile/tool/design/sync_assets.dart`, with a comment naming research R10. Run
   `fvm dart run tool/design/sync_assets.dart` so `apps/mobile/assets/illustrations/vehicles/` holds
   all four. Run `test/repo/design_assets_test.dart`, updating its expectations only where they pin
   the vehicle files.
-- [ ] T002 [P] Add `'pref.lines_seen'` to `SharedPrefsSettingsStore.keys` in
+- [X] T002 [P] Add `'pref.lines_seen'` to `SharedPrefsSettingsStore.keys` in
   `apps/mobile/lib/core/preferences/shared_prefs_settings_store.dart` and to the allowed list in
   `apps/mobile/test/helpers/memory_settings_store.dart`, with a comment naming research R8: a read
   marker, not game state. Run `test/repo/no_secret_logging_test.dart`.
@@ -116,7 +116,7 @@ imports guard.
 
 ### The content fields ([contracts/content-fields.md](./contracts/content-fields.md))
 
-- [ ] T003 Edit `content/schemas/line.schema.json` and add both new properties to `required` and
+- [X] T003 Edit `content/schemas/line.schema.json` and add both new properties to `required` and
   `properties`:
   - `whats_new`: `{"$ref": "common.schema.json#/$defs/LocalizedText"}` (`ar-EG` required, `ar`
     optional);
@@ -135,11 +135,11 @@ imports guard.
      `content/source/pack.json`).
 
   `content/schemas/schema-set.json` stays `1.0`.
-- [ ] T004 In `packages/content_models` run `fvm dart pub get && fvm dart run build_runner build -d`.
+- [X] T004 In `packages/content_models` run `fvm dart pub get && fvm dart run build_runner build -d`.
   Confirm `lib/src/generated/line.dart` has `LocalizedText whatsNew` and `int displayFarePiasters`,
   and `vehicle.dart` has `LocalizedText shortName`. Commit the two generated files. (Depends on
   T003.)
-- [ ] T005 [P] Update the examples so each still reports only its own error (contracts/content-fields.md
+- [X] T005 [P] Update the examples so each still reports only its own error (contracts/content-fields.md
   "Examples and the sample"):
   - **Add the fields** to `content/examples/valid/line/{line_hay,line_gamaa}.json`,
     `valid/vehicle/micro_old.json`, `valid/pack/core.json`, and every
@@ -154,7 +154,7 @@ imports guard.
 
   Run `uv run pytest` in `tools/content_kit`, then `fvm dart test` in `packages/content_models` (the
   round trip reads the fields). (Depends on T003, T004.)
-- [ ] T006 Update the sample in the export format (sorted keys, 2-space indent, trailing newline):
+- [X] T006 Update the sample in the export format (sorted keys, 2-space indent, trailing newline):
   - `content/examples/sample/lines/line_hay.json`: `display_fare_piasters: 700`, `whats_new`
     `{"ar-EG": "تعلّم اللمّ والباقي، الحاجة، النايم، المستعجل"}`;
   - `content/examples/sample/lines/line_gamaa.json`: `display_fare_piasters: 850`, `whats_new`
@@ -168,7 +168,7 @@ imports guard.
   3. `uv run wassal-content bundle dev --out ../../apps/mobile/assets/content/dev`.
 
   Commit `apps/mobile/assets/content/dev/{core-1.json.gz,bundled.json}`. (Depends on T003.)
-- [ ] T007 [P] Fix the mobile fixtures that build lines or vehicles by hand:
+- [X] T007 [P] Fix the mobile fixtures that build lines or vehicles by hand:
   - the literal `Vehicle.fromJson` in `apps/mobile/test/core/economy/domain/wire_test.dart` gains
     `'short_name': {'ar-EG': 'x'}`;
   - `apps/mobile/test/fixtures/tutorial/lines/line_hay.json` gains `display_fare_piasters: 700` and
@@ -177,7 +177,7 @@ imports guard.
     ahead of the draft.
 
   Run `test/repo/bundled_pack_test.dart` and `test/features/onboarding/`. (Depends on T004, T006.)
-- [ ] T008 Backend models, in `backend/`:
+- [X] T008 Backend models, in `backend/`:
   - **Move** `COIN_PIASTERS` and `multiple_of_coin()` from `apps/content/models/trips.py` to
     `apps/content/models/base.py` (`trips.py` imports `lines.py`, so `lines.py` can't import from
     it). Import them back in `trips.py`.
@@ -191,7 +191,7 @@ imports guard.
     `0006_trip_no_fights_required.py` did.
   - **Reinstall:** `uv sync --reinstall-package wassal-content` here and in `tools/solver`.
   - **Check:** `uv run manage.py makemigrations --check --dry-run`. (Depends on T003.)
-- [ ] T009 Backend services and tests, in `backend/`:
+- [X] T009 Backend services and tests, in `backend/`:
   - **Services:**
     - `apps/content/services/importer.py`: `vehicle()` reads `short_name` through `_text`, and
       `line()` reads `whats_new` and `display_fare_piasters`;
@@ -217,7 +217,7 @@ imports guard.
 
 ### The rules and the test packs: tests first
 
-- [ ] T011 [P] Extend `apps/mobile/test/repo/domain_imports_test.dart` with
+- [X] T011 [P] Extend `apps/mobile/test/repo/domain_imports_test.dart` with
   `lib/features/lines/domain`, which may import only:
   - `package:content_models/`;
   - `lib/core/content/domain/content_source.dart`;
@@ -227,7 +227,7 @@ imports guard.
   - its own folder.
 
   The progress entry is unchanged (`playable.dart` fits it).
-- [ ] T012 [P] Add two packs to `apps/mobile/test/helpers/synthetic_packs.dart`, over the sample, with
+- [X] T012 [P] Add two packs to `apps/mobile/test/helpers/synthetic_packs.dart`, over the sample, with
   the new fields filled:
   - **`draftShaped()`:**
     - `line_hay`: 19 regular trips and story `.20`;
@@ -240,7 +240,7 @@ imports guard.
     - lines `line_hay`, `line_gamaa`, `line_souq` (vehicle `micro_new`), `line_masyaf`
       (`line_complete line_souq`) and `line_safar` (vehicle `micro_safar`);
     - the boards' fares (٧, ٨٫٥, ١٣, ١١, ٤٣ ج) and texts.
-- [ ] T013 Write `apps/mobile/test/core/progress/playable_test.dart`
+- [X] T013 Write `apps/mobile/test/core/progress/playable_test.dart`
   ([contracts/progress-rules.md](./contracts/progress-rules.md) "Guarantees"). It must fail.
   - **Never more permissive:** sweep the sample and `draftShaped()` at depth 8, finishing playable
     trips and buying for-sale vehicles:
@@ -256,7 +256,7 @@ imports guard.
     - `NoPrice` for the starter and for a BONAT price;
     - `Owned` for the starter.
   - **`currentVehicle`;** unknown ids.
-- [ ] T014 Implement `apps/mobile/lib/core/progress/domain/playable.dart` exactly as
+- [X] T014 Implement `apps/mobile/lib/core/progress/domain/playable.dart` exactly as
   contracts/progress-rules.md "Functions": `tripPlayable`, `currentVehicle` and `vehicleSale`, with
   the sealed `VehicleSale`. Leave `unlocks.dart` untouched. Make T013 pass, then run
   `test/core/progress/` and `test/repo/domain_imports_test.dart`.
@@ -279,22 +279,22 @@ opening on Home's line ([contracts/lines.md](./contracts/lines.md)).
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T015 [P] [US1] Write `apps/mobile/test/features/lines/domain/line_standing_test.dart`:
+- [X] T015 [P] [US1] Write `apps/mobile/test/features/lines/domain/line_standing_test.dart`:
   - locked by a vehicle (`NeedsVehicle`) and by a line (`AfterLine`);
   - current with its next trip `(id, number, total)`;
   - done;
   - stars earned out of `3 × trips`; `allThree`; `doneCount`;
   - a newer pack adding trips to a done line makes it current;
   - ids the pack lacks are skipped.
-- [ ] T016 [P] [US1] Write `apps/mobile/test/features/lines/domain/vehicle_tiles_test.dart`:
+- [X] T016 [P] [US1] Write `apps/mobile/test/features/lines/domain/vehicle_tiles_test.dart`:
   - done, current (the last owned by order), `forSale(price)`, `notForSale`;
   - the starter always the player's;
   - a rollback (the vehicle no longer owned) makes it `forSale` again.
-- [ ] T017 [P] [US1] Write `apps/mobile/test/features/lines/domain/focus_line_test.dart`:
+- [X] T017 [P] [US1] Write `apps/mobile/test/features/lines/domain/focus_line_test.dart`:
   - the line of `homeNextTrip` (M07's tutorial trip in the first session);
   - with none, the last current line, else the last unlocked one;
   - two current lines (the microbus bought early).
-- [ ] T018 [P] [US1] Write `apps/mobile/test/features/lines/lines_screen_test.dart`:
+- [X] T018 [P] [US1] Write `apps/mobile/test/features/lines/lines_screen_test.dart`:
   - the header: the coins pill without a tap, BONAT → `/shop`, and BONAT disabled offline with
     `homeA11yBonatOffline`;
   - every tile and card state;
@@ -307,48 +307,48 @@ opening on Home's line ([contracts/lines.md](./contracts/lines.md)).
 
 ### Implementation for User Story 1
 
-- [ ] T019 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/line_standing.dart` (data-model
+- [X] T019 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/line_standing.dart` (data-model
   `LineStanding`). The next trip is the first trip by number that is `tripPlayable` with no star.
-- [ ] T020 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/vehicle_tiles.dart` (data-model
+- [X] T020 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/vehicle_tiles.dart` (data-model
   `VehicleTile`) from `currentVehicle` and `vehicleSale`.
-- [ ] T021 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/focus_line.dart`
+- [X] T021 [P] [US1] Implement `apps/mobile/lib/features/lines/domain/focus_line.dart`
   (`focusLine(c, p, next)`).
-- [ ] T022 [US1] Implement `apps/mobile/lib/features/lines/application/lines_model.dart`
+- [X] T022 [US1] Implement `apps/mobile/lib/features/lines/application/lines_model.dart`
   (`linesModelProvider`, contracts/lines.md "The model"). It watches:
   - `contentSourceProvider`, `playerProgressProvider` and `economyViewProvider`;
   - `firstSessionProvider` and `lastFinishedTripProvider`, for `homeNextTrip`;
   - reachability, for `online`.
 
   Run build_runner. Make T015–T017 pass.
-- [ ] T023 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/locked_fill.dart`: the
+- [X] T023 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/locked_fill.dart`: the
   §9.1 #6 decoration for tiles and cells (`lockedBg`, the 2 pt locked ring, `ink2`, the `lock`
   icon, no opacity), from the tokens. Create `fare_chip.dart`, which formats with
   `NumberFormatter.piasters` + «ج».
-- [ ] T024 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/vehicle_art.dart` (each
+- [X] T024 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/vehicle_art.dart` (each
   `VehicleId` → its synced SVG, as the static fallback) and `vehicle_strip.dart`:
   - `role=list` «العربيات», tiles from the right;
   - done (tick badge), current («{short} · عربيتك», `sun` with lip), for sale (the locked fill with
     the price), not for sale (the locked fill);
   - each a `Pressable` with the board's label.
-- [ ] T025 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/line_card.dart`:
+- [X] T025 [P] [US1] Create `apps/mobile/lib/features/lines/presentation/line_card.dart`:
   - **current:** `AppCard` with the 3 pt `primary` ring, the name with `FareChip`, what's new, the
     star line, and «كمّل» as its own `Pressable` (`onContinue` callback);
   - **done:** `StatusChip.done`, «عيد عشان النجوم» unless `allThree`;
   - **locked:** `AppCard(locked: true)`, the reason + « · {what's new}», the fare.
 
   Labels per `linesCardA11y`. Text wraps and the card grows.
-- [ ] T026 [US1] Create `apps/mobile/lib/features/lines/presentation/line_map.dart`:
+- [X] T026 [US1] Create `apps/mobile/lib/features/lines/presentation/line_map.dart`:
   - a scroll view with the cards bottom-up and a gap of 12;
   - `RoadPainter`: 6 wide, 10 on / 8 off, `icon.off`, as tall as the content and never shorter than
     the map;
   - the nodes;
   - `ensureVisible` on the focus card after the first frame, with no animation under reduced motion.
-- [ ] T027 [US1] Create `apps/mobile/lib/features/lines/presentation/lines_screen.dart`:
+- [X] T027 [US1] Create `apps/mobile/lib/features/lines/presentation/lines_screen.dart`:
   - the header: «الخطوط» with `CurrencyPill.coin` and `CurrencyPill.bonat` (disabled offline, as
     M08's Home header);
   - the strip and the map;
   - tile and card taps through `NavGuard.go` (the `onContinue` stays unwired until T044).
-- [ ] T028 [US1] Add the Lines strings to `apps/mobile/lib/l10n/app_ar.arb` (HANDOFF `lines.*` and
+- [X] T028 [US1] Add the Lines strings to `apps/mobile/lib/l10n/app_ar.arb` (HANDOFF `lines.*` and
   research R14), then run `fvm flutter pub get`:
   - `linesTitle`, `linesVehiclesA11y`, `linesTileCurrent`;
   - `linesTileA11yDone`, `linesTileA11yCurrent`, `linesTileA11yPrice`;
@@ -356,12 +356,12 @@ opening on Home's line ([contracts/lines.md](./contracts/lines.md)).
   - `linesNeedsVehicle`, `linesAfterLine`;
   - `linesCardA11y`, `linesStandingCurrent`, `linesStandingDone`, `linesStandingLocked`;
   - `linesContinue`, `linesContinueA11y`.
-- [ ] T029 [US1] In `apps/mobile/lib/core/routing/router.dart`'s `_page`, build `LinesScreen()` for
+- [X] T029 [US1] In `apps/mobile/lib/core/routing/router.dart`'s `_page`, build `LinesScreen()` for
   `RouteNames.lines` in place of `PlaceholderScreen`. Regenerate and review
   `test/goldens/goldens/all/lines_*.png` and the shell's `lines_*`/`dot_lines_*` goldens. Update
   `test/core/routing/{navigation,frame_design}_test.dart` where they expect the placeholder. Make
   T018 pass.
-- [ ] T030 [P] [US1] Add the `Lines` design checks:
+- [X] T030 [P] [US1] Add the `Lines` design checks:
   - `apps/mobile/test/design/samples/lines.dart` (`pumpLines`, `artboardLines()` with the board's
     state: coins 1,240, BONAT 85, خط الجامعة current at 12 of 30 with 27/90, خط الحي done 54/60);
   - `test/design/lines_layout_test.dart` (`expectLayoutMatches(tester, 'Lines', …)`): pair the five
@@ -369,7 +369,7 @@ opening on Home's line ([contracts/lines.md](./contracts/lines.md)).
   - `test/goldens/design/lines_goldens_test.dart`, in both digit styles.
 
   List the expected differences (research R12) at the top of both tests.
-- [ ] T031 [P] [US1] Write `apps/mobile/test/a11y/lines_minimum_sizes_test.dart`: every tappable
+- [X] T031 [P] [US1] Write `apps/mobile/test/a11y/lines_minimum_sizes_test.dart`: every tappable
   ≥ 44×44 and every text ≥ 12 pt, at 360×640, 360×800 and 390×844, scale 1.0 and 1.3.
 
 **Checkpoint**: Lines shows where the player stands, offline.
@@ -394,7 +394,7 @@ setting on «always»:
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T032 [P] [US2] Write `apps/mobile/test/features/lines/domain/trip_cells_test.dart`:
+- [X] T032 [P] [US2] Write `apps/mobile/test/features/lines/domain/trip_cells_test.dart`:
   - every state: done, storyDone, next, playable, locked, storyLocked;
   - a story cell keeping its chip when next or playable;
   - the next trip with an earlier locked story cell;
@@ -402,7 +402,7 @@ setting on «always»:
   - `visibleRange` for 3, 20, 30 and 40 trips with next at 1, 12 and 19, and for none;
   - a done line (every row) and a locked line (four rows);
   - the hint's `(from, to)`.
-- [ ] T033 [P] [US2] Write `apps/mobile/test/features/lines/line_details_sheet_test.dart`:
+- [X] T033 [P] [US2] Write `apps/mobile/test/features/lines/line_details_sheet_test.dart`:
   - the header and its plural summary;
   - the grid five per row from the right;
   - the hint shown and hidden;
@@ -412,64 +412,64 @@ setting on «always»:
   - a locked cell inert, with no button semantics;
   - closing with ✕, swipe, scrim and back to `/lines`;
   - the grid scrolling above the button at 1.3.
-- [ ] T034 [P] [US2] Extend `apps/mobile/test/features/home/application/start_next_trip_test.dart`:
+- [X] T034 [P] [US2] Extend `apps/mobile/test/features/home/application/start_next_trip_test.dart`:
   - `from: StartFrom.lines` opens `/lines/<line>/pre-trip/<id>`;
   - a trip that isn't `tripPlayable` returns false and goes nowhere;
   - a tutorial trip in the first session goes to `/trip/<id>`;
   - an empty tank goes to the fuel sheet;
   - a second tap while the checkpoint waits does nothing;
   - `home` and `result` still open `/home/pre-trip/<id>`.
-- [ ] T035 [P] [US2] Extend `apps/mobile/test/features/pre_trip/pre_trip_card_test.dart`:
+- [X] T035 [P] [US2] Extend `apps/mobile/test/features/pre_trip/pre_trip_card_test.dart`:
   - under `/lines/<line>/pre-trip/<id>`, the four closes land on `/lines/<line>`;
   - an unknown or unplayable trip leaves to `leaveTo`;
   - the Home cases keep `/home`.
-- [ ] T036 [P] [US2] Extend `apps/mobile/test/core/routing/{shell,route_table}_test.dart`:
+- [X] T036 [P] [US2] Extend `apps/mobile/test/core/routing/{shell,route_table}_test.dart`:
   - the new route and its two validators;
   - card → «اطلع» → result → Home → «الخطوط» shows `/lines`, not the card;
   - the other tabs keep M03's restore.
 
 ### Implementation for User Story 2
 
-- [ ] T037 [P] [US2] Implement `apps/mobile/lib/features/lines/domain/trip_cells.dart` (`tripCells`,
+- [X] T037 [P] [US2] Implement `apps/mobile/lib/features/lines/domain/trip_cells.dart` (`tripCells`,
   `visibleRange`, contracts/line-details.md "The cells"). Make T032 pass.
-- [ ] T038 [US2] Create `apps/mobile/lib/features/lines/presentation/trip_grid.dart` with the
+- [X] T038 [US2] Create `apps/mobile/lib/features/lines/presentation/trip_grid.dart` with the
   `TripCell` widget and the grid:
   - ≈65×62 cells, gap 8, `role=list` «مشاوير الخط»;
   - done in `ground` with `Stars` 12; storyDone in `sun.soft` with the «قصة» chip above;
   - next in `primary` with lip, the number and «كمّل», marked `selected`; playable without «كمّل»;
   - locked and storyLocked through `locked_fill.dart`;
   - labels `lineDetailsCellA11y`.
-- [ ] T039 [US2] Create `apps/mobile/lib/features/lines/presentation/line_details_sheet.dart`:
+- [X] T039 [US2] Create `apps/mobile/lib/features/lines/presentation/line_details_sheet.dart`:
   - the header (name, plural summary, `IconCircleButton` close);
   - the grid in a scroll view;
   - the hint and the note (first sentence only for a done line);
   - `AppButton.primary(xl)` «العب المشوار {n}», pinned; none for a done line.
 
   Cell and button taps call `startNextTrip(..., from: StartFrom.lines)`.
-- [ ] T040 [US2] Change `apps/mobile/lib/features/home/application/start_next_trip.dart`:
+- [X] T040 [US2] Change `apps/mobile/lib/features/home/application/start_next_trip.dart`:
   - `StartFrom` gains `lines`;
   - a new first step returns false unless `tripPlayable(content, progress, tripId)`;
   - the card's location follows `from`: `home` and `result` → `/home/pre-trip/<id>`; `lines` →
     `/lines/<line wire>/pre-trip/<id>`, with the line from the trip's own `lineId` (`toGlossaryLine`).
 
   Make T034 pass.
-- [ ] T041 [US2] Add `RouteNames.linePreTrip` to `apps/mobile/lib/core/routing/routes.dart`:
+- [X] T041 [US2] Add `RouteNames.linePreTrip` to `apps/mobile/lib/core/routing/routes.dart`:
   `/lines/:lineId/pre-trip/:tripId`, a sheet in `Section.lines` with both validators, linked from
   `lineDetail`. In `router.dart`:
   - nest it under `lineDetail`;
   - build `PreTripCard(key: ValueKey(tripId), tripId:, leaveTo: '/lines/<lineId>')` with
     `ownHeader`;
   - build `LineDetailsSheet(lineId)` for `RouteNames.lineDetail`.
-- [ ] T042 [US2] Add `leaveTo` (default `'/home'`) to
+- [X] T042 [US2] Add `leaveTo` (default `'/home'`) to
   `apps/mobile/lib/features/pre_trip/presentation/pre_trip_card.dart`. Its `_leave()` goes there;
   its close still pops. Make T035 pass.
-- [ ] T043 [US2] In `apps/mobile/lib/core/routing/shell_scaffold.dart`, the tab tap passes
+- [X] T043 [US2] In `apps/mobile/lib/core/routing/shell_scaffold.dart`, the tab tap passes
   `initialLocation: true` for `Section.lines`, and `index == shell.currentIndex` for the others,
   with a comment naming research R5. Make T036 pass.
-- [ ] T044 [US2] Wire «كمّل» in `apps/mobile/lib/features/lines/presentation/lines_screen.dart`
+- [X] T044 [US2] Wire «كمّل» in `apps/mobile/lib/features/lines/presentation/lines_screen.dart`
   (`LineCard.onContinue`) to `startNextTrip(context, ref, tripId: next, from: StartFrom.lines)`.
   Extend T018's test: «كمّل» opens the card, and its close lands on the line's details.
-- [ ] T045 [US2] Add the details strings to `apps/mobile/lib/l10n/app_ar.arb`, then run
+- [X] T045 [US2] Add the details strings to `apps/mobile/lib/l10n/app_ar.arb`, then run
   `fvm flutter pub get`:
   - `lineDetailsSummary`, with plurals for stars and trips;
   - `lineDetailsTripsA11y`, `lineDetailsHint`;
@@ -478,7 +478,7 @@ setting on «always»:
   - `lineDetailsCellA11y`, with its states and the story suffix.
 
   Make T033 pass.
-- [ ] T046 [P] [US2] Add the `LineDetails` design checks:
+- [X] T046 [P] [US2] Add the `LineDetails` design checks:
   - `apps/mobile/test/design/samples/line_details.dart`: `artboardLines()`, خط الجامعة with next
     12, the board's stars per cell, trip 10 story done, trip 20 story locked;
   - `test/design/line_details_layout_test.dart` (close paired to «قفل», as M08);
@@ -486,7 +486,7 @@ setting on «always»:
 
   Expected differences: the locked fill, the summary 25 against 27, and the real Lines under the
   scrim.
-- [ ] T047 [P] [US2] Write `apps/mobile/test/a11y/line_details_minimum_sizes_test.dart` (the same
+- [X] T047 [P] [US2] Write `apps/mobile/test/a11y/line_details_minimum_sizes_test.dart` (the same
   surfaces and scales as T031).
 
 **Checkpoint**: A player can choose, play and replay any open trip from Lines, and the card closes
@@ -509,17 +509,17 @@ intent through M05's `buy`, offline ([contracts/buy-vehicle.md](./contracts/buy-
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T048 [P] [US3] Write `apps/mobile/test/features/lines/domain/vehicle_offer_test.dart`:
+- [X] T048 [P] [US3] Write `apps/mobile/test/features/lines/domain/vehicle_offer_test.dart`:
   - the seats against the current vehicle's;
   - `opensLine`, the first by order, and null with none;
   - each `VehicleSale`;
   - the shortfall; exactly enough leaves 0 and no shortfall.
-- [ ] T049 [P] [US3] Write `apps/mobile/test/features/lines/domain/impact_test.dart`:
+- [X] T049 [P] [US3] Write `apps/mobile/test/features/lines/domain/impact_test.dart`:
   - `micro_old` in ch2 of `draftShaped()` → «الشبكة» and `chapterPrice − (jenehat − 3200)`;
   - an apartment-piece target;
   - a line goal (`Count`) → null; `NoTarget` → null;
   - nothing missing → null; not affordable → null.
-- [ ] T050 [P] [US3] Write `apps/mobile/test/features/lines/application/vehicle_purchase_test.dart`
+- [X] T050 [P] [US3] Write `apps/mobile/test/features/lines/application/vehicle_purchase_test.dart`
   against a fake `Economy`, covering every row of contracts/buy-vehicle.md "Buying":
   - a double tap makes one `buy`;
   - a retry after `OpWriteFailed` reuses the id;
@@ -528,7 +528,7 @@ intent through M05's `buy`, offline ([contracts/buy-vehicle.md](./contracts/buy-
 
   Then the same against the real `EconomyService`: the price is spent once, and ownership is
   written.
-- [ ] T051 [P] [US3] Write `apps/mobile/test/features/lines/vehicle_sheet_test.dart`:
+- [X] T051 [P] [US3] Write `apps/mobile/test/features/lines/vehicle_sheet_test.dart`:
   - **Affordable:** the name, the preview (decorative), the three benefits, the price card as one
     label, the impact line and the two buttons.
   - **Short:** «ناقصك {n} ج», the gold bar, «اشتريها» disabled, no impact.
@@ -542,32 +542,32 @@ intent through M05's `buy`, offline ([contracts/buy-vehicle.md](./contracts/buy-
 
 ### Implementation for User Story 3
 
-- [ ] T052 [P] [US3] Implement `apps/mobile/lib/features/lines/domain/impact.dart`
+- [X] T052 [P] [US3] Implement `apps/mobile/lib/features/lines/domain/impact.dart`
   (`impactAfterPurchase`, contracts/buy-vehicle.md "The offer"). Use M08's `savingsTarget` with `p`
   plus `(SkuKind.vehicle, wire)` and `jenehat − price`. Make T049 pass.
-- [ ] T053 [US3] Implement `apps/mobile/lib/features/lines/domain/vehicle_offer.dart`
+- [X] T053 [US3] Implement `apps/mobile/lib/features/lines/domain/vehicle_offer.dart`
   (`vehicleOffer`, data-model `VehicleOffer`). Make T048 pass.
-- [ ] T054 [US3] Implement `apps/mobile/lib/features/lines/application/vehicle_offer_provider.dart`
+- [X] T054 [US3] Implement `apps/mobile/lib/features/lines/application/vehicle_offer_provider.dart`
   and `vehicle_purchase.dart`:
   - `VehiclePurchase(Economy)`: `_id ??= newRequestId()`, a busy flag, the `ForSale` check, then
     `buy(kind: SkuKind.vehicle, skuId: vehicleWire[id]!)`;
   - the id cleared on applied and `alreadyOwned`, kept otherwise.
 
   Run build_runner. Make T050 pass.
-- [ ] T055 [P] [US3] Create the sheet's parts in `apps/mobile/lib/features/lines/presentation/`:
+- [X] T055 [P] [US3] Create the sheet's parts in `apps/mobile/lib/features/lines/presentation/`:
   - `vehicle_preview.dart`: `VehicleSprite` with `vehicle_art.dart`'s fallback on `scene.sky` with
     the sun, 358×190, excluded from semantics, no «بزينتك»;
   - `benefits_row.dart`: three tiles, two without `opensLine`;
   - `price_card.dart`: one semantics node;
   - `impact_line.dart`.
-- [ ] T056 [US3] Create `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart`:
+- [X] T056 [US3] Create `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart`:
   - the affordable and short states (contracts/buy-vehicle.md "Layout");
   - «اشتريها» calls `VehiclePurchase`; each outcome handled as the contract's table;
   - the applied outcome does `NavGuard.go('/lines')` and `SemanticsService.announce`
     (`buyVehicleBoughtA11y`);
   - write-failed shows `tripRetryPurchase` above the buttons;
   - not-for-sale refusals close with `showAppToast`.
-- [ ] T057 [US3] In `apps/mobile/lib/core/routing/router.dart`, build `VehicleSheet(vehicleId)` for
+- [X] T057 [US3] In `apps/mobile/lib/core/routing/router.dart`, build `VehicleSheet(vehicleId)` for
   `RouteNames.vehiclePurchase`. Add the sheet's strings to `app_ar.arb` (HANDOFF `buyVehicle.*`,
   research R14) and run `fvm flutter pub get`:
   - `buyVehicleSeats`, with plurals;
@@ -578,7 +578,7 @@ intent through M05's `buy`, offline ([contracts/buy-vehicle.md](./contracts/buy-
   - `buyVehicleBoughtA11y`, `buyVehicleNotForSaleToast`.
 
   Regenerate `test/goldens/goldens/all/{lineDetail,vehiclePurchase}_*.png`. Make T051 pass.
-- [ ] T058 [P] [US3] Add the `BuyVehicle` design checks:
+- [X] T058 [P] [US3] Add the `BuyVehicle` design checks:
   - `apps/mobile/test/design/samples/buy_vehicle.dart`: `micro_new` in `artboardLines()`, coins
     6,100, a piece target giving the board's 2,400;
   - `test/design/buy_vehicle_layout_test.dart`: boxes 9, 32, 33;
@@ -605,7 +605,7 @@ nothing to buy.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T059 [P] [US4] Extend the widget tests:
+- [X] T059 [P] [US4] Extend the widget tests:
   - `lines_screen_test.dart`: a locked card with a `vehicle` rule → `/lines/vehicle/<v>`, and with
     `line_complete` → `/lines/<line>`;
   - `line_details_sheet_test.dart`: the locked state, with every cell locked, four rows with the
@@ -616,16 +616,16 @@ nothing to buy.
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] In `apps/mobile/lib/features/lines/presentation/lines_screen.dart`, route a locked
+- [X] T060 [US4] In `apps/mobile/lib/features/lines/presentation/lines_screen.dart`, route a locked
   card's tap by its rule (contracts/lines.md "Actions").
-- [ ] T061 [US4] In `apps/mobile/lib/features/lines/presentation/line_details_sheet.dart`, add the
+- [X] T061 [US4] In `apps/mobile/lib/features/lines/presentation/line_details_sheet.dart`, add the
   locked state (FR-028): every cell `locked`, four rows, and the reason («بعد {line}» / «محتاج
   {vehicle}») as text in the button's place.
-- [ ] T062 [US4] In `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart`, add the owned,
+- [X] T062 [US4] In `apps/mobile/lib/features/lines/presentation/vehicle_sheet.dart`, add the owned,
   `NeedsFirst` and `NoPrice` states (contracts/buy-vehicle.md "Layout"). Each has a status line, no
   price card for owned, no buy button, and one close button «تمام». In `vehicle_strip.dart`, a
   `NoPrice` tile shows no price.
-- [ ] T063 [US4] Add these strings to `apps/mobile/lib/l10n/app_ar.arb` and run
+- [X] T063 [US4] Add these strings to `apps/mobile/lib/l10n/app_ar.arb` and run
   `fvm flutter pub get`:
   - `buyVehicleOwned` «دي عربيتك»;
   - `buyVehicleOwnedStarter` «دي عربية المعلم، وانت شغال عليها»;
@@ -653,14 +653,14 @@ FR-012).
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T064 [P] [US5] Extend `apps/mobile/test/features/home/domain/next_trip_test.dart` and
+- [X] T064 [P] [US5] Extend `apps/mobile/test/features/home/domain/next_trip_test.dart` and
   `apps/mobile/test/core/progress/sample_sweep_test.dart`:
   - Home never offers `line_gamaa.18` before `ch3_shabka` is owned (it offers `.19`);
   - `line_hay.20` comes only after `.01`–`.19`;
   - the sample's story trip `line_hay.03` waits for ch1's goal.
 
   Update the sweep's expected table.
-- [ ] T065 [P] [US5] Write `apps/mobile/test/features/lines/story_agreement_test.dart` over
+- [X] T065 [P] [US5] Write `apps/mobile/test/features/lines/story_agreement_test.dart` over
   `draftShaped()`, for US5 scenarios 1–5:
   - the grid's cells;
   - Home's `homeNextTrip` and the grid's next trip on the line Home follows;
@@ -669,10 +669,10 @@ FR-012).
 
 ### Implementation for User Story 5
 
-- [ ] T066 [US5] In `apps/mobile/lib/features/home/domain/next_trip.dart`, `startable` reads
+- [X] T066 [US5] In `apps/mobile/lib/features/home/domain/next_trip.dart`, `startable` reads
   `tripPlayable` instead of `tripUnlocked`. `lineUnlocked` at the earliest-open-line step stays.
   Make T064 pass.
-- [ ] T067 [US5] In `apps/mobile/lib/features/pre_trip/presentation/pre_trip_card.dart`, the opening
+- [X] T067 [US5] In `apps/mobile/lib/features/pre_trip/presentation/pre_trip_card.dart`, the opening
   check reads `tripPlayable`. Make T065 pass, and rerun `test/features/{home,pre_trip,result}/`
   unchanged.
 
@@ -694,7 +694,7 @@ FR-012).
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T068 [P] [US6] Write `apps/mobile/test/features/lines/domain/lines_news_test.dart` and
+- [X] T068 [P] [US6] Write `apps/mobile/test/features/lines/domain/lines_news_test.dart` and
   `test/features/lines/application/lines_seen_test.dart`:
   - **News:**
     - `line:<id>` for unlocked non-`start` lines;
@@ -702,7 +702,7 @@ FR-012).
     - `vehicle:<id>` for affordable `ForSale` vehicles.
   - **The pref's round trip:** sorted and comma-joined.
   - **The first read with no value** takes the news as seen.
-- [ ] T069 [P] [US6] Write `apps/mobile/test/features/lines/lines_dot_test.dart`:
+- [X] T069 [P] [US6] Write `apps/mobile/test/features/lines/lines_dot_test.dart`:
   - the dot shows after news appears while away;
   - it clears when Lines opens;
   - it stays cleared after a restart (a new container over the same `MemorySettingsStore`);
@@ -711,16 +711,16 @@ FR-012).
 
 ### Implementation for User Story 6
 
-- [ ] T070 [P] [US6] Implement `apps/mobile/lib/features/lines/domain/lines_news.dart` (`linesNews`).
-- [ ] T071 [US6] Implement `apps/mobile/lib/features/lines/application/lines_seen.dart`:
+- [X] T070 [P] [US6] Implement `apps/mobile/lib/features/lines/domain/lines_news.dart` (`linesNews`).
+- [X] T071 [US6] Implement `apps/mobile/lib/features/lines/application/lines_seen.dart`:
   `LinesSeenNotifier`, keepAlive, reading and writing `pref.lines_seen` through
   `settingsStoreProvider` as M08's `PreTripCardModeNotifier`; `markSeen(news)`; the first-read
   baseline. Run build_runner. Make T068 pass.
-- [ ] T072 [US6] Implement `apps/mobile/lib/features/lines/application/lines_dot_watcher.dart`
+- [X] T072 [US6] Implement `apps/mobile/lib/features/lines/application/lines_dot_watcher.dart`
   (`LinesDotWatcher(ref)`, listening to the news and seen providers and setting
   `newDotProvider(Section.lines)`). Create it in `apps/mobile/lib/bootstrap/app.dart`'s
   `_afterStartup` after `ContentLifecycle`, beside `HomeArrivalQueue`, and dispose it with it.
-- [ ] T073 [US6] In `apps/mobile/lib/features/lines/presentation/lines_screen.dart`, call
+- [X] T073 [US6] In `apps/mobile/lib/features/lines/presentation/lines_screen.dart`, call
   `markSeen` after the first frame and on every news change while the screen is current. Make T069
   pass.
 
@@ -764,7 +764,7 @@ brief, so only these checks wait for the export.
 
 **Purpose**: The integration tests, the documents, the full checks, the reviews and the owner's list.
 
-- [ ] T080 Write `apps/mobile/integration_test/lines_loop_test.dart`, headless like M08's
+- [X] T080 Write `apps/mobile/integration_test/lines_loop_test.dart`, headless like M08's
   (`-d flutter-tester`), offline, for a scripted chapter-2 player with enough coins and the card
   setting on «always» (quickstart §4):
   1. «الخطوط» shows Home's line;
@@ -775,14 +775,14 @@ brief, so only these checks wait for the export.
 
   Also time SC-008 with a `Stopwatch`: tap to full content for Lines, the details and the sheet,
   each under 0.5 s on CI. M07's and M08's integration tests still pass.
-- [ ] T081 Add a `backend`-tagged case to `apps/mobile/test/backend/` (and its seed in
+- [X] T081 Add a `backend`-tagged case to `apps/mobile/test/backend/` (and its seed in
   `seed_backend.py` if needed): through Lines' path, buy the microbus offline, start the first
   trip on خط الجامعة, then sync. Both ops are accepted and none is `not_unlocked` (SC-003).
-- [ ] T082 [P] Update `docs/architecture-mobile.md`:
+- [X] T082 [P] Update `docs/architecture-mobile.md`:
   - §5: the `features/lines/` tree;
   - §9: `/lines/:lineId/pre-trip/:tripId`, and the lines tab opening at its root;
   - §13: the phone-only rules (`tripPlayable`, `vehicleSale`) beside the port, stricter only.
-- [ ] T083 [P] Update the content docs:
+- [X] T083 [P] Update the content docs:
   - `docs/architecture-backend.md` §9: the three fields;
   - `content/README.md`;
   - `specs/003-b04-content-pipeline/contracts/content-schemas.md`: the Line and Vehicle rows;
@@ -792,7 +792,7 @@ brief, so only these checks wait for the export.
     deploy.
 - [ ] T084 [P] Update `docs/delivery-plan.md`: the Progress line for `014-m09-lines-vehicles` when
   it merges. T079 does the Design sources row.
-- [ ] T085 [P] Update `CLAUDE.md`:
+- [X] T085 [P] Update `CLAUDE.md`:
   - "Project status": M09's line;
   - the guards line: `lib/features/lines/domain`'s list;
   - `pref.lines_seen`;
@@ -800,7 +800,7 @@ brief, so only these checks wait for the export.
   - the content fields in the content notes;
   - the mobile commands table: `fvm flutter test integration_test/lines_loop_test.dart -d
     flutter-tester`.
-- [ ] T086 Complete section 014 of `docs/owner-actions.md`, each item with its task ID, and update
+- [X] T086 Complete section 014 of `docs/owner-actions.md`, each item with its task ID, and update
   "Open now":
   - **before merge:** T074 (and T075), T087–T089, T092;
   - **after merge:** T093–T095;

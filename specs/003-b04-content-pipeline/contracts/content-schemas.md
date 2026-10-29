@@ -113,8 +113,8 @@ The §9.3 example becomes `content/examples/valid/trip/line_gamaa.12.json`, with
 
 | Type | Fields |
 | --- | --- |
-| `Line` | `line_id`, `name` (`LocalizedText`), `order` (≥ 1), `stations` (array of `{ station_id, name }`, 2–30), `unlock` (`{ kind: enum start\|vehicle\|line_complete, vehicle_id?: VehicleId, line_id?: LineId }`), `difficulty_band` (`{ min: 0–100, max: 0–100 }`) |
-| `Vehicle` | `vehicle_id`, `name`, `order`, `starter` (boolean), `seats` (array of `Seat`, 1–20) |
+| `Line` | `line_id`, `name` (`LocalizedText`), `order` (≥ 1), `stations` (array of `{ station_id, name }`, 2–30), `unlock` (`{ kind: enum start\|vehicle\|line_complete, vehicle_id?: VehicleId, line_id?: LineId }`), `difficulty_band` (`{ min: 0–100, max: 0–100 }`), `whats_new` (`LocalizedText`) and `display_fare_piasters` (`PositivePiasters`), both since M09 (`specs/014-m09-lines-vehicles/contracts/content-fields.md`) |
+| `Vehicle` | `vehicle_id`, `name`, `short_name` (`LocalizedText`, M09), `order`, `starter` (boolean), `seats` (array of `Seat`, 1–20) |
 | `Chapter` | `chapter_id`, `order`, `title`, `goal` (`{ kind: enum complete_line\|own_vehicle\|purchase\|complete_room, line_id?, vehicle_id?, room_id? }`), opt. `story_trip_id`, `completion_bonat` (`Amount`), `scenes` (array of `Scene`, 0–10) |
 | `Scene` | `scene_id` (`StationId` pattern), `panels` (array of `Panel`, 3–5) |
 | `Panel` | `art` (`Slug`), `lines` (array of `{ speaker: Slug, text: LocalizedText }`, 0–8) |

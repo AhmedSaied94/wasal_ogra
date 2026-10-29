@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -10,6 +11,9 @@ import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/home/application/home_slots.dart';
 import 'package:wassal/features/home/presentation/home_header.dart';
 import 'package:wassal/features/home/presentation/start_button.dart';
+import 'package:wassal/features/lines/presentation/line_card.dart';
+import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
+import 'package:wassal/features/lines/presentation/vehicle_strip.dart';
 import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 
 /// Presses the phone's back button.
@@ -20,11 +24,15 @@ Future<void> pressBack(WidgetTester tester) async {
 
 /// The real screens' controls for the links their placeholders had (M08):
 /// the profile opens Settings, «يلا نطلع!» the next trip's card, and the
-/// card's «اطلع» the trip.
+/// card's «اطلع» the trip. Lines' (M09): خط الحي's card opens its details,
+/// the old microbus's tile its sheet, and the details' button the card.
 final _homeControls = <String, Key>{
   RouteNames.settings: HomeHeader.profileKey,
   RouteNames.preTrip: HomeStartButton.startKey,
   RouteNames.trip: PreTripCard.goKey,
+  RouteNames.lineDetail: LineCard.keyOf(LineId.lineHay),
+  RouteNames.vehiclePurchase: VehicleTileView.keyOf(VehicleId.microOld),
+  RouteNames.linePreTrip: LineDetailsSheet.playKey,
 };
 
 /// Home's daily row (M13's slot) as placeholder links, so the daily

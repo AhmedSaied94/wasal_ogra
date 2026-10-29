@@ -107,9 +107,10 @@ void main() {
     });
 
     testWidgets('a tab has its title and no back control', (tester) async {
-      await pumpWassalApp(tester, initialLocation: '/lines');
+      // Lines has its own screen since M09; the shop is still a placeholder.
+      await pumpWassalApp(tester, initialLocation: '/shop');
       final header = tester.widget<ScreenHeader>(find.byType(ScreenHeader));
-      expect(header.title, l10n.destLines);
+      expect(header.title, l10n.destShop);
       expect(header.onBack, isNull);
     });
   });

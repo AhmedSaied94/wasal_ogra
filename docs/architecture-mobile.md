@@ -208,7 +208,10 @@ wassal/
 │       │       │   ├── domain/     # ResultArgs, the summary, the quote and its speaker
 │       │       │   ├── application/ # ResultModel, the quote's run, the slots M11 fills
 │       │       │   └── presentation/ # ResultScreen: stars, breakdown, mistakes, pay, apartment, quote, ShareCard and its action
-│       │       ├── lines/          # lines map, line detail, vehicle purchase
+│       │       ├── lines/          # الخطوط, تفاصيل الخط, شراء العربية (M09)
+│       │       │   ├── domain/     # standings, vehicle tiles, the focus line, trip cells and range, the offer, the impact, the news
+│       │       │   ├── application/ # LinesModel, the details' model, the offer, VehiclePurchase, the seen set (`pref.lines_seen`), LinesDotWatcher
+│       │       │   └── presentation/ # LinesScreen (strip, map, cards), LineDetailsSheet (grid), VehicleSheet (preview, benefits, price, impact)
 │       │       ├── garage/         # upgrades + cosmetics (phase 2)
 │       │       ├── apartment/      # rooms, item sheet, requests, chapters
 │       │       ├── story/          # comic scene viewer, album
@@ -457,6 +460,7 @@ Rules from the UX doc that the renderer must enforce:
 | `/trip/:tripId` | شاشة المشوار (+ pause, fail overlays) | MVP |
 | `/trip/:tripId/result` | النتيجة | MVP |
 | `/lines`, `/lines/:lineId` (sheet) | الخطوط, تفاصيل الخط | MVP |
+| `/lines/:lineId/pre-trip/:tripId` (sheet over the details) | كارت ما قبل المشوار, opened from Lines (M09) | MVP |
 | `/lines/vehicle/:vehicleId` (sheet) | شراء العربية | MVP |
 | `/garage` | الجراج | Phase 2 |
 | `/apartment`, `/apartment/item/:itemId` (sheet), `/apartment/requests` (sheet), `/apartment/chapters` | الشقة, لوح القطعة, الطلبات, خط الفصول | MVP (ch1–4) |
@@ -476,6 +480,8 @@ Rules from the UX doc that the renderer must enforce:
 The last six routes come from the design (`docs/design/HANDOFF.md` §7), which shows each screen's presentation (shell tab, sheet, dialog or full screen) and where each tap goes (§11). Each owning feature adds its route.
 
 M08 adds no route; it fills `/home`, `/home/pre-trip/:tripId` and `/trip/:tripId/result`. The result reads the trip's hand-over (`ResultArgs`, the route's `extra`); opened without one, it shows the last finished result the phone kept, and with nothing kept the router sends it to `/home` before any page is built (`specs/013-m08-home-result` FR-036).
+
+M09 fills `/lines`, `/lines/:lineId` and `/lines/vehicle/:vehicleId`, and adds `/lines/:lineId/pre-trip/:tripId`: every start from Lines goes through `startNextTrip(from: StartFrom.lines)`, whose card opens under the line's details, so its close lands there. The lines tab always opens at `/lines`, so a card left for a trip is never rebuilt on the next visit; the other tabs keep where they were (`specs/014-m09-lines-vehicles` research R5).
 
 **Home's arrival queue** (M08, `lib/features/home/application/arrival_queue.dart`). Each arrival at `/home` opens at most one `ArrivalItem`, the due one with the lowest rank: 10 a story scene that is due, 20 the name sheet (both M07's, which opened them on their own before), 30 the notification ask (M14), 40 the morning piggy (M13). Nothing opens while an item is open or on the arrival that returns from one, and an item opens only if Home is still on top when the frame ends. Later features add their items to `arrivalItemsProvider`.
 
@@ -566,6 +572,7 @@ The rules, the API and the storage contract are in `specs/007-m05-local-economy/
 - **Trusted time** (constitution VI, as amended in 1.3.0). Time is an anchor advanced by the phone's monotonic uptime (`SystemClock.elapsedRealtime`, through the `wassal/clock` channel). The anchor is the last server time, or the device clock until there is one. The device clock is read only to take a new anchor, at the first open or after a restart while offline, and a new anchor never moves time back. Clock changes while the phone stays on have no effect. The server recomputes fuel, rewards and daily resets from its own clock, and its state replaces the client's on sync (M06).
 - **Prices** (JENEHAT for items, vehicles and chapters; BONAT for boosters, fuel, revives and cosmetics) come from the active pack's catalog when the purchase applies, never from code or the caller. The kind decides the currency.
 - **Unlock rules** (M08, `lib/core/progress/domain/unlocks.dart`, `specs/013-m08-home-result/contracts/progress-rules.md`). A port of the server's `backend/apps/progress/services/unlocks.py`, with its names, argument order and edge cases, and its tests ported too: a vehicle owned, a line unlocked and complete, a trip unlocked, a chapter unlocked and complete, a room complete, an item purchasable, the current chapter. They read `PlayerProgress` (best stars by trip and what is owned, from the projection). Each is permissive where a mistake is harmless and strict where it protects value. The server still decides; the phone checks first so it never offers a start or a purchase the server would refuse as `not_unlocked`. A change to `unlocks.py` changes the port in the same PR.
+- **Phone-only rules** (M09, `lib/core/progress/domain/playable.dart`, `specs/014-m09-lines-vehicles/contracts/progress-rules.md`), beside the port and never more permissive than it (a sweep proves it): `tripPlayable`, which holds a story trip a chapter names until that chapter's goal is met, and `vehicleSale`, which sells vehicles in pack order (`Owned`, `ForSale`, `NeedsFirst`, `NoPrice`). Home's next trip, the pre-trip card, `startNextTrip` and Lines all read `tripPlayable`; the port isn't edited.
 - **Rule from product doc:** BONAT can never be converted into JENEHAT in v1. No code path may do it: no device operation adds BONAT, and none spends BONAT and adds JENEHAT (`direction_test.dart` builds every one).
 
 ---

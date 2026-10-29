@@ -43,7 +43,14 @@ const syncedFolders = <String, ({String from, List<String>? files})>{
   ),
   'illustrations/vehicles': (
     from: 'illustrations/vehicles',
-    files: ['tuktuk.svg', 'microbus_old.svg'],
+    // Every vehicle has its own static fallback, the two later microbuses
+    // included (specs/014-m09-lines-vehicles, research R10).
+    files: [
+      'tuktuk.svg',
+      'microbus_old.svg',
+      'microbus_new.svg',
+      'microbus_travel.svg',
+    ],
   ),
   'illustrations/screens': (
     from: 'illustrations/screens',

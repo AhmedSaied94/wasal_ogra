@@ -763,7 +763,12 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     Home, in a fixed order, and M07's due scene and name re-ask became its first two. Home's
     offline banner follows `HomeStates` (40 high, 10 under the header) where `States` draws it
     alone.
-  - [ ] `014-m09-lines-vehicles`
+  - [ ] `014-m09-lines-vehicles`. Built on 2026-10-29; ticked after merge. Decided in its
+    clarifications: a story trip waits for its chapter's goal on the phone (only ever stricter than
+    the server); the current card's «كمّل» starts its next trip; the impact line reads «فاضل
+    {amount} ج على {goal}»; the owner draws the undrawn states (six boards, two optional). Adds
+    three required content fields (a line's `whats_new` and `display_fare_piasters`, a vehicle's
+    `short_name`), so staging publishes a fresh pack after the deploy.
   - [ ] `015-m10-apartment-story`
 - [ ] Step 8: Ads
   - [ ] `016-b10-catalog-offers`

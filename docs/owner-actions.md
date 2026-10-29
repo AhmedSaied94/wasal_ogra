@@ -31,7 +31,7 @@ left, in what order, and where to look.
 | [012 M07 onboarding](#012-m07-onboarding) | 4 | 4 | Built and tested on 2026-10-27, on branch `012-m07-onboarding`. The drawings were done on 2026-10-28. |
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
-| [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 boards to draw now (2 more optional); the rest at implement | — | Planned on 2026-10-29, on branch `014-m09-lines-vehicles`. Not built yet. The boards can be drawn now. |
+| [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 boards (2 more optional) + 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`. The boards, the release draft's texts and the strings wait for you. |
 
 ## Every month
 
@@ -1042,22 +1042,24 @@ Home is gone: its trip list is in Home's debug sheet on dev and staging.
 
 ## 014 M09 lines and vehicles
 
-Planned on 2026-10-29, on branch `014-m09-lines-vehicles`
-([plan](../specs/014-m09-lines-vehicles/plan.md),
-[design briefs](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)). Not built yet. This
-section starts early, because the boards below can be drawn while the code is built.
-`/speckit-implement` adds the before-merge and after-merge items with their task IDs.
+Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`
+([plan](../specs/014-m09-lines-vehicles/plan.md), [tasks.md](../specs/014-m09-lines-vehicles/tasks.md),
+[quickstart](../specs/014-m09-lines-vehicles/quickstart.md),
+[design briefs](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)). Lines (الخطوط) shows
+the coins and BONAT, the vehicle strip and the line map; a line's details show its trip grid; any
+open trip starts from Lines, and its card closes back to the line's details; the next vehicle is
+bought from its sheet, offline; the lines tab has a «new» dot. A story trip now waits for its
+chapter's goal on every screen, and vehicles sell in pack order. A line's `whats_new` and
+`display_fare_piasters` and a vehicle's `short_name` are new required content fields.
 
 `Lines`, `LineDetails` and `BuyVehicle` each draw one state. The first release mostly shows states
-they don't draw, so you draw them: two vehicles and two lines, a story trip as the next cell, a
-finished line, the shortfall, and an owned vehicle. Claude doesn't design them. Claude builds every
-state from the brief meanwhile; only each board's sample, golden and layout test waits for its
-export.
+they don't draw, so you draw them. Claude built every state from the brief; only each new board's
+sample, golden and layout test waits for its export.
 
 ### Before the new boards' design checks
 
-- [ ] **1. Draw the six boards the first release needs.** On the Claude Design canvas «وصّل الأجرة —
-  Design», from [design-briefs.md](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)
+- [ ] **1. Draw the six boards the first release needs (T074).** On the Claude Design canvas
+  «وصّل الأجرة — Design», from [design-briefs.md](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)
   "Needed by the first release". Each board is 390×844, one state, with an `aria-label` on every
   tappable:
   - `LinesFirst`: chapter 1, with two tiles and two cards;
@@ -1072,11 +1074,64 @@ export.
   whether the impact line stays when short). Copy you draw replaces Claude's drafts. Export with
   `docs/design/tools` (`export.py`, `boxes.py` + `boxes_post.py`, `build_assets.py`) and commit
   `docs/design/screens/<Board>.html`, `png/<Board>.png`, `boxes/<Board>.json` and the manifests, or
-  hand the export to Claude.
-- [ ] **2. Optional: the two boards only later packs need.** `LineDetailsLocked` (a line locked
-  behind another line) and `BuyVehicleNotForSale` (a vehicle after one you don't have, or with no
-  price). The release draft never shows them. If they aren't drawn, you approve their goldens
-  instead.
+  hand the export to Claude, who then aligns the widgets and adds their checks (T076–T079).
+- [ ] **2. Optional: the two boards only later packs need (T075).** `LineDetailsLocked` (a line
+  locked behind another line) and `BuyVehicleNotForSale` (a vehicle after one you don't have, or
+  with no price). The release draft never shows them. If they aren't drawn, you approve their
+  goldens instead (before merge, item 4).
+
+### Before merge
+
+- [ ] **1. The release draft's texts (T010, T089).** The `content-core-r1` worktree
+  (`wasal_ogra-core-r1`) wasn't on the machine that built M09, so the draft doesn't have the three
+  new fields yet. Add them to `content/drafts/core-r1/pack/lines/{line_hay,line_gamaa}.json` and
+  `pack/vehicles/{tuktuk,micro_old}.json`, or let Claude do it in a session that has the worktree:
+  the sample's values are the product spec's (خط الحي ٧ ج «تعلّم اللمّ والباقي، الحاجة، النايم،
+  المستعجل»; خط الجامعة ٨٫٥ ج «نص الأجرة، الدفع الجماعي، "أنا دافع!"، أبو سمّاعة»; «توكتوك»,
+  «قديم»). Rewrite the texts as you like; then run `uv run wassal-content validate-source` on the
+  draft, and copy the draft's `line_hay` into `apps/mobile/test/fixtures/tutorial/` (its README).
+- [ ] **2. The strings (T087).** Read the drafts in
+  [research R14](../specs/014-m09-lines-vehicles/research.md#r14-copy-fr-044-fr-052), as they stand
+  in `apps/mobile/lib/l10n/app_ar.arb` (the `lines*`, `lineDetails*` and `buyVehicle*` keys): the card
+  and cell labels, the plurals («١١ مشوار خلص», «١٠ كراسي بدل ٣»), the owned and not-for-sale lines,
+  «اشتريت {vehicle}! {line} اتفتح.», the impact line «بعد الشرا، فاضل {amount} ج على {goal}», and
+  «{name}، مقفولة» for a vehicle not for sale yet. Say what to change; Claude applies it and
+  regenerates the goldens it touches.
+- [ ] **3. The departures (T088).** Approve or refuse those in the plan's Complexity Tracking:
+  «كمّل» is its own button that starts the next trip; the reworded impact line; the locked look
+  on tiles and cells (§9.1 #6) instead of the drawn dashes; long text wraps; the plain preview with
+  no «بزينتك»; a line behind another line opens its locked details; the lines tab always opens at
+  its root. And the ones found while building: a vehicle after one you lack shows no price on its
+  tile (the board prices the safar microbus); «لسه» is the secondary button; the board's sheets keep
+  their drawn height, with their buttons at the bottom.
+- [ ] **4. The goldens (T088).** In `apps/mobile/test/goldens/design/goldens/`, `Lines_*`,
+  `LineDetails_*` and `BuyVehicle_*` beside `docs/design/png/` (each test lists its expected
+  differences), and the composed states in the widget tests' screens: a done card at three stars,
+  a line under 20 trips, the sheet without the impact line, the plain affordable sheet, Lines
+  offline, 360 pt and 1.3× (`test/goldens/goldens/lines_*`, `all/{lines,lineDetail,linePreTrip,
+  vehiclePurchase}_*`), and T075's two states if not drawn.
+- [ ] **5. The side-by-side images (T092).** Run
+  `fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true` in
+  `apps/mobile` and look at `build/design_compare/` for `Lines`, `LineDetails` and `BuyVehicle`
+  (and each exported board) in both digit styles
+  ([quickstart §3](../specs/014-m09-lines-vehicles/quickstart.md)).
+- [ ] **6. Rive and the dev stack (T090, T081).** Two checks couldn't run where M09 was built: the
+  `rive`-tagged tests (the network refused Rive's library download) and the `backend`-tagged
+  `test/backend/lines_purchase_sync_test.dart` (no Docker). CI's `mobile` and `sync-e2e` jobs run
+  both; check they pass on the PR.
+
+### After merge
+
+- [ ] **1. A fresh pack on staging (T093).** Deploy, then fill the new fields of خط الحي, خط
+  الجامعة and both vehicles in staging's admin (rows from before migration `content.0010` hold a
+  fare of 50 and empty texts, which a build refuses), build and publish. Packs without the fields
+  no longer read ([content-publishing §1](runbooks/content-publishing.md)).
+- [ ] **2. The device pass (T094).** [Quickstart §6](../specs/014-m09-lines-vehicles/quickstart.md)
+  on the Redmi Note 7, or the Galaxy A06 when available: Lines, the details and the sheet within
+  0.5 s of the tap (SC-008), a purchase offline then synced, and the dot across a restart. Claude
+  asks before connecting to the phone.
+- [ ] **3. The playtest (T095).** SC-009: after opening Lines once, can four of five new players
+  say what the next vehicle costs and which line it opens? Tell Claude the count.
 
 ## Known for later features
 
