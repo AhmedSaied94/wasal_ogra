@@ -32,6 +32,8 @@ from apps.content.models.packs import BuildState, Origin, Status
 def line(line_id: str = "line_hay", order: int = 1, **fields: Any) -> Line:
     defaults = {
         "name_ar_eg": "name",
+        "whats_new_ar_eg": "news",
+        "display_fare_piasters": 700,
         "unlock_kind": "start",
         "difficulty_min": 0,
         "difficulty_max": 30,
@@ -44,7 +46,8 @@ def station(of: Line, station_id: str = "kobri", order: int = 1) -> Station:
 
 
 def vehicle(vehicle_id: str = "micro_old", order: int = 1, **fields: Any) -> Vehicle:
-    return Vehicle.objects.create(vehicle_id=vehicle_id, name_ar_eg="name", order=order, **fields)
+    defaults = {"name_ar_eg": "name", "short_name_ar_eg": "short"}
+    return Vehicle.objects.create(vehicle_id=vehicle_id, order=order, **{**defaults, **fields})
 
 
 def seat(of: Vehicle, seat_id: str = "A_l") -> Seat:

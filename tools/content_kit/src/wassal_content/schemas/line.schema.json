@@ -10,7 +10,9 @@
     "order",
     "stations",
     "unlock",
-    "difficulty_band"
+    "difficulty_band",
+    "whats_new",
+    "display_fare_piasters"
   ],
   "properties": {
     "line_id": {
@@ -36,6 +38,12 @@
     },
     "difficulty_band": {
       "$ref": "#/$defs/DifficultyBand"
+    },
+    "whats_new": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "display_fare_piasters": {
+      "$ref": "common.schema.json#/$defs/PositivePiasters"
     }
   },
   "additionalProperties": false,

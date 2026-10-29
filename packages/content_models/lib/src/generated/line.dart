@@ -87,6 +87,8 @@ abstract class Line with _$Line {
     @JsonKey(name: 'stations') required List<LineStation> stations,
     @JsonKey(name: 'unlock') required LineUnlock unlock,
     @JsonKey(name: 'difficulty_band') required DifficultyBand difficultyBand,
+    @JsonKey(name: 'whats_new') required LocalizedText whatsNew,
+    @JsonKey(name: 'display_fare_piasters') required int displayFarePiasters,
   }) = _Line;
 
   factory Line.fromJson(Map<String, dynamic> json) =>

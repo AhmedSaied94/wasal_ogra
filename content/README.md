@@ -49,3 +49,14 @@ tell the app how to play them (M07, `specs/012-m07-onboarding/contracts/scenes.m
   (`V-C5`).
 - The sample's chapter 1 uses both: `opening` plays first, and `the_stand` plays after
   `line_hay.03`.
+
+## What Lines shows (M09)
+
+- A line's **`whats_new`** is the player text its card shows after its name: what the line brings
+  that is new («نص الأجرة، الدفع الجماعي، …»). No digits and no edge spaces (`V-X1`).
+- A line's **`display_fare_piasters`** is the fare on its card's chip: an integer, at least 50 and a
+  multiple of 50. Display only: trips keep their own `fare_piasters`.
+- A vehicle's **`short_name`** is its name on its tile («قديم · عربيتك»). The sheet and every label
+  keep `name`.
+- All three are required, so a pack built before them no longer reads
+  (`specs/014-m09-lines-vehicles/contracts/content-fields.md`).

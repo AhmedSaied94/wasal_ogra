@@ -130,13 +130,23 @@ class StationInline(ContentInline):
 @admin.register(Line)
 class LineAdmin(ContentModelAdmin):
     inlines = (StationInline,)
-    list_display = ("line_id", "order", "unlock_kind", "difficulty_min", "difficulty_max")
+    list_display = (
+        "line_id",
+        "order",
+        "unlock_kind",
+        "difficulty_min",
+        "difficulty_max",
+        "display_fare_piasters",
+    )
     list_filter = ("unlock_kind",)
     search_fields = ("line_id", "stations__station_id")
     fields = (
         "line_id",
         "name_ar_eg",
         "name_ar",
+        "whats_new_ar_eg",
+        "whats_new_ar",
+        "display_fare_piasters",
         "order",
         "unlock_kind",
         "unlock_vehicle",
@@ -155,7 +165,15 @@ class SeatInline(ContentInline):
 class VehicleAdmin(ContentModelAdmin):
     inlines = (SeatInline,)
     list_display = ("vehicle_id", "order", "starter")
-    fields = ("vehicle_id", "name_ar_eg", "name_ar", "starter", "order")
+    fields = (
+        "vehicle_id",
+        "name_ar_eg",
+        "name_ar",
+        "short_name_ar_eg",
+        "short_name_ar",
+        "starter",
+        "order",
+    )
 
 
 # -- trips ----------------------------------------------------------------------------------------

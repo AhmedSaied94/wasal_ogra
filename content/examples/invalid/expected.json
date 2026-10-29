@@ -48,9 +48,14 @@
   "item/empty_name.json": "$.name.ar-EG",
   "item/four_variants.json": "$.variants",
   "item/item_id_without_room.json": "$.item_id",
+  "line/display_fare_475.json": "$.display_fare_piasters",
   "line/name_without_ar_eg.json": "$.name.ar-EG",
   "line/one_station.json": "$.stations",
   "line/unknown_unlock_kind.json": "$.unlock.kind",
+  "line/whats_new_digit.json": {
+    "code": "V-X1",
+    "path": "$.whats_new.ar-EG"
+  },
   "manifest/ftp_url.json": "$.packs[0].url",
   "manifest/short_sha256.json": "$.packs[0].sha256",
   "manifest/two_part_version.json": "$.packs[0].min_client_version",
@@ -82,5 +87,6 @@
   "trip/unknown_archetype.json": "$.passengers[0].archetype",
   "vehicle/bad_seat_row.json": "$.seats[0].row",
   "vehicle/no_seats.json": "$.seats",
+  "vehicle/no_short_name.json": "$.short_name",
   "vehicle/starter_as_text.json": "$.starter"
 }

@@ -466,6 +466,8 @@ class Line(ContentModel):
     stations: tuple[LineStation, ...]
     unlock: LineUnlock
     difficulty_band: DifficultyBand
+    whats_new: LocalizedText
+    display_fare_piasters: StrictInt
 
 
 class TripDefinition(ContentModel):
@@ -492,6 +494,7 @@ class Vehicle(ContentModel):
 
     vehicle_id: VehicleId
     name: LocalizedText
+    short_name: LocalizedText
     order: StrictInt
     starter: StrictBool
     seats: tuple[Seat, ...]

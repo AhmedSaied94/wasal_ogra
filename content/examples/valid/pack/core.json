@@ -267,6 +267,7 @@
         "max": 55,
         "min": 20
       },
+      "display_fare_piasters": 850,
       "line_id": "line_gamaa",
       "name": {
         "ar-EG": "خط الجامعة"
@@ -307,6 +308,9 @@
       "unlock": {
         "kind": "vehicle",
         "vehicle_id": "micro_old"
+      },
+      "whats_new": {
+        "ar-EG": "نص الأجرة، الدفع الجماعي، \"أنا دافع!\"، أبو سمّاعة"
       }
     },
     {
@@ -314,6 +318,7 @@
         "max": 30,
         "min": 0
       },
+      "display_fare_piasters": 700,
       "line_id": "line_hay",
       "name": {
         "ar-EG": "خط الحي"
@@ -347,6 +352,9 @@
       ],
       "unlock": {
         "kind": "start"
+      },
+      "whats_new": {
+        "ar-EG": "تعلّم اللمّ والباقي، الحاجة، النايم، المستعجل"
       }
     }
   ],
@@ -1407,6 +1415,9 @@
           "seat_id": "C_l"
         }
       ],
+      "short_name": {
+        "ar-EG": "قديم"
+      },
       "starter": false,
       "vehicle_id": "micro_old"
     },
@@ -1435,6 +1446,9 @@
           "seat_id": "A_l"
         }
       ],
+      "short_name": {
+        "ar-EG": "توكتوك"
+      },
       "starter": true,
       "vehicle_id": "tuktuk"
     }

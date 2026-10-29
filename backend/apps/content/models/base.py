@@ -7,6 +7,9 @@ from typing import Any, ClassVar
 
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import F, Q
+from django.db.models.functions import Mod
+from django.db.models.lookups import Exact
 
 from apps.common.models import UUIDv7Model
 
@@ -14,6 +17,12 @@ SLUG_PATTERN = r"^[a-z][a-z0-9_]{1,31}$"
 slug_validator = RegexValidator(
     SLUG_PATTERN, "Use 2-32 lowercase letters, digits or underscores, starting with a letter."
 )
+
+COIN_PIASTERS = 50  # the smallest coin: every amount in piasters is a multiple of it
+
+
+def multiple_of_coin(field: str) -> Q:
+    return Q(Exact(Mod(F(field), COIN_PIASTERS), 0))
 
 
 def choices(enum: type[Enum]) -> list[tuple[Any, str]]:

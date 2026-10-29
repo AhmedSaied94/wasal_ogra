@@ -1,9 +1,9 @@
 """The shared example set (FR-009): valid examples pass, invalid ones fail at the named field.
 
 An invalid example's `expected.json` entry is the schema path it fails at, or, for a document
-the schema accepts but a rule beyond shape refuses (M07's `plays` and `narrator` rules), the
-rule's `code` and `path`. Such a document is checked inside the sample pack, in place of the
-sample's element with the same identifier.
+the schema accepts but a rule beyond shape refuses (M07's `plays` and `narrator` rules, and
+M09's digit in a line's `whats_new`), the rule's `code` and `path`. Such a document is checked
+inside the sample pack, in place of the sample's element with the same identifier.
 """
 
 from pathlib import Path
@@ -81,9 +81,9 @@ def test_rule_examples_pass_the_schema_and_break_their_rule(
     assert {f.code for f in report.errors} == {expected["code"]}
 
 
-def test_the_rule_examples_cover_plays_and_narrator_rules() -> None:
+def test_the_rule_examples_cover_plays_narrator_and_text_rules() -> None:
     codes = {entry["code"] for entry in EXPECTED.values() if isinstance(entry, dict)}
-    assert codes == {"V-C3", "V-C4", "V-C5"}
+    assert codes == {"V-C3", "V-C4", "V-C5", "V-X1"}
 
 
 def test_expected_lists_exactly_the_invalid_files() -> None:
