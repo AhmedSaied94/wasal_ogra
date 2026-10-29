@@ -43,7 +43,8 @@ The review produces:
 - **Append-only on tasks.md.** Never edit, untick, renumber or delete an existing task. A task that
   is ticked but not done gets a new task that cites it.
 - **Authority.** The constitution (`.specify/memory/constitution.md`) overrides everything. Next
-  come the project's agent instructions (`CLAUDE.md`, else `AGENTS.md`), then the feature's
+  come the project's agent instructions (the root `CLAUDE.md` and the area `CLAUDE.md` files it
+  points to, else `AGENTS.md`), then the feature's
   `plan.md` and `spec.md`, then the docs they cite. A finding cites the rule it breaks.
 - **Evidence or nothing.** Every finding names a `file:line` and what you saw there. Every passed
   check names the command you ran and its exit code. A check you did not run is `NOT RUN`, never
@@ -71,8 +72,9 @@ The review produces:
    - Files that are plainly not part of the feature (an agent's own setup, editor files) are listed
      once under "Outside this change" and not reviewed.
 3. Read, in full:
-   - the constitution and `CLAUDE.md` (or `AGENTS.md`): the command tables, the invariants, the
-     repo guards, and the conventions;
+   - the constitution, the root `CLAUDE.md` (or `AGENTS.md`) and the `CLAUDE.md` of each area the
+     change touches (`apps/mobile/`, `backend/`, `packages/trip_engine/`, `tools/content_kit/`,
+     `tools/solver/`): the command tables, the invariants, the repo guards, and the conventions;
    - `spec.md`: every FR, SC, user story with its acceptance scenarios, edge case and clarification;
    - `plan.md`: the Constitution Check, Complexity Tracking, technical decisions and the files it
      names;
@@ -97,7 +99,7 @@ Put every changed file in one or more layers. Security and tests apply to every 
 | `ui` | `apps/mobile/lib/**/presentation/`, `lib/core/theme/`, `lib/l10n/`, `assets/`, `test/goldens/`, `test/design/` | 4.G |
 | `security` | every file | 4.H |
 | `tests` | every test file, coverage and lint config | 4.I |
-| `ops` | `.github/`, `backend/docker/`, `codemagic.yaml`, `docs/`, `specs/`, `CLAUDE.md`, `AGENTS.md` | 4.J |
+| `ops` | `.github/`, `backend/docker/`, `codemagic.yaml`, `docs/`, `specs/`, every `CLAUDE.md`, `AGENTS.md` | 4.J |
 
 Then build two maps (keep them internal; they feed steps 4 and 6):
 
@@ -110,14 +112,14 @@ Then build two maps (keep them internal; they feed steps 4 and 6):
 
 Unless `no-run` was given:
 
-- For each CI job the change triggers, run its commands locally exactly as the `CLAUDE.md` command
-  tables give them (right directory, `fvm`, `uv`). Add the checks those tables tie to what changed:
-  the property tests at 10,000 examples when auth or the economy changed, the fixtures check and
-  the parity replay when the engine changed, `codegen --check` when a schema changed,
+- For each CI job the change triggers, run its commands locally exactly as the areas' `CLAUDE.md`
+  command tables give them (right directory, `fvm`, `uv`). Add the checks those tables tie to what
+  changed: the property tests at 10,000 examples when auth or the economy changed, the fixtures
+  check and the parity replay when the engine changed, `codegen --check` when a schema changed,
   `makemigrations --check` and the OpenAPI regeneration diff when the backend changed, the drift
   schema tests when a table changed, the integration tests `quickstart.md` names.
-- The backend tests need the dev stack. If it's down, start it with the command in `CLAUDE.md`; if
-  it won't start, mark those checks `NOT RUN` with the reason.
+- The backend tests need the dev stack. If it's down, start it with the command in
+  `backend/CLAUDE.md`; if it won't start, mark those checks `NOT RUN` with the reason.
 - Run independent suites in the background or in parallel, and review the code while they run.
 - Record each check as `command → exit code → one-line result`. A failing check is a finding.
 - Look at the diff for ways around the checks, each a finding: deleted or skipped tests (`skip`,
@@ -129,14 +131,17 @@ Unless `no-run` was given:
 ### 4. Review each layer
 
 If your agent can run subagents, review the touched layers in parallel: one subagent per layer, and
-spec conformance always gets its own. Give each one its checklist below, its file list, the paths
-of `FEATURE_DIR`, the constitution and `CLAUDE.md`, the base and head commits, and the finding
-format of step 5. Ask it to report what it checked as well as what it found. Use a specialized
-reviewer (security, database, Python, Flutter) where your agent has one. Give subagents the code and
-the checklist, not your suspicions. Without subagents, review the layers yourself, one at a time.
+spec conformance always gets its own. Run them on a cheaper model than yours when your agent lets
+you choose one (in Claude Code on Opus, `model: "sonnet"`): step 5 re-checks each of their findings
+on yours. Give each one its checklist below, its file list, the paths of `FEATURE_DIR`, the
+constitution, the root `CLAUDE.md` and the `CLAUDE.md` of each area its files are in, the base and
+head commits, and the finding format of step 5. Ask it to report what it checked as well as what it
+found. Use a specialized reviewer (security, database, Python, Flutter) where your agent has one.
+Give subagents the code and the checklist, not your suspicions. Without subagents, review the
+layers yourself, one at a time.
 
-Each checklist is the minimum. Every MUST, NEVER and "only" in the constitution and `CLAUDE.md`
-that touches the layer is a check too.
+Each checklist is the minimum. Every MUST, NEVER and "only" in the constitution and the `CLAUDE.md`
+files that touches the layer is a check too.
 
 **4.A Spec conformance**
 
@@ -261,7 +266,8 @@ that touches the layer is a check too.
 **4.J Ops and docs**
 
 - `docs/owner-actions.md` has this feature's section, with its "Open now" rows.
-- `CLAUDE.md` (and `AGENTS.md`) list new commands, files, invariants and guards.
+- The area's `CLAUDE.md` (the root one for what crosses areas) and `AGENTS.md` list new commands,
+  files, invariants and guards.
 - New environment variables, runbook steps and CI jobs or path filters are where they belong.
 - The shared glossary (§3), if touched, changed in both architecture docs. No NEEDS CLARIFICATION was
   resolved by guessing.
