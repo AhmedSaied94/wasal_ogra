@@ -31,6 +31,7 @@ left, in what order, and where to look.
 | [012 M07 onboarding](#012-m07-onboarding) | 4 | 4 | Built and tested on 2026-10-27, on branch `012-m07-onboarding`. The drawings were done on 2026-10-28. |
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
+| [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 boards to draw now (2 more optional); the rest at implement | — | Planned on 2026-10-29, on branch `014-m09-lines-vehicles`. Not built yet. The boards can be drawn now. |
 
 ## Every month
 
@@ -1038,6 +1039,44 @@ Home is gone: its trip list is in Home's debug sheet on dev and staging.
 - [ ] **2. The 10-player playtest (T089).** SC-008: do 8 of 10 know which star they missed and why,
   from the result alone? SC-009: do 8 of 10 who meet a new passenger type know what it does from the
   card? Tell Claude the counts.
+
+## 014 M09 lines and vehicles
+
+Planned on 2026-10-29, on branch `014-m09-lines-vehicles`
+([plan](../specs/014-m09-lines-vehicles/plan.md),
+[design briefs](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)). Not built yet. This
+section starts early, because the boards below can be drawn while the code is built.
+`/speckit-implement` adds the before-merge and after-merge items with their task IDs.
+
+`Lines`, `LineDetails` and `BuyVehicle` each draw one state. The first release mostly shows states
+they don't draw, so you draw them: two vehicles and two lines, a story trip as the next cell, a
+finished line, the shortfall, and an owned vehicle. Claude doesn't design them. Claude builds every
+state from the brief meanwhile; only each board's sample, golden and layout test waits for its
+export.
+
+### Before the new boards' design checks
+
+- [ ] **1. Draw the six boards the first release needs.** On the Claude Design canvas «وصّل الأجرة —
+  Design», from [design-briefs.md](../specs/014-m09-lines-vehicles/contracts/design-briefs.md)
+  "Needed by the first release". Each board is 390×844, one state, with an `aria-label` on every
+  tappable:
+  - `LinesFirst`: chapter 1, with two tiles and two cards;
+  - `LinesOwned`: after the microbus;
+  - `LineDetailsStory`: the shabka trip as the next cell, a second playable cell, and locked cells
+    in the §9.1 #6 look;
+  - `LineDetailsDone`: a finished line with no play button;
+  - `BuyVehicleShort`: the microbus with too little saved;
+  - `BuyVehicleOwned`: a vehicle that's already yours.
+
+  Each brief lists the questions its board settles (for example, where two cards sit on the map, and
+  whether the impact line stays when short). Copy you draw replaces Claude's drafts. Export with
+  `docs/design/tools` (`export.py`, `boxes.py` + `boxes_post.py`, `build_assets.py`) and commit
+  `docs/design/screens/<Board>.html`, `png/<Board>.png`, `boxes/<Board>.json` and the manifests, or
+  hand the export to Claude.
+- [ ] **2. Optional: the two boards only later packs need.** `LineDetailsLocked` (a line locked
+  behind another line) and `BuyVehicleNotForSale` (a vehicle after one you don't have, or with no
+  price). The release draft never shows them. If they aren't drawn, you approve their goldens
+  instead.
 
 ## Known for later features
 
