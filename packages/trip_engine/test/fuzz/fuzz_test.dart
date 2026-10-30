@@ -7,7 +7,6 @@ import 'dart:io';
 
 import 'package:content_models/content_models.dart';
 import 'package:test/test.dart';
-import 'package:trip_engine/src/prng.dart';
 import 'package:trip_engine/trip_engine.dart';
 
 import '../support/default_params.dart';

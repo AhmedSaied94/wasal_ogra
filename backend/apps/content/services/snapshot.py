@@ -193,6 +193,53 @@ def chapter_part(chapter: Chapter) -> dict[str, Any]:
     }
     if chapter.story_trip is not None:
         part["story_trip_id"] = chapter.story_trip.trip_id
+    # M10's fields, written only when set, so a pack without them round-trips unchanged.
+    if chapter.goal_art:
+        part["goal_art"] = chapter.goal_art
+    if chapter.goal_line_speaker:
+        part["goal_line"] = {
+            "speaker": chapter.goal_line_speaker,
+            "text": text(chapter.goal_line_ar_eg, chapter.goal_line_ar),
+        }
+    if chapter.ready_line_ar_eg:
+        part["ready_line"] = text(chapter.ready_line_ar_eg, chapter.ready_line_ar)
+    if chapter.tagline_ar_eg:
+        part["tagline"] = text(chapter.tagline_ar_eg, chapter.tagline_ar)
+    riders = sorted(chapter.riders.all(), key=lambda r: r.order)
+    # A story trip the author left half-written is emitted as it is, so the schema refuses the
+    # shape: dropping its riders or its condition would publish a pack missing them (R1-6).
+    if (
+        chapter.story_title_ar_eg
+        or chapter.story_condition_ar_eg
+        or chapter.story_fail_reason_ar_eg
+        or riders
+    ):
+        info: dict[str, Any] = {
+            "title": text(chapter.story_title_ar_eg, chapter.story_title_ar),
+            "riders": [rider_part(rider) for rider in riders],
+        }
+        if chapter.story_condition_ar_eg:
+            info["condition"] = text(chapter.story_condition_ar_eg, chapter.story_condition_ar)
+        if chapter.story_fail_reason_ar_eg:
+            info["fail_reason"] = text(
+                chapter.story_fail_reason_ar_eg, chapter.story_fail_reason_ar
+            )
+        part["story_trip_info"] = info
+    return part
+
+
+def rider_part(rider: Any) -> dict[str, Any]:
+    part: dict[str, Any] = {"character": rider.character, "seat": rider.seat_id}
+    comments = {
+        "short_change": rider.comment_short_change,
+        "false_accusation": rider.comment_false_accusation,
+        "fight": rider.comment_fight,
+        "missed_stop": rider.comment_missed_stop,
+        "impatient": rider.comment_impatient,
+    }
+    written = {slot: key for slot, key in comments.items() if key}
+    if written:
+        part["comments"] = written
     return part
 
 
@@ -200,6 +247,7 @@ def scene_part(scene: Any) -> dict[str, Any]:
     lines = sorted(scene.lines.all(), key=lambda line: (line.panel, line.order))
     part: dict[str, Any] = {
         "scene_id": scene.scene_id,
+        "title": text(scene.title_ar_eg, scene.title_ar),
         "panels": [
             {
                 "art": art,
@@ -221,30 +269,41 @@ def scene_part(scene: Any) -> dict[str, Any]:
 
 
 def room_part(room: Room) -> dict[str, Any]:
-    return {
+    part: dict[str, Any] = {
         "room_id": room.room_id,
         "name": text(room.name_ar_eg, room.name_ar),
         "order": room.order,
         "chapter_id": room.chapter.chapter_id,
         "completion_bonat": room.completion_bonat,
     }
+    if room.art:
+        part["art"] = room.art
+    if room.done_line_ar_eg:
+        part["done_line"] = text(room.done_line_ar_eg, room.done_line_ar)
+    return part
 
 
 def item_part(item: Item) -> dict[str, Any]:
-    return {
+    part: dict[str, Any] = {
         "item_id": item.item_id,
         "room_id": item.room.room_id,
         "name": text(item.name_ar_eg, item.name_ar),
         "order": item.order,
-        "variants": [
-            {
-                "variant_id": variant.variant_id,
-                "name": text(variant.name_ar_eg, variant.name_ar),
-                "art": variant.art,
-            }
-            for variant in sorted(item.variants.all(), key=lambda v: v.order)
-        ],
+        "slot": {"x": item.slot_x, "y": item.slot_y, "w": item.slot_w, "h": item.slot_h},
+        "variants": [],
     }
+    if item.comment_ar_eg:
+        part["comment"] = text(item.comment_ar_eg, item.comment_ar)
+    for variant in sorted(item.variants.all(), key=lambda v: v.order):
+        variant_part: dict[str, Any] = {
+            "variant_id": variant.variant_id,
+            "name": text(variant.name_ar_eg, variant.name_ar),
+            "art": variant.art,
+        }
+        if variant.comment_ar_eg:
+            variant_part["comment"] = text(variant.comment_ar_eg, variant.comment_ar)
+        part["variants"].append(variant_part)
+    return part
 
 
 def request_part(request: FamilyRequest) -> dict[str, Any]:
@@ -252,6 +311,7 @@ def request_part(request: FamilyRequest) -> dict[str, Any]:
         "request_id": request.request_id,
         "room_id": request.room.room_id,
         "item_id": request.item.item_id,
+        "character": request.character,
         "text": text(request.text_ar_eg, request.text_ar),
         "reward_bonat": request.reward_bonat,
     }
@@ -321,7 +381,7 @@ def trips() -> Any:
 def chapters() -> Any:
     return Chapter.objects.select_related(
         "goal_line", "goal_vehicle", "goal_room", "story_trip__line"
-    ).prefetch_related("scenes__lines", "scenes__plays_trip__line")
+    ).prefetch_related("scenes__lines", "scenes__plays_trip__line", "riders")
 
 
 def rooms() -> Any:

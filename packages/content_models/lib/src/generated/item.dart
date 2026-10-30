@@ -9,6 +9,25 @@ import 'common.dart';
 part 'item.freezed.dart';
 part 'item.g.dart';
 
+/// Where the piece sits in its room's drawing, in a 358×300 design space.
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class ItemSlot with _$ItemSlot {
+  const factory ItemSlot({
+    @JsonKey(name: 'x') required int x,
+    @JsonKey(name: 'y') required int y,
+    @JsonKey(name: 'w') required int w,
+    @JsonKey(name: 'h') required int h,
+  }) = _ItemSlot;
+
+  factory ItemSlot.fromJson(Map<String, dynamic> json) =>
+      _$ItemSlotFromJson(json);
+}
+
 /// A style variant of an item.
 @Freezed(
   copyWith: false,
@@ -21,6 +40,7 @@ abstract class ItemVariant with _$ItemVariant {
     @JsonKey(name: 'variant_id') required String variantId,
     @JsonKey(name: 'name') required LocalizedText name,
     @JsonKey(name: 'art') required String art,
+    @JsonKey(name: 'comment') LocalizedText? comment,
   }) = _ItemVariant;
 
   factory ItemVariant.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +60,8 @@ abstract class Item with _$Item {
     @JsonKey(name: 'room_id') required RoomId roomId,
     @JsonKey(name: 'name') required LocalizedText name,
     @JsonKey(name: 'order') required int order,
+    @JsonKey(name: 'slot') required ItemSlot slot,
+    @JsonKey(name: 'comment') LocalizedText? comment,
     @JsonKey(name: 'variants') required List<ItemVariant> variants,
   }) = _Item;
 

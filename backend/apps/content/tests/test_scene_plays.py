@@ -42,9 +42,19 @@ def scenes(chapter_id: str = "ch1_first_job") -> list[Scene]:
     )
 
 
-def test_the_rule_cases_are_the_plays_and_narrator_rules() -> None:
-    assert {EXPECTED[name]["code"] for name in RULE_CASES} == {"V-C3", "V-C4", "V-C5"}
-    assert len(RULE_CASES) == 8
+def test_the_rule_cases_are_the_plays_narrator_and_story_rules() -> None:
+    assert {EXPECTED[name]["code"] for name in RULE_CASES} == {
+        "V-C3",
+        "V-C4",
+        "V-C5",
+        "V-C6",
+        "V-C7",
+        "V-C8",
+        "V-C10",
+        "V-C11",
+        "V-C12",
+    }
+    assert len(RULE_CASES) == 14
 
 
 # -- import and export ----------------------------------------------------------------------------

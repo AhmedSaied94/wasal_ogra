@@ -29,6 +29,7 @@ from apps.content.models.story import (
     Room,
     Scene,
     SceneLine,
+    StoryRider,
 )
 from apps.content.models.trips import Trip, TripEvent, TripPassenger, TripStation
 
@@ -55,6 +56,7 @@ AUTHORING_MODELS: tuple[type[models.Model], ...] = (
     TripPassenger,
     TripEvent,
     SceneLine,
+    StoryRider,
     SpeechLine,
     CatalogPrice,
     DailyRewardDay,
@@ -86,6 +88,7 @@ __all__ = [
     "SpeechLine",
     "SpeechPool",
     "Station",
+    "StoryRider",
     "TaskTemplate",
     "Trip",
     "TripEvent",

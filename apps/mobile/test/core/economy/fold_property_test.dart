@@ -318,5 +318,11 @@ Future<OpOutcome?> _send(TestEconomy e, TxnId id, OpRequest request) async {
     ComebackGiftRequest() => e.service.grantComebackGift(id),
     SettingsUpdateRequest(:final name) => e.service.setDisplayName(id, name),
     TutorialGiftRequest() => e.service.grantTutorialGift(id),
+    StoryProgressRequest(:final chapterId, :final sceneId) =>
+      e.service.recordScene(id, chapterId: chapterId, sceneId: sceneId),
+    ClaimRequest(:final requestId) => e.service.claimRequest(
+      id,
+      requestId: requestId,
+    ),
   };
 }

@@ -8,6 +8,7 @@
     "request_id",
     "room_id",
     "item_id",
+    "character",
     "text",
     "reward_bonat"
   ],
@@ -21,6 +22,9 @@
     },
     "item_id": {
       "$ref": "common.schema.json#/$defs/ItemId"
+    },
+    "character": {
+      "$ref": "common.schema.json#/$defs/StoryCharacter"
     },
     "variant_id": {
       "type": "string",

@@ -64,7 +64,10 @@
       "plays": {
         "kind": "opening"
       },
-      "scene_id": "opening"
+      "scene_id": "late_opening",
+      "title": {
+        "ar-EG": "المشهد"
+      }
     }
   ],
   "title": {

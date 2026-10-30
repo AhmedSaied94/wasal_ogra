@@ -38,6 +38,7 @@ EconomyState Function(int nowMs) playerState({
   Map<String, int> stars = const {},
   Set<(SkuKind, String)> owned = const {},
   int liters = 5,
+  Map<String, Set<String>> scenesSeen = const {},
 }) =>
     (nowMs) => EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
       jenehat: jenehat,
@@ -45,6 +46,7 @@ EconomyState Function(int nowMs) playerState({
       fuel: FuelState(liters: liters, countedFromMs: nowMs),
       progress: starsOf(stars),
       ownership: ownedOf(owned),
+      scenesSeen: scenesSeen,
       // Named, so Home's arrival doesn't ask (M07).
       displayName: () => 'أحمد',
     );

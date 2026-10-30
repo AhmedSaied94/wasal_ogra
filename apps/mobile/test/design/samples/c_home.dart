@@ -73,6 +73,12 @@ EconomyState cHomeState(int nowMs) {
       microOld: Owned(kind: SkuKind.vehicle, acquiredAtMs: 0),
       shabka: Owned(kind: SkuKind.chapter, acquiredAtMs: 0),
     },
+    // The opening and chapter 2's goal scene played: Home keeps its savings
+    // bar (M10, FR-031).
+    scenesSeen: const {
+      'ch1_first_job': {'opening'},
+      'ch2_her_father': {'father_visit'},
+    },
     progress: {
       'line_hay.01': done(3, 1),
       'line_hay.02': done(3, 2),

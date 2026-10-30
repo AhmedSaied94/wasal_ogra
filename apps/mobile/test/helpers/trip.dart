@@ -423,6 +423,17 @@ final class ScriptedEconomy implements Economy {
   TxnId newRequestId() => inner.newRequestId();
 
   @override
+  Future<OpOutcome> recordScene(
+    TxnId id, {
+    required ChapterId chapterId,
+    required String sceneId,
+  }) => inner.recordScene(id, chapterId: chapterId, sceneId: sceneId);
+
+  @override
+  Future<OpOutcome> claimRequest(TxnId id, {required String requestId}) =>
+      inner.claimRequest(id, requestId: requestId);
+
+  @override
   Future<OpOutcome> startTrip(TxnId id, {required String tripId}) =>
       onStartTrip?.call(id, tripId) ?? inner.startTrip(id, tripId: tripId);
 

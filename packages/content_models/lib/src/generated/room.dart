@@ -23,6 +23,8 @@ abstract class Room with _$Room {
     @JsonKey(name: 'order') required int order,
     @JsonKey(name: 'chapter_id') required ChapterId chapterId,
     @JsonKey(name: 'completion_bonat') required int completionBonat,
+    @JsonKey(name: 'art') String? art,
+    @JsonKey(name: 'done_line') LocalizedText? doneLine,
   }) = _Room;
 
   factory Room.fromJson(Map<String, dynamic> json) =>

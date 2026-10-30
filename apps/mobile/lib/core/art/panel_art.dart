@@ -55,6 +55,9 @@ class PanelArt extends StatelessWidget {
     'stand_morning': 'assets/illustrations/panels/stand_morning.svg',
     'salma_waiting': 'assets/illustrations/panels/salma_waiting.svg',
     'usta_decides': 'assets/illustrations/panels/usta_decides.svg',
+    // M10's sample panel: the bride's family in the salon
+    // (specs/015-m10-apartment-story, research R17).
+    'ch4_mother_looks': 'assets/illustrations/panels/ch4_mother_looks.svg',
   };
 
   /// Content slugs that draw another slug's art, both the drawing and the

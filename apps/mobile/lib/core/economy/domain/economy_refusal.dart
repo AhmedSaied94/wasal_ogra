@@ -35,7 +35,11 @@ enum EconomyRefusal {
   invalidName('invalid_name'),
 
   /// The tutorial gift, already granted (M07 R8).
-  alreadyGranted('already_granted');
+  alreadyGranted('already_granted'),
+
+  /// The scene is already in `scenesSeen` (M10 contracts/economy-ops.md): a
+  /// refused repeat that stores nothing.
+  alreadyRecorded('already_recorded');
 
   const EconomyRefusal(this.wire);
 

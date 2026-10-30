@@ -50,6 +50,26 @@ final class StateOpenTrip {
   final int trafficJamAds;
 }
 
+/// `story`: the chapters' seen scenes and the claimed requests
+/// (specs/015-m10-apartment-story, contracts/economy-ops.md "The server's
+/// state"). A `status` isn't kept: completion is derived (FR-051).
+final class StateStory {
+  const StateStory({this.chapters = const [], this.requestsClaimed = const []});
+
+  static const empty = StateStory();
+
+  final List<StateChapter> chapters;
+  final List<String> requestsClaimed;
+}
+
+/// One `story.chapters[]` row.
+final class StateChapter {
+  const StateChapter({required this.chapterId, this.scenesSeen = const []});
+
+  final String chapterId;
+  final List<String> scenesSeen;
+}
+
 /// `grants`: what the server gave once (M07 research R8).
 final class StateGrants {
   const StateGrants({required this.tutorial});
@@ -80,6 +100,7 @@ final class StateSnapshot {
     this.driverLevel,
     this.openTrip,
     this.lastResult,
+    this.story = StateStory.empty,
   });
 
   factory StateSnapshot.fromJson(Object? json) {
@@ -89,6 +110,7 @@ final class StateSnapshot {
     final open = o.optionalObject('open_trip');
     final last = o.optionalObject('last_result');
     final grants = o.optionalObject('grants');
+    final story = o.optionalObject('story');
     return StateSnapshot(
       stateVersion: o.integer('state_version'),
       serverTimeMs: o.time('server_time'),
@@ -137,6 +159,22 @@ final class StateSnapshot {
             ? grants.boolean('tutorial')
             : false,
       ),
+      story: story == null
+          ? StateStory.empty
+          : StateStory(
+              chapters: [
+                for (final row in story.objects('chapters'))
+                  StateChapter(
+                    chapterId: row.string('chapter_id'),
+                    scenesSeen: row.has('scenes_seen')
+                        ? row.strings('scenes_seen')
+                        : const [],
+                  ),
+              ],
+              requestsClaimed: story.has('requests_claimed')
+                  ? story.strings('requests_claimed')
+                  : const [],
+            ),
       raw: o.raw,
     );
   }
@@ -154,8 +192,8 @@ final class StateSnapshot {
   final StateOpenTrip? openTrip;
   final StateLastResult? lastResult;
   final StateGrants grants;
+  final StateStory story;
 
-  /// The answer as it arrived: `story` and `stats` are read by later
-  /// features (M10, M13).
+  /// The answer as it arrived: `stats` is read by a later feature (M13).
   final Map<String, Object?> raw;
 }

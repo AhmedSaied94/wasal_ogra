@@ -17,5 +17,10 @@ export 'src/model/station.dart' hide StationStateUpdate, makeStationState;
 export 'src/model/token.dart' hide MoneyTokenUpdate, makeMoneyToken;
 export 'src/money.dart' show Pieces;
 export 'src/params.dart';
+// The rider comments' deterministic pick (specs/015-m10-apartment-story,
+// research R15): a fresh generator seeded from the trip seed, never the
+// engine's PRNG state. Exported so the app doesn't copy the algorithm; no
+// rule, fixture or parity change.
+export 'src/prng.dart' show Xorshift32;
 export 'src/replay.dart' hide playLog, replayEngine, startReplay;
 export 'src/validation.dart' show Refusal, RefusalCode, TripRefused;

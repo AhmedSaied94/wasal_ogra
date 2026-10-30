@@ -85,7 +85,10 @@ abstract final class RouteNames {
   static const apartmentItem = 'apartmentItem';
   static const apartmentRequests = 'apartmentRequests';
   static const apartmentChapters = 'apartmentChapters';
+  static const apartmentPreTrip = 'apartmentPreTrip';
   static const story = 'story';
+  static const storyScene = 'storyScene';
+  static const storyAlbum = 'storyAlbum';
   static const shop = 'shop';
   static const fuel = 'fuel';
   static const dailyReward = 'dailyReward';
@@ -235,6 +238,7 @@ final List<Destination> destinations = List.unmodifiable([
       RouteNames.apartmentItem,
       RouteNames.apartmentRequests,
       RouteNames.apartmentChapters,
+      RouteNames.apartmentPreTrip,
     ],
   ),
   Destination(
@@ -257,7 +261,35 @@ final List<Destination> destinations = List.unmodifiable([
     path: '/apartment/chapters',
     presentation: Presentation.page,
     title: (l) => l.destApartmentChapters,
-    links: const [RouteNames.story],
+    // The album's pill beside the timeline (contracts/scene-viewer.md).
+    links: const [RouteNames.story, RouteNames.storyAlbum],
+  ),
+  // The shabka's card (contracts/apartment.md "The goal view"): M08's pre-trip
+  // card over the chapter's story trip, closing to the apartment.
+  Destination(
+    name: RouteNames.apartmentPreTrip,
+    path: '/apartment/pre-trip/:tripId',
+    presentation: Presentation.page,
+    params: const {'tripId': ParamValidators.tripId},
+    title: (l) => l.destPreTrip,
+  ),
+  // M10's story (specs/015-m10-apartment-story, contracts/story-flow.md
+  // "Where scenes play"). The literal segments come before `/story/:chapterId`
+  // in the router, so the album and a scene aren't read as a chapter.
+  Destination(
+    name: RouteNames.storyScene,
+    path: '/story/scene/:sceneId',
+    presentation: Presentation.page,
+    section: Section.apartment,
+    params: const {'sceneId': ParamValidators.sceneId},
+    title: (l) => l.destStoryScene,
+  ),
+  Destination(
+    name: RouteNames.storyAlbum,
+    path: '/story/album',
+    presentation: Presentation.page,
+    section: Section.apartment,
+    title: (l) => l.destStoryAlbum,
   ),
   Destination(
     name: RouteNames.story,
@@ -265,6 +297,8 @@ final List<Destination> destinations = List.unmodifiable([
     presentation: Presentation.page,
     params: const {'chapterId': ParamValidators.chapterId},
     title: (l) => l.destStory,
+    // «شوف المشهد»: the chapter's scene (contracts/scene-viewer.md).
+    links: const [RouteNames.storyScene],
   ),
   Destination(
     name: RouteNames.shop,

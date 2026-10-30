@@ -92,6 +92,14 @@
   "@destStory": {
     "description": "Placeholder title: a story scene."
   },
+  "destStoryScene": "المشهد",
+  "@destStoryScene": {
+    "description": "A story scene's page title (M10)."
+  },
+  "destStoryAlbum": "ألبوم المشاهد",
+  "@destStoryAlbum": {
+    "description": "The scenes album's page title (M10)."
+  },
   "destFuel": "البنزين",
   "@destFuel": {
     "description": "Placeholder title: the fuel sheet."

@@ -9,6 +9,7 @@
     "room_id",
     "name",
     "order",
+    "slot",
     "variants"
   ],
   "properties": {
@@ -24,6 +25,12 @@
     "order": {
       "type": "integer",
       "minimum": 1
+    },
+    "slot": {
+      "$ref": "#/$defs/ItemSlot"
+    },
+    "comment": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
     },
     "variants": {
       "type": "array",
@@ -54,9 +61,45 @@
         },
         "art": {
           "$ref": "common.schema.json#/$defs/Slug"
+        },
+        "comment": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         }
       },
       "additionalProperties": false
+    },
+    "ItemSlot": {
+      "description": "Where the piece sits in its room's drawing, in a 358×300 design space.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 334
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 276
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 358
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 300
+        }
+      }
     }
   }
 }

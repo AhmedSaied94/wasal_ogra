@@ -1,0 +1,99 @@
+{
+  "chapter_id": "ch4_salon",
+  "completion_bonat": 15,
+  "goal": {
+    "kind": "complete_room",
+    "room_id": "salon"
+  },
+  "order": 4,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "ch4_mother_looks",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "العيلة قعدت تتفرج على الصالون"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch4_mother_looks",
+          "lines": [
+            {
+              "speaker": "bride_mother",
+              "text": {
+                "ar-EG": "النجفة دي حكاية لوحدها"
+              }
+            }
+          ]
+        },
+        {
+          "art": "salma_waiting",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "أيوه يا ماما، هو اللي اختارها"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "family_visit",
+      "title": {
+        "ar-EG": "العيلة في الصالون"
+      }
+    },
+    {
+      "panels": [
+        {
+          "art": "ch4_mother_looks",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "العيلة قعدت تتفرج على الصالون"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch4_mother_looks",
+          "lines": [
+            {
+              "speaker": "bride_mother",
+              "text": {
+                "ar-EG": "النجفة دي حكاية لوحدها"
+              }
+            }
+          ]
+        },
+        {
+          "art": "salma_waiting",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "أيوه يا ماما، هو اللي اختارها"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "family_visit_again",
+      "title": {
+        "ar-EG": "العيلة في الصالون"
+      }
+    }
+  ],
+  "tagline": {
+    "ar-EG": "الصالون بيحكي عن البيت"
+  },
+  "title": {
+    "ar-EG": "الصالون"
+  }
+}

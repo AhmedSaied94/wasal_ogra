@@ -28,7 +28,18 @@ from apps.content.tests import factories as make
 SAMPLE = django_settings.BASE_DIR.parent / "content" / "examples" / "sample"
 PASSWORD = "a-long-enough-password-1"
 
-GROUPS: dict[str, list[str]] = importlib.import_module("apps.content.migrations.0003_groups").GROUPS
+# A copy: mutating the migration's own dict would break it when it runs before 0011's table.
+GROUPS: dict[str, list[str]] = {
+    name: list(codenames)
+    for name, codenames in importlib.import_module(
+        "apps.content.migrations.0003_groups"
+    ).GROUPS.items()
+}
+# M10's model, granted by its own migration (0012), so the tests' groups match a fresh database.
+GROUPS["content_author"] = [
+    *GROUPS["content_author"],
+    *importlib.import_module("apps.content.migrations.0012_rider_permissions").RIDER_CODENAMES,
+]
 
 
 @pytest.fixture
@@ -157,9 +168,23 @@ def sample_reviewed(sample_imported: User) -> User:
 @pytest.fixture
 def engine_pools(sample_reviewed: User) -> User:
     """The reviewed sample with its speech swapped for `make.engine_speech_pools()`, reviewed: the
-    least speech a pack builds green with (V-T10)."""
+    least speech a pack builds green with (V-T10).
+
+    M10's riders draw from their own pools (`story.*`), which the chapters name, so they stay: a
+    rider's comment with no pool is V-C8.
+    """
+    story = {
+        pool.speech_key: list(
+            pool.lines.order_by("order").values_list("order", "text_ar_eg", "text_ar")
+        )
+        for pool in SpeechPool.objects.filter(speech_key__startswith="story.")
+    }
     SpeechPool.objects.all().delete()
     make.engine_speech_pools()
+    for key, lines in story.items():
+        pool = SpeechPool.objects.create(speech_key=key)
+        for order, ar_eg, ar in lines:
+            SpeechLine.objects.create(pool=pool, order=order, text_ar_eg=ar_eg, text_ar=ar)
     review.review_lines(SpeechLine.objects.order_by("pool", "order"), sample_reviewed)
     return sample_reviewed
 

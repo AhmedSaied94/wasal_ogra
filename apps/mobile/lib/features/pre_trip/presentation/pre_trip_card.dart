@@ -31,13 +31,22 @@ import 'package:wassal/features/pre_trip/presentation/stop_prices.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 class PreTripCard extends ConsumerStatefulWidget {
-  const PreTripCard({required this.tripId, this.leaveTo = '/home', super.key});
+  const PreTripCard({
+    required this.tripId,
+    this.leaveTo = '/home',
+    this.closeTo,
+    super.key,
+  });
 
   final String tripId;
 
   /// Where an unknown or unplayable trip's card goes: الموقف, or the line's
   /// details when opened from Lines (specs/014-m09-lines-vehicles, R5).
   final String leaveTo;
+
+  /// Where the close button goes when the card is a page and not a sheet
+  /// (M10's apartment card, which closes to `/apartment`); null pops.
+  final String? closeTo;
 
   static const goKey = Key('PreTripCard.go');
   static const closeKey = Key('PreTripCard.close');
@@ -115,7 +124,7 @@ class _PreTripCardState extends ConsumerState<PreTripCard> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header(briefing: briefing),
+          _Header(briefing: briefing, closeTo: widget.closeTo),
           const SizedBox(height: SpaceTokens.s12),
           Flexible(
             child: SingleChildScrollView(
@@ -181,13 +190,24 @@ class _PreTripCardState extends ConsumerState<PreTripCard> {
 /// The line over «المشوار ١٢», the story chip, and ✕ (`PreTrip` boxes
 /// 9–11).
 class _Header extends StatelessWidget {
-  const _Header({required this.briefing});
+  const _Header({required this.briefing, this.closeTo});
 
   final TripBriefing briefing;
+
+  /// See [PreTripCard.closeTo].
+  final String? closeTo;
 
   /// From the grabber to the line's text (`PreTrip` box 9).
   static const double _top = SpaceTokens.s14;
   static const double _lineGap = SpaceTokens.s2;
+
+  void _close(BuildContext context) {
+    if (closeTo case final location?) {
+      NavGuard.go(context, location);
+    } else {
+      unawaited(Navigator.of(context).maybePop());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +258,7 @@ class _Header extends StatelessWidget {
                 icon: 'close',
                 semanticLabel: l10n.closeLabel,
                 inSheet: true,
-                onTap: () => unawaited(Navigator.of(context).maybePop()),
+                onTap: () => _close(context),
               ),
             ],
           ),

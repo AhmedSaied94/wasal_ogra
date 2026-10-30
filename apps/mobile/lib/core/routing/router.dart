@@ -153,6 +153,11 @@ GoRouter router(Ref ref) {
       ),
       route(RouteNames.trip),
       route(RouteNames.result),
+      route(RouteNames.apartmentPreTrip),
+      // The literal segments first: `/story/album` and `/story/scene/:id`
+      // aren't a `:chapterId`.
+      route(RouteNames.storyAlbum),
+      route(RouteNames.storyScene),
       route(RouteNames.story),
       route(RouteNames.dailyReward),
       route(RouteNames.dailyTasks),
@@ -264,6 +269,18 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       key: ValueKey(state.pathParameters['tripId']),
       tripId: state.pathParameters['tripId']!,
       leaveTo: '/lines/${state.pathParameters['lineId']}',
+    ),
+    // The shabka's card: M08's card, its close landing on the apartment
+    // (contracts/apartment.md "The goal view").
+    RouteNames.apartmentPreTrip => Scaffold(
+      body: SafeArea(
+        child: PreTripCard(
+          key: ValueKey(state.pathParameters['tripId']),
+          tripId: state.pathParameters['tripId']!,
+          leaveTo: '/apartment',
+          closeTo: '/apartment',
+        ),
+      ),
     ),
     // Keyed, as the trip is: another trip's card is another card.
     RouteNames.preTrip => PreTripCard(

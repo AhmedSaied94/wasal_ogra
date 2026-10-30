@@ -11,6 +11,10 @@ const contentVersionTypes = {
   OpType.tripStart,
   OpType.spendJenehat,
   OpType.spendBonat,
+  // M10's two: the server checks the scene and the request against the pack
+  // (specs/015-m10-apartment-story, contracts/economy-ops.md "Wire").
+  OpType.storyProgress,
+  OpType.claimRequest,
 };
 
 /// [op] on the wire: `{client_txn_id, op_type, occurred_at, payload}`.

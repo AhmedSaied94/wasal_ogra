@@ -32,6 +32,7 @@ left, in what order, and where to look.
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
+| [015 M10 apartment and story](#015-m10-apartment-and-story) | 1 now (the ten boards), the rest at implement | at implement | Planned on 2026-10-29, on branch `015-m10-apartment-story`. Not built yet. |
 
 ## Every month
 
@@ -1141,6 +1142,34 @@ size, and the documents match the code.
   asks before connecting to the phone.
 - [ ] **3. The playtest (T095).** SC-009: after opening Lines once, can four of five new players
   say what the next vehicle costs and which line it opens? Tell Claude the count.
+
+## 015 M10 apartment and story
+
+Planned on 2026-10-29, on branch `015-m10-apartment-story`
+([spec](../specs/015-m10-apartment-story/spec.md), [plan](../specs/015-m10-apartment-story/plan.md),
+[design briefs](../specs/015-m10-apartment-story/contracts/design-briefs.md)):
+
+- The «الشقة» tab shows the chapter's goal for chapters 1–3 and the rooms from chapter 4: the piece
+  sheet, purchases, `RoomDone` and the family requests.
+- Scenes play at their moments in a new viewer, and the timeline and the album list them.
+- Story trips carry their riders.
+
+Not built yet. `/speckit-implement` completes this section with the before-merge and after-merge
+items of the plan's "Owner approvals and actions", each with its task ID.
+
+The nine drawn artboards each draw one state. The first release mostly shows states they don't
+draw, so you draw them, as for M09.
+
+### Before the new boards' design checks
+
+- [ ] **1. Draw the ten boards the first release needs.** Each section of
+  [design-briefs.md](../specs/015-m10-apartment-story/contracts/design-briefs.md) gives the route,
+  the state, the layout against the board it starts from, the labels and its open questions:
+  `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`,
+  `PieceAffordable`, `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd`. Export them
+  with `docs/design/tools`, or hand the export to Claude.
+  - Nothing else waits: Claude builds each state from its brief meanwhile.
+  - Only each board's sample, golden and layout test follows its export.
 
 ## Known for later features
 

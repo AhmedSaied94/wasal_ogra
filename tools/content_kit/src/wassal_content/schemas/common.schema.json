@@ -114,8 +114,19 @@
         "bedroom"
       ]
     },
-    "Archetype": {
-      "description": "A passenger behavior (glossary 3.6).",
+    "StoryCharacter": {
+      "description": "A story character (the design's character ids).",
+      "type": "string",
+      "enum": [
+        "usta",
+        "salma",
+        "bride_father",
+        "bride_mother",
+        "moallem",
+        "belya"
+      ]
+    },
+    "Archetype": {      "description": "A passenger behavior (glossary 3.6).",
       "type": "string",
       "enum": [
         "regular",
