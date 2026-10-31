@@ -54,7 +54,9 @@ void main() {
         _read(File('${_examples.path}/$path'))! as Map<String, dynamic>;
 
     test('a chapter reads its goal art, lines, tagline and story trip', () {
-      final chapter = Chapter.fromJson(read('sample/chapters/ch1_first_job.json'));
+      final chapter = Chapter.fromJson(
+        read('sample/chapters/ch1_first_job.json'),
+      );
       expect(chapter.goalArt, 'goal_shabka');
       expect(chapter.goalLine?.speaker, StoryCharacter.moallem);
       expect(chapter.goalLine?.text.arEg, isNotEmpty);
@@ -73,13 +75,18 @@ void main() {
     });
 
     test('a scene reads its title', () {
-      final chapter = Chapter.fromJson(read('sample/chapters/ch2_her_father.json'));
+      final chapter = Chapter.fromJson(
+        read('sample/chapters/ch2_her_father.json'),
+      );
       final scene = chapter.scenes.single;
       expect(scene.sceneId, 'father_visit');
       expect(scene.title.arEg, isNotEmpty);
       expect(scene.plays, isNull);
-      expect(Chapter.fromJson(read('sample/chapters/ch1_first_job.json')).scenes
-          .map((s) => s.title.arEg), everyElement(isNotEmpty));
+      expect(
+        Chapter.fromJson(read('sample/chapters/ch1_first_job.json')).scenes
+            .map((s) => s.title.arEg),
+        everyElement(isNotEmpty),
+      );
     });
 
     test('an item reads its slot, its comment and its variants\' comments', () {
@@ -89,7 +96,10 @@ void main() {
       expect(item.slot.w, 180);
       expect(item.slot.h, 150);
       expect(item.comment?.arEg, isNotEmpty);
-      expect(item.variants.map((v) => v.comment?.arEg), everyElement(isNotNull));
+      expect(
+        item.variants.map((v) => v.comment?.arEg),
+        everyElement(isNotNull),
+      );
       final sitara = Item.fromJson(read('sample/items/salon.sitara.json'));
       expect(sitara.variants.single.comment?.arEg, isNotEmpty);
       expect(item.slot, isNot(sitara.slot));
@@ -123,7 +133,8 @@ void main() {
     });
   });
 
-  test('unknown fields are ignored (FR-008)', () {    final file = File('${_examples.path}/valid/trip/line_gamaa.12.json');
+  test('unknown fields are ignored (FR-008)', () {
+    final file = File('${_examples.path}/valid/trip/line_gamaa.12.json');
     final input = _read(file)! as Map<String, dynamic>;
     final newer = jsonDecode(jsonEncode(input)) as Map<String, dynamic>;
     newer['future_field'] = 1;
