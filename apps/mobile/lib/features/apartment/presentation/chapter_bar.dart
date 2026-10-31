@@ -37,6 +37,11 @@ class ChapterBar extends ConsumerWidget {
   /// at 1.3x.
   static const double trailingShare = 0.4;
 
+  /// The same for a [trailingChild] that is a button (`AptRoomsDone` 9): its
+  /// label never wraps or shrinks, and the title wraps instead, so on a
+  /// narrow phone at 1.3x it may take more of the bar.
+  static const double controlShare = 0.6;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final radius = BorderRadius.circular(RadiusTokens.l);
@@ -72,7 +77,9 @@ class ChapterBar extends ConsumerWidget {
               if (trailingChild case final child?)
                 ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: constraints.maxWidth * trailingShare,
+                    maxWidth:
+                        constraints.maxWidth *
+                        (trailingIsControl ? controlShare : trailingShare),
                   ),
                   child: child,
                 )

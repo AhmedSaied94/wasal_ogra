@@ -19,15 +19,18 @@ import 'samples/apt_states.dart';
 // - the board orders the grid [الستاير, النيش; الأنتريه, النجفة], the app
 //   follows the draft's `order` [الستاير, النجفة; النيش, الأنتريه], so the
 //   three cells move (offsets); box 42's label is spoken on the board;
-// - the tabs are 36 high as drawn: they match within
-//   2 pt (flex 20/20/25 as drawn), and a locked tab takes no tap;
+// - the tabs are drawn 36 high (flex 20/20/25 as drawn) but their hit row
+//   is 44, the board's 4 above and below the face (SC-006), so a tab's box
+//   is 4 taller each way (tolerance 4.5), and a locked tab takes no tap;
 // - the strip and the chapter bar's tagline carry the draft's text: the
 //   board's «زيارة أهل العروسة» is the draft's «العيلة في الصالون», and
 //   «أهل العروسة جايين الخميس» is «الصالون هو اللي بيحكي عن البيت» (not tap
 //   boxes, so only the goldens differ).
 //
 // AptRoomsDone: «شوف المشهد» (box 9) is 126 wide here, 117 on the board:
-// Flutter measures the label wider, so the pill's far side moves 12 pt.
+// Flutter measures the label wider, so the pill's far side moves 12 pt. The
+// bar is 2 pt taller than drawn (28 + 6 + 8 and its padding), so the tabs
+// below it sit 2 lower, and their 44 hit rows reach 6 below the board's.
 //
 // PieceAffordable: the sheet's 14 pt bottom padding (the board's 11.8) and
 // its content make it 703 high, not 700: it opens 3 pt higher and the boxes
@@ -66,7 +69,7 @@ void main() {
         42: 'النجفة، تقدر تشتريها، ١٬٠٥٠ جنيه', // spoken words vs digits
       },
       offsets: {..._chipOffsets(25, 28, 31), ..._gridOffsets(38, 40, 42)},
-      tolerances: const {28: 3},
+      tolerances: const {15: 4.5, 16: 4.5, 18: 4.5, 28: 3},
     );
     semantics.dispose();
   });
@@ -83,7 +86,7 @@ void main() {
         36: _gridFirst,
         41: _gridSecond,
       },
-      tolerances: const {24: 3},
+      tolerances: const {11: 4.5, 12: 4.5, 14: 4.5, 24: 3},
     );
     semantics.dispose();
   });
@@ -98,7 +101,7 @@ void main() {
       pairings: const {9: 'شوف المشهد: العيلة في الصالون'},
       // Flutter measures the pill's label about 9 pt wider than the browser
       // did, so its far side moves from 147 to 159; the near side stays.
-      tolerances: const {9: 12.5},
+      tolerances: const {9: 12.5, 15: 6.5, 16: 6.5, 18: 6.5},
     );
     semantics.dispose();
   });

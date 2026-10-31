@@ -11,6 +11,8 @@ import 'samples/apt_rooms.dart';
 // - the two chips follow their slots in the drawing, and the grid's cards
 //   are one control each whose label is their text; the board measures the
 //   chips at its own places. The goldens keep the drawn result;
+// - the tabs are drawn 36 high but hit 44 (the board's 4 above and below the
+//   face, SC-006), so their boxes are 4 taller each way (tolerance 4.5);
 // - the synthetic pack names the chapter «الصالون», the board «الصالة», and
 //   the grid's order and cards are the pack's, not the board's.
 
@@ -28,6 +30,7 @@ void main() {
         14: 'أوضة النوم، مقفولة',
         16: 'طلبات أهل العروسة، ٢ مفتوحين',
       },
+      tolerances: const {11: 4.5, 12: 4.5, 14: 4.5},
       skip: const {
         21: 'the chip follows its slot in the drawing',
         24: 'the chip follows its slot in the drawing',

@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:content_models/content_models.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -180,11 +181,17 @@ class _Header extends ConsumerWidget {
         spacing: SpaceTokens.s6,
         children: [
           Expanded(
-            child: Text(
-              l10n.apartmentTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TypeTokens.displayL,
+            // The pending chip and the pill take what they need; at a large
+            // text scale on a narrow phone the title shrinks to what is left
+            // rather than being cut short.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.apartmentTitle,
+                maxLines: 1,
+                style: TypeTokens.displayL,
+              ),
             ),
           ),
           if (pending) const PendingChip(),
@@ -225,7 +232,6 @@ class _RoomBarTitle extends ConsumerWidget {
                   numbers.integer(chapter.order),
                   chapter.title.arEg,
                 ),
-                maxLines: 2,
                 style: TypeTokens.displayS.copyWith(color: ColorTokens.paper),
               ),
             ),
@@ -317,6 +323,8 @@ class _SceneChip extends StatelessWidget {
         SizedBox(
           height: DesignExtras.sceneChipHeight,
           child: OverflowBox(
+            // The pill's own width, not the bar's cap on it.
+            fit: OverflowBoxFit.deferToChild,
             minHeight: LayoutTokens.touchMin,
             maxHeight: LayoutTokens.touchMin,
             child: Pressable(
@@ -385,8 +393,12 @@ class _TabsRow extends ConsumerWidget {
                   borderRadius: radius,
                   boxShadow: const [LipTokens.cardSmall],
                 ),
+                // 4 in from the sides; the 4 above and below the 36-high face
+                // belong to each tab's 44-high hit row.
                 child: Padding(
-                  padding: const EdgeInsets.all(SpaceTokens.s4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SpaceTokens.s4,
+                  ),
                   child: Row(
                     spacing: SpaceTokens.s4,
                     children: [
@@ -480,33 +492,47 @@ class _Tab extends StatelessWidget {
     };
     final locked = tab is LockedTab;
     final radius = BorderRadius.circular(RadiusTokens.s);
-    // The drawn tab is 36 in the row's 4 padding; a selectable one's hit row
-    // is 44 (Pressable), a locked one is inert and draws no more than 36.
+    // The drawn tab is 36 with the row's 4 above and below it as its own
+    // margin, so a selectable tab's hit row is the full 44 (Pressable); a
+    // locked one is inert and draws the same.
     final face = Container(
-      height: DesignExtras.roomTabHeight,
+      height: DesignExtras.roomTabHeight + 2 * SpaceTokens.s4,
+      padding: const EdgeInsets.symmetric(vertical: SpaceTokens.s4),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: selected && !locked ? ColorTokens.sun : null,
-        borderRadius: radius,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: SpaceTokens.s4,
-        children: [
-          if (locked) const AppIcon('lock', size: 12),
-          Flexible(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TypeTokens.caption
-                  .weight(locked ? 600 : 700)
-                  .copyWith(
-                    color: locked ? ColorTokens.inkMuted : ColorTokens.ink,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected && !locked ? ColorTokens.sun : null,
+          borderRadius: radius,
+        ),
+        child: SizedBox.expand(
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: SpaceTokens.s4,
+              children: [
+                if (locked) const AppIcon('lock', size: 12),
+                // A name that outgrows its tab at a large text scale shrinks
+                // to fit, never cut short.
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      style: TypeTokens.caption
+                          .weight(locked ? 600 : 700)
+                          .copyWith(
+                            color: locked
+                                ? ColorTokens.inkMuted
+                                : ColorTokens.ink,
+                          ),
+                    ),
                   ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
     final label = l10n.aptRoomsTabsA11y(name, locked ? 'locked' : 'open');
@@ -586,12 +612,17 @@ class _PieceCard extends StatelessWidget {
     );
     TextStyle status(Color color) =>
         TypeTokens.label.weight(700).copyWith(color: color);
-    Widget line(Widget end) => Row(
-      spacing: SpaceTokens.s6,
-      children: [
-        Expanded(child: nameText),
-        end,
-      ],
+    // The name at the start and the status at the end; when a large text
+    // scale leaves no room for both on a line, the status drops under the
+    // name rather than cutting it short.
+    Widget line(Widget end) => SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: SpaceTokens.s6,
+        children: [nameText, end],
+      ),
     );
     final (content, label) = switch (cell) {
       OwnedCell() => (

@@ -62,6 +62,10 @@ void main() {
               },
             ),
           );
+          // The sheet scrolls: on a short phone at ×1.3 its button starts
+          // below the fold, and a player scrolls to it.
+          await tester.ensureVisible(find.byKey(PieceSheet.buyKey));
+          await tester.pump();
           await tester.tap(find.byKey(PieceSheet.buyKey));
           for (var i = 0; i < 14; i++) {
             await tester.pump(const Duration(milliseconds: 50));

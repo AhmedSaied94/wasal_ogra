@@ -198,6 +198,12 @@ chip.
 - **Art gap:** the app ships no drawing of the salon or of its pieces (`ApartmentArt` has only the
   modern أنتريه), so the room draws the token wall, floor and blocks where the board draws the curtains
   and chandelier.
+- **Minimum sizes (SC-006), departures from the board:** (1) a tab's 36 face has its 4 above and below
+  as its own margin, so its hit row is 44 (the board's tablist padding is 4 all round, which left the
+  open tab 36 to hit); (2) the room is the 358×300 design scaled to the phone, so a chip drawn 44 shows
+  as 40 on a 360 phone: its height grows to 44 ÷ the scale there (48 at 360), and is 44 at 390; (3) at
+  ×1.3 a tab's name, a piece card's status and the title beside the pending chip no longer ellipsize: the
+  name shrinks to fit its tab, the status drops under the card's name, the title shrinks to the room left.
 
 ### 4. الصالة بعد الشرا — `AptRoomsBought`
 
@@ -272,6 +278,9 @@ chip.
 - **Board vs draft copy:** the scene, board shows «زيارة أهل العروسة», draft wins «العيلة في الصالون»
   (the pill's label and its 126-wide box: Flutter measures the label wider than the browser did, so the
   pill's far side moves 12 pt); the tagline as `AptRoomsAffordable`.
+- **Minimum sizes (SC-006), departures from the board:** the tabs' hit rows are 44 as in `AptRoomsAffordable`;
+  the pill's 126 no longer fits the 40% of the bar a trailing control had on a 360 phone, so a control may
+  take 60% and the bar's title wraps to as many lines as it needs (the bar then grows past 56, at ×1.3).
 
 ### 6. لوح القطعة، مع طلب — `PieceAffordable`
 

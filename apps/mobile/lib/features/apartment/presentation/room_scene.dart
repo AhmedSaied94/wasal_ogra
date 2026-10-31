@@ -3,6 +3,8 @@
 // in their styles, a dashed outline for each missing slot and its chip, in
 // the 358 x 300 design space. After a purchase the new piece drops in and
 // سلمى's bubble hangs under it (`AptRoomsBought`).
+import 'dart:math' as math;
+
 import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -58,23 +60,37 @@ class RoomScene extends ConsumerWidget {
       aspectRatio: roomDesign.width / roomDesign.height,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(RadiusTokens.scene),
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox.fromSize(
-            size: roomDesign,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: art == null
-                      ? const RoomFallback()
-                      : SvgPicture.asset(art, fit: BoxFit.cover),
+        // The drawing is the design space scaled to the room's box, so a
+        // chip drawn 44 high shows smaller on a narrow phone; its hit height
+        // grows by the scale's inverse to stay 44 as rendered (SC-006).
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = math.max(
+              constraints.maxWidth / roomDesign.width,
+              constraints.maxHeight / roomDesign.height,
+            );
+            final chip = scale > 0 && scale < 1
+                ? chipHeight / scale
+                : chipHeight;
+            return FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox.fromSize(
+                size: roomDesign,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: art == null
+                          ? const RoomFallback()
+                          : SvgPicture.asset(art, fit: BoxFit.cover),
+                    ),
+                    for (final cell in model.pieces)
+                      ..._layers(l10n, numbers, cell, chip),
+                    if (bought case final bought?) _bubble(l10n, bought),
+                  ],
                 ),
-                for (final cell in model.pieces)
-                  ..._layers(l10n, numbers, cell),
-                if (bought case final bought?) _bubble(l10n, bought),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -84,6 +100,7 @@ class RoomScene extends ConsumerWidget {
     AppLocalizations l10n,
     NumberFormatter numbers,
     PieceCell cell,
+    double chip,
   ) {
     final slot = cell.item.slot;
     Widget inSlot(Widget child) => Positioned(
@@ -111,11 +128,12 @@ class RoomScene extends ConsumerWidget {
         inSlot(const CustomPaint(painter: _DashedSlot())),
         Positioned(
           left: (slot.x + slot.w / 2 - 60).clamp(8.0, roomDesign.width - 128),
-          top: (slot.y + slot.h / 2 - chipHeight / 2).clamp(
+          top: (slot.y + slot.h / 2 - chip / 2).clamp(
             8.0,
-            roomDesign.height - chipHeight - 8,
+            roomDesign.height - chip - 8,
           ),
           child: _Chip(
+            height: chip,
             label: l10n.aptRoomsChip(item.name.arEg, numbers.integer(price)),
             semanticLabel: l10n.aptRoomsChipA11y(
               item.name.arEg,
@@ -204,10 +222,17 @@ class _PieceArt extends StatelessWidget {
   }
 }
 
-/// The chip: a blue «+» and «{item} · {price}» (`AptRooms` block 4), 44 high.
+/// The chip: a blue «+» and «{item} · {price}» (`AptRooms` block 4), 44 high
+/// in the design space and taller where the room is drawn smaller than it.
 class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.semanticLabel, this.onTap});
+  const _Chip({
+    required this.height,
+    required this.label,
+    required this.semanticLabel,
+    this.onTap,
+  });
 
+  final double height;
   final String label;
   final String semanticLabel;
   final VoidCallback? onTap;
@@ -221,7 +246,7 @@ class _Chip extends StatelessWidget {
       lip: LipTokens.cardSmall,
       semanticLabel: semanticLabel,
       child: Container(
-        height: RoomScene.chipHeight,
+        height: height,
         padding: const EdgeInsetsDirectional.fromSTEB(
           SpaceTokens.s6,
           0,
