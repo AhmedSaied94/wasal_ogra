@@ -105,10 +105,12 @@ void main() {
       expect(target.affordable, isTrue);
     });
 
-    test('every piece owned: nothing left to save for', () {
+    test('every piece owned: the end of the available story', () {
+      // The salon is the sample's last chapter: finishing it ends the story
+      // (M10 T069, not `NoTarget`).
       expect(
         savingsTarget(c, player(hayDone, {microOld, shabka, ...salon}), 0),
-        const NoTarget(),
+        isA<StoryEndTarget>(),
       );
     });
   });
@@ -145,5 +147,24 @@ void main() {
       expect(const Amount(have: 600, of: 1500).fraction, closeTo(0.4, 1e-9));
       expect(const Count(done: 1, of: 2).fraction, 0.5);
     });
+  });
+
+  test('the last chapter complete: the end of the story (M10 T068)', () {
+    final content = artboardSalonContent();
+    final all = [for (final item in content.itemsOf(RoomId.salon)) item.itemId];
+    final p = player(hayDone, {
+      microOld,
+      shabka,
+      for (final id in all) (SkuKind.item, id),
+      (SkuKind.chapter, 'ch5_kitchen'),
+      (SkuKind.chapter, 'ch6_bedroom'),
+      (SkuKind.chapter, 'ch7_wedding'),
+    });
+    final target = savingsTarget(content, p, 0);
+    expect(target, isA<StoryEndTarget>());
+    expect((target as StoryEndTarget).chapter.chapterId, ChapterId.ch7Wedding);
+    // A pack with no chapters has nothing to save for.
+    final empty = sampleWith((json) => json['chapters'] = <Object?>[]);
+    expect(savingsTarget(empty, player(), 0), isA<NoTarget>());
   });
 }

@@ -1,0 +1,49 @@
+{
+  "comment": {
+    "ar-EG": "الأنتريه هو اللي بيلم العيلة"
+  },
+  "item_id": "salon.antreeh",
+  "name": {
+    "ar-EG": "الأنتريه"
+  },
+  "order": 4,
+  "room_id": "salon",
+  "slot": {
+    "h": 110,
+    "w": 180,
+    "x": 90,
+    "y": 170
+  },
+  "variants": [
+    {
+      "art": "antreeh_classic",
+      "comment": {
+        "ar-EG": "الكلاسيك مريح للضيوف"
+      },
+      "name": {
+        "ar-EG": "كلاسيك"
+      },
+      "variant_id": "classic"
+    },
+    {
+      "art": "antreeh_modern",
+      "comment": {
+        "ar-EG": "المودرن عملي وواسع"
+      },
+      "name": {
+        "ar-EG": "مودرن"
+      },
+      "variant_id": "modern"
+    },
+    {
+      "art": "antreeh_baladi",
+      "comment": {
+        "ar-EG": "الشعبي دافي وبيضحك"
+      },
+      "name": {
+        "ar-EG": "شعبي"
+      },
+      "variant_id": "baladi"
+    }
+  ]
+}

@@ -26,11 +26,16 @@ class Pressable extends ConsumerStatefulWidget {
     this.selected,
     this.toggled,
     this.haptic = true,
+    this.expand = false,
     super.key,
   });
 
   final Widget child;
   final VoidCallback? onTap;
+
+  /// Lets [child] fill the room it is given instead of being centred at its
+  /// own size, for a card that stretches to its row's height.
+  final bool expand;
 
   /// The solid shadow under [child]; its y offset is the press depth.
   final BoxShadow? lip;
@@ -130,7 +135,9 @@ class _PressableState extends ConsumerState<Pressable>
               minWidth: Pressable.minHit.width,
               minHeight: Pressable.minHit.height,
             ),
-            child: Center(widthFactor: 1, heightFactor: 1, child: face),
+            child: widget.expand
+                ? face
+                : Center(widthFactor: 1, heightFactor: 1, child: face),
           ),
         ),
       ),

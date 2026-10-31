@@ -119,6 +119,9 @@ bool _storyAllowed(String uri) =>
     uri == 'package:wassal/core/economy/domain/wire.dart' ||
     uri.startsWith('package:wassal/core/progress/domain/') ||
     uri == 'package:wassal/features/home/domain/savings_target.dart' ||
+    // Each folder's own files, by the package path (as Lines does).
+    uri.startsWith('package:wassal/features/apartment/domain/') ||
+    uri.startsWith('package:wassal/features/story/domain/') ||
     _sameFolder(uri);
 
 /// Files allowed one more import than their folder: the economy checks a
@@ -146,8 +149,9 @@ const _domains = <String, bool Function(String)>{
   'lib/features/pre_trip/domain': _screensAllowed,
   'lib/features/result/domain': _screensAllowed,
   'lib/features/lines/domain': _linesAllowed,
-  // M10's `lib/features/apartment/domain` and `lib/features/story/domain`
-  // join here with their first files (specs/015-m10-apartment-story, T030).
+  // M10's apartment and story (specs/015-m10-apartment-story, T030).
+  'lib/features/apartment/domain': _storyAllowed,
+  'lib/features/story/domain': _storyAllowed,
 };
 
 final _directive = RegExp(

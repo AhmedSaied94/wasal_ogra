@@ -105,6 +105,11 @@ const renamedFiles = <SyncedFile>[
     source: 'illustrations/screens/SceneViewer_01.svg',
     target: 'illustrations/panels/ch4_mother_looks.svg',
   ),
+  // The tea tray on the requests sheet's empty card (`RequestsEmpty`, T132).
+  (
+    source: 'illustrations/screens/RequestsEmpty_01.svg',
+    target: 'illustrations/apartment/tea_tray.svg',
+  ),
 ];
 
 /// One file to copy, as paths relative to `docs/design` and `assets`.

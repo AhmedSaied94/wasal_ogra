@@ -1,10 +1,13 @@
+import 'package:content_models/content_models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:trip_engine/trip_engine.dart' show TripOutcome;
 import 'package:wassal/bootstrap/startup.dart';
+import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/launch_metrics.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/routing/app_page.dart';
 import 'package:wassal/core/routing/param_validators.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
@@ -21,6 +24,13 @@ import 'package:wassal/core/economy/domain/wire.dart';
 import 'package:wassal/core/glossary/ids.dart' as glossary;
 import 'package:wassal/features/home/presentation/home_screen.dart';
 import 'package:wassal/features/lines/presentation/line_details_sheet.dart';
+import 'package:wassal/features/apartment/presentation/apartment_screen.dart';
+import 'package:wassal/features/apartment/presentation/chapters_page.dart';
+import 'package:wassal/features/apartment/presentation/piece_sheet.dart';
+import 'package:wassal/features/apartment/presentation/requests_sheet.dart';
+import 'package:wassal/features/story/domain/scene_sequence.dart';
+import 'package:wassal/features/story/presentation/album_page.dart';
+import 'package:wassal/features/story/presentation/scene_viewer_page.dart';
 import 'package:wassal/features/lines/presentation/lines_screen.dart';
 import 'package:wassal/features/lines/presentation/vehicle_sheet.dart';
 import 'package:wassal/features/trip/domain/line_ids.dart';
@@ -101,7 +111,9 @@ GoRouter router(Ref ref) {
       if (!ref.read(appStartupProvider).hasValue) {
         return state.matchedLocation == '/boot' ? null : '/boot';
       }
-      return _resultRedirect(ref, state) ?? _firstSessionRedirect(ref, state);
+      return _resultRedirect(ref, state) ??
+          _storyRedirect(ref, state) ??
+          _firstSessionRedirect(ref, state);
     },
     routes: [
       GoRoute(
@@ -147,13 +159,13 @@ GoRouter router(Ref ref) {
             RouteNames.apartmentItem,
             RouteNames.apartmentRequests,
             RouteNames.apartmentChapters,
+            RouteNames.apartmentPreTrip,
           ]),
           branch(RouteNames.shop, [RouteNames.fuel]),
         ],
       ),
       route(RouteNames.trip),
       route(RouteNames.result),
-      route(RouteNames.apartmentPreTrip),
       // The literal segments first: `/story/album` and `/story/scene/:id`
       // aren't a `:chapterId`.
       route(RouteNames.storyAlbum),
@@ -194,8 +206,13 @@ String? _firstSessionRedirect(Ref ref, GoRouterState state) {
       tripId == ref.read(economyViewProvider).unfinished?.tripId) {
     return null;
   }
-  return switch (ref.read(firstSessionProvider).beforeStart(tripId)) {
-    DueScene(:final sceneId) => _sceneThen(sceneId, '/trip/$tripId'),
+  final session = ref.read(firstSessionProvider);
+  return switch (session.beforeStart(tripId)) {
+    DueScene(:final sceneId) => _sceneThen(
+      sceneId,
+      '/trip/$tripId',
+      firstSession: session.inFirstSession,
+    ),
     FuelLessonDue() => Uri(
       path: '/onboarding/fuel',
       queryParameters: {'then': tripId},
@@ -218,8 +235,18 @@ String? _resultRedirect(Ref ref, GoRouterState state) {
 
 final _result = RegExp(r'^/trip/[^/]+/result$');
 
-String _sceneThen(String sceneId, String then) => Uri(
-  path: '/onboarding/scene/$sceneId',
+String _sceneThen(String sceneId, String then, {required bool firstSession}) =>
+    dueSceneLocation(sceneId, then, firstSession: firstSession);
+
+/// Where a due scene plays (specs/015-m10-apartment-story, contracts/
+/// story-flow.md "Where scenes play"): M07's player inside the first
+/// session, the story viewer after it. Both go on to [then].
+String dueSceneLocation(
+  String sceneId,
+  String then, {
+  required bool firstSession,
+}) => Uri(
+  path: firstSession ? '/onboarding/scene/$sceneId' : '/story/scene/$sceneId',
   queryParameters: {'then': then},
 ).toString();
 
@@ -230,6 +257,58 @@ String safeThen(String? then) {
   final trip = RegExp(r'^/trip/([^/?#]+)$').firstMatch(then);
   if (trip != null && ParamValidators.tripId(trip[1]!)) return then;
   return '/home';
+}
+
+/// The two places beside [safeThen]'s that the story viewer goes back to
+/// (specs/015-m10-apartment-story, contracts/scene-viewer.md "Routes"): the
+/// apartment and the album.
+const _storyThenPlaces = {'/apartment', '/story/album'};
+
+/// Where the story viewer goes on: [then] when it is one of those places or
+/// [safeThen]'s, الموقف for anything else, and null when there is no [then]
+/// (the viewer then pops, else opens the apartment).
+String? storyThen(String? then) {
+  if (then == null) return null;
+  return _storyThenPlaces.contains(then) ? then : safeThen(then);
+}
+
+/// The chapter a `/story/:chapterId` names; the viewer's redirect has sent
+/// any other id away before a page is built.
+ChapterId _chapterFrom(String? id) =>
+    fromWire(chapterWire, id) ?? ChapterId.ch1FirstJob;
+
+final _storyScene = RegExp(r'^/story/scene/([^/]+)$');
+final _storyChapter = RegExp(r'^/story/([^/]+)$');
+
+/// A scene or chapter with nothing to play (an id the pack lacks, a scene
+/// still locked, a chapter with no unlocked scene) goes to its `then`, else
+/// the apartment, before the viewer is built
+/// (specs/015-m10-apartment-story, contracts/scene-viewer.md "Routes").
+String? _storyRedirect(Ref ref, GoRouterState state) {
+  final location = state.matchedLocation;
+  final sceneId = _storyScene.firstMatch(location)?[1];
+  final String? chapterName;
+  if (sceneId != null) {
+    chapterName = null;
+  } else {
+    chapterName = _storyChapter.firstMatch(location)?.group(1);
+    // `/story/album` is the album's, not a chapter's.
+    if (chapterName == null || chapterName == 'album') return null;
+  }
+  final content = ref.read(contentSourceProvider);
+  final progress = ref.read(playerProgressProvider);
+  final List<(Chapter, Scene)> plays;
+  if (sceneId != null) {
+    // A malformed id is the route's own bad parameter (الموقف).
+    if (!ParamValidators.sceneId(sceneId)) return null;
+    plays = sequenceOfScene(content, progress, sceneId);
+  } else {
+    final chapter = fromWire(chapterWire, chapterName);
+    if (chapter == null) return null;
+    plays = sequenceOfChapter(content, progress, chapter);
+  }
+  if (plays.isNotEmpty) return null;
+  return storyThen(state.uri.queryParameters['then']) ?? '/apartment';
 }
 
 Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
@@ -256,6 +335,22 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
     ),
     RouteNames.home => const HomeScreen(),
     RouteNames.lines => const LinesScreen(),
+    // M10: the tab draws the goal view before chapter 4, the rooms from it.
+    RouteNames.apartment => const ApartmentScreen(),
+    RouteNames.apartmentItem => PieceSheet(
+      itemId: state.pathParameters['itemId']!,
+    ),
+    RouteNames.apartmentRequests => const RequestsSheet(),
+    RouteNames.apartmentChapters => const ChaptersPage(),
+    RouteNames.storyAlbum => const AlbumPage(),
+    RouteNames.storyScene => SceneViewerPage.scene(
+      sceneId: state.pathParameters['sceneId']!,
+      then: state.uri.queryParameters['then'],
+    ),
+    RouteNames.story => SceneViewerPage.chapter(
+      chapterId: _chapterFrom(state.pathParameters['chapterId']),
+      then: state.uri.queryParameters['then'],
+    ),
     RouteNames.lineDetail => LineDetailsSheet(
       lineId: toContentLine(
         glossary.LineId.fromWire(state.pathParameters['lineId']!)!,
@@ -270,17 +365,12 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       tripId: state.pathParameters['tripId']!,
       leaveTo: '/lines/${state.pathParameters['lineId']}',
     ),
-    // The shabka's card: M08's card, its close landing on the apartment
-    // (contracts/apartment.md "The goal view").
-    RouteNames.apartmentPreTrip => Scaffold(
-      body: SafeArea(
-        child: PreTripCard(
-          key: ValueKey(state.pathParameters['tripId']),
-          tripId: state.pathParameters['tripId']!,
-          leaveTo: '/apartment',
-          closeTo: '/apartment',
-        ),
-      ),
+    // The shabka's card: M08's card as a sheet over the apartment, which an
+    // unopenable trip leaves to (contracts/apartment.md "The goal view").
+    RouteNames.apartmentPreTrip => PreTripCard(
+      key: ValueKey(state.pathParameters['tripId']),
+      tripId: state.pathParameters['tripId']!,
+      leaveTo: '/apartment',
     ),
     // Keyed, as the trip is: another trip's card is another card.
     RouteNames.preTrip => PreTripCard(
@@ -317,8 +407,11 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
       // so are the details' and the vehicle sheet's (`LineDetails`,
       // `BuyVehicle` block 2b).
       ownHeader: const {
+        RouteNames.apartmentItem,
+        RouteNames.apartmentRequests,
         RouteNames.preTrip,
         RouteNames.linePreTrip,
+        RouteNames.apartmentPreTrip,
         RouteNames.lineDetail,
         RouteNames.vehiclePurchase,
       }.contains(d.name),

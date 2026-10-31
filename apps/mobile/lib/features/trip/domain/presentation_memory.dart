@@ -5,6 +5,7 @@ import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/features/trip/domain/bubble_queue.dart';
 import 'package:wassal/features/trip/domain/cues.dart';
+import 'package:wassal/features/trip/domain/rider_comments.dart';
 import 'package:wassal/features/trip/domain/talk_log.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
@@ -46,26 +47,60 @@ final class WarningMemory extends ViewValue {
 /// for, so a new line of the same step keeps its bubble.
 typedef BelyaWish = ({Object source, ViewValue line});
 
-/// بلية's bubble (specs/012-m07-onboarding/contracts/coach.md "بلية's
-/// bubble"): one of the two bubbles, up for at least its minimum time.
-final class BelyaBubble extends ViewValue {
-  const BelyaBubble({
+/// A story rider's line in the character slot, as the content wrote it.
+final class RiderLine extends ViewValue {
+  const RiderLine(this.text);
+
+  final String text;
+
+  @override
+  Map<String, Object?> get fields => {'text': text};
+}
+
+/// The character slot's bubble: بلية's (specs/012-m07-onboarding/contracts/
+/// coach.md "بلية's bubble") or a story rider's comment (specs/015-m10-
+/// apartment-story, contracts/story-trip.md "Timing"). One of the two
+/// bubbles, up for at least its minimum time.
+final class CharacterBubble extends ViewValue {
+  const CharacterBubble({
+    required this.speaker,
     required this.source,
     required this.line,
     required this.shownAtMs,
   });
 
+  /// Who speaks: [StoryCharacter.belya] for بلية, else the rider.
+  final StoryCharacter speaker;
+
+  /// What the bubble is for: a coach step, a hint's key, or a rider comment.
   final Object source;
 
-  /// A coach line (the onboarding's) or a [HintView].
+  /// A coach line (the onboarding's), a [HintView] or a [RiderLine].
   final ViewValue line;
   final int shownAtMs;
 
   @override
   Map<String, Object?> get fields => {
+    'speaker': speaker,
     'source': source,
     'line': line,
     'shownAtMs': shownAtMs,
+  };
+}
+
+/// A rider's comment waiting for the character slot, from its event's time.
+final class WaitingComment extends ViewValue {
+  const WaitingComment({required this.comment, required this.emittedAtMs});
+
+  final RiderComment comment;
+  final int emittedAtMs;
+
+  @override
+  Map<String, Object?> get fields => {
+    'comment': comment.line,
+    'speaker': comment.speaker,
+    'ordinal': comment.ordinal,
+    'emittedAtMs': emittedAtMs,
   };
 }
 
@@ -78,7 +113,9 @@ final class PresentationMemory extends ViewValue {
     this.banner,
     this.openRoad = false,
     this.waveAtMs,
-    this.belya,
+    this.character,
+    this.waitingComment,
+    this.riderOrdinal = 0,
   });
 
   static const empty = PresentationMemory();
@@ -97,15 +134,24 @@ final class PresentationMemory extends ViewValue {
   /// A roadside pickup's wave, from this clock time.
   final int? waveAtMs;
 
-  /// بلية's bubble, while it shows.
-  final BelyaBubble? belya;
+  /// The character slot's bubble (بلية's or a rider's), while it shows.
+  final CharacterBubble? character;
+
+  /// The latest rider comment, until it takes the slot or waits too long.
+  final WaitingComment? waitingComment;
+
+  /// How many rider comments the trip has had: the next one's ordinal.
+  final int riderOrdinal;
 
   /// [events] and their [cues] folded in, at the clock [tMs] they end on.
+  /// [riderComments] are the story riders' comments these events drew, in
+  /// order (the controller picks them, with the trip's seed).
   PresentationMemory update(
     List<DomainEvent> events,
     List<TripCue> cues, {
     required int tMs,
     required int bubbleMinMs,
+    List<RiderComment> riderComments = const [],
   }) {
     final walks = {
       for (final MapEntry(:key, :value) in this.walks.entries)
@@ -183,41 +229,71 @@ final class PresentationMemory extends ViewValue {
       bubbles: bubbles.at(
         tMs,
         bubbleMinMs: bubbleMinMs,
-        reserved: belya == null ? 0 : 1,
+        reserved: character == null ? 0 : 1,
       ),
       log: log,
       banner: banner,
       openRoad: openRoad,
       waveAtMs: waveAtMs,
-      belya: belya,
+      character: character,
+      // Comments never pile up: the latest waits.
+      waitingComment: riderComments.isEmpty
+          ? waitingComment
+          : WaitingComment(comment: riderComments.last, emittedAtMs: tMs),
+      riderOrdinal: riderOrdinal + riderComments.length,
     );
   }
 
-  /// بلية's bubble at [tMs], given what he would say now ([wish]):
-  /// - one showing stays its minimum time, and as long after as its source
-  ///   still speaks, taking that source's latest line;
-  /// - otherwise [wish] gets a bubble when at most one rider's is up.
-  PresentationMemory belyaAt(
+  /// The character slot at [tMs], given what بلية would say now ([wish]):
+  /// - a bubble showing stays its minimum time; بلية's stays as long after
+  ///   as its source still speaks, taking that source's latest line;
+  /// - otherwise the slot goes to [wish], or without one to a rider's
+  ///   waiting comment, when at most one passenger's bubble is up (بلية
+  ///   wins a tie);
+  /// - a comment that has waited past [bubbleMinMs] is dropped.
+  PresentationMemory characterAt(
     BelyaWish? wish, {
     required int tMs,
     required int bubbleMinMs,
   }) {
-    final current = belya;
-    final BelyaBubble? next;
-    if (current != null && current.source == wish?.source) {
-      next = BelyaBubble(
+    final current = character;
+    var waiting = waitingComment;
+    if (waiting != null && tMs - waiting.emittedAtMs > bubbleMinMs) {
+      waiting = null;
+    }
+    final CharacterBubble? next;
+    if (current != null &&
+        current.speaker == StoryCharacter.belya &&
+        current.source == wish?.source) {
+      next = CharacterBubble(
+        speaker: StoryCharacter.belya,
         source: current.source,
         line: wish!.line,
         shownAtMs: current.shownAtMs,
       );
     } else if (current != null && tMs - current.shownAtMs < bubbleMinMs) {
       next = current;
-    } else if (wish != null && bubbles.visible.length < maxVisibleBubbles) {
-      next = BelyaBubble(source: wish.source, line: wish.line, shownAtMs: tMs);
+    } else if (bubbles.visible.length >= maxVisibleBubbles) {
+      next = null;
+    } else if (wish != null) {
+      next = CharacterBubble(
+        speaker: StoryCharacter.belya,
+        source: wish.source,
+        line: wish.line,
+        shownAtMs: tMs,
+      );
+    } else if (waiting != null) {
+      next = CharacterBubble(
+        speaker: waiting.comment.speaker,
+        source: waiting.comment,
+        line: RiderLine(waiting.comment.line),
+        shownAtMs: tMs,
+      );
+      waiting = null;
     } else {
       next = null;
     }
-    if (next == current) return this;
+    if (next == current && waiting == waitingComment) return this;
     return PresentationMemory(
       walks: walks,
       warning: warning,
@@ -226,7 +302,9 @@ final class PresentationMemory extends ViewValue {
       banner: banner,
       openRoad: openRoad,
       waveAtMs: waveAtMs,
-      belya: next,
+      character: next,
+      waitingComment: waiting,
+      riderOrdinal: riderOrdinal,
     );
   }
 
@@ -243,6 +321,8 @@ final class PresentationMemory extends ViewValue {
     'banner': banner,
     'openRoad': openRoad,
     'waveAtMs': waveAtMs,
-    'belya': belya,
+    'character': character,
+    'waitingComment': waitingComment,
+    'riderOrdinal': riderOrdinal,
   };
 }

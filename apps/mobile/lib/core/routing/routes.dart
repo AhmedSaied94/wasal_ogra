@@ -265,11 +265,13 @@ final List<Destination> destinations = List.unmodifiable([
     links: const [RouteNames.story, RouteNames.storyAlbum],
   ),
   // The shabka's card (contracts/apartment.md "The goal view"): M08's pre-trip
-  // card over the chapter's story trip, closing to the apartment.
+  // card over the chapter's story trip, a sheet over the apartment as the card
+  // opened from Lines is over the details, so its close lands there.
   Destination(
     name: RouteNames.apartmentPreTrip,
     path: '/apartment/pre-trip/:tripId',
-    presentation: Presentation.page,
+    presentation: Presentation.sheet,
+    section: Section.apartment,
     params: const {'tripId': ParamValidators.tripId},
     title: (l) => l.destPreTrip,
   ),

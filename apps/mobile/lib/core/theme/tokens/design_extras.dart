@@ -663,6 +663,33 @@ abstract final class DesignExtras {
     leadingDistribution: TextLeadingDistribution.even,
   );
 
+  /// `SceneViewer` box 4: the ground behind an indoor panel's drawing,
+  /// `#F6E7D4`, which the board names a non-token colour of the art
+  /// (specs/015-m10-apartment-story).
+  static const sceneRoomGround = Color(0xFFF6E7D4);
+
+  /// `SceneViewer` boxes 8 and 12: a bubble's line, Marhey 600 18 on a
+  /// 25.2 line (`quote`'s family and weight, a size up).
+  static const sceneBubbleLine = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.4,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `SceneViewer` box 19: «شارك», Readex Pro 700 18 on its 64-high
+  /// `dashboard.raised` button (specs/015-m10-apartment-story).
+  static const sceneShareLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `Name` motion (HANDOFF): the dice swaps the field's name in 150 ms.
   static const nameDiceSwap = Duration(milliseconds: 150);
 
@@ -1275,6 +1302,369 @@ abstract final class DesignExtras {
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
     height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // ---- Chapters and Album (specs/015-m10-apartment-story, T105, T106) ----
+
+  /// `Chapters` 3a, `Album` 3a: a chapter's name on a done row and on an
+  /// unlocked card, Marhey 700 17 (the album's lines are 20.4 high).
+  static const chapterName = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Chapters` 3c: a locked row's name, Marhey 700 16.
+  static const chapterLockedName = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Chapters` 3b: the current chapter's name, Marhey 700 20.
+  static const chapterCurrentName = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Chapters` block 1 and 3a, `Album` 3a: the album pill, «شوف المشهد» and
+  /// «اتفرج تاني», 13/700.
+  static const chapterAction = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Chapters` 3, `Album` 3: «الفصل {n}», 12/600 on a 15 line.
+  static const chapterNumber = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Album` block 2: the intro, 13/500 on a 16 line (two lines are 32).
+  static const albumIntro = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Chapters` 3a: a done row's scene thumbnail, 70×56.
+  static const double chapterThumbWidth = 70;
+  static const double chapterThumbHeight = 56;
+
+  /// `Chapters` 3: the rows' least heights, done, current and locked.
+  static const double chapterRowDone = 80;
+  static const double chapterRowCurrent = 104;
+  static const double chapterRowLocked = 58;
+
+  /// `Chapters` 3: a card leaves 30 at its start side for the nodes, which
+  /// sit on the rail there.
+  static const double chapterCardInset = 30;
+
+  /// `Chapters` 2, 3: the rail's width, and where its centre sits from the
+  /// content's end edge.
+  static const double chapterRailWidth = 4;
+  static const double chapterRailRadius = 2;
+  static const double chapterRailCentre = 12;
+
+  /// `Chapters` 2: the rail starts 20 above the first node's centre, ends 9
+  /// below the last, and its fill ends 28 past the current node's centre.
+  static const double chapterRailHead = 20;
+  static const double chapterRailTail = 9;
+  static const double chapterRailPast = 28;
+
+  /// `Chapters` 3: a done or locked node is 24; the current one is 32 with a
+  /// 5 ring.
+  static const double chapterNode = 24;
+  static const double chapterNodeCurrent = 32;
+  static const double chapterNodeRing = 5;
+
+  /// `Chapters` 3a: the check in a done node, 12.
+  static const double chapterNodeCheck = 12;
+
+  /// `Album` 3: the card's padding and its thumbnail's height; the button
+  /// inside is 36 high with a 12 radius, in a 4 inset.
+  static const double albumPadding = 8;
+  static const double albumThumbHeight = 96;
+  static const double albumButtonHeight = 36;
+  static const double albumButtonRadius = 12;
+  static const double albumButtonInset = 4;
+
+  /// `Album` 3b: the lock on a locked thumbnail, 22.
+  static const double albumLockSize = 22;
+
+  /// `Requests` block 9: the sheet's title, Marhey 700 26 on the browser's
+  /// normal line, measured 46.
+  static const requestsTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 46 / 26,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` block 10: the line under it, 13/500 on a 16 line.
+  static const requestsSubtitle = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` 2a: the asker's name, 12/600 on a 15 line.
+  static const requestAsker = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` 2a: the request, Marhey 600 16 on a 21.6 line.
+  static const requestText = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.35,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` 2a, 2b: the status line and the reward, 12/700 on a 15 line.
+  static const requestStatus = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 15 / 12,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` 2a: «خد», Marhey 700 17.
+  static const requestClaimLabel = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Requests` 2: the asker's face, a circle of 52.
+  static const double requestAvatar = 52;
+
+  /// `Requests` 2: a row's padding and gaps are 12; between its lines 3 when
+  /// done (2a) and 4 when open (2b); between rows 10.
+  static const double requestRowPadding = 12;
+  static const double requestLineGapDone = 3;
+  static const double requestRowGap = 10;
+
+  /// `Requests` 2a: «خد» is 44 high with 12 at its sides.
+  static const double requestClaimInset = 12;
+
+  /// `Requests` 0: the sheet is 620 high, from y 224 on a 844 frame.
+  static const double requestsSheetHeight = 620;
+
+  /// `Piece` 0: the sheet is 700 high, from y 144 on a 844 frame.
+  static const double pieceSheetHeight = 700;
+
+  /// `Piece` 12: the piece's picture, 358 x 210.
+  static const double pieceArtHeight = 210;
+
+  /// `Piece` 14: the chosen style's name sits 12 from the picture's corner.
+  static const double pieceStyleChipInset = 12;
+
+  /// `Piece` 15-21: a style's tile is 92 high with 8 between them, its
+  /// drawing 64 x 40 and 15 from the top.
+  static const double pieceTileHeight = 92;
+  static const double pieceTileGap = 8;
+  static const double pieceTileArtWidth = 64;
+  static const double pieceTileArtHeight = 40;
+  static const double pieceTileArtTop = 15;
+
+  /// `Piece` 22-24: سلمى's line is a card 56 high around a 40 face.
+  static const double pieceSalmaHeight = 56;
+  static const double pieceSalmaFace = 40;
+
+  /// `Piece` 26-31: the price card is 94 high with 14 at its sides, its two
+  /// rows 38 and 19 apart by a 2 line.
+  static const double piecePriceHeight = 94;
+  static const double piecePriceRowHeight = 38;
+  static const double piecePriceLine = 2;
+
+  /// `Piece` 8: the room's name over the title, Readex 600 13 on a 16 line.
+  static const pieceRoom = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 16 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 14: the style's name over the picture, 12/700. The board's pill
+  /// is 19 high around a 19 line; here a 14.4 line has 4 above and below
+  /// it, so the contrast check, which reads the text's box and 4 around it,
+  /// stays inside the pill and not on the picture behind.
+  static const pieceStyleChip = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 16-20: a style's name, 13/600 (700 once chosen).
+  static const pieceTile = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.4,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const pieceTileChosen = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.4,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 25: سلمى's line, 13/600 on a 19.5 line.
+  static const pieceSalma = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 19.5 / 13,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 27, 30: the price card's captions, 14/500 on an 18 line.
+  static const piecePriceLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 18 / 14,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 28: the price, Marhey 700 22.
+  static const piecePriceAmount = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 38 / 22,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Piece` 31, 32: what the player has and what is short, 15/700 on a
+  /// 19 line.
+  static const piecePriceHave = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 19 / 15,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  // -- The owner's boards of 2026-10-31 (specs/015-m10-apartment-story, T131,
+  // T132) ------------------------------------------------------------------
+
+  /// `AptRoomsAffordable` 20: the requests button's lip, `sun.soft`'s
+  /// 4 pt (`#EED38A`).
+  static const requestsButtonLip = BoxShadow(
+    offset: Offset(0, 4),
+    color: ColorTokens.sunSoftLip,
+  );
+
+  /// `AptRooms*`: the chapter bar's progress bar is 80 wide.
+  static const double roomBarWidth = 80;
+
+  /// `AptRoomsDone` 9: the «شوف المشهد» pill is 28 drawn (44 to hit).
+  static const double sceneChipHeight = 28;
+
+  /// `AptRoomsAffordable` 20: the requests button is 92 wide.
+  static const double requestsButtonWidth = 92;
+
+  /// `AptRoomsAffordable` 15 to 19: a tab is 36 drawn in its padded row.
+  static const double roomTabHeight = 36;
+
+  /// `AptRoomsAffordable` 47: the dark strip's least height.
+  static const double roomStripHeight = 44;
+
+  /// `RoomDonePending` 11: the finished room's title, Marhey 700 30.
+  static const roomDoneTitle = TextStyle(
+    fontFamily: 'Marhey',
+    fontSize: 30,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `RoomDonePending` 20: سلمى's line in the finished room's card, Marhey
+  /// 600 16.
+  static const roomDoneQuote = TextStyle(
+    fontFamily: 'Marhey',
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.4,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `RequestsEmpty` 14: the tea tray, 80 by 60.
+  static const requestsEmptyArt = Size(80, 60);
+
+  /// `AptRoomsAffordable` 35 to 44: a piece card's name, Readex Pro 600 14.
+  static const roomCellName = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.3,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `RequestsEmpty` 15: the empty card's line, Readex Pro 600 14.
+  static const requestsEmptyText = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.5,
     leadingDistribution: TextLeadingDistribution.even,
   );
 }

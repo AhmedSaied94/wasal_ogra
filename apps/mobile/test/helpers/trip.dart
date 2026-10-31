@@ -98,6 +98,7 @@ TripFacts factsFor(
   HintMode hintMode = HintMode.off,
   int bubbleMinMs = 4000,
   TripParams? params,
+  StoryTripInfo? storyInfo,
 }) {
   final lineWire = definition.tripId.split('.').first;
   return TripFacts(
@@ -106,6 +107,7 @@ TripFacts factsFor(
     params: params ?? bundledParams(definition.lineId),
     bubbleMinMs: bubbleMinMs,
     hintMode: hintMode,
+    storyInfo: storyInfo,
   );
 }
 

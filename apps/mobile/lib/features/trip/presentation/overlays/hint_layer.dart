@@ -58,7 +58,7 @@ class HintLayer extends StatelessWidget {
           popover: view.choices.any(
             (c) => c is ClaimChoice || c is ChangeRequestChoice,
           ),
-          story: view.storyCondition != null,
+          story: view.storyStrip != null,
         );
       },
       builder: (context, shown) {

@@ -3,6 +3,7 @@
 // the savings card say so. M08's files stay as they are; the scene after a
 // result joins here with its service (T088).
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:riverpod_annotation/riverpod_annotation.dart' show Ref;
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/domain/wire.dart';
@@ -10,7 +11,10 @@ import 'package:wassal/core/economy/economy.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/progress/domain/story.dart';
+import 'package:wassal/core/routing/router.dart' show routerProvider;
 import 'package:wassal/features/home/application/home_slots.dart';
+import 'package:wassal/features/result/application/result_slots.dart';
+import 'package:wassal/features/story/application/story_after_result.dart';
 import 'package:wassal/features/onboarding/domain/first_session.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 
@@ -41,8 +45,25 @@ Map<String, Set<String>> seenScenesOf(
   return seen;
 }
 
+/// The scenes seen, as the providers have them now.
+Map<String, Set<String>> _seenNow(Ref ref, ContentSource content) =>
+    seenScenesOf(
+      content,
+      ref.read(economyViewProvider),
+      ref.read(firstSessionFlagsProvider).value ?? FirstSessionFlags.empty,
+    );
+
 /// The overrides M10 gives the app and its tests.
 List<Override> storyOverrides() => [
+  // M08's «مشوار تاني» plays a story trip's scene first.
+  storyAfterResultProvider.overrideWith((ref) {
+    return StoryAfterResultImpl(
+      content: () => ref.read(contentSourceProvider),
+      progress: () => ref.read(playerProgressProvider),
+      seen: () => _seenNow(ref, ref.read(contentSourceProvider)),
+      push: (location) => ref.read(routerProvider).push<void>(location),
+    );
+  }),
   storySceneWaitingProvider.overrideWith((ref) {
     final content = ref.watch(contentSourceProvider);
     return waitingScenes(

@@ -186,13 +186,22 @@ class SpeechBubbleTail extends StatelessWidget {
 }
 
 class CharacterAvatar extends StatelessWidget {
-  const CharacterAvatar(this.character, {this.talking = false, super.key});
+  const CharacterAvatar(
+    this.character, {
+    this.talking = false,
+    this.happy = false,
+    super.key,
+  });
 
   /// The art's name: `belya`, `bride_father`, …
   final String character;
 
   /// The mouth moves.
   final bool talking;
+
+  /// Fires `Person`'s `happy` once on arrival (a request that is done). The
+  /// static drawing has one face.
+  final bool happy;
 
   /// The head-and-shoulders crop.
   static const size = Size(96, 110);
@@ -243,6 +252,7 @@ class CharacterAvatar extends StatelessWidget {
                 bind: (model) {
                   model.number('look')?.value = look.toDouble();
                   model.boolean('talking')?.value = talking;
+                  if (happy) model.trigger('happy')?.trigger();
                 },
                 // The SVG, in the same place within the artboard's box.
                 fallback: Stack(

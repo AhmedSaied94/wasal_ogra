@@ -247,7 +247,7 @@ class _ScenePlayerState extends ConsumerState<ScenePlayer>
                             child: _Talking(
                               index: _index,
                               talking: turns?.talking,
-                              child: _PanelSwitcher(
+                              child: PanelSwitcher(
                                 key: ScenePlayer.panelKey,
                                 index: _index,
                                 child: _panel(
@@ -381,9 +381,11 @@ class _PanelArtInTurn extends StatelessWidget {
 }
 
 /// Changes panels: a slide and fade within `sheetIn`, the new bubble
-/// popping in; under reduced motion a fade of at most 150 ms.
-class _PanelSwitcher extends StatelessWidget {
-  const _PanelSwitcher({required this.index, required this.child, super.key});
+/// popping in; under reduced motion a fade of at most 150 ms. The story
+/// viewer (specs/015-m10-apartment-story) changes panels the same way: its
+/// [child] is keyed `ValueKey(index)`.
+class PanelSwitcher extends StatelessWidget {
+  const PanelSwitcher({required this.index, required this.child, super.key});
 
   final int index;
   final Widget child;

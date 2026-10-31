@@ -24,7 +24,7 @@ class FastForwardStrip extends StatelessWidget {
     return TripSelector<(bool, bool)>(
       select: (model) {
         final view = model.view;
-        return (view?.fastForward ?? false, view?.storyCondition != null);
+        return (view?.fastForward ?? false, view?.storyStrip != null);
       },
       builder: (context, shown) {
         final (on, story) = shown;

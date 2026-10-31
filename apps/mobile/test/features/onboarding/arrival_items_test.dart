@@ -16,6 +16,7 @@ import 'package:wassal/features/onboarding/application/first_session_service.dar
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/name_sheet.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
+import 'package:wassal/features/story/presentation/scene_viewer_page.dart';
 import 'package:wassal/features/trip/data/drift_trip_records.dart';
 import 'package:wassal/features/trip/data/trip_records.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -258,6 +259,50 @@ void main() {
       await _launch(tester, economy);
       expect(find.byType(NameSheet), findsNothing);
     });
+  });
+
+  testWidgets('after the first session the due scene plays in the story '
+      'viewer, and back to Home (specs/015-m10-apartment-story, T081)', (
+    tester,
+  ) async {
+    final economy = await testEconomy(
+      content: tutorialContent(),
+      firstState: (nowMs) =>
+          EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
+            displayName: () => 'حمادة',
+            progress: {
+              for (final trip in tutorialTripIds)
+                trip: const TripProgress(
+                  bestStars: 1,
+                  plays: 1,
+                  firstCompletedAtMs: 1,
+                ),
+            },
+          ),
+    );
+    await preloadTripArt(tester);
+    await pumpWassalApp(
+      tester,
+      newPlayer: true,
+      content: contentTestOverrides(assets: tutorialBundledAssets()),
+      economy: economyOverridesOf(economy),
+      overrides: [
+        nameSeedProvider.overrideWithValue(_seed),
+        ...seededFirstSession((store) async {
+          await store.markOpeningDone(0);
+          await store.reachStep(8);
+          await store.addSceneDue('the_stand');
+        }),
+      ],
+    );
+    expect(Uri.parse(currentLocation(tester)).path, '/story/scene/the_stand');
+    expect(find.byType(ScenePlayer), findsNothing);
+    await tester.tap(find.byKey(SceneViewerPage.skipKey));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    await tester.pumpAndSettle();
+    expect(currentLocation(tester), '/home');
   });
 
   testWidgets('the router no longer sends /home to a due scene', (

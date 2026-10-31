@@ -1,0 +1,49 @@
+{
+  "comment": {
+    "ar-EG": "النيش بياخد العين على طول"
+  },
+  "item_id": "salon.nish",
+  "name": {
+    "ar-EG": "النيش"
+  },
+  "order": 3,
+  "room_id": "salon",
+  "slot": {
+    "h": 150,
+    "w": 100,
+    "x": 250,
+    "y": 90
+  },
+  "variants": [
+    {
+      "art": "nish_classic",
+      "comment": {
+        "ar-EG": "الكلاسيك مالوش حل"
+      },
+      "name": {
+        "ar-EG": "كلاسيك"
+      },
+      "variant_id": "classic"
+    },
+    {
+      "art": "nish_modern",
+      "comment": {
+        "ar-EG": "المودرن بسيط وشيك"
+      },
+      "name": {
+        "ar-EG": "مودرن"
+      },
+      "variant_id": "modern"
+    },
+    {
+      "art": "nish_golden",
+      "comment": {
+        "ar-EG": "المدهّب بيدّي لمسة ملكية"
+      },
+      "name": {
+        "ar-EG": "مدهّب"
+      },
+      "variant_id": "golden"
+    }
+  ]
+}

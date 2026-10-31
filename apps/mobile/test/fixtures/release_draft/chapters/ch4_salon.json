@@ -1,0 +1,75 @@
+{
+  "chapter_id": "ch4_salon",
+  "completion_bonat": 20,
+  "goal": {
+    "kind": "complete_room",
+    "room_id": "salon"
+  },
+  "order": 4,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "ch4_salon_ready",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "الصالة جاهزة.. يا رب تعجبهم"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch4_mother_looks",
+          "lines": [
+            {
+              "speaker": "bride_mother",
+              "text": {
+                "ar-EG": "ما شاء الله، الصالة منوّرة"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch4_father_sits",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "الأنتريه ده مريح.. القعدة هنا هتطوّل"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch4_salma_plans",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "شايف؟ قلتلك إحنا ماشيين صح"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "طول ما إنتي معايا.. ماشيين صح"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "family_visit",
+      "title": {
+        "ar-EG": "العيلة في الصالون"
+      }
+    }
+  ],
+  "tagline": {
+    "ar-EG": "الصالون هو اللي بيحكي عن البيت"
+  },
+  "title": {
+    "ar-EG": "الصالة"
+  }
+}

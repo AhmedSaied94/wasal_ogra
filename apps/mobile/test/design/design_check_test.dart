@@ -149,7 +149,9 @@ void main() {
     tester,
   ) async {
     await _pump(tester, scrim: true);
-    expect(() => _check(tester), _failsWith('found 2'));
+    // Two nodes share the label: the one at the box's place is the box's, and
+    // the other, the scrim, is then a control the board lacks.
+    expect(() => _check(tester), _failsWith('matches no box'));
     expectLayoutMatches(
       tester,
       'Sample',

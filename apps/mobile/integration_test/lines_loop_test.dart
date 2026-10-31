@@ -3,8 +3,8 @@
 // setting on «دايمًا»: «الخطوط» opens on Home's line; the old microbus's
 // tile → «اشتريها» spends its price once and makes it current; «كمّل» on
 // خط الجامعة opens the card, whose close lands on the line's details; the
-// details' «العب المشوار ١» → «اطلع» → the trip by M02's scripted player →
-// the result → Home → «الخطوط» shows the map. It also times Lines, the
+// details' «العب المشوار ١» → «اطلع» → the scene due before it (M10) → the
+// trip by M02's scripted player → the result → Home → «الخطوط» shows the map. It also times Lines, the
 // details and the sheet from the tap to their full content: each under
 // 0.5 s. Headless:
 //
@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/config/tunable.dart';
+import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
@@ -32,6 +33,7 @@ import 'package:wassal/features/lines/presentation/vehicle_strip.dart';
 import 'package:wassal/features/pre_trip/application/card_mode_provider.dart';
 import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 import 'package:wassal/features/result/presentation/result_screen.dart';
+import 'package:wassal/features/story/presentation/scene_viewer_page.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
@@ -136,8 +138,14 @@ void main() {
     final view = container.read(economyViewProvider);
     expect(view.jenehat, 500);
     expect(view.owns(SkuKind.vehicle, 'micro_old'), isTrue);
+    // M10's launch backfill also keeps a `story_progress` op: only the
+    // spends are this step's.
     final pending = await tester.runAsync(economy.service.pendingOps);
-    expect(pending, hasLength(1), reason: 'one spend, kept to sync');
+    expect(
+      pending!.where((row) => row.op.type == OpType.spendJenehat),
+      hasLength(1),
+      reason: 'one spend, kept to sync',
+    );
 
     // 3. «كمّل» on خط الجامعة → the card; its close lands on the details.
     await _tap(tester, find.byKey(LineCard.continueKeyOf(LineId.lineGamaa)));
@@ -170,6 +178,35 @@ void main() {
           currentLocation(tester) == '/lines/line_gamaa/pre-trip/line_gamaa.01',
     );
     await _tap(tester, find.byKey(PreTripCard.goKey));
+    // M10: the scene due before this trip plays first, then the trip opens.
+    await pumpUntil(
+      tester,
+      () => currentLocation(tester).startsWith('/story/scene/'),
+    );
+    expect(
+      currentLocation(tester),
+      '/story/scene/father_visit?then=%2Ftrip%2Fline_gamaa.01',
+    );
+    await pumpUntil(
+      tester,
+      () => find
+          .byKey(SceneViewerPage.panelKey)
+          .hitTestable()
+          .evaluate()
+          .isNotEmpty,
+    );
+    for (
+      var i = 0;
+      i < 12 && find.byKey(SceneViewerPage.continueKey).evaluate().isEmpty;
+      i++
+    ) {
+      await tester.tap(find.byKey(SceneViewerPage.panelKey));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 600)),
+      );
+      await tester.pump();
+    }
+    await _tap(tester, find.byKey(SceneViewerPage.continueKey));
     await pumpUntil(
       tester,
       () =>

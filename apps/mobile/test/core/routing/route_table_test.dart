@@ -66,7 +66,14 @@ const expected = <String, (String?, Presentation, Section, List<String>)>{
     ['story', 'storyAlbum'],
   ),
   // M10's story (specs/015-m10-apartment-story, contracts/story-flow.md).
-  'apartmentPreTrip': ('/apartment/pre-trip/:tripId', _p, _none, []),
+  // A sheet over the apartment, as the card opened from Lines is over the
+  // details (R2-1).
+  'apartmentPreTrip': (
+    '/apartment/pre-trip/:tripId',
+    _s,
+    Section.apartment,
+    [],
+  ),
   'storyScene': ('/story/scene/:sceneId', _p, Section.apartment, []),
   'storyAlbum': ('/story/album', _p, Section.apartment, []),
   'story': ('/story/:chapterId', _p, _none, ['storyScene']),

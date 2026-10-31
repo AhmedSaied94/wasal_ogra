@@ -5,15 +5,14 @@
 // offline. A failure says so in a toast and changes nothing else.
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
+import 'package:wassal/core/platform/offscreen_render.dart';
 import 'package:wassal/core/platform/share_gateway.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/components/avatars.dart';
@@ -27,25 +26,8 @@ import 'package:wassal/features/result/presentation/quote_card.dart';
 import 'package:wassal/features/result/presentation/share_card.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
-/// The picture couldn't be drawn.
-final class ShareRenderException implements Exception {
-  const ShareRenderException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'ShareRenderException: $message';
-}
-
-/// 360 × 3 = 1080.
-const double _pixelRatio = 3;
-
-/// Frames before the capture: the first builds the card and starts its
-/// pictures, which arrive, already loaded, for the second.
-const int _framesBeforeCapture = 2;
-
-/// [spec]'s picture as a PNG: the card, built off screen over [context]'s
-/// overlay for a frame or two, then captured at [_pixelRatio] and removed.
+/// [spec]'s picture as a PNG: the card, drawn off screen at 360 × 3 = 1080
+/// (`lib/core/platform/offscreen_render.dart`).
 Future<Uint8List> renderSharePicture(
   BuildContext context,
   ShareSpec spec,
@@ -54,44 +36,11 @@ Future<Uint8List> renderSharePicture(
   if (!context.mounted) {
     throw const ShareRenderException('the screen closed');
   }
-  final boundary = GlobalKey();
-  final entry = OverlayEntry(
-    builder: (_) => Positioned(
-      // Off screen, beside it.
-      left: -ShareCard.side * 2,
-      top: 0,
-      child: IgnorePointer(
-        child: ExcludeSemantics(
-          child: RepaintBoundary(
-            key: boundary,
-            child: ShareCard(spec: spec),
-          ),
-        ),
-      ),
-    ),
+  return renderOffscreenPng(
+    context,
+    ShareCard(spec: spec),
+    const Size.square(ShareCard.side),
   );
-  Overlay.of(context, rootOverlay: true).insert(entry);
-  try {
-    final binding = WidgetsBinding.instance;
-    for (var i = 0; i < _framesBeforeCapture; i++) {
-      binding.scheduleFrame();
-      await binding.endOfFrame;
-    }
-    final render = boundary.currentContext?.findRenderObject();
-    if (render is! RenderRepaintBoundary) {
-      throw const ShareRenderException('the card was not laid out');
-    }
-    final image = await render.toImage(pixelRatio: _pixelRatio);
-    try {
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (png == null) throw const ShareRenderException('no PNG');
-      return png.buffer.asUint8List();
-    } finally {
-      image.dispose();
-    }
-  } finally {
-    entry.remove();
-  }
 }
 
 /// Loads the card's SVGs, as its icons and face will ask for them, so the

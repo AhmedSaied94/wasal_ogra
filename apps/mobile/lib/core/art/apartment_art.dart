@@ -25,6 +25,9 @@ class ApartmentArt {
   /// The teaser's empty room (R17).
   static const teaserRoom = 'assets/illustrations/apartment/teaser_room.svg';
 
+  /// The tea tray on the requests sheet's empty card (`RequestsEmpty`).
+  static const teaTray = 'assets/illustrations/apartment/tea_tray.svg';
+
   /// The asset drawn for [slug] as a room, or null.
   static String? room(String slug) => _rooms[slug];
 

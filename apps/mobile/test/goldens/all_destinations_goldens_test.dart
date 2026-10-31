@@ -44,6 +44,27 @@ void main() {
               economy: economyOverridesOf(await lastFinishedEconomy()),
             );
             expect(currentLocation(tester), d.location);
+          case Destination(name: RouteNames.storyScene):
+            // The sample's `the_stand` waits for «المعلم»'s story trip; a
+            // locked scene leaves to the apartment (M10 story-flow.md).
+            await pumpWassalApp(
+              tester,
+              initialLocation: d.location,
+              digits: digits,
+              economy: economyOverridesOf(
+                await testEconomy(firstState: standPlayedState),
+              ),
+            );
+            expect(currentLocation(tester), d.location);
+          case Destination(name: RouteNames.apartmentItem):
+            // A piece in a locked room (the default player) leaves to the
+            // tab, as the router does (M10 T064).
+            await pumpWassalApp(
+              tester,
+              initialLocation: d.location,
+              digits: digits,
+            );
+            expect(currentLocation(tester), '/apartment');
           case _:
             await pumpWassalApp(
               tester,

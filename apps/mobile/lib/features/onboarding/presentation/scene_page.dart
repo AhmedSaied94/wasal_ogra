@@ -9,6 +9,7 @@ import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/onboarding/domain/first_session.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
+import 'package:wassal/features/story/application/story_service.dart';
 
 /// A scene the app plays by itself (specs/012-m07-onboarding/contracts/
 /// scenes.md "Routes"), and what its end writes. The opening
@@ -63,7 +64,8 @@ class _ScenePageState extends ConsumerState<ScenePage> {
     if (widget.sceneId case final sceneId?) {
       final service = ref.read(firstSessionServiceProvider);
       written = await _written(() async {
-        await service.sceneSeen(sceneId);
+        // M10: one entry point records a scene (research R3).
+        await ref.read(storyServiceProvider).recordSeen(sceneId);
         await service.afterScene();
       });
       next = safeThen(widget.then);

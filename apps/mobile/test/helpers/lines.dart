@@ -26,9 +26,19 @@ Map<String, TripProgress> starsOf(Map<String, int> stars) => {
     key: TripProgress(bestStars: value, plays: 1, firstCompletedAtMs: i + 1),
 };
 
-/// Vehicles and chapters owned, by `(kind, sku id)`.
-Map<OwnedKey, Owned> ownedOf(Set<(SkuKind, String)> owned) => {
-  for (final key in owned) key: Owned(kind: key.$1, acquiredAtMs: 0),
+/// Vehicles and chapters owned, by `(kind, sku id)`. An item carries its
+/// style: [styles] by item id, else the pack's `classic` (tests that own a
+/// piece name its style).
+Map<OwnedKey, Owned> ownedOf(
+  Set<(SkuKind, String)> owned, {
+  Map<String, String> styles = const {},
+}) => {
+  for (final key in owned)
+    key: Owned(
+      kind: key.$1,
+      acquiredAtMs: 0,
+      variantId: key.$1 == SkuKind.item ? styles[key.$2] ?? 'classic' : null,
+    ),
 };
 
 /// A returning player with these balances, stars and ownership.
@@ -39,13 +49,16 @@ EconomyState Function(int nowMs) playerState({
   Set<(SkuKind, String)> owned = const {},
   int liters = 5,
   Map<String, Set<String>> scenesSeen = const {},
+  Map<String, String> styles = const {},
+  Set<String> requestsClaimed = const {},
 }) =>
     (nowMs) => EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
+      requestsClaimed: requestsClaimed,
       jenehat: jenehat,
       bonat: bonat,
       fuel: FuelState(liters: liters, countedFromMs: nowMs),
       progress: starsOf(stars),
-      ownership: ownedOf(owned),
+      ownership: ownedOf(owned, styles: styles),
       scenesSeen: scenesSeen,
       // Named, so Home's arrival doesn't ask (M07).
       displayName: () => 'أحمد',
