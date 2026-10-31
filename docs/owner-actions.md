@@ -1192,14 +1192,14 @@ apartment's own branch, not a page over the shell (a page there put two shells o
 ### Before the new boards' design checks
 
 - [X] **1. Draw the ten boards the first release needs (T130).** Done on 2026-10-31: drawn on the
-  canvas and exported into `docs/design/` by Claude (T131–T133 follow). Each section of
+  canvas and exported into `docs/design/` by Claude (T131–T133 built the checks). Each section of
   [design-briefs.md](../specs/015-m10-apartment-story/contracts/design-briefs.md) gives the route,
   the state, the layout against the board it starts from, the labels and its open questions:
   `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`,
   `PieceAffordable`, `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd`. Export them
   with `docs/design/tools`, or hand the export to Claude.
   - Nothing else waits: the app draws each state from its brief meanwhile.
-  - Only each board's sample, golden and layout test follows its export (T131–T133).
+  - Each board's sample, golden and layout test is in (T131–T133); each section's "As drawn" note lists what differs from the draft.
 
 ### Before merge
 

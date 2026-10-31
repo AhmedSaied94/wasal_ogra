@@ -1157,17 +1157,35 @@ brief, so only these checks wait for the export.
   `docs/design/tools` into `docs/design/{screens,png,boxes}/`, or hand the export to Claude
   (`docs/owner-actions.md` section 015, item 1). Drawn on 2026-10-31 and exported by Claude the same
   day: the HTML, PNGs, boxes, illustrations and both manifests are in `docs/design/` (uncommitted).
-- [ ] T131 After T130's apartment boards land, align `goal_view.dart`, `rooms_view.dart`,
+- [X] T131 After T130's apartment boards land, align `goal_view.dart`, `rooms_view.dart`,
   `room_scene.dart`, `pending_chip.dart`, `piece_sheet.dart` and `room_done_dialog.dart` to them.
   Add `test/design/samples/<board>.dart`, the layout tests and the goldens for `AptGoalLine`,
   `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`, `PieceAffordable` and
   `RoomDonePending`. Move the boards' copy into `app_ar.arb`.
-- [ ] T132 After T130's other boards land, align `chapters_page.dart`, `requests_sheet.dart` and
+
+  Done in the M10 build commit: `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`,
+  `AptRoomsDone`, `PieceAffordable` and `RoomDonePending` are samples in
+  `test/design/samples/apt_states.dart`, checked by `test/design/apt_states_layout_test.dart` against
+  `docs/design/boxes/<Board>.json` and drawn by `test/goldens/design/apt_states_goldens_test.dart`
+  (both digit styles). The views follow them (`PendingChip`, `GoalHeadline`, `PriceChip`, the bought
+  piece's drop-in and bubble, the `ChapterBar` scene button); the copy is in `app_ar.arb`. Each board's
+  departures (draft copy wins, the art gaps) are in its "As drawn" note.
+- [X] T132 After T130's other boards land, align `chapters_page.dart`, `requests_sheet.dart` and
   `savings_card.dart` to `ChaptersGoal`, `RequestsEmpty` and `HomeStoryEnd`, with their samples,
   layout tests and goldens.
-- [ ] T133 Write "As drawn (date)" notes in
+
+  Done in the M10 build commit: the three are samples in `test/design/samples/story_states.dart`,
+  checked by `test/design/story_states_layout_test.dart` and drawn by
+  `test/goldens/design/story_states_goldens_test.dart`. `RequestsEmpty` brought the one new asset,
+  `assets/illustrations/apartment/tea_tray.svg`; Home's end tile is «شقة العُمر» with the finished
+  room's thumbnail.
+- [X] T133 Write "As drawn (date)" notes in
   `specs/015-m10-apartment-story/contracts/design-briefs.md` for each board, and add the boards to
   M10's row of `docs/delivery-plan.md` "Design sources".
+
+  Done: all ten sections of `contracts/design-briefs.md` end in an "As drawn (2026-10-31)" note (the
+  answers to the open questions, the board against the draft's copy, the layout test's expected
+  differences and the art gaps), and M10's row of "Design sources" lists the ten boards.
 
 ---
 
