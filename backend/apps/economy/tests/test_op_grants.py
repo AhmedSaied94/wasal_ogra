@@ -73,6 +73,16 @@ def test_the_checks_run_in_order(player: Player, published_pack: int) -> None:
     assert reasons(result) == ["unknown_sku", "accepted", "already_granted"]
 
 
+def test_the_longest_id_the_content_schema_allows_is_not_a_payload_error(
+    player: Player, published_pack: int
+) -> None:
+    # `req_` and 40 more is valid content: a shorter payload bound would make the
+    # server refuse a claim the phone accepted, and roll it back (M10 T145).
+    longest = "req_" + "a" * 40
+    assert reasons(run(player, claim(published_pack, longest))) == ["unknown_sku"]
+    assert reasons(run(player, claim(published_pack, longest + "a"))) == ["validation_error"]
+
+
 def test_the_item_must_be_owned_in_the_variant_asked(player: Player, published_pack: int) -> None:
     assert reasons(run(player, claim(published_pack))) == ["not_eligible"]
     give(player, ("item", "salon.nish"), variant="classic")

@@ -53,7 +53,8 @@ def comeback_gift(state: BatchState, ctx: Ctx) -> list[dict[str, Any]]:
 
 @register(
     "claim_request",
-    payload={"request_id": Field(STR, max_length=40), "content_version": CONTENT_VERSION},
+    # `req_` and up to 40 more: the content schema's bound for a request id.
+    payload={"request_id": Field(STR, max_length=44), "content_version": CONTENT_VERSION},
     content_version=True,
 )
 def claim_request(state: BatchState, ctx: Ctx) -> list[dict[str, Any]]:
