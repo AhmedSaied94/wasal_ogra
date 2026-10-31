@@ -107,6 +107,23 @@ bool _linesAllowed(String uri) =>
     uri.startsWith('package:wassal/features/lines/domain/') ||
     _sameFolder(uri);
 
+/// The apartment's and the story's domains (specs/015-m10-apartment-story,
+/// research R20): the content models and source, the SKU ids' wire names, the
+/// progress rules, Home's savings target (the goal card reuses M08's) and
+/// their own folder. The trip's `rider_comments.dart` stays under
+/// `_tripAllowed`.
+bool _storyAllowed(String uri) =>
+    _contentAllowed(uri) ||
+    uri == 'package:wassal/core/content/domain/content_source.dart' ||
+    uri.startsWith('package:wassal/core/content/domain/') ||
+    uri == 'package:wassal/core/economy/domain/wire.dart' ||
+    uri.startsWith('package:wassal/core/progress/domain/') ||
+    uri == 'package:wassal/features/home/domain/savings_target.dart' ||
+    // Each folder's own files, by the package path (as Lines does).
+    uri.startsWith('package:wassal/features/apartment/domain/') ||
+    uri.startsWith('package:wassal/features/story/domain/') ||
+    _sameFolder(uri);
+
 /// Files allowed one more import than their folder: the economy checks a
 /// name with the onboarding's rules, the one check the phone and the economy
 /// share (M07 research R7, R8). Nothing else of `features/`.
@@ -132,6 +149,9 @@ const _domains = <String, bool Function(String)>{
   'lib/features/pre_trip/domain': _screensAllowed,
   'lib/features/result/domain': _screensAllowed,
   'lib/features/lines/domain': _linesAllowed,
+  // M10's apartment and story (specs/015-m10-apartment-story, T030).
+  'lib/features/apartment/domain': _storyAllowed,
+  'lib/features/story/domain': _storyAllowed,
 };
 
 final _directive = RegExp(
@@ -213,6 +233,31 @@ void main() {
       isEmpty,
     );
     expect(forbiddenImports("// import 'dart:io';"), isEmpty);
+  });
+
+  test('the story scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _storyAllowed);
+    for (final ok in [
+      'chapter_rows.dart',
+      'package:wassal/core/progress/domain/story.dart',
+      'package:wassal/core/economy/domain/wire.dart',
+      'package:wassal/core/content/domain/content_source.dart',
+      'package:wassal/features/home/domain/savings_target.dart',
+      'package:content_models/content_models.dart',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      '../presentation/rooms_view.dart',
+      'package:wassal/core/economy/economy.dart',
+      'package:wassal/features/home/domain/home_model.dart',
+      'package:wassal/features/trip/domain/rider_comments.dart',
+      'package:flutter/foundation.dart',
+      'dart:io',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
   });
 
   test('the economy scan allows its list and refuses the rest', () {

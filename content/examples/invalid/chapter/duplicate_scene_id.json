@@ -1,0 +1,58 @@
+{
+  "chapter_id": "ch4_salon",
+  "completion_bonat": 15,
+  "goal": {
+    "kind": "complete_room",
+    "room_id": "salon"
+  },
+  "order": 4,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "opening_key",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "قعدة في البيت، وأبوها جه"
+              }
+            }
+          ]
+        },
+        {
+          "art": "stand_morning",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "توك توك؟ إحنا عيلة بتحترم نفسها"
+              }
+            }
+          ]
+        },
+        {
+          "art": "usta_decides",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "حاضر يا عم، ميكروباص"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "father_visit",
+      "title": {
+        "ar-EG": "أبوها زار"
+      }
+    }
+  ],
+  "tagline": {
+    "ar-EG": "الصالون بيحكي عن البيت"
+  },
+  "title": {
+    "ar-EG": "الصالون"
+  }
+}

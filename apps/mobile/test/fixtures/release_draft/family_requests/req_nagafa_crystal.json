@@ -1,0 +1,11 @@
+{
+  "character": "bride_mother",
+  "item_id": "salon.nagafa",
+  "request_id": "req_nagafa_crystal",
+  "reward_bonat": 6,
+  "room_id": "salon",
+  "text": {
+    "ar-EG": "النجفة لازم تبقى كريستال، دي أول حاجة الضيوف بتبص لها"
+  },
+  "variant_id": "crystal"
+}

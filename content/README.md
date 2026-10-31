@@ -43,12 +43,14 @@ tell the app how to play them (M07, `specs/012-m07-onboarding/contracts/scenes.m
     `order` 1, at most once in the pack, and with no `trip_id` (`V-C3`).
   - `{"kind": "after_trip", "trip_id": "<trip_id>"}`: after that trip's first finish. The trip is
     in the pack, and each trip has at most one such scene (`V-C4`).
-  - Without `plays`, a scene waits for M10's rules (album, chapter end).
+  - Without `plays`, a scene plays when its chapter's goal is met (M10). A chapter has at most one
+    such scene (`V-C10`), and `scene_id`s are unique across the pack (`V-C11`).
 - **`narrator`.** A panel line whose `speaker` is `narrator` is the panel's caption, drawn in its
   caption chip, not in a bubble. A panel has at most one, and it is the panel's first line
-  (`V-C5`).
-- The sample's chapter 1 uses both: `opening` plays first, and `the_stand` plays after
-  `line_hay.03`.
+  (`V-C5`). A panel has at most two lines from other speakers (`V-C12`).
+- **`title`** (M10, required): the scene's name in the album and the timeline.
+- The sample's chapter 1 uses both `plays` kinds: `opening` plays first, and `the_stand` plays
+  after `line_hay.03`. Its chapters 2 and 4 each have a goal scene.
 
 ## What Lines shows (M09)
 
@@ -60,3 +62,30 @@ tell the app how to play them (M07, `specs/012-m07-onboarding/contracts/scenes.m
   keep `name`.
 - All three are required, so a pack built before them no longer reads
   (`specs/014-m09-lines-vehicles/contracts/content-fields.md`).
+
+## What the apartment shows (M10)
+
+Display only: no trip, engine rule or fixture reads these. Every text is a `LocalizedText`, so it
+has no digits and no placeholders (`V-X1`, `V-X2`). Contract:
+`specs/015-m10-apartment-story/contracts/content-fields.md`.
+
+- **A chapter**'s goal card: `goal_art` (a slug of a drawing the app ships; a slug it has none for
+  draws a plain fallback), `goal_line` (`{speaker, text}`, one of the six `StoryCharacter`s),
+  `ready_line` (shown once the goal is met) and `tagline` (the timeline's line).
+- **A chapter's story trip**, `story_trip_info`, only on a chapter that has `story_trip_id`
+  (`V-C6`):
+  - `title` and `condition` (the strip over the trip), and `fail_reason` (the failure card's line),
+    which only a trip with `no_fights_required` may have (`V-C9`);
+  - one or two `riders`, each a character in a seat the trip leaves empty (`V-C7`: one of the
+    trip's seats, and no passenger's), with a speech pool per mistake in `comments`. A pool's lines
+    hold no `{amount}` or `{station}` (`V-C8`), because a rider knows neither.
+- **A room**: `art` (its drawing's slug) and `done_line` (what is said when it is complete).
+- **An item**: `slot`, its place in the room's 358 × 300 drawing (`V-R3`: `x + w ≤ 358` and
+  `y + h ≤ 300`), `comment` (the family's remark when it is bought) and a `comment` per style.
+- **A family request**: `character`, who asks, and `variant_id` (when present, one of its item's
+  styles, `V-R2`).
+- The required ones, `Scene.title`, `Item.slot` and `FamilyRequest.character`, mean a pack built
+  before them no longer reads: staging builds and publishes a fresh one after the deploy
+  (`docs/runbooks/content-publishing.md`).
+- The sample's chapter 1 has a rider, المعلم in seat `A_l` on `line_hay.03`, with two pools,
+  `story.moallem.short_change` and `story.moallem.fight`.

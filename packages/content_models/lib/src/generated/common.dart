@@ -192,6 +192,22 @@ enum RoomId {
   bedroom,
 }
 
+/// A story character (the design's character ids).
+enum StoryCharacter {
+  @JsonValue('usta')
+  usta,
+  @JsonValue('salma')
+  salma,
+  @JsonValue('bride_father')
+  brideFather,
+  @JsonValue('bride_mother')
+  brideMother,
+  @JsonValue('moallem')
+  moallem,
+  @JsonValue('belya')
+  belya,
+}
+
 /// A vehicle (glossary 3.6).
 enum VehicleId {
   @JsonValue('tuktuk')

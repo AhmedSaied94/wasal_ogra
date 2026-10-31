@@ -13,6 +13,8 @@ import 'package:wassal/core/content/home_arrival.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/platform/connectivity.dart';
 import 'package:wassal/core/routing/router.dart';
+import 'package:wassal/features/story/application/story_due_watcher.dart';
+import 'package:wassal/features/story/application/story_service.dart';
 import 'package:wassal/core/sync/sync_lifecycle.dart';
 import 'package:wassal/core/sync/sync_providers.dart';
 import 'package:wassal/core/theme/app_theme.dart';
@@ -43,6 +45,7 @@ class WassalApp extends ConsumerStatefulWidget {
 class _WassalAppState extends ConsumerState<WassalApp> {
   ContentLifecycle? _content;
   HomeArrivalQueue? _arrivals;
+  ProviderSubscription<StoryDueWatcher>? _storyDue;
   LinesDotWatcher? _linesDot;
   AppLifecycleListener? _lifecycle;
   ProviderSubscription<AsyncValue<SyncLifecycle>>? _sync;
@@ -88,6 +91,9 @@ class _WassalAppState extends ConsumerState<WassalApp> {
     // The first session's flags follow the economy from here on
     // (specs/012-m07-onboarding/contracts/first-session.md).
     _firstSession ??= ref.listenManual(firstSessionServiceProvider, (_, _) {});
+    // M10's due scenes (specs/015-m10-apartment-story, research R3).
+    _storyDue ??= ref.listenManual(storyDueWatcherProvider, (_, _) {});
+    _backfillStory();
     _restored ??= _listenForRestore();
     // The sync, from here to dispose (specs/011-m06-identity-sync). It never
     // blocks play: one that can't start is reported, and the app stays
@@ -103,6 +109,30 @@ class _WassalAppState extends ConsumerState<WassalApp> {
         );
       }
     });
+  }
+
+  bool _storyBackfilled = false;
+
+  /// Once a launch, every scene M07 saw that the economy lacks reaches it
+  /// (specs/015-m10-apartment-story, contracts/story-flow.md "Recording a
+  /// scene", FR-052). It waits for the economy and M07's flags, which it
+  /// reads; a failure is reported and play goes on.
+  void _backfillStory() {
+    if (_storyBackfilled) return;
+    _storyBackfilled = true;
+    Future<void> run() async {
+      await ref.read(economyProvider.future);
+      await ref.read(firstSessionFlagsProvider.future);
+      await ref.read(storyServiceProvider).backfill();
+    }
+
+    unawaited(
+      run().catchError((Object error, StackTrace stack) {
+        FlutterError.reportError(
+          FlutterErrorDetails(exception: error, stack: stack, library: 'story'),
+        );
+      }),
+    );
   }
 
   /// A returning player found after the hand-over leaves the opening
@@ -134,6 +164,7 @@ class _WassalAppState extends ConsumerState<WassalApp> {
     _content?.dispose();
     _arrivals?.dispose();
     _linesDot?.dispose();
+    _storyDue?.close();
     _lifecycle?.dispose();
     _sync?.close();
     _firstSession?.close();

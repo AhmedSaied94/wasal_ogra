@@ -50,12 +50,33 @@ const expected = <String, (String?, Presentation, Section, List<String>)>{
     '/apartment',
     _t,
     Section.apartment,
-    ['apartmentItem', 'apartmentRequests', 'apartmentChapters'],
+    [
+      'apartmentItem',
+      'apartmentRequests',
+      'apartmentChapters',
+      'apartmentPreTrip',
+    ],
   ),
   'apartmentItem': ('/apartment/item/:itemId', _s, Section.apartment, []),
   'apartmentRequests': ('/apartment/requests', _s, Section.apartment, []),
-  'apartmentChapters': ('/apartment/chapters', _p, _none, ['story']),
-  'story': ('/story/:chapterId', _p, _none, []),
+  'apartmentChapters': (
+    '/apartment/chapters',
+    _p,
+    _none,
+    ['story', 'storyAlbum'],
+  ),
+  // M10's story (specs/015-m10-apartment-story, contracts/story-flow.md).
+  // A sheet over the apartment, as the card opened from Lines is over the
+  // details (R2-1).
+  'apartmentPreTrip': (
+    '/apartment/pre-trip/:tripId',
+    _s,
+    Section.apartment,
+    [],
+  ),
+  'storyScene': ('/story/scene/:sceneId', _p, Section.apartment, []),
+  'storyAlbum': ('/story/album', _p, Section.apartment, []),
+  'story': ('/story/:chapterId', _p, _none, ['storyScene']),
   'shop': ('/shop', _t, Section.shop, ['fuel']),
   'fuel': ('/shop/fuel', _s, Section.shop, []),
   'dailyReward': ('/daily/reward', _p, _none, []),

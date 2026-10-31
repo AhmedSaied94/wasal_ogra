@@ -77,6 +77,11 @@ EconomyState homeStatesState(int nowMs) =>
             firstCompletedAtMs: n,
           ),
       },
+      // The opening and the scene after line_hay.03 played: Home keeps its
+      // savings bar (M10, FR-031).
+      scenesSeen: const {
+        'ch1_first_job': {'opening', 'the_stand'},
+      },
     );
 
 /// Pumps الموقف as `HomeStates` draws it, on [size] (the board's frame by

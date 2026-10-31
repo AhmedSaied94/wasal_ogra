@@ -78,7 +78,17 @@ def room(room_id: str = "salon", order: int = 1) -> Room:
 
 
 def item(of: Room, slug: str = "nish", order: int = 1) -> Item:
-    return Item.objects.create(room=of, slug=slug, name_ar_eg="name", order=order)
+    """A piece in the room's drawing (M10): a 160 x 120 slot inside the 358 x 300 space."""
+    return Item.objects.create(
+        room=of,
+        slug=slug,
+        name_ar_eg="name",
+        order=order,
+        slot_x=99,
+        slot_y=140,
+        slot_w=160,
+        slot_h=120,
+    )
 
 
 def variant(of: Item, variant_id: str = "crystal", order: int = 1) -> ItemVariant:

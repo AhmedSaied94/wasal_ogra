@@ -24,6 +24,7 @@ import 'package:wassal/features/trip/domain/line_ids.dart';
 import 'package:wassal/features/onboarding/domain/tutorial_coach.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
 import 'package:wassal/features/trip/domain/projection.dart';
+import 'package:wassal/features/trip/domain/rider_comments.dart';
 import 'package:wassal/features/trip/domain/speech.dart';
 import 'package:wassal/features/trip/domain/step_accumulator.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
@@ -308,7 +309,16 @@ final class TripController {
         TripHintsMode.always => HintMode.always,
       },
       boostersLocked: _boostersLocked(),
+      storyInfo: _storyInfoOf(definition.tripId),
     );
+  }
+
+  /// The presentation of the chapter whose story trip is [tripId], if any.
+  StoryTripInfo? _storyInfoOf(String tripId) {
+    for (final chapter in _content().chapters) {
+      if (chapter.storyTripId == tripId) return chapter.storyTripInfo;
+    }
+    return null;
   }
 
   /// Rebuilds the unfinished trip from its record (contracts/trip-records.md
@@ -894,6 +904,7 @@ final class TripController {
       cues,
       tMs: after.tMs,
       bubbleMinMs: session.facts.bubbleMinMs * _speed,
+      riderComments: _riderComments(session, events),
     );
     _takeHints(
       _hints.update(
@@ -904,6 +915,35 @@ final class TripController {
       ),
     );
     cues.forEach(_emit);
+  }
+
+  /// The story riders' comments [events] draw (specs/015-m10-apartment-story,
+  /// contracts/story-trip.md "Comments"). A trip that is no chapter's story
+  /// trip has none. Each is picked from the trip's seed and its ordinal
+  /// alone, so the engine's PRNG is never touched.
+  List<RiderComment> _riderComments(
+    TripSession session,
+    List<DomainEvent> events,
+  ) {
+    final info = session.facts.storyInfo;
+    if (info == null) return const [];
+    final speech = _speech(session);
+    var ordinal = _memory.riderOrdinal;
+    final comments = <RiderComment>[];
+    for (final event in events) {
+      if (event is! ReputationChanged) continue;
+      final comment = riderComment(
+        info,
+        speech,
+        event,
+        seed: session.seed,
+        ordinal: ordinal,
+      );
+      if (comment == null) continue;
+      comments.add(comment);
+      ordinal++;
+    }
+    return comments;
   }
 
   /// The hints of those aboard as the trip opens or comes back.
@@ -1022,7 +1062,7 @@ final class TripController {
         : hint != null
         ? (source: hint.key, line: hint)
         : null;
-    _memory = _memory.belyaAt(
+    _memory = _memory.characterAt(
       wish,
       tMs: state.tMs,
       bubbleMinMs: session.facts.bubbleMinMs * _speed,
@@ -1060,7 +1100,7 @@ final class TripController {
     if (_disposed) return;
     final session = _session;
     if (session != null) _coachAndBubble(session);
-    final belya = _memory.belya?.line;
+    final spoken = _memory.character?.line;
     final view = session == null
         ? null
         : projectTripView(
@@ -1080,7 +1120,7 @@ final class TripController {
               rejection: _rejection,
               fastForward: _speed > 1,
             ),
-            hint: belya is HintView ? belya : null,
+            hint: spoken is HintView ? spoken : null,
             dispute: _phase == TripPhase.disputeOpen && _disputes.isNotEmpty
                 ? _disputes.first
                 : null,
@@ -1105,8 +1145,8 @@ final class TripController {
           (_phase == TripPhase.paused || _phase == TripPhase.failed) &&
           _restartEnabled,
       coach: _phase == TripPhase.running ? _coach : null,
-      coachBubble: _phase == TripPhase.running && belya is CoachLine
-          ? belya
+      coachBubble: _phase == TripPhase.running && spoken is CoachLine
+          ? spoken
           : null,
     );
     if (model == _model) return;

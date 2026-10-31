@@ -70,7 +70,10 @@
       "plays": {
         "kind": "opening"
       },
-      "scene_id": "opening"
+      "scene_id": "opening",
+      "title": {
+        "ar-EG": "المشهد"
+      }
     },
     {
       "panels": [
@@ -112,7 +115,10 @@
         "kind": "after_trip",
         "trip_id": "line_hay.03"
       },
-      "scene_id": "the_stand"
+      "scene_id": "the_stand",
+      "title": {
+        "ar-EG": "المشهد"
+      }
     }
   ],
   "story_trip_id": "line_hay.03",

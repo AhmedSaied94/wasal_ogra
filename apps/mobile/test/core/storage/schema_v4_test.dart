@@ -52,10 +52,10 @@ void main() {
     expect((await _rows(e.db, 'ledger_ops')).map((r) => r['op_type']), types);
   });
 
-  test('the log refuses an op type v4 doesn\'t list', () async {
+  test('the log refuses an op type no version lists', () async {
     final e = await testEconomy();
     await expectLater(
-      _insertOp(e.db, 'story_progress', 0xfffe),
+      _insertOp(e.db, 'season_pass', 0xfffe),
       throwsA(anything),
     );
   });
@@ -123,7 +123,13 @@ void main() {
     final e = await testEconomy();
     await e.db.customStatement('INSERT INTO player_state (id) VALUES (1)');
     expect(await _rows(e.db, 'player_state'), [
-      {'id': 1, 'display_name': null, 'tutorial_granted': 0},
+      {
+        'id': 1,
+        'display_name': null,
+        'tutorial_granted': 0,
+        'scenes_seen': '{}',
+        'requests_claimed': '[]',
+      },
     ]);
     await expectLater(
       e.db.customStatement('UPDATE player_state SET tutorial_granted = NULL'),

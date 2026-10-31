@@ -160,10 +160,10 @@ void main() {
       );
     });
 
-    test('stamps schema version 4', () async {
+    test('stamps schema version 5', () async {
       final db = await _opened(tempDbFile());
       expect(await _rows(db, 'PRAGMA user_version'), [
-        {'user_version': 4},
+        {'user_version': 5},
       ]);
     });
   });
@@ -261,13 +261,13 @@ void main() {
   });
 
   group('a file the app cannot open stays as it is', () {
-    test('user_version 5 fails with DatabaseFromNewerApp', () async {
+    test('user_version 6 fails with DatabaseFromNewerApp', () async {
       final file = tempDbFile();
       final first = _open(file);
       await first.customSelect('SELECT 1').get();
       await first.close();
       sqlite3.open(file.path)
-        ..execute('PRAGMA user_version = 5')
+        ..execute('PRAGMA user_version = 6')
         ..close();
       final before = _sha256(file);
 
@@ -277,8 +277,8 @@ void main() {
         db.customSelect('SELECT 1').get(),
         throwsA(
           isA<DatabaseFromNewerApp>()
-              .having((e) => e.fileVersion, 'fileVersion', 5)
-              .having((e) => e.appVersion, 'appVersion', 4),
+              .having((e) => e.fileVersion, 'fileVersion', 6)
+              .having((e) => e.appVersion, 'appVersion', 5),
         ),
       );
       await db.close();

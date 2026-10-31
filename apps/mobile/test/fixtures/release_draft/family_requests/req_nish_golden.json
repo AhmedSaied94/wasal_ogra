@@ -1,0 +1,11 @@
+{
+  "character": "bride_mother",
+  "item_id": "salon.nish",
+  "request_id": "req_nish_golden",
+  "reward_bonat": 5,
+  "room_id": "salon",
+  "text": {
+    "ar-EG": "النيش المدهّب هو اللي يليق بصالة العرسان"
+  },
+  "variant_id": "golden"
+}

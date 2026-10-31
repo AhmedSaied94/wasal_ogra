@@ -1,0 +1,85 @@
+{
+  "chapter_id": "ch2_her_father",
+  "completion_bonat": 10,
+  "goal": {
+    "kind": "own_vehicle",
+    "vehicle_id": "micro_old"
+  },
+  "goal_line": {
+    "speaker": "salma",
+    "text": {
+      "ar-EG": "أبويا عايز يشوفك بميكروباص، مش بتوك توك"
+    }
+  },
+  "order": 2,
+  "ready_line": {
+    "ar-EG": "الميكروباص جاهز، روح قابل أبوها"
+  },
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "opening_key",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "قعدة في البيت، وأبوها جه"
+              }
+            }
+          ]
+        },
+        {
+          "art": "stand_morning",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "توك توك؟ إحنا عيلة بتحترم نفسها"
+              }
+            }
+          ]
+        },
+        {
+          "art": "usta_decides",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "حاضر يا عم، ميكروباص"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "father_visit",
+      "title": {
+        "ar-EG": "أبوها زار"
+      }
+    }
+  ],
+  "story_trip_info": {
+    "condition": {
+      "ar-EG": "المعلم راكب معاك، خلي بالك من الباقي"
+    },
+    "fail_reason": {
+      "ar-EG": "المعلم زعل من الخناقة ونزل"
+    },
+    "riders": [
+      {
+        "character": "moallem",
+        "comments": {
+          "fight": "story.moallem.fight",
+          "short_change": "story.moallem.short_change"
+        },
+        "seat": "A_l"
+      }
+    ],
+    "title": {
+      "ar-EG": "المعلم على خط الحي"
+    }
+  },
+  "title": {
+    "ar-EG": "الكلام مع أبوها"
+  }
+}

@@ -82,8 +82,22 @@ def test_rule_examples_pass_the_schema_and_break_their_rule(
 
 
 def test_the_rule_examples_cover_plays_narrator_and_text_rules() -> None:
+    # V-C9 has no example here: the sample's only story trip forbids fights, so no chapter alone
+    # can break it. test_rules.py mutates the trip to cover it.
     codes = {entry["code"] for entry in EXPECTED.values() if isinstance(entry, dict)}
-    assert codes == {"V-C3", "V-C4", "V-C5", "V-X1"}
+    assert codes == {
+        "V-C3",
+        "V-C4",
+        "V-C5",
+        "V-C6",
+        "V-C7",
+        "V-C8",
+        "V-C10",
+        "V-C11",
+        "V-C12",
+        "V-R3",
+        "V-X1",
+    }
 
 
 def test_expected_lists_exactly_the_invalid_files() -> None:

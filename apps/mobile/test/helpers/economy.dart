@@ -490,6 +490,20 @@ Future<TestEconomy> lastFinishedEconomy() => testEconomy(
       ),
 );
 
+/// «المعلم»'s story trip finished (`line_hay.03`), so the sample's scene
+/// `the_stand` is unlocked and its viewer's route isn't redirected away
+/// (specs/015-m10-apartment-story, story-flow.md).
+EconomyState standPlayedState(int nowMs) =>
+    EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
+      progress: const {
+        'line_hay.03': TripProgress(
+          bestStars: 1,
+          plays: 1,
+          firstCompletedAtMs: 1,
+        ),
+      },
+    );
+
 /// What a request validates against in the rule tests: the sample pack at
 /// version 1, `fuel_max` 5 and `fuel_regen_minutes` 20 unless given.
 RuleContext ruleContext({

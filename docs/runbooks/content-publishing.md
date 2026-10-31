@@ -44,12 +44,26 @@ A published pack never changes. Its files are written once, and its record keeps
 app version mutable.
 
 **After a schema change, build and publish a fresh pack.** A deploy that adds a required field (M09
-added a line's `whats_new` and `display_fare_piasters`, and a vehicle's `short_name`) leaves the
+added a line's `whats_new` and `display_fare_piasters`, and a vehicle's `short_name`; M10 added a
+scene's `title`, an item's `slot` and a family request's `character`) leaves the
 published packs without it: apps from that release refuse them as unreadable and fall back to their
 bundled pack, and production's promote refuses them against the new schema. Right after the deploy,
 fill the new fields in the admin (rows from before the migration hold its defaults: a fare of 50 and
 empty texts; a build refuses the empty texts, but 50 is a valid fare, so set each line's fare by
 hand), then build and publish (steps 3–4).
+
+M10's migrations (`content.0011` and `0012`) give the same state. Rows from before them hold empty
+scene titles, a slot of `0 × 0` on every item and no character on a family request, and a build
+refuses each, so before building:
+
+1. Give every scene a **Title** (its page, or the scene inline on its chapter's page).
+2. Give every item a **Slot** (x, y, w, h inside the room's 358 × 300 drawing; the item's page says
+   how it is checked) and every family request a **Character**.
+3. Optionally fill the chapter, room and style fields M10 added (goal art and line, ready line,
+   tagline, the story trip's title, condition, failure reason and riders; a room's art and closing
+   line; the comments). Each is optional: a chapter without them draws the screen without that line.
+
+Importing a `content/source` layout that already carries the fields does all of this at once.
 
 The same schema change has four consequences around a release:
 
@@ -63,7 +77,8 @@ The same schema change has four consequences around a release:
   (`publish.py`), so such a pack goes out and every M09 app refuses it. Rebuild the draft after the
   deploy, then publish.
 - **Older exports won't import.** `content_export` of a pre-M09 version lacks the required fields,
-  and the import refuses it against today's schema. Export M09-era versions only.
+  and the import refuses it against today's schema. Export M09-era versions only, and for M10's
+  fields only versions exported after its deploy.
 
 ### Authoring scenes
 
@@ -74,13 +89,31 @@ play it by itself (M07, `specs/012-m07-onboarding/contracts/scenes.md`):
   chapter of order 1, with **Plays trip** empty.
 - **Plays kind** `after_trip`: after the first finish of the trip in **Plays trip**, which is then
   required. One scene per trip.
-- **Plays kind** blank (the default): M10's rules play it.
+- **Plays kind** blank (the default): it plays when its chapter's goal is met (M10), the chapter's
+  one goal scene (`V-C10`). Scene ids are unique across the pack (`V-C11`), and a panel has at most
+  two speakers besides the narrator (`V-C12`).
 - **Captions.** A panel's caption is a scene line whose speaker is `narrator`. Make it the panel's
   first line (the lowest order), and add at most one per panel. The app draws it in the caption
   chip, not a bubble.
 
 Saving refuses a trip on a scene that isn't `after_trip`, and the reverse. An import and a build
-report the other rules as `V-C3`–`V-C5`.
+report the other rules as `V-C3`–`V-C5` and `V-C10`–`V-C12`.
+
+### Authoring a story trip's riders (M10)
+
+A chapter that has a **Story trip** can set how that trip is presented
+(`specs/015-m10-apartment-story/contracts/content-fields.md`): the **Story title**, the **Story
+condition** (the strip's line), the **Story fail reason** and up to two **Story riders** (the inline
+on the chapter's page). Saving refuses these fields on a chapter with no story trip. For each rider:
+
+- **Seat** must be a seat of the story trip's vehicle that none of its passengers sits in
+  (`V-C7`). The riders' seats differ.
+- Each **Comment** field is a speech key. The pool must exist and hold no `{amount}` or `{station}`
+  (`V-C8`), because a rider knows neither.
+- A **Story fail reason** needs a story trip whose rules forbid fights (`V-C9`).
+
+An item's **Slot** must fit its room's 358 × 300 drawing: `x + w ≤ 358` and `y + h ≤ 300`
+(`V-R3`).
 
 ## 2. Promote to production
 
@@ -161,8 +194,9 @@ version, which you then publish and promote like any other.
 
 A pack built before a required-field schema change can't be rolled back to: the build reads the old
 pack's parts and validates them against today's schema, so a pack from before `content.0010` fails
-with the missing `whats_new`, `display_fare_piasters` or `short_name`. To undo an M09 pack, roll
-back to one built after the M09 deploy, or edit and rebuild the older draft first.
+with the missing `whats_new`, `display_fare_piasters` or `short_name`, and one from before
+`content.0011` with a missing scene `title`, item `slot` or request `character`. To undo an M09 or
+M10 pack, roll back to one built after that deploy, or edit and rebuild the older draft first.
 
 ## 5. The minimum app version (kill switch)
 

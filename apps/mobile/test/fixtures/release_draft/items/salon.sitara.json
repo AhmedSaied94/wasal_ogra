@@ -1,0 +1,49 @@
+{
+  "comment": {
+    "ar-EG": "الستاير بتكمّل شكل الصالة"
+  },
+  "item_id": "salon.sitara",
+  "name": {
+    "ar-EG": "الستاير"
+  },
+  "order": 1,
+  "room_id": "salon",
+  "slot": {
+    "h": 220,
+    "w": 120,
+    "x": 24,
+    "y": 30
+  },
+  "variants": [
+    {
+      "art": "sitara_plain",
+      "comment": {
+        "ar-EG": "السادة بتناسب أي حاجة"
+      },
+      "name": {
+        "ar-EG": "سادة"
+      },
+      "variant_id": "plain"
+    },
+    {
+      "art": "sitara_floral",
+      "comment": {
+        "ar-EG": "المورّدة بتدّي دفء"
+      },
+      "name": {
+        "ar-EG": "مورّدة"
+      },
+      "variant_id": "floral"
+    },
+    {
+      "art": "sitara_velvet",
+      "comment": {
+        "ar-EG": "القطيفة فخامة على الآخر"
+      },
+      "name": {
+        "ar-EG": "قطيفة"
+      },
+      "variant_id": "velvet"
+    }
+  ]
+}

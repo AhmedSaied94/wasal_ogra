@@ -116,6 +116,26 @@ List<Op> _everyOp() {
     // M07: the driver's name and the tutorial gift add neither currency.
     accept(_stocked, const SettingsUpdateRequest('Hamada')),
     accept(_stocked, const TutorialGiftRequest()),
+    // M10: a scene seen, and a claim of a piece the player owns.
+    accept(
+      _stocked,
+      const StoryProgressRequest(
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      ),
+    ),
+    accept(
+      _stocked.copyWith(
+        ownership: {
+          (SkuKind.item, 'salon.nish'): Owned(
+            kind: SkuKind.item,
+            variantId: 'crystal',
+            acquiredAtMs: testEpochMs,
+          ),
+        },
+      ),
+      const ClaimRequest(requestId: 'req_nish_crystal'),
+    ),
   ];
 }
 

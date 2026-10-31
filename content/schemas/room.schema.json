@@ -27,6 +27,12 @@
     },
     "completion_bonat": {
       "$ref": "common.schema.json#/$defs/Amount"
+    },
+    "art": {
+      "$ref": "common.schema.json#/$defs/Slug"
+    },
+    "done_line": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
     }
   },
   "additionalProperties": false

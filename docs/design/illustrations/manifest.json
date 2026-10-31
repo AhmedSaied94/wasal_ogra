@@ -592,5 +592,113 @@
   "screen": "Vehicles",
   "size": "236x104",
   "label": "زي الجديد والشنط بتبان من الشباك اللي ورا"
+ },
+ {
+  "file": "illustrations/screens/AptGoalLine_01.svg",
+  "screen": "AptGoalLine",
+  "size": "330x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalLine_02.svg",
+  "screen": "AptGoalLine",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalLine_03.svg",
+  "screen": "AptGoalLine",
+  "size": "120x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalVehicle_01.svg",
+  "screen": "AptGoalVehicle",
+  "size": "330x190",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalVehicle_02.svg",
+  "screen": "AptGoalVehicle",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptGoalVehicle_03.svg",
+  "screen": "AptGoalVehicle",
+  "size": "120x96",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptRoomsAffordable_01.svg",
+  "screen": "AptRoomsAffordable",
+  "size": "358x300",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptRoomsBought_01.svg",
+  "screen": "AptRoomsBought",
+  "size": "358x300",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptRoomsBought_02.svg",
+  "screen": "AptRoomsBought",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/AptRoomsDone_01.svg",
+  "screen": "AptRoomsDone",
+  "size": "358x300",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/HomeStoryEnd_01.svg",
+  "screen": "HomeStoryEnd",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/HomeStoryEnd_02.svg",
+  "screen": "HomeStoryEnd",
+  "size": "358x332",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/HomeStoryEnd_03.svg",
+  "screen": "HomeStoryEnd",
+  "size": "54x54",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PieceAffordable_01.svg",
+  "screen": "PieceAffordable",
+  "size": "358x210",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PieceAffordable_02.svg",
+  "screen": "PieceAffordable",
+  "size": "64x40",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/RequestsEmpty_01.svg",
+  "screen": "RequestsEmpty",
+  "size": "80x60",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/RoomDonePending_01.svg",
+  "screen": "RoomDonePending",
+  "size": "260x130",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/RoomDonePending_02.svg",
+  "screen": "RoomDonePending",
+  "size": "46x46",
+  "label": ""
  }
 ]

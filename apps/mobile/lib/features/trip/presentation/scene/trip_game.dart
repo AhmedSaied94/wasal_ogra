@@ -20,6 +20,7 @@ import 'package:wassal/features/trip/presentation/scene/effects.dart';
 import 'package:wassal/features/trip/presentation/scene/hand_component.dart';
 import 'package:wassal/features/trip/presentation/scene/passenger_art.dart';
 import 'package:wassal/features/trip/presentation/scene/passenger_component.dart';
+import 'package:wassal/features/trip/presentation/scene/rider_component.dart';
 import 'package:wassal/features/trip/presentation/scene/windows_component.dart';
 
 class TripGame extends FlameGame {
@@ -30,6 +31,7 @@ class TripGame extends FlameGame {
     required this.art,
     required this.reduceMotion,
     required this.drivesClock,
+    this.riders = const [],
   }) {
     // Without the clock, nothing ticks: the screen steps the scene once per
     // change (widget tests and goldens).
@@ -46,6 +48,9 @@ class TripGame extends FlameGame {
   /// Whether the screen's frames drive the trip's clock.
   final bool drivesClock;
   bool reduceMotion;
+
+  /// A story trip's riders, each in a seat the engine leaves empty.
+  final List<StoryRider> riders;
 
   SceneLayout? _layout;
   StreamSubscription<TripCue>? _cues;
@@ -107,6 +112,9 @@ class TripStage extends PositionComponent with HasGameReference<TripGame> {
   late final HandComponent _hand;
   late final List<PassengerComponent> _seats;
 
+  /// The story riders, in the seats' order.
+  late final List<RiderComponent> riders;
+
   /// One-shots for passengers whose art isn't made yet (a cue can come
   /// before the frame that seats them), by passenger.
   final _pendingTriggers = <String, List<CharacterTrigger>>{};
@@ -119,11 +127,19 @@ class TripStage extends PositionComponent with HasGameReference<TripGame> {
       for (final seat in game.seats)
         PassengerComponent(seat)..priority = PassengerComponent.depth(seat),
     ];
+    riders = [
+      for (final seat in game.seats)
+        for (final rider in game.riders)
+          if (rider.seat == seat.seatId)
+            RiderComponent(rider, seat)
+              ..priority = PassengerComponent.depth(seat),
+    ];
     await addAll([
       CabinComponent(CabinPart.back)..priority = 1,
       WindowsComponent()..priority = 2,
       CabinComponent(CabinPart.benches)..priority = 3,
       ..._seats,
+      ...riders,
       GlintComponent()..priority = 140,
       _highlight..priority = 150,
       _hand..priority = 200,

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
+import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/sync/server_status.dart';
@@ -241,6 +242,61 @@ void main() {
     });
   });
 
+  group('opened from the apartment (specs/015-m10-apartment-story, R2-1)', () {
+    testWidgets('a sheet over the tab, with the side inset of the card '
+        'opened from Lines', (tester) async {
+      await _card(tester);
+      appRouter(tester).go('/lines/line_hay/pre-trip/line_hay.01');
+      await tester.pumpAndSettle();
+      final fromLines = tester.getRect(find.byKey(PreTripCard.goKey));
+      expect(fromLines.left, greaterThan(0));
+
+      appRouter(tester).go('/apartment/pre-trip/line_hay.01');
+      await tester.pumpAndSettle();
+      expect(find.byType(AppSheet), findsOneWidget);
+      final fromApartment = tester.getRect(find.byKey(PreTripCard.goKey));
+      expect(fromApartment.left, fromLines.left);
+      expect(fromApartment.right, fromLines.right);
+    });
+
+    testWidgets('its four closes land on the apartment', (tester) async {
+      for (final close in <Future<void> Function()>[
+        () => tester.tap(find.byKey(PreTripCard.closeKey)),
+        () => pressBack(tester),
+        () async => tester.tapAt(const Offset(195, 20)),
+        () async {
+          final height = tester.getSize(find.byType(AppSheet).last).height;
+          await tester.drag(
+            find.byKey(AppSheet.grabberKey).last,
+            Offset(0, height * 0.4),
+          );
+        },
+      ]) {
+        final (container, _) = await _card(tester);
+        appRouter(tester).go('/apartment/pre-trip/line_hay.01');
+        await tester.pumpAndSettle();
+        expect(find.byType(PreTripCard), findsOneWidget);
+        await close();
+        await tester.pumpAndSettle();
+        expect(currentLocation(tester), '/apartment');
+        expect(find.byType(AppSheet), findsNothing);
+        expect(container.read(economyViewProvider).fuel.liters, 5);
+      }
+    });
+
+    testWidgets('an unknown or unplayable trip leaves to the apartment', (
+      tester,
+    ) async {
+      for (final trip in ['line_hay.99', 'line_hay.02', 'line_hay.03']) {
+        await _card(tester);
+        appRouter(tester).go('/apartment/pre-trip/$trip');
+        await tester.pumpAndSettle();
+        expect(currentLocation(tester), '/apartment', reason: trip);
+        expect(find.byType(PreTripCard), findsNothing, reason: trip);
+      }
+    });
+  });
+
   testWidgets('a story trip: the chip and the condition bar', (tester) async {
     await _card(
       tester,
@@ -440,7 +496,12 @@ void main() {
       expect(find.byType(BuyDialog), findsNothing);
       expect(container.read(economyViewProvider).bonat, 40);
       final pending = await tester.runAsync(economy.service.pendingOps);
-      expect(pending, hasLength(1));
+      // The launch's backfill may also have sent the opening M07 saw
+      // (`story_progress`, specs/015-m10-apartment-story FR-052).
+      expect(
+        pending!.where((row) => row.op.type == OpType.spendBonat),
+        hasLength(1),
+      );
     });
   });
 }

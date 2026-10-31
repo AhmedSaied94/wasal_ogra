@@ -19,8 +19,9 @@ import 'package:wassal/features/trip/domain/line_ids.dart';
 
 part 'start_next_trip.g.dart';
 
-/// Where a start came from, for M15's analytics.
-enum StartFrom { home, result, lines }
+/// Where a start came from, for M15's analytics, and where the card's close
+/// lands (M10 adds the apartment, contracts/apartment.md "The goal view").
+enum StartFrom { home, result, lines, apartment }
 
 /// The fuel sheet (M12's; a placeholder until then).
 const fuelSheetLocation = '/shop/fuel';
@@ -89,5 +90,6 @@ Future<bool> startNextTrip(
     StartFrom.home || StartFrom.result => '/home/pre-trip/$tripId',
     StartFrom.lines =>
       '/lines/${toGlossaryLine(trip.lineId).wireName}/pre-trip/$tripId',
+    StartFrom.apartment => '/apartment/pre-trip/$tripId',
   });
 }

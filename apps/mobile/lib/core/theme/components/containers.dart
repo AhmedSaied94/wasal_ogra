@@ -183,6 +183,7 @@ class ProgressBar extends StatelessWidget {
     required this.value,
     this.color = ProgressColor.primary,
     this.height = defaultHeight,
+    this.track = ColorTokens.track,
     super.key,
   }) : semanticLabel = null,
        _road = false;
@@ -195,11 +196,16 @@ class ProgressBar extends StatelessWidget {
   const ProgressBar.road({required this.value, this.semanticLabel, super.key})
     : color = ProgressColor.primary,
       height = roadHeight,
+      track = ColorTokens.track,
       _road = true;
 
   /// From 0 to 1.
   final double value;
   final ProgressColor color;
+
+  /// The empty part: `track`, or the bar's own colour on a `primary` bar
+  /// (`AptRoomsAffordable` 12: `primary.lip`).
+  final Color track;
 
   /// 8 to 12 (HANDOFF §3.3).
   final double height;
@@ -226,7 +232,7 @@ class ProgressBar extends StatelessWidget {
     final radius = BorderRadius.circular(RadiusTokens.pill);
     return Container(
       height: height,
-      decoration: BoxDecoration(color: ColorTokens.track, borderRadius: radius),
+      decoration: BoxDecoration(color: track, borderRadius: radius),
       alignment: AlignmentDirectional.centerStart,
       child: TweenAnimationBuilder<double>(
         tween: Tween(end: value.clamp(0, 1)),
@@ -433,10 +439,16 @@ class ScreenHeader extends StatelessWidget {
     required this.title,
     this.onBack,
     this.trailing = const [],
+    this.fitTitle = false,
     super.key,
   });
 
   final String title;
+
+  /// Shrinks a title that doesn't fit its room to fit it, instead of cutting
+  /// it with an ellipsis: for a header whose pill leaves a narrow phone little
+  /// room (`Chapters`, `Album`).
+  final bool fitTitle;
 
   /// Null on a tab's root, which has no back control.
   final VoidCallback? onBack;
@@ -463,13 +475,28 @@ class ScreenHeader extends StatelessWidget {
             Expanded(
               child: Semantics(
                 header: true,
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                  style: TypeTokens.displayL.copyWith(color: ColorTokens.ink),
-                ),
+                child: fitTitle
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TypeTokens.displayL.copyWith(
+                            color: ColorTokens.ink,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                        style: TypeTokens.displayL.copyWith(
+                          color: ColorTokens.ink,
+                        ),
+                      ),
               ),
             ),
             ...trailing,

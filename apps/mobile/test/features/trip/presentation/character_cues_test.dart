@@ -35,6 +35,9 @@ final class _Art implements PassengerArt {
   void play(CharacterTrigger trigger) => played.add(trigger);
 
   @override
+  void surprise({required bool on}) {}
+
+  @override
   void advance(double dt) {}
 
   @override

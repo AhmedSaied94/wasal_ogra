@@ -7,6 +7,7 @@ import 'package:wassal/features/trip/data/drift_trip_records.dart';
 import 'package:wassal/features/trip/data/trip_records.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
+import 'package:wassal/features/story/presentation/scene_viewer_page.dart';
 
 import '../../helpers/content.dart';
 import '../../helpers/economy.dart';
@@ -121,6 +122,28 @@ void main() {
       ),
     );
     await _skipScene(tester);
+    expect(currentLocation(tester), '/trip/line_hay.04');
+  });
+
+  testWidgets('after the first session the due scene is the story viewer\'s '
+      '(specs/015-m10-apartment-story, T081)', (tester) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.04',
+      player: _player(finished: tutorialTripIds.length),
+      scenesDue: {'the_stand'},
+    );
+    expect(
+      Uri.parse(currentLocation(tester)),
+      Uri(
+        path: '/story/scene/the_stand',
+        queryParameters: {'then': '/trip/line_hay.04'},
+      ),
+    );
+    await tester.tap(find.byKey(SceneViewerPage.skipKey));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
     expect(currentLocation(tester), '/trip/line_hay.04');
   });
 

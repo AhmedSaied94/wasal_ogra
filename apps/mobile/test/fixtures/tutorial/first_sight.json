@@ -50,5 +50,8 @@
     "kind": "after_trip",
     "trip_id": "line_hay.03"
   },
-  "scene_id": "first_sight"
+  "scene_id": "first_sight",
+  "title": {
+    "ar-EG": "مشهد"
+  }
 }

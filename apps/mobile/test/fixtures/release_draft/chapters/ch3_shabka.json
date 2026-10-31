@@ -1,0 +1,123 @@
+{
+  "chapter_id": "ch3_shabka",
+  "completion_bonat": 15,
+  "goal": {
+    "kind": "purchase"
+  },
+  "goal_art": "goal_shabka",
+  "goal_line": {
+    "speaker": "bride_mother",
+    "text": {
+      "ar-EG": "الشبكة هي اللي بتفرّح البنت، مش كلام"
+    }
+  },
+  "order": 3,
+  "ready_line": {
+    "ar-EG": "الشبكة جاهزة، روح اطلبها"
+  },
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "ch3_jeweler_window",
+          "lines": [
+            {
+              "speaker": "bride_mother",
+              "text": {
+                "ar-EG": "الشبكة دي أول حاجة الناس بتسأل عليها يا ابني"
+              }
+            },
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "ماما.. بالراحة عليه"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch3_ring_box",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "اختاري اللي يعجبك"
+              }
+            },
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "ده كفاية وزيادة"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch3_fatha",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "يلا نقرا الفاتحة"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch3_belya_cheers",
+          "lines": [
+            {
+              "speaker": "belya",
+              "text": {
+                "ar-EG": "مبروك يا أسطى! فاضل الشقة بس"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "بس؟!"
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "after_trip",
+        "trip_id": "line_gamaa.18"
+      },
+      "scene_id": "the_fatha",
+      "title": {
+        "ar-EG": "الفاتحة"
+      }
+    }
+  ],
+  "story_trip_id": "line_gamaa.18",
+  "story_trip_info": {
+    "condition": {
+      "ar-EG": "ماما سلمى وسلمى راكبين، خليك هادي"
+    },
+    "riders": [
+      {
+        "character": "bride_mother",
+        "comments": {
+          "impatient": "story.bride_mother.impatient",
+          "short_change": "story.bride_mother.short_change"
+        },
+        "seat": "front_r"
+      },
+      {
+        "character": "salma",
+        "comments": {
+          "fight": "story.salma.fight"
+        },
+        "seat": "A_r"
+      }
+    ],
+    "title": {
+      "ar-EG": "العيلة راكبة معاك"
+    }
+  },
+  "title": {
+    "ar-EG": "الشبكة"
+  }
+}

@@ -93,6 +93,8 @@ List<Set<String>> reachableStates(
 
 ContentSource? _draft;
 ContentSource? _artboard;
+ContentSource? _salon;
+ContentSource? _storyPack;
 
 /// [draftShaped] as content (specs/014-m09-lines-vehicles, T012).
 ContentSource draftContent() =>
@@ -101,3 +103,11 @@ ContentSource draftContent() =>
 /// [artboardLines] as content (specs/014-m09-lines-vehicles, T012).
 ContentSource artboardContent() =>
     _artboard ??= PackContentSource(Pack.fromJson(artboardLines()));
+
+/// [artboardSalon] as content (specs/015-m10-apartment-story, T031).
+ContentSource artboardSalonContent() =>
+    _salon ??= PackContentSource(Pack.fromJson(artboardSalon()));
+
+/// [storyShaped] as content (specs/015-m10-apartment-story, T031).
+ContentSource storyShapedContent() =>
+    _storyPack ??= PackContentSource(Pack.fromJson(storyShaped()));

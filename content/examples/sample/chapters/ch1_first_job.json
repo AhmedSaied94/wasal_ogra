@@ -5,6 +5,13 @@
     "kind": "complete_line",
     "line_id": "line_hay"
   },
+  "goal_art": "goal_shabka",
+  "goal_line": {
+    "speaker": "moallem",
+    "text": {
+      "ar-EG": "لمّ قرشين، الشبكة قربت"
+    }
+  },
   "order": 1,
   "scenes": [
     {
@@ -64,7 +71,10 @@
       "plays": {
         "kind": "opening"
       },
-      "scene_id": "opening"
+      "scene_id": "opening",
+      "title": {
+        "ar-EG": "المفتاح"
+      }
     },
     {
       "panels": [
@@ -106,10 +116,37 @@
         "kind": "after_trip",
         "trip_id": "line_hay.03"
       },
-      "scene_id": "the_stand"
+      "scene_id": "the_stand",
+      "title": {
+        "ar-EG": "الموقف"
+      }
     }
   ],
   "story_trip_id": "line_hay.03",
+  "story_trip_info": {
+    "condition": {
+      "ar-EG": "المعلم راكب معاك، خلي بالك من الباقي"
+    },
+    "fail_reason": {
+      "ar-EG": "المعلم زعل من الخناقة ونزل"
+    },
+    "riders": [
+      {
+        "character": "moallem",
+        "comments": {
+          "fight": "story.moallem.fight",
+          "short_change": "story.moallem.short_change"
+        },
+        "seat": "A_l"
+      }
+    ],
+    "title": {
+      "ar-EG": "المعلم على خط الحي"
+    }
+  },
+  "tagline": {
+    "ar-EG": "شقة العُمر بتبدأ بمشوار"
+  },
   "title": {
     "ar-EG": "أول شغلانة"
   }

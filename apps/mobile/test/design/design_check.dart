@@ -37,7 +37,9 @@ void applyDesignSurface(
 /// match. A box in [tolerances] is checked within its own tolerance, for a
 /// control placed after others whose text Flutter measures a little wider
 /// than the browser did. A box in [offsets] is expected moved by its offset,
-/// for a listed difference where a later board moved it. Then every
+/// for a listed difference where a later board moved it. When two nodes
+/// carry the label, the one not yet matched and within tolerance of the box
+/// is its match (a chip in the drawing and its card in the grid). Then every
 /// tappable node that no box matched must have a label in [appOnly]. A
 /// sheet's or dialog's [scrim], which the board draws as a box, is left
 /// out: the node with that label covering the whole frame. All problems are
@@ -86,16 +88,6 @@ void expectLayoutMatches(
       problems.add('$artboard: $box has no label or text; pair it or skip it');
       continue;
     }
-    if (found.length != 1) {
-      problems.add(
-        '$artboard: $box: expected one tappable with $wanted, '
-        'found ${found.length}'
-        '${found.isEmpty ? '' : ': ${found.map((n) => n.describe()).join('; ')}'}',
-      );
-      continue;
-    }
-    final node = found.single;
-    matched.add(node.id);
     final want = Rect.fromLTWH(
       box.x,
       box.y,
@@ -103,6 +95,27 @@ void expectLayoutMatches(
       box.h,
     ).shift(offsets[box.id] ?? Offset.zero);
     final within = tolerances[box.id] ?? tolerance;
+    // Two controls may share a label (a board's chip in the drawing and its
+    // card in the grid): the one unmatched node at the box's place is it.
+    var candidates = found;
+    if (candidates.length > 1) {
+      final near = candidates
+          .where(
+            (n) => !matched.contains(n.id) && _within(n.rect, want, within),
+          )
+          .toList();
+      if (near.length == 1) candidates = near;
+    }
+    if (candidates.length != 1) {
+      problems.add(
+        '$artboard: $box: expected one tappable with $wanted, '
+        'found ${candidates.length}'
+        '${candidates.isEmpty ? '' : ': ${candidates.map((n) => n.describe()).join('; ')}'}',
+      );
+      continue;
+    }
+    final node = candidates.single;
+    matched.add(node.id);
     if (!_within(node.rect, want, within)) {
       problems.add(
         '$artboard: box ${box.id} "${paired ?? box.label ?? box.text}": '

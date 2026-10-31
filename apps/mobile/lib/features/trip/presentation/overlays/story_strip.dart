@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -21,10 +22,13 @@ class StoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return TripSelector<bool?>(
-      select: (model) => model.view?.storyCondition,
-      builder: (context, kept) {
-        if (kept == null) return const SizedBox.shrink();
+    return TripSelector<StoryStripView?>(
+      select: (model) => model.view?.storyStrip,
+      builder: (context, strip) {
+        if (strip == null) return const SizedBox.shrink();
+        // Broken only when the trip has the rule and a fight broke it; a
+        // chapter's condition without a rule never turns red.
+        final kept = !(strip.broken ?? false);
         return Semantics(
           container: true,
           child: Container(
@@ -40,7 +44,7 @@ class StoryStrip extends StatelessWidget {
                 const AppIcon('shield_check', key: iconKey, size: _icon),
                 Expanded(
                   child: Text(
-                    l10n.tripStoryNoFights,
+                    strip.text ?? l10n.tripStoryNoFights,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TypeTokens.caption

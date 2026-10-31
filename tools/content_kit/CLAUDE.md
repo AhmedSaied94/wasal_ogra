@@ -26,5 +26,10 @@ The schemas in `content/schemas/` are the only definition of content. `tools/con
 - The backend's image carries its own copy of `tools/content_kit` (and `tools/solver`). After a schema change, rebuild the dev stack's image (`docker compose … build`, then `up -d --wait`): until then its worker checks packs against the old schemas, and a build fails with "not an allowed property".
 - Never edit a generated file by hand: `codegen --check` fails on any difference.
 - The schemas follow a restricted profile (research R3 of B04): closed objects, integers only, no `null`, no `default`, no combinators, and every object and enum named in `$defs`. `codegen` refuses anything else.
+- M10's fields (`specs/015-m10-apartment-story/contracts/content-fields.md`) add rules to the validator, each with its own error code:
+  - V-C6 to V-C9, in `_chapter`: `story_trip_info` only on a chapter with a story trip; each rider's seat is one of the trip's seats and no passenger's; each rider comment names a pool whose lines hold no `{amount}` or `{station}`; `fail_reason` only when the trip has `no_fights_required`;
+  - V-C10 to V-C12: at most one scene per chapter without `plays`, unique `scene_id`s, and at most two speakers other than the narrator in a panel;
+  - V-R3: a piece's slot inside its 358 × 300 room. A request's `variant_id` being one of its item's stays V-R2's case; there is no V-R4 code.
+  A pack with a slot or speaker the schema allows can still fail them, so run `validate-source` over an edited layout.
 - A line's `whats_new` and `display_fare_piasters` and a vehicle's `short_name` (M09) are required display fields. A pack built before them no longer reads: after a deploy that adds a required field, staging builds and publishes a fresh pack (`docs/runbooks/content-publishing.md`).
 - `content/source/` holds only exports of packs promoted to production. Until its `pack.json` exists, schemas may change freely; after that, a breaking change needs a major bump in `content/schemas/schema-set.json`.

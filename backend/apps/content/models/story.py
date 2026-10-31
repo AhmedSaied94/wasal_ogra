@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import Q
-from wassal_content.models import ChapterId, GoalKind, RoomId, ScenePlaysKind
+from wassal_content.models import ChapterId, GoalKind, RoomId, ScenePlaysKind, StoryCharacter
 
 from apps.content.models.base import PermanentModel, TimestampedModel, choices, slug_validator
 from apps.content.models.lines import Line, Vehicle
@@ -19,6 +19,9 @@ from apps.content.models.trips import Trip
 PANELS_MIN, PANELS_MAX = 3, 5
 VARIANTS_MAX = 3
 AFTER_TRIP = ScenePlaysKind.AFTER_TRIP.value
+RIDERS_MAX = 2
+# The room's design space, which an item's slot fits inside (M10, V-R3).
+ROOM_WIDTH, ROOM_HEIGHT = 358, 300
 
 
 class Chapter(PermanentModel):
@@ -43,6 +46,24 @@ class Chapter(PermanentModel):
         Trip, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
     completion_bonat = models.PositiveIntegerField(default=0)
+    # M10's presentation fields (contracts/content-fields.md "B04"). Blank is absent: the schema's
+    # optional fields, and `goal_art` names a drawing the app ships.
+    goal_art = models.CharField(max_length=48, blank=True, default="", db_default="")
+    goal_line_speaker = models.CharField(
+        max_length=32, blank=True, default="", db_default="", choices=choices(StoryCharacter)
+    )
+    goal_line_ar_eg = models.TextField(blank=True, default="", db_default="")
+    goal_line_ar = models.TextField(blank=True, default="", db_default="")
+    ready_line_ar_eg = models.TextField(blank=True, default="", db_default="")
+    ready_line_ar = models.TextField(blank=True, default="", db_default="")
+    tagline_ar_eg = models.TextField(blank=True, default="", db_default="")
+    tagline_ar = models.TextField(blank=True, default="", db_default="")
+    story_title_ar_eg = models.TextField(blank=True, default="", db_default="")
+    story_title_ar = models.TextField(blank=True, default="", db_default="")
+    story_condition_ar_eg = models.TextField(blank=True, default="", db_default="")
+    story_condition_ar = models.TextField(blank=True, default="", db_default="")
+    story_fail_reason_ar_eg = models.TextField(blank=True, default="", db_default="")
+    story_fail_reason_ar = models.TextField(blank=True, default="", db_default="")
 
     class Meta:
         ordering: ClassVar[list[str]] = ["order"]
@@ -58,6 +79,20 @@ class Chapter(PermanentModel):
                     | Q(goal_kind="purchase", goal_line=None, goal_vehicle=None, goal_room=None)
                 ),
                 name="content_chapter_goal_matches_kind",
+            ),
+            # The goal card's line is a character's, with text, or neither (M10).
+            models.CheckConstraint(
+                condition=Q(goal_line_speaker="", goal_line_ar_eg="")
+                | ~Q(goal_line_speaker="") & ~Q(goal_line_ar_eg=""),
+                name="content_chapter_goal_line_speaker",
+            ),
+            # The story trip's own fields only exist on a chapter that has a story trip (V-C6).
+            models.CheckConstraint(
+                condition=Q(
+                    story_title_ar_eg="", story_condition_ar_eg="", story_fail_reason_ar_eg=""
+                )
+                | Q(story_trip__isnull=False),
+                name="content_chapter_story_fields_need_trip",
             ),
         ]
 
@@ -82,8 +117,65 @@ class Chapter(PermanentModel):
                 errors[name] = f"A {self.goal_kind} goal doesn't use this."
         if self.story_trip is not None and self.story_trip.kind != "story":
             errors["story_trip"] = "Choose a story trip."
+        if self.goal_line_speaker == "" and self.goal_line_ar_eg:
+            errors["goal_line_speaker"] = "A line's text needs its speaker."
+        if self.goal_line_speaker and not self.goal_line_ar_eg:
+            errors["goal_line_ar_eg"] = "A speaker needs the line's text."
+        if self.story_trip is None and (self.story_title_ar_eg or self.story_condition_ar_eg):
+            errors["story_trip"] = "The story's fields need a story trip."
+        # FR-056: the title is what presents a story trip, so a condition, a fail reason or a
+        # rider without one is a half-written chapter the pack must not lose (R1-6).
+        riders = self.pk is not None and self.riders.exists()
+        if not self.story_title_ar_eg and (
+            self.story_condition_ar_eg or self.story_fail_reason_ar_eg or riders
+        ):
+            errors["story_title_ar_eg"] = "The story trip's fields need its title."
         if errors:
             raise ValidationError(errors)
+
+
+class StoryRider(TimestampedModel):
+    """A story character riding in a seat the trip leaves empty (M10, V-C7).
+
+    The chapter's `story_trip_info.riders`, in order. The trip definition is untouched, so no rule,
+    fixture or parity change.
+    """
+
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="riders")
+    order = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    character = models.CharField(max_length=32, choices=choices(StoryCharacter))
+    seat_id = models.CharField(
+        max_length=8,
+        validators=[
+            RegexValidator(r"^(front|[A-D])_[rml]$", "Use a row and a column, for example A_l.")
+        ],
+    )
+    comment_short_change = models.CharField(max_length=64, blank=True, default="", db_default="")
+    comment_false_accusation = models.CharField(
+        max_length=64, blank=True, default="", db_default=""
+    )
+    comment_fight = models.CharField(max_length=64, blank=True, default="", db_default="")
+    comment_missed_stop = models.CharField(max_length=64, blank=True, default="", db_default="")
+    comment_impatient = models.CharField(max_length=64, blank=True, default="", db_default="")
+
+    class Meta:
+        ordering: ClassVar[list[str]] = ["chapter", "order"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(fields=["chapter", "order"], name="content_rider_order"),
+            models.UniqueConstraint(fields=["chapter", "seat_id"], name="content_rider_seat"),
+            models.CheckConstraint(
+                condition=Q(order__gte=1, order__lte=RIDERS_MAX),
+                name="content_rider_order_range",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.chapter_id}/{self.order}"
+
+    def clean(self) -> None:
+        super().clean()
+        if self.chapter_id and self.order and self.order > RIDERS_MAX:
+            raise ValidationError({"order": f"A story trip has at most {RIDERS_MAX} riders."})
 
 
 class Scene(PermanentModel):
@@ -93,6 +185,9 @@ class Scene(PermanentModel):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="scenes")
     scene_id = models.CharField(max_length=32, validators=[slug_validator])
     order = models.PositiveSmallIntegerField()
+    # M10: the scene's name in the timeline and the album. Blank on a row from before the change.
+    title_ar_eg = models.TextField(blank=True, default="", db_default="")
+    title_ar = models.TextField(blank=True, default="", db_default="")
     panel_art = ArrayField(
         models.CharField(max_length=32, validators=[slug_validator]),
         size=PANELS_MAX,
@@ -175,6 +270,10 @@ class Room(PermanentModel):
     chapter = models.ForeignKey(Chapter, on_delete=models.PROTECT, related_name="rooms")
     order = models.PositiveSmallIntegerField(unique=True)
     completion_bonat = models.PositiveIntegerField(default=0)
+    # M10: the room's drawing (blank: the app's fallback) and the line when it's finished.
+    art = models.CharField(max_length=48, blank=True, default="", db_default="")
+    done_line_ar_eg = models.TextField(blank=True, default="", db_default="")
+    done_line_ar = models.TextField(blank=True, default="", db_default="")
 
     class Meta:
         ordering: ClassVar[list[str]] = ["order"]
@@ -194,12 +293,43 @@ class Item(PermanentModel):
     name_ar_eg = models.TextField()
     name_ar = models.TextField(blank=True)
     order = models.PositiveSmallIntegerField()
+    # M10: where the piece sits in the room's drawing, in its 358 x 300 design space, and
+    # سلمى's line.
+    slot_x = models.PositiveSmallIntegerField(default=0, db_default=0)
+    slot_y = models.PositiveSmallIntegerField(default=0, db_default=0)
+    slot_w = models.PositiveSmallIntegerField(default=0, db_default=0)
+    slot_h = models.PositiveSmallIntegerField(default=0, db_default=0)
+    comment_ar_eg = models.TextField(blank=True, default="", db_default="")
+    comment_ar = models.TextField(blank=True, default="", db_default="")
 
     class Meta:
         ordering: ClassVar[list[str]] = ["room", "order"]
         constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(fields=["room", "slug"], name="content_item_slug_per_room"),
+            # V-R3: the piece fits inside the room. `0` is a slot not authored yet: the columns
+            # are expand-only (existing rows take the default), so the constraint lets it pass and
+            # the build's V-R3 refuses a pack that leaves a piece without a slot.
+            models.CheckConstraint(
+                condition=(Q(slot_w=0) | Q(slot_w__gte=24))
+                & (Q(slot_h=0) | Q(slot_h__gte=24))
+                & Q(slot_x__gte=0)
+                & Q(slot_y__gte=0),
+                name="content_item_slot_minimum",
+            ),
+            models.CheckConstraint(
+                condition=Q(slot_w__lte=ROOM_WIDTH, slot_h__lte=ROOM_HEIGHT)
+                & Q(slot_x__lte=ROOM_WIDTH - 24)
+                & Q(slot_y__lte=ROOM_HEIGHT - 24),
+                name="content_item_slot_bounds",
+            ),
         ]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.slot_x + self.slot_w > ROOM_WIDTH:
+            raise ValidationError({"slot_w": f"x + w must be at most {ROOM_WIDTH}."})
+        if self.slot_y + self.slot_h > ROOM_HEIGHT:
+            raise ValidationError({"slot_h": f"y + h must be at most {ROOM_HEIGHT}."})
 
     @classmethod
     def format_identifier(cls, parts: tuple[Any, ...]) -> str:
@@ -223,6 +353,9 @@ class ItemVariant(PermanentModel):
     name_ar = models.TextField(blank=True)
     art = models.CharField(max_length=32, validators=[slug_validator])
     order = models.PositiveSmallIntegerField()
+    # M10: the style's line in the piece sheet, when it has one.
+    comment_ar_eg = models.TextField(blank=True, default="", db_default="")
+    comment_ar = models.TextField(blank=True, default="", db_default="")
 
     class Meta:
         ordering: ClassVar[list[str]] = ["item", "order"]
@@ -266,6 +399,10 @@ class FamilyRequest(PermanentModel):
     text_ar_eg = models.TextField()
     text_ar = models.TextField(blank=True)
     reward_bonat = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    # M10: who asks for it, from the design's characters.
+    character = models.CharField(
+        max_length=32, blank=True, default="", db_default="", choices=choices(StoryCharacter)
+    )
 
     class Meta:
         ordering: ClassVar[list[str]] = ["request_id"]

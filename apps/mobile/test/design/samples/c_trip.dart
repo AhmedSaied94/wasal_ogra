@@ -141,6 +141,9 @@ TripView cTripView({
   HintView? hint,
   BannerView? banner,
   bool? storyCondition,
+  StoryStripView? storyStrip,
+  String? storyTitle,
+  RiderBubbleView? riderBubble,
   bool breakMode = false,
   TripPhase phase = TripPhase.running,
   FailSummary? failSummary,
@@ -153,6 +156,7 @@ TripView cTripView({
     tripNumber: 12,
     reputation: reputation,
     reputationLow: reputation < 40,
+    storyTitle: storyTitle,
   ),
   strip: strip ?? cTripStrip(),
   passengers: passengers ?? cTripPassengers(),
@@ -248,6 +252,11 @@ TripView cTripView({
   hint: hint,
   banner: banner,
   storyCondition: storyCondition,
+  // M10: the strip shows by `storyStrip`; a rule's state draws it as before.
+  storyStrip:
+      storyStrip ??
+      (storyCondition == null ? null : StoryStripView(broken: !storyCondition)),
+  riderBubble: riderBubble,
   failSummary: failSummary,
   rejection: null,
   breakMode: breakMode,

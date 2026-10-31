@@ -71,6 +71,24 @@ void main() {
     expect(count, 92);
   });
 
+  // `AppIcon` loads `assets/icons/<name>.svg` lazily, so a widget test never
+  // notices a name the design doesn't have: the drawing just doesn't appear.
+  // This reads the names written as literals (`AppIcon('x'` and `icon: 'x'`).
+  test('every icon the code names is in assets/icons', () {
+    final named = RegExp(r"(?:AppIcon\(\s*|\bicon:\s*)'([a-z0-9_]+)'");
+    final missing = <String>[];
+    for (final file in Directory('lib').listSync(recursive: true)) {
+      if (file is! File || !file.path.endsWith('.dart')) continue;
+      for (final match in named.allMatches(file.readAsStringSync())) {
+        final icon = match[1]!;
+        if (!File('assets/icons/$icon.svg').existsSync()) {
+          missing.add('${file.path}: $icon');
+        }
+      }
+    }
+    expect(missing, isEmpty);
+  });
+
   group('the check catches', () {
     late Directory temp;
 

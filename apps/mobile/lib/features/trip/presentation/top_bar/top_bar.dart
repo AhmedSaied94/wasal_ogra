@@ -235,9 +235,10 @@ class _LowChip extends ConsumerWidget {
   }
 }
 
-/// The line and trip; on a story trip, «مشوار قصة» above it (research
-/// R11: content gives a story trip no title of its own). In the HUD, and in
-/// the compact profile's pause card ([alignment] centre).
+/// The line and trip; on a story trip, «مشوار قصة» above it, and, when the
+/// chapter has `story_trip_info`, its title in the line and number's place
+/// (specs/015-m10-apartment-story). In the HUD, and in the compact profile's
+/// pause card ([alignment] centre).
 class TripTitle extends ConsumerWidget {
   const TripTitle({
     this.alignment = AlignmentDirectional.centerStart,
@@ -251,11 +252,11 @@ class TripTitle extends ConsumerWidget {
     final numbers = ref.watch(numberFormatterProvider);
     final l10n = AppLocalizations.of(context);
     return TripSelector<(TopBarView?, bool)>(
-      select: (model) =>
-          (model.view?.topBar, model.view?.storyCondition != null),
+      select: (model) => (model.view?.topBar, model.view?.storyStrip != null),
       builder: (context, shown) {
-        final (bar, story) = shown;
+        final (bar, hasStrip) = shown;
         if (bar == null) return const SizedBox.shrink();
+        final story = hasStrip || bar.storyTitle != null;
         final number = numbers.integer(bar.tripNumber);
         // Whole, on one line: where the debug button narrows the row
         // (internal builds), it shrinks rather than cut.
@@ -263,9 +264,11 @@ class TripTitle extends ConsumerWidget {
           fit: BoxFit.scaleDown,
           alignment: alignment,
           child: Text(
-            switch (bar.lineName) {
-              final line? => l10n.tripHudTitle(line, number),
-              null => l10n.tripTopBarTrip(number),
+            switch ((bar.storyTitle, bar.lineName)) {
+              // A story trip's own title (M10), else M02's line and number.
+              (final storyTitle?, _) => storyTitle,
+              (_, final line?) => l10n.tripHudTitle(line, number),
+              _ => l10n.tripTopBarTrip(number),
             },
             key: TripHud.titleKey,
             maxLines: 1,

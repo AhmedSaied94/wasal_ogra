@@ -5,6 +5,12 @@
   },
   "order": 1,
   "room_id": "salon",
+  "slot": {
+    "h": 120,
+    "w": 160,
+    "x": 99,
+    "y": 140
+  },
   "variants": [
     {
       "art": "nish_classic",

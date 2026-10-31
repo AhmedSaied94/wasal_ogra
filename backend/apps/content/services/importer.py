@@ -42,6 +42,7 @@ from apps.content.models import (
     SpeechLine,
     SpeechPool,
     Station,
+    StoryRider,
     TaskTemplate,
     Trip,
     TripEvent,
@@ -438,6 +439,18 @@ class _Applier:
         chapter.order = part["order"]
         chapter.title_ar_eg, chapter.title_ar = _text(part["title"])
         chapter.completion_bonat = part["completion_bonat"]
+        # M10's goal card: its art, the character's line and the ready line
+        # (contracts/content-fields.md "B04").
+        chapter.goal_art = part.get("goal_art", "")
+        goal_line = part.get("goal_line")
+        chapter.goal_line_speaker = goal_line["speaker"] if goal_line else ""
+        chapter.goal_line_ar_eg, chapter.goal_line_ar = (
+            _text(goal_line["text"]) if goal_line else ("", "")
+        )
+        ready = part.get("ready_line")
+        chapter.ready_line_ar_eg, chapter.ready_line_ar = _text(ready) if ready else ("", "")
+        tagline = part.get("tagline")
+        chapter.tagline_ar_eg, chapter.tagline_ar = _text(tagline) if tagline else ("", "")
         chapter.save()
         stored = {scene.scene_id: scene for scene in Scene.objects.filter(chapter=chapter)}
         _bump(Scene.objects.filter(chapter=chapter))
@@ -447,6 +460,7 @@ class _Applier:
             )
             scene.order = order
             scene.panel_art = [panel["art"] for panel in scene_part["panels"]]
+            scene.title_ar_eg, scene.title_ar = _text(scene_part["title"])
             scene.save()
             # After the trips: an after_trip scene may name a trip this import adds.
             self.pending_plays.append((scene, scene_part.get("plays")))
@@ -477,7 +491,41 @@ class _Applier:
         chapter.goal_room = self.rooms[goal["room_id"]] if "room_id" in goal else None
         story = part.get("story_trip_id")
         chapter.story_trip = self.trips[story] if story else None
+        # M10: the story trip's presentation, written once the trip is known, so the chapter's
+        # check that the story fields need a trip holds at every save.
+        info = part.get("story_trip_info")
+        chapter.story_title_ar_eg, chapter.story_title_ar = (
+            _text(info["title"]) if info else ("", "")
+        )
+        condition = (info or {}).get("condition")
+        chapter.story_condition_ar_eg, chapter.story_condition_ar = (
+            _text(condition) if condition else ("", "")
+        )
+        fail_reason = (info or {}).get("fail_reason")
+        chapter.story_fail_reason_ar_eg, chapter.story_fail_reason_ar = (
+            _text(fail_reason) if fail_reason else ("", "")
+        )
         chapter.save()
+        self.riders(chapter, info["riders"] if info else [])
+
+    def riders(self, chapter: Chapter, riders: list[Mapping[str, Any]]) -> None:
+        """The chapter's riders, in order; a pack that drops one drops its row (M10)."""
+        StoryRider.objects.filter(chapter=chapter).delete()
+        StoryRider.objects.bulk_create(
+            StoryRider(
+                chapter=chapter,
+                order=order,
+                character=rider["character"],
+                seat_id=rider["seat"],
+                comment_short_change=comments.get("short_change", ""),
+                comment_false_accusation=comments.get("false_accusation", ""),
+                comment_fight=comments.get("fight", ""),
+                comment_missed_stop=comments.get("missed_stop", ""),
+                comment_impatient=comments.get("impatient", ""),
+            )
+            for order, rider in enumerate(riders, start=1)
+            for comments in [rider.get("comments", {})]
+        )
 
     def plays(self, scene: Scene, plays: Mapping[str, Any] | None) -> None:
         """When the scene plays by itself, its trip resolved like `story_trip_id`."""
@@ -492,6 +540,9 @@ class _Applier:
         room.order = part["order"]
         room.chapter = self.chapters[part["chapter_id"]]
         room.completion_bonat = part["completion_bonat"]
+        room.art = part.get("art", "")
+        done_line = part.get("done_line")
+        room.done_line_ar_eg, room.done_line_ar = _text(done_line) if done_line else ("", "")
         room.save()
         self.rooms[room.room_id] = room
         return room
@@ -502,6 +553,16 @@ class _Applier:
             item = Item(room=self.rooms[part["room_id"]], slug=slug)
         item.name_ar_eg, item.name_ar = _text(part["name"])
         item.order = part["order"]
+        # M10: the piece's place in the room's drawing and سلمى's line.
+        slot = part["slot"]
+        item.slot_x, item.slot_y, item.slot_w, item.slot_h = (
+            slot["x"],
+            slot["y"],
+            slot["w"],
+            slot["h"],
+        )
+        comment = part.get("comment")
+        item.comment_ar_eg, item.comment_ar = _text(comment) if comment else ("", "")
         item.save()
         stored = {v.variant_id: v for v in ItemVariant.objects.filter(item=item)}
         for order, variant_part in enumerate(part["variants"], start=1):
@@ -510,6 +571,10 @@ class _Applier:
             )
             variant.name_ar_eg, variant.name_ar = _text(variant_part["name"])
             variant.art, variant.order = variant_part["art"], order
+            variant_comment = variant_part.get("comment")
+            variant.comment_ar_eg, variant.comment_ar = (
+                _text(variant_comment) if variant_comment else ("", "")
+            )
             variant.save()
         wanted = {variant["variant_id"] for variant in part["variants"]}
         self.dropped += [stored[vid] for vid in sorted(set(stored) - wanted)]
@@ -591,6 +656,7 @@ class _Applier:
         )
         request.text_ar_eg, request.text_ar = _text(part["text"])
         request.reward_bonat = part["reward_bonat"]
+        request.character = part["character"]
         request.save()
         return request
 

@@ -61,7 +61,7 @@ def codes(refused: importer.ImportRefused) -> list[str]:
 def test_the_sample_round_trips_byte_for_byte(author: User) -> None:
     result = importer.import_zip(zipped(sample_files()), author)
 
-    assert len(result.added) == 61
+    assert len(result.added) == 63
     assert unzipped(exporter.export_current(author)) == sample_files()
     # M07: the round trip carries each scene's `plays` and the panels' narrator lines.
     chapter = json.loads(sample_files()["chapters/ch1_first_job.json"])
@@ -85,13 +85,13 @@ def test_the_sample_round_trips_byte_for_byte(author: User) -> None:
 def test_importing_the_same_content_again_changes_nothing(sample_imported: User) -> None:
     result = importer.import_dir(SAMPLE, sample_imported)
 
-    assert (result.added, result.changed, result.unchanged) == ([], [], 61)
+    assert (result.added, result.changed, result.unchanged) == ([], [], 63)
 
 
 def test_a_zip_of_the_layout_folder_is_accepted(author: User) -> None:
     wrapped = {f"sample/{name}": data for name, data in sample_files().items()}
 
-    assert len(importer.import_zip(zipped(wrapped), author).added) == 61
+    assert len(importer.import_zip(zipped(wrapped), author).added) == 63
 
 
 # -- all or nothing (US2-3) -----------------------------------------------------------------------
@@ -397,13 +397,13 @@ def test_a_published_pack_exports_from_its_stored_file(
 def test_content_import_imports_a_directory_or_a_zip(author: User, tmp_path: Path) -> None:
     out = io.StringIO()
     call_command("content_import", str(SAMPLE), "--actor", "author1", stdout=out)
-    assert "61 added" in out.getvalue()
+    assert "63 added" in out.getvalue()
 
     archive = tmp_path / "sample.zip"
     archive.write_bytes(zipped(sample_files()))
     out = io.StringIO()
     call_command("content_import", str(archive), "--actor", "author1", stdout=out)
-    assert "61 unchanged" in out.getvalue()
+    assert "63 unchanged" in out.getvalue()
 
 
 @pytest.mark.parametrize(("trip_id", "required"), [("line_hay.01", True), ("line_hay.03", False)])
@@ -413,6 +413,10 @@ def test_the_commands_keep_no_fights_required(
     name = f"trips/line_hay/{trip_id}.json"
     assert json.loads(sample_files()[name])["rules"]["no_fights_required"] is not required
     files = edited(sample_files(), name, lambda t: t["rules"].update(no_fights_required=required))
+    if not required:
+        # M10: a failure reason exists only on a trip that forbids fights (V-C9).
+        chapter = "chapters/ch1_first_job.json"
+        files = edited(files, chapter, lambda c: c["story_trip_info"].pop("fail_reason", None))
     archive = tmp_path / "edited.zip"
     archive.write_bytes(zipped(files))
 

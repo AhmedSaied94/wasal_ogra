@@ -98,6 +98,7 @@ TripFacts factsFor(
   HintMode hintMode = HintMode.off,
   int bubbleMinMs = 4000,
   TripParams? params,
+  StoryTripInfo? storyInfo,
 }) {
   final lineWire = definition.tripId.split('.').first;
   return TripFacts(
@@ -106,6 +107,7 @@ TripFacts factsFor(
     params: params ?? bundledParams(definition.lineId),
     bubbleMinMs: bubbleMinMs,
     hintMode: hintMode,
+    storyInfo: storyInfo,
   );
 }
 
@@ -421,6 +423,17 @@ final class ScriptedEconomy implements Economy {
 
   @override
   TxnId newRequestId() => inner.newRequestId();
+
+  @override
+  Future<OpOutcome> recordScene(
+    TxnId id, {
+    required ChapterId chapterId,
+    required String sceneId,
+  }) => inner.recordScene(id, chapterId: chapterId, sceneId: sceneId);
+
+  @override
+  Future<OpOutcome> claimRequest(TxnId id, {required String requestId}) =>
+      inner.claimRequest(id, requestId: requestId);
 
   @override
   Future<OpOutcome> startTrip(TxnId id, {required String tripId}) =>

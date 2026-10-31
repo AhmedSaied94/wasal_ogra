@@ -48,6 +48,7 @@ from apps.content.models import (
     SpeechLine,
     SpeechPool,
     Station,
+    StoryRider,
     TaskTemplate,
     Trip,
     TripEvent,
@@ -329,14 +330,38 @@ class ScenePlaysMixin:
 
 class SceneInline(ScenePlaysMixin, ContentInline):
     model = Scene
-    fields = ("scene_id", "order", "panel_art", "plays_kind", "plays_trip")
+    fields = (
+        "scene_id",
+        "order",
+        "title_ar_eg",
+        "title_ar",
+        "panel_art",
+        "plays_kind",
+        "plays_trip",
+    )
     show_change_link = True
     ordering = ("order",)
 
 
+class StoryRiderInline(ContentInline):
+    model = StoryRider
+    fields = (
+        "order",
+        "character",
+        "seat_id",
+        "comment_short_change",
+        "comment_false_accusation",
+        "comment_fight",
+        "comment_missed_stop",
+        "comment_impatient",
+    )
+    ordering = ("order",)
+    max_num = 2
+
+
 @admin.register(Chapter)
 class ChapterAdmin(ContentModelAdmin):
-    inlines = (SceneInline,)
+    inlines = (SceneInline, StoryRiderInline)
     list_display = ("chapter_id", "order", "goal_kind", "completion_bonat")
     fields = (
         "chapter_id",
@@ -349,6 +374,20 @@ class ChapterAdmin(ContentModelAdmin):
         "goal_room",
         "story_trip",
         "completion_bonat",
+        "goal_art",
+        "goal_line_speaker",
+        "goal_line_ar_eg",
+        "goal_line_ar",
+        "ready_line_ar_eg",
+        "ready_line_ar",
+        "tagline_ar_eg",
+        "tagline_ar",
+        "story_title_ar_eg",
+        "story_title_ar",
+        "story_condition_ar_eg",
+        "story_condition_ar",
+        "story_fail_reason_ar_eg",
+        "story_fail_reason_ar",
     )
 
 
@@ -363,18 +402,45 @@ class SceneAdmin(ScenePlaysMixin, ContentModelAdmin):
     inlines = (SceneLineInline,)
     list_display = ("scene_id", "chapter", "order")
     list_filter = ("chapter",)
-    fields = ("chapter", "scene_id", "order", "panel_art", "plays_kind", "plays_trip")
+    fields = (
+        "chapter",
+        "scene_id",
+        "order",
+        "title_ar_eg",
+        "title_ar",
+        "panel_art",
+        "plays_kind",
+        "plays_trip",
+    )
 
 
 @admin.register(Room)
 class RoomAdmin(ContentModelAdmin):
     list_display = ("room_id", "order", "chapter", "completion_bonat")
-    fields = ("room_id", "name_ar_eg", "name_ar", "chapter", "order", "completion_bonat")
+    fields = (
+        "room_id",
+        "name_ar_eg",
+        "name_ar",
+        "chapter",
+        "order",
+        "completion_bonat",
+        "art",
+        "done_line_ar_eg",
+        "done_line_ar",
+    )
 
 
 class ItemVariantInline(ContentInline):
     model = ItemVariant
-    fields = ("variant_id", "name_ar_eg", "name_ar", "art", "order")
+    fields = (
+        "variant_id",
+        "name_ar_eg",
+        "name_ar",
+        "art",
+        "order",
+        "comment_ar_eg",
+        "comment_ar",
+    )
     ordering = ("order",)
     max_num = 3
 
@@ -385,7 +451,19 @@ class ItemAdmin(ContentModelAdmin):
     list_display = ("item_id", "room", "order")
     list_filter = ("room",)
     list_select_related = ("room",)
-    fields = ("room", "slug", "name_ar_eg", "name_ar", "order")
+    fields = (
+        "room",
+        "slug",
+        "name_ar_eg",
+        "name_ar",
+        "order",
+        "slot_x",
+        "slot_y",
+        "slot_w",
+        "slot_h",
+        "comment_ar_eg",
+        "comment_ar",
+    )
 
 
 class FamilyRequestForm(ContentForm):
@@ -401,8 +479,17 @@ class FamilyRequestForm(ContentForm):
 @admin.register(FamilyRequest)
 class FamilyRequestAdmin(ContentModelAdmin):
     form = FamilyRequestForm
-    list_display = ("request_id", "room", "item", "reward_bonat")
-    fields = ("request_id", "room", "item", "variant", "text_ar_eg", "text_ar", "reward_bonat")
+    list_display = ("request_id", "room", "item", "character", "reward_bonat")
+    fields = (
+        "request_id",
+        "room",
+        "item",
+        "variant",
+        "character",
+        "text_ar_eg",
+        "text_ar",
+        "reward_bonat",
+    )
 
 
 # -- speech and economy ---------------------------------------------------------------------------

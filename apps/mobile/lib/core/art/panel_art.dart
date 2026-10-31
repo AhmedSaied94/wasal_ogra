@@ -6,6 +6,7 @@ import 'package:rive/rive.dart' as rive;
 import 'package:wassal/core/art/rive_art.dart';
 import 'package:wassal/core/art/rive_scenes.dart';
 import 'package:wassal/core/theme/components/characters.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 
 /// The panel's four talking Booleans for [talking]: its own on, the others
@@ -55,6 +56,9 @@ class PanelArt extends StatelessWidget {
     'stand_morning': 'assets/illustrations/panels/stand_morning.svg',
     'salma_waiting': 'assets/illustrations/panels/salma_waiting.svg',
     'usta_decides': 'assets/illustrations/panels/usta_decides.svg',
+    // M10's sample panel: the bride's family in the salon
+    // (specs/015-m10-apartment-story, research R17).
+    'ch4_mother_looks': 'assets/illustrations/panels/ch4_mother_looks.svg',
   };
 
   /// Content slugs that draw another slug's art, both the drawing and the
@@ -64,6 +68,13 @@ class PanelArt extends StatelessWidget {
     'ch1_stand_morning': 'stand_morning',
     'ch1_salma_asks': 'salma_waiting',
     'ch1_usta_dreams': 'usta_decides',
+  };
+
+  /// The ground behind [slug]'s drawing: the warm room for the indoor
+  /// panels, else the sky (`SceneViewer` box 4).
+  static Color groundFor(String slug) => switch (artFor(slug)) {
+    'ch4_mother_looks' => DesignExtras.sceneRoomGround,
+    _ => ColorTokens.sceneSky,
   };
 
   /// The art slug [slug] draws: an alias's, else itself.

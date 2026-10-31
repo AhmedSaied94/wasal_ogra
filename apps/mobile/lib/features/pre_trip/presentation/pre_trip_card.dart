@@ -35,8 +35,9 @@ class PreTripCard extends ConsumerStatefulWidget {
 
   final String tripId;
 
-  /// Where an unknown or unplayable trip's card goes: الموقف, or the line's
-  /// details when opened from Lines (specs/014-m09-lines-vehicles, R5).
+  /// Where an unknown or unplayable trip's card goes: الموقف, the line's
+  /// details when opened from Lines (specs/014-m09-lines-vehicles, R5), or
+  /// the apartment (specs/015-m10-apartment-story).
   final String leaveTo;
 
   static const goKey = Key('PreTripCard.go');
