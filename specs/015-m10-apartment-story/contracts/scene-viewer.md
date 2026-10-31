@@ -59,6 +59,10 @@ final class SceneSequence {            // domain, pure
 - **Recording:** `StoryService.recordSeen(sceneId)` for each scene reached (story-flow.md). Reaching a
   scene's last panel records it too, so a crash after it loses nothing. A replay sends no operation:
   the economy refuses a repeat without storing it.
+- **A failed write** (the first-session flag's disk write throwing) is reported and the viewer goes
+  on: «كمّل» moves to the next scene or leaves, «تخطّى» and back leave, as M07's `ScenePage` reports
+  its own. The scene then comes back as waiting. While a record is on its way, a second «كمّل» does
+  nothing, or it would step past the sequence's end (T145).
 - **Turns:** M22's talking turns run on the panel's Rive file, as M07's player does.
 - **Motion:**
   - the panel slides in from the reading side with a fade (`sheetIn`);
@@ -86,6 +90,8 @@ final class SceneSequence {            // domain, pure
 - «شارك» renders `ScenePanelShare`: the current panel's **still** drawing (never Rive), its bubbles and
   a small wordmark strip, at 358×540 ×3. It then calls `ShareGateway.shareImage` with M08's share
   text pattern (`shareSceneText`, ARB).
+- The picture carries nothing of the player's: the driver's bubble reads the default «الأسطى»
+  (`shareSpeakerName`), never the name the player typed, which only the viewer shows (T145).
 - A failure shows M08's share error toast. It works offline.
 
 ## The timeline (`/apartment/chapters`, `ChaptersPage`, research R13)

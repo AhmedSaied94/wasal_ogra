@@ -39,12 +39,17 @@ the rule's state.
   - the static SVG fallback when Rive fails (M22's rule).
 - **Behaviour:** no tag, no stop colour, no tap target, no money and no patience ring. It never moves
   and never leaves.
-- **Rive inputs:** `mood` (calm), and `surprised` fired once when the rider comments (008.5's
-  contract reserves both).
+- **Rive inputs:** `mood` (calm), and `surprised`, a Boolean (008.5's contract reserves both), on while
+  the rider's comment shows and off after it. The art takes it through `PassengerArt.surprise`; the
+  static art has one face and ignores it.
+- **Where it is drawn:** by the scene's `PassengerArtFactory`, as a passenger is, from a `Look` made of
+  the character's `CharacterAvatar.looks` number and its own drawing (`Look.asset`, the characters'
+  SVGs share the passengers' view box).
 - The seat is empty in the engine (V-C7: no passenger names it), so the chain, the boarders and every
   rule ignore it.
-- **Semantics:** the scene's summary gains «{name} راكب معاك» per rider (`tripRiderA11y`), read once
-  after the HUD title.
+- **Semantics:** each rider's seat says «{name} راكب معاك» (`tripRiderA11y`) once, from
+  `overlays/rider_labels.dart` (no taps, nothing drawn). The scene has no summary node of its own to
+  add it to.
 
 ## Comments (`lib/features/trip/domain/rider_comments.dart`, pure)
 
@@ -52,9 +57,12 @@ the rule's state.
 final class RiderComment { final StoryCharacter speaker; final String line; final int ordinal; }
 
 RiderComment? riderComment(
-  StoryTripInfo info, Map<String, SpeechPool> pools, ReputationChanged event,
+  StoryTripInfo info, SpeechResolver speech, ReputationChanged event,
   {required int seed, required int ordinal});
 ```
+
+(`SpeechResolver` is M02's `domain/speech.dart`, which already holds the pack's pools, so the function
+takes it rather than a map of pools.)
 
 | Engine cause (`RepCause`) | `RiderComments` key |
 | --- | --- |

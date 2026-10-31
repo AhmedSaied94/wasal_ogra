@@ -98,8 +98,9 @@ final class GoalPurchase {
    - otherwise the view simply rebuilds.
 
 **`StartFrom.apartment`** (M08's `start_next_trip.dart`, one new value) opens the pre-trip card at
-`/apartment/pre-trip/:tripId`, a root page whose back leads to `/apartment` (M09's `linePreTrip`
-pattern). Every other rule of `startNextTrip` holds: the fuel sheet on an empty tank, and the due
+`/apartment/pre-trip/:tripId`, a sheet in the apartment's branch whose every close leads to
+`/apartment` and which an unopenable trip leaves for `/apartment` (M09's `linePreTrip` pattern). It
+was first a root page, which drew the card edge to edge (review round 2, R2-1). Every other rule of `startNextTrip` holds: the fuel sheet on an empty tank, and the due
 scene before the trip.
 
 ## The rooms view (`RoomsView`, research R9)
@@ -205,6 +206,10 @@ final class PiecePurchase {
 
 A dialog over the apartment (`showAppDialog`, M08's), pushed by the rooms view after a purchase with
 `roomCompleted`. It has no route of its own.
+
+It draws the room of the piece just bought (`roomModelOfRoom`, `roomModelOfProvider(item.roomId)`),
+not the current chapter's room: the purchase that completes a room can move the story on to a chapter
+with a room of its own, which the tab then shows instead (T145).
 
 | Part | Rule |
 | --- | --- |

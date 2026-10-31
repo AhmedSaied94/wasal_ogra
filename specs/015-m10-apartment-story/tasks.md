@@ -401,7 +401,7 @@ schema 5, the story, request and reward rules, the test packs, the routes and th
   - each state: `locked`, `open`, `done` (with and without a variant), `missed`, `claimed`;
   - the count (open + done);
   - the list order (done first, then room and item `order`).
-- [ ] T026 [P] Write `apps/mobile/test/core/progress/rewards_test.dart` (contracts/economy-ops.md
+- [X] T026 [P] Write `apps/mobile/test/core/progress/rewards_test.dart` (contracts/economy-ops.md
   "Pending rewards"):
   - each source pending, then received once the confirmed progress has it;
   - a room completing its chapter yields two rewards;
@@ -410,24 +410,24 @@ schema 5, the story, request and reward rules, the test packs, the routes and th
 
 ### The story, request and reward rules: implementation
 
-- [ ] T027 [P] Implement `apps/mobile/lib/core/progress/domain/story.dart`. Make T024 pass.
-- [ ] T028 [P] Implement `apps/mobile/lib/core/progress/domain/requests.dart`
+- [X] T027 [P] Implement `apps/mobile/lib/core/progress/domain/story.dart`. Make T024 pass.
+- [X] T028 [P] Implement `apps/mobile/lib/core/progress/domain/requests.dart`
   (`RequestState { locked, open, done, missed, claimed }`, `requestStates(c, p, variantOf,
   requestsClaimed)` with `variantOf` a `String? Function(String itemId)` that callers fill from
   `EconomyView.variantOf`, and `openRequestCount`). Make T025 pass.
-- [ ] T029 Implement `apps/mobile/lib/core/progress/domain/rewards.dart` and `pendingRewardsProvider`
+- [X] T029 Implement `apps/mobile/lib/core/progress/domain/rewards.dart` and `pendingRewardsProvider`
   in `apps/mobile/lib/core/progress/application/pending_rewards_provider.dart` (watches
   `economyViewProvider` and `contentSourceProvider`). Run build_runner. Make T026 pass. (Depends on
   T023.)
 
 ### Shared pieces
 
-- [ ] T030 [P] Add `lib/features/apartment/domain` and `lib/features/story/domain` to `_domains` in
+- [X] T030 [P] Add `lib/features/apartment/domain` and `lib/features/story/domain` to `_domains` in
   `apps/mobile/test/repo/domain_imports_test.dart`, with an allowance (`_storyAllowed`): the content
   models, the content source, the economy's `wire.dart`, `core/progress/domain/`, Home's
   `savings_target.dart` and their own folder. Add the scan test for it, with allowed and refused URIs.
   `rider_comments.dart` stays under `_tripAllowed`.
-- [ ] T031 [P] Add `artboardSalon()` and `storyShaped()` (Tests, above) to
+- [X] T031 [P] Add `artboardSalon()` and `storyShaped()` (Tests, above) to
   `apps/mobile/test/helpers/synthetic_packs.dart`, through M08's `editPack`, and their
   self-tests to `synthetic_packs_test.dart` (if it exists, else beside the helper's existing tests).
   Both must pass `validate-source`'s rules through the Dart reader.
@@ -485,24 +485,24 @@ Tap it: the shabka is bought once, and the shabka trip's card opens at `/apartme
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T036 [P] [US1] Write `apps/mobile/test/features/apartment/domain/apartment_view_test.dart`:
+- [X] T036 [P] [US1] Write `apps/mobile/test/features/apartment/domain/apartment_view_test.dart`:
   - `GoalView` below `apartmentOpens`, and with no room chapter;
   - `RoomsView` from it on;
   - `storyEnd` when the current chapter is complete.
-- [ ] T037 [P] [US1] Write `apps/mobile/test/features/apartment/domain/goal_view_model_test.dart`:
+- [X] T037 [P] [US1] Write `apps/mobile/test/features/apartment/domain/goal_view_model_test.dart`:
   - the three goal kinds: `Count` for a line, `Amount` for a vehicle and a purchase;
   - `ready` only when affordable and not owned, never for a line;
   - `ready_line` replaces the line's text when ready;
   - the actions `buyChapter(price)`, `openVehicleSheet(id)` and none;
   - art: `goal_art` through `ApartmentArt.goal`, else the vehicle, tuktuk or ring fallback.
-- [ ] T038 [P] [US1] Write `apps/mobile/test/features/apartment/application/goal_purchase_test.dart`,
+- [X] T038 [P] [US1] Write `apps/mobile/test/features/apartment/application/goal_purchase_test.dart`,
   against a fake `Economy` and the real one:
   - rules first (`notAllowed` for a locked chapter, a non-purchase goal, an owned goal; nothing
     sent);
   - one held `TxnId` across `insufficient_funds` and `OpWriteFailed`, cleared on `OpApplied` and on
     a final refusal;
   - a double tap spends once (SC-002).
-- [ ] T039 [P] [US1] Write `apps/mobile/test/features/apartment/goal_view_test.dart`:
+- [X] T039 [P] [US1] Write `apps/mobile/test/features/apartment/goal_view_test.dart`:
   - chapter 1, 2 and 3 states;
   - the bar animating from `goalBarSeenProvider`'s value;
   - «جاهزة!» and the CTA;
@@ -515,24 +515,24 @@ Tap it: the shabka is bought once, and the shabka trip's card opens at `/apartme
 
 ### Implementation for User Story 1
 
-- [ ] T040 [P] [US1] Implement `apps/mobile/lib/features/apartment/domain/apartment_view.dart`
+- [X] T040 [P] [US1] Implement `apps/mobile/lib/features/apartment/domain/apartment_view.dart`
   (`ApartmentView`, `GoalView`, `RoomsView`, `apartmentView`). Make T036 pass.
-- [ ] T041 [P] [US1] Implement `apps/mobile/lib/features/apartment/domain/goal_view_model.dart`
+- [X] T041 [P] [US1] Implement `apps/mobile/lib/features/apartment/domain/goal_view_model.dart`
   (`GoalViewModel`, `GoalArt`, `GoalAction`) over M08's `savingsTarget`. Make T037 pass.
-- [ ] T042 [US1] Implement `apps/mobile/lib/features/apartment/application/goal_purchase.dart`
+- [X] T042 [US1] Implement `apps/mobile/lib/features/apartment/application/goal_purchase.dart`
   (contracts/apartment.md "`GoalPurchase`"), with `economy.buy(id, kind: SkuKind.chapter, skuId:
   chapterId)`. Make T038 pass.
-- [ ] T043 [US1] Create `apps/mobile/lib/features/apartment/application/apartment_providers.dart`:
+- [X] T043 [US1] Create `apps/mobile/lib/features/apartment/application/apartment_providers.dart`:
   - `apartmentViewProvider` (watches content, progress, `economyViewProvider`);
   - `goalBarSeenProvider` (keepAlive, in memory);
   - `goalPurchaseProvider`.
 
   Run build_runner.
-- [ ] T044 [P] [US1] Create `apps/mobile/lib/features/apartment/presentation/chapter_bar.dart`, the
+- [X] T044 [P] [US1] Create `apps/mobile/lib/features/apartment/presentation/chapter_bar.dart`, the
   `primary` bar shared by both views (56 high, `lip.primary.m`, `press`): the title and its trailing
   part, the whole a `Pressable` to `/apartment/chapters`, label «الفصل {n}: {name}، كل الفصول».
   Also an optional trailing child (US4's chip).
-- [ ] T045 [US1] Create `apps/mobile/lib/features/apartment/presentation/goal_view.dart`:
+- [X] T045 [US1] Create `apps/mobile/lib/features/apartment/presentation/goal_view.dart`:
   - the goal card: art 190, the goal row (`maxLines 1` on the amount), the gold `ProgressBar`
     animated with `sheetIn`, and the character line with `CharacterAvatar` 46 and the speaker from
     `sceneSpeaker`;
@@ -542,29 +542,29 @@ Tap it: the shabka is bought once, and the shabka trip's card opens at `/apartme
   On «اشتري», call `GoalPurchase`, then the coin burst, then `startNextTrip(context, ref, tripId:
   …, from: StartFrom.apartment)` when the chapter's story trip isn't finished. Guard `mounted`
   after every await.
-- [ ] T046 [US1] Create `apps/mobile/lib/features/apartment/presentation/apartment_screen.dart`: the
+- [X] T046 [US1] Create `apps/mobile/lib/features/apartment/presentation/apartment_screen.dart`: the
   header (title by view, the JENEHAT `CurrencyPill` with no tap), the chapter bar, and the view by
   `apartmentViewProvider` (`RoomsView` a placeholder until T062), in a scroll view above the shell's
   nav.
-- [ ] T047 [US1] Add the goal view's strings to `apps/mobile/lib/l10n/app_ar.arb` (HANDOFF
+- [X] T047 [US1] Add the goal view's strings to `apps/mobile/lib/l10n/app_ar.arb` (HANDOFF
   `aptGoal.*`, `apartment.*`; research R19), then run `fvm flutter pub get`:
   - `aptGoalTitle`, `aptGoalChapterBar`, `aptGoalAllChapters`;
   - `aptGoalProgress` («{saved} / {target} ج»), `aptGoalTrips` («{done} / {total} مشوار»);
   - `apartmentTitle`, `aptGoalLockedBody`;
   - `apartmentGoalReady`, `apartmentBuyGoal`, `apartmentBuyGoalA11y`, `apartmentGoalReadyA11y`;
   - `aptGoalChapterA11y`, `aptGoalProgressA11y`.
-- [ ] T048 [US1] In `apps/mobile/lib/core/routing/router.dart`'s `_page`, build `ApartmentScreen()` for
+- [X] T048 [US1] In `apps/mobile/lib/core/routing/router.dart`'s `_page`, build `ApartmentScreen()` for
   `RouteNames.apartment`. Regenerate and review `test/goldens/goldens/all/apartment_*.png` and the
   shell's apartment goldens. Update `test/core/routing/{navigation,frame_design}_test.dart` where
   they expect the placeholder. Make T039 pass.
-- [ ] T049 [P] [US1] Add the `AptGoal` and `AptGoalReady` design checks:
+- [X] T049 [P] [US1] Add the `AptGoal` and `AptGoalReady` design checks:
   - `apps/mobile/test/design/samples/apt_goal.dart` (ch3 with 2,200 of 6,000, and ready with
     6,240), over a synthetic pack with the artboard's shabka price;
   - `test/design/{apt_goal,apt_goal_ready}_layout_test.dart`;
   - `test/goldens/design/apt_goal_goldens_test.dart`, in both digit styles.
 
   List the expected differences (research R18) at the top of each.
-- [ ] T050 [P] [US1] Write `apps/mobile/test/a11y/apt_goal_minimum_sizes_test.dart`: every tappable
+- [X] T050 [P] [US1] Write `apps/mobile/test/a11y/apt_goal_minimum_sizes_test.dart`: every tappable
   ≥ 44×44 and every text ≥ 12 pt, at 360×640, 360×800 and 390×844, scale 1.0 and 1.3, in chapter 1
   and ready.
 
@@ -589,28 +589,28 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T051 [P] [US2] Write `apps/mobile/test/features/apartment/domain/room_model_test.dart`:
+- [X] T051 [P] [US2] Write `apps/mobile/test/features/apartment/domain/room_model_test.dart`:
   - tabs: selectable when the room's chapter is unlocked, locked otherwise (including rooms the pack
     lacks, with their ARB names);
   - cells: `owned(variant)`, `nextTarget` equal to `nextPiece` (Home's) with shortfall, progress and
     `affordable`, `missing(price)`;
   - `owned/total`, the goal scene and its state, the requests count;
   - a variant the pack no longer has drawn as the first.
-- [ ] T052 [P] [US2] Write `apps/mobile/test/features/apartment/domain/piece_sheet_model_test.dart`:
+- [X] T052 [P] [US2] Write `apps/mobile/test/features/apartment/domain/piece_sheet_model_test.dart`:
   - the remembered style, else the first;
   - سلمى's line from the variant, else the item, else none;
   - `requestMarks` for open requests only;
   - `missesRequest` when another style is selected;
   - one-style pieces;
   - the price and balance.
-- [ ] T053 [P] [US2] Write `apps/mobile/test/features/apartment/application/piece_purchase_test.dart`:
+- [X] T053 [P] [US2] Write `apps/mobile/test/features/apartment/application/piece_purchase_test.dart`:
   - rules first (`itemPurchasable`, not owned);
   - the held id;
   - refusals spend nothing;
   - `roomCompleted` and `chapterCompleted` true only for the purchase that completes them, and false
     after a sync or a state replacement completes the room;
   - a double tap spends once.
-- [ ] T054 [P] [US2] Write `apps/mobile/test/features/apartment/rooms_view_test.dart`:
+- [X] T054 [P] [US2] Write `apps/mobile/test/features/apartment/rooms_view_test.dart`:
   - the chapter bar's text and bar;
   - tabs (locked inert and read «مقفولة», the 44 hit row);
   - the requests button with its badge hidden at 0;
@@ -624,7 +624,7 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
     next tap, the «اشتريت {piece}» announcement;
   - under reduced motion, fades only;
   - the pending chip.
-- [ ] T055 [P] [US2] Write `apps/mobile/test/features/apartment/piece_sheet_test.dart`:
+- [X] T055 [P] [US2] Write `apps/mobile/test/features/apartment/piece_sheet_test.dart`:
   - styles switching the preview, chip and line, never the price;
   - the request mark and the missed line;
   - affordable «اشتري» with «−{n} ج»;
@@ -636,18 +636,18 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
 
 ### Implementation for User Story 2
 
-- [ ] T056 [P] [US2] Rename M08's `_nextPiece` to the exported `nextPiece(c, p, room)` in
+- [X] T056 [P] [US2] Rename M08's `_nextPiece` to the exported `nextPiece(c, p, room)` in
   `apps/mobile/lib/features/home/domain/savings_target.dart` (behaviour unchanged; its tests still
   pass). Implement `apps/mobile/lib/features/apartment/domain/room_model.dart` (`RoomModel`,
   `RoomTab`, `PieceCell`), taking `variantOf` for the owned pieces' styles. Make T051 pass.
-- [ ] T057 [P] [US2] Implement `apps/mobile/lib/features/apartment/domain/piece_sheet_model.dart`,
+- [X] T057 [P] [US2] Implement `apps/mobile/lib/features/apartment/domain/piece_sheet_model.dart`,
   taking `variantOf` (its request marks come through `requestStates`). Make T052 pass.
-- [ ] T058 [US2] Implement `apps/mobile/lib/features/apartment/application/piece_purchase.dart`
+- [X] T058 [US2] Implement `apps/mobile/lib/features/apartment/application/piece_purchase.dart`
   (`PiecePurchase`, `PiecePurchaseResult` with `roomCompleted` and `chapterCompleted`), with
   `economy.buy(id, kind: SkuKind.item, skuId: itemId, variantId: variantId)`. Add
   `pieceStyleMemoryProvider` and `roomTabProvider` (keepAlive, in memory), `roomModelProvider` and
   `pieceSheetModelProvider` to `apartment_providers.dart`. Run build_runner. Make T053 pass.
-- [ ] T059 [P] [US2] Create `apps/mobile/lib/features/apartment/presentation/room_scene.dart`:
+- [X] T059 [P] [US2] Create `apps/mobile/lib/features/apartment/presentation/room_scene.dart`:
   - `RoomScene` (the 358×300 design space in a `FittedBox`);
   - the layers in contracts/apartment.md's order;
   - the dashed `CustomPaint` outline;
@@ -656,10 +656,10 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
   Also create `room_fallback.dart` with `RoomFallback` (`scene.room`/`scene.floor`) and
   `PieceFallback` (`ground.lip`). Add a `scene.roomCard` token to `AppPalette` only if no existing
   token matches the drawn card colour, with its dark value.
-- [ ] T060 [P] [US2] Create `apps/mobile/lib/features/apartment/presentation/pending_chip.dart`
+- [X] T060 [P] [US2] Create `apps/mobile/lib/features/apartment/presentation/pending_chip.dart`
   (`PendingChip` over `pendingRewardsProvider`: the `sun.soft` pill, «+{n} بون في الطريق», label
   «{n} بون في الطريق، توصل مع المزامنة», hidden when empty).
-- [ ] T061 [US2] Create `apps/mobile/lib/features/apartment/presentation/piece_sheet.dart` (contracts/
+- [X] T061 [US2] Create `apps/mobile/lib/features/apartment/presentation/piece_sheet.dart` (contracts/
   apartment.md "The piece sheet"):
   - an `AppSheetPage(ownHeader: true)`, the header, preview and style cards (art through
     `ApartmentArt.piece`, else `PieceFallback`);
@@ -670,7 +670,7 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
 
   Selecting writes `pieceStyleMemoryProvider`. On `OpApplied` it pops with the result for the rooms
   view.
-- [ ] T062 [US2] Create `apps/mobile/lib/features/apartment/presentation/rooms_view.dart`:
+- [X] T062 [US2] Create `apps/mobile/lib/features/apartment/presentation/rooms_view.dart`:
   - the chapter bar's room content, the `Segmented` tabs, the requests button with `CountBadge`
     (`primary`/white);
   - `RoomScene`, the grid (`role=list` «قطع {room}») and the `InfoStrip`;
@@ -678,7 +678,7 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
     next tap or scroll.
 
   Wire it into `apartment_screen.dart`, with `PendingChip` in both views' headers.
-- [ ] T063 [US2] Add the rooms view's and sheet's strings to `app_ar.arb` (HANDOFF `aptRooms.*`,
+- [X] T063 [US2] Add the rooms view's and sheet's strings to `app_ar.arb` (HANDOFF `aptRooms.*`,
   `piece.*`; research R19), then `fvm flutter pub get`:
   - `aptRoomsChapterProgress` («جهّزت {owned} من {total}»), `aptRoomsRequests`,
     `aptRoomsRequestsA11y`, `aptRoomsTabsA11y`, `aptRoomsLockedTab`;
@@ -692,11 +692,11 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
   - `pendingRewards` («+{n} بون في الطريق»), `pendingRewardsA11y`.
 
   BONAT agreement uses ICU plurals (§9.1 #3).
-- [ ] T064 [US2] In `router.dart`'s `_page`, build `PieceSheet(itemId: …)` as an
+- [X] T064 [US2] In `router.dart`'s `_page`, build `PieceSheet(itemId: …)` as an
   `AppSheetPage(ownHeader: true)` for `RouteNames.apartmentItem`, redirecting owned, locked and
   unknown items to `/apartment`. Regenerate and review the all-destination goldens it touches. Make
   T054 and T055 pass.
-- [ ] T065 [P] [US2] Add the `AptRooms` and `Piece` design checks:
+- [X] T065 [P] [US2] Add the `AptRooms` and `Piece` design checks:
   - `apps/mobile/test/design/samples/{apt_rooms,piece}.dart` over `artboardSalon()`, using
     `AptRooms_01.svg` as the fake room art;
   - `test/design/{apt_rooms,piece}_layout_test.dart`;
@@ -704,7 +704,7 @@ Open the next piece, switch styles, raise the balance and buy: the piece is in p
 
   List the expected differences at the top of each: the badge in `primary`/white, the fuel chip
   «−١» with its icon, the ✕ labelled «قفل».
-- [ ] T066 [P] [US2] Write `apps/mobile/test/a11y/{apt_rooms,piece}_minimum_sizes_test.dart` at the
+- [X] T066 [P] [US2] Write `apps/mobile/test/a11y/{apt_rooms,piece}_minimum_sizes_test.dart` at the
   three sizes and both scales.
 
 **Checkpoint**: The salon is furnished piece by piece, offline, in the player's styles.
@@ -726,7 +726,7 @@ Against a test server, the balance rises by that sum once after the sync (US5's 
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T067 [P] [US3] Write `apps/mobile/test/features/apartment/room_done_dialog_test.dart`:
+- [X] T067 [P] [US3] Write `apps/mobile/test/features/apartment/room_done_dialog_test.dart`:
   - the chip, title, art and quote;
   - the reward as the room's plus the chapter's when `chapterCompleted`;
   - «في الطريق» while pending, gone once received;
@@ -736,7 +736,7 @@ Against a test server, the balance rises by that sum once after the sync (US5's 
   - opened once for several offline purchases (only the completing one);
   - never after a sync or a restore;
   - a rollback of the completing purchase removes the pending reward (spec US3 scenario 6).
-- [ ] T068 [P] [US3] Extend `apps/mobile/test/features/home/domain/savings_target_test.dart`
+- [X] T068 [P] [US3] Extend `apps/mobile/test/features/home/domain/savings_target_test.dart`
   (`StoryEndTarget` when the current chapter is complete; `NoTarget` for a pack without chapters) and
   `apps/mobile/test/features/home/savings_card_test.dart`, and the result's apartment card test:
   - the end card's text, no bar, tap → `/apartment`;
@@ -744,25 +744,25 @@ Against a test server, the balance rises by that sum once after the sync (US5's 
 
 ### Implementation for User Story 3
 
-- [ ] T069 [US3] Add `StoryEndTarget` to
+- [X] T069 [US3] Add `StoryEndTarget` to
   `apps/mobile/lib/features/home/domain/savings_target.dart`. Draw it in
   `apps/mobile/lib/features/home/presentation/savings_card.dart`. Treat it as hidden in
   `apps/mobile/lib/features/result/presentation/apartment_card.dart`, and keep
   `home_screen.dart`'s card shown for it. Fix every `switch` the compiler reports. Make T068 pass.
-- [ ] T070 [US3] Create `apps/mobile/lib/features/apartment/presentation/room_done_dialog.dart`
+- [X] T070 [US3] Create `apps/mobile/lib/features/apartment/presentation/room_done_dialog.dart`
   (`RoomDoneDialog`, through `showAppDialog`): `RoomScene` at 260×130 with the confetti behind
   (`ui/confetti` in Rive when drawn, else a token-coloured burst), and the parts of
   contracts/apartment.md's table. No `bonat_burst`.
-- [ ] T071 [US3] In `rooms_view.dart`, open `RoomDoneDialog` once the drop-in ends when the purchase
+- [X] T071 [US3] In `rooms_view.dart`, open `RoomDoneDialog` once the drop-in ends when the purchase
   result has `roomCompleted`. Show the end strip «باقي الحكاية جاية في تحديث قريب» and the full bar
   when `storyEnd`. Make T067 pass.
-- [ ] T072 [US3] Add `roomDoneTitle`, `roomDoneChip`, `roomDoneReward`, `roomDonePending`
+- [X] T072 [US3] Add `roomDoneTitle`, `roomDoneChip`, `roomDoneReward`, `roomDonePending`
   («في الطريق»), `roomDoneCta`, `roomDoneLater`, `roomDoneA11y`, `storyEndLine` and
   `homeStoryEndA11y` to `app_ar.arb`, then `fvm flutter pub get`.
-- [ ] T073 [P] [US3] Add the `RoomDone` design checks (`test/design/samples/room_done.dart`, the
+- [X] T073 [P] [US3] Add the `RoomDone` design checks (`test/design/samples/room_done.dart`, the
   layout test and the goldens), with the expected differences: «في الطريق» under the pill, no
   `bonat_burst`.
-- [ ] T074 [P] [US3] Write `apps/mobile/test/a11y/room_done_minimum_sizes_test.dart` at the three
+- [X] T074 [P] [US3] Write `apps/mobile/test/a11y/room_done_minimum_sizes_test.dart` at the three
   sizes and both scales.
 
 **Checkpoint**: A finished room celebrates, the server pays, and the end of the story is graceful.
@@ -787,24 +787,24 @@ Each scene is recorded once, with one `story_progress` per scene queued.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T075 [P] [US4] Write `apps/mobile/test/features/story/application/story_service_test.dart`:
+- [X] T075 [P] [US4] Write `apps/mobile/test/features/story/application/story_service_test.dart`:
   - `recordSeen` marks M07's flag and queues one `story_progress`;
   - a replay queues nothing;
   - a locked scene sends nothing;
   - an unknown id is ignored;
   - `OpWriteFailed` keeps the held id for the next call;
   - `backfill` sends only the scenes M07 saw and the economy lacks, once.
-- [ ] T076 [P] [US4] Write `apps/mobile/test/features/story/application/story_due_watcher_test.dart`:
+- [X] T076 [P] [US4] Write `apps/mobile/test/features/story/application/story_due_watcher_test.dart`:
   - a vehicle bought here makes chapter 2's goal scene due;
   - a room completion makes nothing due;
   - a completion restored by a state replacement makes nothing due;
   - a restart with the completion still pending is idempotent.
-- [ ] T077 [P] [US4] Write `apps/mobile/test/features/story/application/story_after_result_test.dart`:
+- [X] T077 [P] [US4] Write `apps/mobile/test/features/story/application/story_after_result_test.dart`:
   - plays a waiting after-trip scene and awaits it;
   - returns at once for a seen scene, a trip with no scene, and a failed trip.
-- [ ] T078 [P] [US4] Write `apps/mobile/test/features/story/domain/scene_sequence_test.dart`: one
+- [X] T078 [P] [US4] Write `apps/mobile/test/features/story/domain/scene_sequence_test.dart`: one
   scene; a chapter's unlocked scenes in story order; nothing unlocked.
-- [ ] T079 [P] [US4] Write `apps/mobile/test/features/story/scene_viewer_page_test.dart`
+- [X] T079 [P] [US4] Write `apps/mobile/test/features/story/scene_viewer_page_test.dart`
   (contracts/scene-viewer.md "Taps" table, row by row):
   - the top bar, bubbles' sides and the narrator caption;
   - الأسطى as the driver's name, else «الأسطى»;
@@ -815,11 +815,11 @@ Each scene is recorded once, with one `story_progress` per scene queued.
   - an unknown scene or nothing unlocked going to `then`, else `/apartment`;
   - reduced motion (crossfade ≤ 150 ms, still art);
   - «اللوحة {i} من {n}» announced.
-- [ ] T080 [P] [US4] Move M08's share render test to
+- [X] T080 [P] [US4] Move M08's share render test to
   `apps/mobile/test/core/platform/offscreen_render_test.dart` (output unchanged). Write
   `apps/mobile/test/features/story/scene_share_test.dart`: `FakeShareGateway` receives a PNG of
   358×540 ×3 with the still drawing (never Rive), offline; a failure shows M08's share error.
-- [ ] T081 [P] [US4] Extend `apps/mobile/test/features/onboarding/arrival_items_test.dart`, the
+- [X] T081 [P] [US4] Extend `apps/mobile/test/features/onboarding/arrival_items_test.dart`, the
   router's `/trip` redirect test in `apps/mobile/test/core/routing/`, and
   `apps/mobile/test/features/home/savings_card_test.dart`:
   - inside the first session, M07's `/onboarding/scene/:id`; after it, `/story/scene/:id` with the
@@ -828,25 +828,25 @@ Each scene is recorded once, with one `story_progress` per scene queued.
 
 ### Implementation for User Story 4
 
-- [ ] T082 [US4] Implement `apps/mobile/lib/features/story/application/story_service.dart`
+- [X] T082 [US4] Implement `apps/mobile/lib/features/story/application/story_service.dart`
   (`StoryService`, `storyServiceProvider`; contracts/story-flow.md "Recording a scene"). Make T075
   pass, except backfill's wiring (T097).
-- [ ] T083 [US4] Implement `apps/mobile/lib/features/story/application/story_due_watcher.dart` and
+- [X] T083 [US4] Implement `apps/mobile/lib/features/story/application/story_due_watcher.dart` and
   start it in `apps/mobile/lib/bootstrap/app.dart` beside `HomeArrivalQueue` and `LinesDotWatcher`,
   disposed with them. Make T076 pass.
-- [ ] T084 [P] [US4] Implement `apps/mobile/lib/features/story/domain/scene_sequence.dart`. Make T078
+- [X] T084 [P] [US4] Implement `apps/mobile/lib/features/story/domain/scene_sequence.dart`. Make T078
   pass.
-- [ ] T085 [P] [US4] Move `renderSharePicture` to
+- [X] T085 [P] [US4] Move `renderSharePicture` to
   `apps/mobile/lib/core/platform/offscreen_render.dart` as `renderOffscreenPng(BuildContext, Widget,
   Size, {double pixelRatio = 3})`. `apps/mobile/lib/features/result/presentation/share_action.dart`
   calls it with its card. M08's share golden is unchanged.
-- [ ] T086 [P] [US4] Create
+- [X] T086 [P] [US4] Create
   `apps/mobile/lib/features/story/presentation/{scene_panel_view,scene_panel_share}.dart`:
   - `ScenePanelView`: `PanelArt` in the 540 frame, up to two `SpeechBubble`s at the start/end
     positions (clamped inside), the narrator caption, speakers through `storyCharacterArt` and
     `sceneSpeaker`, with M22's turns;
   - `ScenePanelShare`: the still drawing, the bubbles and a wordmark strip, at 358×540.
-- [ ] T087 [US4] Create `apps/mobile/lib/features/story/presentation/scene_viewer_page.dart`
+- [X] T087 [US4] Create `apps/mobile/lib/features/story/presentation/scene_viewer_page.dart`
   (`SceneViewerPage`):
   - the dark full screen;
   - the taps of the contract's table;
@@ -856,11 +856,11 @@ Each scene is recorded once, with one `story_progress` per scene queued.
   - `mounted` guarded after every await.
 
   Make T079 and T080 pass.
-- [ ] T088 [US4] Implement `StoryAfterResultImpl` in
+- [X] T088 [US4] Implement `StoryAfterResultImpl` in
   `apps/mobile/lib/features/story/application/story_after_result.dart`: push
   `/story/scene/:id` through `routerProvider` and await its pop. Add
   `storyAfterResultProvider.overrideWith(...)` to `storyOverrides()`. Make T077 pass.
-- [ ] T089 [US4] Change M07's merged code (plan "What changes in merged code"):
+- [X] T089 [US4] Change M07's merged code (plan "What changes in merged code"):
   - `apps/mobile/lib/features/onboarding/presentation/arrival_items.dart` (`DueSceneArrival.open`):
     the location by `firstSession.inFirstSession`;
   - the `/trip` redirect's due-scene case in `apps/mobile/lib/core/routing/router.dart`: the same
@@ -870,21 +870,21 @@ Each scene is recorded once, with one `story_progress` per scene queued.
 
   Run M07's tests and `integration_test/first_session_test.dart`, unchanged. Make T081's first part
   pass.
-- [ ] T090 [US4] In `apps/mobile/lib/features/home/presentation/savings_card.dart`, tap to
+- [X] T090 [US4] In `apps/mobile/lib/features/home/presentation/savings_card.dart`, tap to
   `/story/scene/<first waiting>?then=/home` while `sceneWaiting`, else `/apartment`. Make T081 pass.
-- [ ] T091 [US4] In `rooms_view.dart`, give the chapter bar its trailing «شوف المشهد» chip (its own
+- [X] T091 [US4] In `rooms_view.dart`, give the chapter bar its trailing «شوف المشهد» chip (its own
   `Pressable`, label «شوف المشهد: {title}») while the room is complete and its goal scene waits.
   Extend T054's test for it.
-- [ ] T092 [US4] Add the viewer's strings to `app_ar.arb` (HANDOFF `scene.*`, under `sceneViewer*` so
+- [X] T092 [US4] Add the viewer's strings to `app_ar.arb` (HANDOFF `scene.*`, under `sceneViewer*` so
   M07's `scene*` keys keep their meaning), then `fvm flutter pub get`:
   - `sceneViewerChapterLabel`, `sceneViewerSkip`, `sceneViewerPageA11y`;
   - `sceneViewerShare`, `sceneViewerContinue`, `sceneViewerNextPanelA11y`;
   - `shareSceneText`, `aptWatchScene`.
-- [ ] T093 [US4] In `router.dart`'s `_page`, build `SceneViewerPage` for `RouteNames.storyScene` and
+- [X] T093 [US4] In `router.dart`'s `_page`, build `SceneViewerPage` for `RouteNames.storyScene` and
   `RouteNames.story`. Regenerate and review their all-destination goldens.
-- [ ] T094 [P] [US4] Add the `SceneViewer` design checks (`test/design/samples/scene_viewer.dart`
+- [X] T094 [P] [US4] Add the `SceneViewer` design checks (`test/design/samples/scene_viewer.dart`
   with the synced `ch4_mother_looks` panel, the layout test and goldens in both digit styles).
-- [ ] T095 [P] [US4] Write `apps/mobile/test/a11y/scene_viewer_minimum_sizes_test.dart` at the three
+- [X] T095 [P] [US4] Write `apps/mobile/test/a11y/scene_viewer_minimum_sizes_test.dart` at the three
   sizes and both scales.
 
 **Checkpoint**: Every scene plays at its moment, once, and replays and shares from the viewer.
@@ -902,7 +902,7 @@ match, and no scene plays by itself.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T096 [P] [US5] Write `apps/mobile/test/features/story/restore_test.dart`, with a fake server
+- [X] T096 [P] [US5] Write `apps/mobile/test/features/story/restore_test.dart`, with a fake server
   state replacing the phone's (M06's `replace_from_server` path):
   - the apartment's owned pieces in their styles;
   - `scenesSeen` and `requestsClaimed` from the state;
@@ -912,7 +912,7 @@ match, and no scene plays by itself.
 
 ### Implementation for User Story 5
 
-- [ ] T097 [US5] Call `StoryService.backfill()` once from `apps/mobile/lib/bootstrap/app.dart` after
+- [X] T097 [US5] Call `StoryService.backfill()` once from `apps/mobile/lib/bootstrap/app.dart` after
   the economy and content providers resolve, and guard it so it runs once per launch. Make T075's
   backfill cases and T096 pass.
 - [ ] T098 [US5] Write `apps/mobile/test/backend/story_sync_test.dart` (tag `backend`), with its seed
@@ -923,6 +923,12 @@ match, and no scene plays by itself.
   - the room's, chapter's and request's BONAT in the wallet once, and the phone's balance only after
     the sync;
   - a fresh install restoring the account shows the same state, with nothing due.
+
+  Written, not passing yet. On 2026-10-31 it ran against this machine's rebuilt dev stack and the
+  server rejected all 15 operations (`unknown_content_version` first): that database has packs
+  published up to 14 and none at 1, which the test's phone bundles, so the seed refuses to go on.
+  It needs a clean stack (`down -v`, `up`, seed), which wipes the owner's dev data: left to the
+  owner (`docs/owner-actions.md` item 6), and CI's `sync-e2e` runs it on a fresh one.
 
 **Checkpoint**: The story is the player's across phones.
 
@@ -942,22 +948,22 @@ match, and no scene plays by itself.
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T099 [P] [US6] Write `apps/mobile/test/features/apartment/domain/chapter_rows_test.dart`:
+- [X] T099 [P] [US6] Write `apps/mobile/test/features/apartment/domain/chapter_rows_test.dart`:
   - seven rows by the glossary's order, with ARB names for chapters the pack lacks;
   - the done row's thumbnail (the first panel of the last unlocked scene), and no button without a
     scene;
   - the current row for a room goal and for each other goal kind;
   - no current row at the end of the story.
-- [ ] T100 [P] [US6] Write `apps/mobile/test/features/story/domain/album_test.dart`: one card per
+- [X] T100 [P] [US6] Write `apps/mobile/test/features/story/domain/album_test.dart`: one card per
   scene in story order; a waiting scene counted unlocked; the count.
-- [ ] T101 [P] [US6] Write `apps/mobile/test/features/apartment/chapters_page_test.dart`:
+- [X] T101 [P] [US6] Write `apps/mobile/test/features/apartment/chapters_page_test.dart`:
   - the rows and their sentences;
   - «شوف المشهد» → `/story/<chapterId>`;
   - «ألبوم المشاهد» → `/story/album`;
   - the rail filled to the current node, animating once per chapter change;
   - back → `/apartment`;
   - seven rows at 1.3× scroll.
-- [ ] T102 [P] [US6] Write `apps/mobile/test/features/story/album_page_test.dart`:
+- [X] T102 [P] [US6] Write `apps/mobile/test/features/story/album_page_test.dart`:
   - the count chip and the intro;
   - unlocked cards → `/story/scene/<id>?then=/story/album`;
   - locked cards inert, with their labels;
@@ -965,30 +971,30 @@ match, and no scene plays by itself.
 
 ### Implementation for User Story 6
 
-- [ ] T103 [P] [US6] Implement `apps/mobile/lib/features/apartment/domain/chapter_rows.dart`
+- [X] T103 [P] [US6] Implement `apps/mobile/lib/features/apartment/domain/chapter_rows.dart`
   (`ChapterRow`, `DoneRow`, `CurrentRow`, `LockedRow`, `chapterRows`). Make T099 pass.
-- [ ] T104 [P] [US6] Implement `apps/mobile/lib/features/story/domain/album.dart` (`AlbumCard`,
+- [X] T104 [P] [US6] Implement `apps/mobile/lib/features/story/domain/album.dart` (`AlbumCard`,
   `UnlockedCard`, `LockedCard`, `album`). Make T100 pass.
-- [ ] T105 [US6] Create `apps/mobile/lib/features/apartment/presentation/chapters_page.dart`:
+- [X] T105 [US6] Create `apps/mobile/lib/features/apartment/presentation/chapters_page.dart`:
   - the `ScreenHeader` with the album pill;
   - the rail;
   - the `ol` of rows (done 80, current 104 with `aria-current`, locked 58 in the locked look).
 
   Make T101 pass.
-- [ ] T106 [US6] Create `apps/mobile/lib/features/story/presentation/album_page.dart`: the header with
+- [X] T106 [US6] Create `apps/mobile/lib/features/story/presentation/album_page.dart`: the header with
   the count chip, the intro, and the two-column grid of unlocked and locked cards. Make T102 pass.
-- [ ] T107 [US6] Add the timeline's and album's strings to `app_ar.arb` (HANDOFF `chapters.*`,
+- [X] T107 [US6] Add the timeline's and album's strings to `app_ar.arb` (HANDOFF `chapters.*`,
   `album.*`; research R19), then `fvm flutter pub get`:
   - `chaptersBack`, `chaptersTitle`, `chaptersAlbum`, `chaptersNumber`;
   - `chaptersWatchScene`, `chaptersCurrent`, `chaptersItemsChip`, `chaptersCurrentDesc`;
   - `chaptersRowA11y` (done, current, locked);
   - `chapterTeaserName` (select by `ChapterId`);
   - `albumTitle`, `albumCount`, `albumIntro`, `albumWatchAgain`, `albumLocked`, `albumCardA11y`.
-- [ ] T108 [US6] In `router.dart`'s `_page`, build `ChaptersPage` for `RouteNames.apartmentChapters`
+- [X] T108 [US6] In `router.dart`'s `_page`, build `ChaptersPage` for `RouteNames.apartmentChapters`
   and `AlbumPage` for `RouteNames.storyAlbum`. Regenerate and review their all-destination goldens.
-- [ ] T109 [P] [US6] Add the `Chapters` and `Album` design checks (samples over `artboardSalon()`,
+- [X] T109 [P] [US6] Add the `Chapters` and `Album` design checks (samples over `artboardSalon()`,
   layout tests, goldens), with the expected difference: the album follows the pack's scenes (Q3).
-- [ ] T110 [P] [US6] Write `apps/mobile/test/a11y/{chapters,album}_minimum_sizes_test.dart` at the
+- [X] T110 [P] [US6] Write `apps/mobile/test/a11y/{chapters,album}_minimum_sizes_test.dart` at the
   three sizes and both scales.
 
 **Checkpoint**: The story can be looked back on and rewatched, granting nothing.
@@ -1009,12 +1015,12 @@ requested pieces aren't, open the requests:
 
 ### Tests for User Story 7 ⚠️
 
-- [ ] T111 [P] [US7] Write `apps/mobile/test/features/apartment/application/request_claim_test.dart`:
+- [X] T111 [P] [US7] Write `apps/mobile/test/features/apartment/application/request_claim_test.dart`:
   - rules first (only `done`);
   - the held id;
   - a double tap claims once;
   - a server refusal (M06's rollback) returns the request to the list.
-- [ ] T112 [P] [US7] Write `apps/mobile/test/features/apartment/requests_sheet_test.dart`:
+- [X] T112 [P] [US7] Write `apps/mobile/test/features/apartment/requests_sheet_test.dart`:
   - done rows first with the happy avatar, «خلص · +{n} بونات» and «خد»;
   - open rows with the neutral avatar, the condition template and «+{n} بون»;
   - a missed request absent;
@@ -1026,20 +1032,20 @@ requested pieces aren't, open the requests:
 
 ### Implementation for User Story 7
 
-- [ ] T113 [US7] Implement `apps/mobile/lib/features/apartment/application/request_claim.dart`
+- [X] T113 [US7] Implement `apps/mobile/lib/features/apartment/application/request_claim.dart`
   (`RequestClaim`, `requestClaimProvider`). Make T111 pass.
-- [ ] T114 [US7] Create `apps/mobile/lib/features/apartment/presentation/requests_sheet.dart`
+- [X] T114 [US7] Create `apps/mobile/lib/features/apartment/presentation/requests_sheet.dart`
   (`RequestsSheet`, an `AppSheetPage` with its header): rows as `ListRow` with `CharacterAvatar` 52,
   the condition from `requestCondition`/`requestConditionVariant`, and the `States` empty pattern.
-- [ ] T115 [US7] Add `requestsTitle`, `requestsSubtitle`, `requestsDone`, `requestsClaim`,
+- [X] T115 [US7] Add `requestsTitle`, `requestsSubtitle`, `requestsDone`, `requestsClaim`,
   `requestsReward`, `requestConditionVariant` («{item} بشكل «{variant}»»), `requestCondition`
   («اشتري {item}»), `requestsEmpty`, `requestsRowA11y`, `requestsClaimToast` and
   `requestsClaimToastOffline` to `app_ar.arb`, then `fvm flutter pub get`.
-- [ ] T116 [US7] In `router.dart`'s `_page`, build `RequestsSheet` for `RouteNames.apartmentRequests`.
+- [X] T116 [US7] In `router.dart`'s `_page`, build `RequestsSheet` for `RouteNames.apartmentRequests`.
   Make T112 pass, and extend T054 for the badge's count from `requestStates`.
-- [ ] T117 [P] [US7] Add the `Requests` design checks. Skip the counted row's boxes (2c) with the
+- [X] T117 [P] [US7] Add the `Requests` design checks. Skip the counted row's boxes (2c) with the
   reason «the server's `claim_request` checks only a piece and its style (B03 R9)».
-- [ ] T118 [P] [US7] Write `apps/mobile/test/a11y/requests_minimum_sizes_test.dart` at the three
+- [X] T118 [P] [US7] Write `apps/mobile/test/a11y/requests_minimum_sizes_test.dart` at the three
   sizes and both scales.
 
 **Checkpoint**: Requests can be claimed offline, and the server pays them.
@@ -1060,24 +1066,24 @@ the engine untouched ([contracts/story-trip.md](./contracts/story-trip.md)).
 
 ### Tests for User Story 8 ⚠️
 
-- [ ] T119 [P] [US8] Write `apps/mobile/test/features/trip/domain/rider_comments_test.dart`:
+- [X] T119 [P] [US8] Write `apps/mobile/test/features/trip/domain/rider_comments_test.dart`:
   - each mapped `RepCause` → its pool;
   - unmapped causes and an over-change sequence → none;
   - two riders → the first with a pool;
   - the same `(seed, ordinal)` → the same line;
   - a zero seed state → state 1;
   - the engine's PRNG state unchanged.
-- [ ] T120 [P] [US8] Extend `apps/mobile/test/features/trip/domain/presentation_memory_test.dart` and
+- [X] T120 [P] [US8] Extend `apps/mobile/test/features/trip/domain/presentation_memory_test.dart` and
   `bubble_queue_test.dart`:
   - a comment takes the character slot;
   - بلية wins a tie;
   - a comment waiting past `bubbleMinMs` is dropped;
   - it stays its minimum;
   - never more than two bubbles in total (constitution XI).
-- [ ] T121 [P] [US8] Extend `apps/mobile/test/features/trip/domain/fail_summary_test.dart`
+- [X] T121 [P] [US8] Extend `apps/mobile/test/features/trip/domain/fail_summary_test.dart`
   (`failReason` replaces the rule line; without it, M02's) and the projection test (`storyStrip` for a
   rule, for a content condition without a rule, and absent).
-- [ ] T122 [P] [US8] Write the widget tests:
+- [X] T122 [P] [US8] Write the widget tests:
   - `apps/mobile/test/features/trip/top_bar/trip_title_test.dart`: the story chip over the content
     title;
   - `apps/mobile/test/features/trip/overlays/story_strip_test.dart`: the content condition; the strip
@@ -1087,21 +1093,26 @@ the engine untouched ([contracts/story-trip.md](./contracts/story-trip.md)).
   - `apps/mobile/test/features/trip/overlays/bubbles_layer_test.dart`: the rider bubble anchored over
     the face with the name chip and a polite announcement.
 
+  Done in one file, `apps/mobile/test/features/trip/presentation/story_trip_presentation_test.dart`
+  (the repo keeps its trip widget tests flat under `presentation/`, not in a folder per widget), in
+  three groups: title and strip, riders, the rider's bubble. The rider's seat label has a test there
+  too (`RiderLabels`).
+
 ### Implementation for User Story 8
 
-- [ ] T123 [US8] Add `TripFacts.storyInfo` in `apps/mobile/lib/features/trip/domain/trip_facts.dart`,
+- [X] T123 [US8] Add `TripFacts.storyInfo` in `apps/mobile/lib/features/trip/domain/trip_facts.dart`,
   set in `apps/mobile/lib/features/trip/application/trip_controller.dart` from the chapter whose
   `story_trip_id` is the trip.
-- [ ] T124 [P] [US8] Implement `apps/mobile/lib/features/trip/domain/rider_comments.dart` (`RiderComment`,
+- [X] T124 [P] [US8] Implement `apps/mobile/lib/features/trip/domain/rider_comments.dart` (`RiderComment`,
   `riderComment`, through `SpeechResolver.resolve` and `Xorshift32`). Make T119 pass.
-- [ ] T125 [US8] In `apps/mobile/lib/features/trip/domain/presentation_memory.dart`:
+- [X] T125 [US8] In `apps/mobile/lib/features/trip/domain/presentation_memory.dart`:
   - generalise بلية's slot to `CharacterBubble{speaker, source, line, shownAtMs}` and `characterAt`,
     with بلية's wish first;
   - feed rider comments from `ReputationChanged` events with their ordinal.
 
   In `trip_view.dart` and `projection.dart`, add `StoryStripView` and `TripView.storyStrip`. Update
   M07's بلية callers to the new names. Make T120 and T121 pass.
-- [ ] T126 [US8] Switch the trip's presentation to the content:
+- [X] T126 [US8] Switch the trip's presentation to the content:
   - the five layout checks to `storyStrip != null`: `top_bar/top_bar.dart`,
     `overlays/hint_layer.dart`, `overlays/bubbles_layer.dart`, `overlays/fast_forward_strip.dart`,
     `overlays/story_strip.dart`;
@@ -1109,18 +1120,26 @@ the engine untouched ([contracts/story-trip.md](./contracts/story-trip.md)).
   - `StoryStrip` to the content condition;
   - `fail_summary.dart`/`cards/failure_card.dart` to `failReason`;
   - the rider bubble's name chip in `bubbles_layer.dart`.
-- [ ] T127 [US8] Create `apps/mobile/lib/features/trip/presentation/scene/rider_component.dart`
+- [X] T127 [US8] Create `apps/mobile/lib/features/trip/presentation/scene/rider_component.dart`
   (`RiderComponent`: `Person` with `CharacterAvatar.looks[storyCharacterArt(c)]` at
   `SeatLayout.face`, the SVG fallback, the `mood`/`surprised` inputs, no hit area). Add one per rider
   in `scene/trip_game.dart`, in row order. Make T122 pass.
-- [ ] T128 [US8] Add `tripStoryChip` (if M02 has none), `tripRiderA11y` («{name} راكب معاك») and
+
+  The rider is drawn by the scene's `PassengerArtFactory` from a `Look` made of the character
+  (`Look.asset`), so the Rive and static arts both draw it; `surprised` goes through
+  `PassengerArt.surprise`. Each rider's seat says «{name} راكب معاك» from `overlays/rider_labels.dart`.
+- [X] T128 [US8] Add `tripStoryChip` (if M02 has none), `tripRiderA11y` («{name} راكب معاك») and
   `tripRiderSays` («{name}: {line}») to `app_ar.arb`, then `fvm flutter pub get`.
-- [ ] T129 [US8] Update `apps/mobile/test/goldens/design/story_trip_goldens_test.dart` with the rider,
+- [X] T129 [US8] Update `apps/mobile/test/goldens/design/story_trip_goldens_test.dart` with the rider,
   the title and the content condition (and the unchanged look without `story_trip_info`). Write
   `apps/mobile/integration_test/story_trip_test.dart`, headless, with M02's scripted player:
   - a short change → one comment;
   - an over-change → none;
   - the `TripResult` equals the same run with the riders removed from the content.
+
+  The golden is `StoryTripContent_<digits>.png` beside the design's `StoryTrip` ones, which are
+  unchanged. The integration test plays `core__short_then_topup` and `core__over_change_kept` with
+  and without the rider and compares each run to the fixture's expected result.
 
 **Checkpoint**: Story trips carry their characters; the rules and results are the same.
 
@@ -1132,11 +1151,12 @@ the engine untouched ([contracts/story-trip.md](./contracts/story-trip.md)).
 ([contracts/design-briefs.md](./contracts/design-briefs.md)). Phases 3–10 build every state from the
 brief, so only these checks wait for the export.
 
-- [ ] T130 **Owner:** draw the ten boards on the Claude Design canvas: `AptGoalLine`,
+- [X] T130 **Owner:** draw the ten boards on the Claude Design canvas: `AptGoalLine`,
   `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`, `PieceAffordable`,
   `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd`. Export them with
   `docs/design/tools` into `docs/design/{screens,png,boxes}/`, or hand the export to Claude
-  (`docs/owner-actions.md` section 015, item 1).
+  (`docs/owner-actions.md` section 015, item 1). Drawn on 2026-10-31 and exported by Claude the same
+  day: the HTML, PNGs, boxes, illustrations and both manifests are in `docs/design/` (uncommitted).
 - [ ] T131 After T130's apartment boards land, align `goal_view.dart`, `rooms_view.dart`,
   `room_scene.dart`, `pending_chip.dart`, `piece_sheet.dart` and `room_done_dialog.dart` to them.
   Add `test/design/samples/<board>.dart`, the layout tests and the goldens for `AptGoalLine`,
@@ -1155,7 +1175,7 @@ brief, so only these checks wait for the export.
 
 **Purpose**: The integration tests, the documents, the full checks, the reviews and the owner's list.
 
-- [ ] T134 Write `apps/mobile/integration_test/apartment_loop_test.dart`, headless (`-d
+- [X] T134 Write `apps/mobile/integration_test/apartment_loop_test.dart`, headless (`-d
   flutter-tester`), offline, for a scripted chapter-3 player with enough coins and the card setting
   on «always» (quickstart §5):
   1. the shabka bought once, then its trip's card, whose close lands on the rooms view;
@@ -1166,7 +1186,14 @@ brief, so only these checks wait for the export.
 
   Time SC-009 with a `Stopwatch` (the tab, a sheet and the timeline under 0.5 s; a first panel under
   1 s on CI). M07's, M08's and M09's integration tests still pass.
-- [ ] T135 Write `apps/mobile/test/core/progress/story_run_test.dart` (SC-005): over `storyShaped()`
+
+  Done: all five run headless, one file per invocation (several files in one `flutter test -d
+  flutter-tester` call fail to launch after the first). `lines_loop_test.dart` needed two M10
+  changes: its pending-op count keeps only the `spend_jenehat` ops (the launch backfill also queues a
+  `story_progress`), and the `father_visit` scene that is now due before `line_gamaa.01` plays before
+  the trip opens. SC-009 timings pass on this machine; they are machine-dependent (one tab-open read
+  1.1 s under load, then passed on rerun).
+- [X] T135 Write `apps/mobile/test/core/progress/story_run_test.dart` (SC-005): over `storyShaped()`
   and the sample, script a player from the first open to chapter 4's end through the economy. Every
   scene becomes waiting at its moment exactly once, is due or offered where story-flow.md says, and
   is in the album at the end.
@@ -1183,23 +1210,31 @@ brief, so only these checks wait for the export.
     record the refusal and its reason, and rerun when the draft is promoted.
 
   (Depends on T012.)
-- [ ] T136 [P] Update `docs/architecture-mobile.md`:
+
+  Done over `storyShaped()` and the sample: a purse-funded new player plays each chapter's goal and
+  story trip through `startTrip`/`recordResult`/`buy`, watches every scene as it waits, and the run
+  checks each scene's moment (once), `StoryDueWatcher`'s due step for the goal scenes that aren't
+  rooms, none due for a room's, and the album full. A flipped assertion fails it (checked).
+  **The pack-file group has not been run**: the `core-r1` draft's worktree is outside this
+  session's project root, and its T012 change is the owner's step; the group skips itself without
+  `STORY_RUN_PACK`. Run it from `docs/owner-actions.md` section 015 once the draft is bundled.
+- [X] T136 [P] Update `docs/architecture-mobile.md`:
   - §5: the `features/apartment/` and `features/story/` trees;
   - §9: `/story/scene/:sceneId`, `/story/album`, `/apartment/pre-trip/:tripId`;
   - §12: `story_progress`, `claim_request` and the `story` mapping;
   - §13: the story, request and reward rules, and pending vs received;
   - §14: the content fields.
-- [ ] T137 [P] Update the content docs:
+- [X] T137 [P] Update the content docs:
   - `docs/architecture-backend.md` §9: the fields and `StoryRider`;
   - `content/README.md` "Scenes": the goal moment and V-C10–C12, and a new "What the apartment shows
     (M10)";
   - `specs/003-b04-content-pipeline/contracts/content-schemas.md`: the new codes and fields;
   - `specs/003-b04-content-pipeline/data-model.md`: the new columns and `content.StoryRider`;
   - `docs/runbooks/content-publishing.md`: the republish after this deploy.
-- [ ] T138 [P] Update `docs/delivery-plan.md`: HANDOFF §9.3 #2 marked settled (the tab from chapter
+- [X] T138 [P] Update `docs/delivery-plan.md`: HANDOFF §9.3 #2 marked settled (the tab from chapter
   1). Add the Progress line for `015-m10-apartment-story` when it merges. T133 does the Design
   sources row.
-- [ ] T139 [P] Update the guides by hand:
+- [X] T139 [P] Update the guides by hand:
   - `apps/mobile/CLAUDE.md`: M10 in the area's features; the two operations and schema 5; the new
     domain folders in the guards line; the synced apartment art; the routes; the integration tests'
     commands;
@@ -1207,7 +1242,7 @@ brief, so only these checks wait for the export.
   - `backend/CLAUDE.md`: migration `0011` and `StoryRider`;
   - `packages/trip_engine/CLAUDE.md`: the `Xorshift32` export and why;
   - the root `CLAUDE.md`: "015 M10 apartment and story" in the feature list.
-- [ ] T140 Complete section 015 of `docs/owner-actions.md`, each item with its task ID, and update
+- [X] T140 Complete section 015 of `docs/owner-actions.md`, each item with its task ID, and update
   "Open now":
   - **before merge:** T130, T141–T143, T146;
   - **after merge:** T147–T150;
@@ -1223,7 +1258,7 @@ brief, so only these checks wait for the export.
 - [ ] T143 **Owner approval** of the release draft's new texts (T012): scene titles; character, ready
   and room lines; style comments; taglines; the riders, their comments and failure reasons; the
   askers.
-- [ ] T144 Run every CI check and fix anything found:
+- [X] T144 Run every CI check and fix anything found:
   - **`tools/content_kit`:** `uv run ruff check . && uv run ruff format --check . && uv run mypy .
     && uv run pytest --cov --cov-fail-under=80`, `codegen --check`, `golden`,
     `bundle dev --check --out ../../apps/mobile/assets/content/dev`.
@@ -1235,13 +1270,58 @@ brief, so only these checks wait for the export.
   - **`apps/mobile`,** in its guide's order: pub get, build_runner, Rive setup, format, analyze,
     `flutter test --coverage --exclude-tags backend`, `check_coverage --min 80`, every integration
     test headless, `flutter test --tags rive`.
-- [ ] T145 Run the reviews, fix CRITICAL and HIGH findings, then rerun T144:
+
+  Done on 2026-10-31, each area green: mobile (format over tracked and untracked files, analyze, 5,413
+  tests, 91.27%, the five integration tests one file per run, 75 `rive` tests), `content_models`
+  (99.26%), `trip_engine` (1,134 tests, 98.26%), `content_kit` (615 tests, 96.62%, codegen, golden,
+  both bundles), `backend` (2,019 tests, 95.60%, no migration, contract unchanged), `solver` (1,000
+  tests, 98.13%, parity, bench). Found and fixed on the way: three older tests that counted pending
+  operations now see the launch backfill's `story_progress`; `content_models`'
+  `round_trip_test.dart` was unformatted; the RoomDone model was read before the purchase reached the
+  progress. The solver's local `.venv` held a pre-M10 build of `wassal-content` (a non-editable path
+  dependency): `uv sync --locked --reinstall-package wassal-content` refreshed it, which CI's clean
+  environment does anyway. `schema-diff` lists `Scene.title`, `family_request.character` and
+  `item.slot` as newly required but passes, since `content/source/pack.json` doesn't exist yet. Not
+  run: the `backend`-tagged tests (T098, the dev stack).
+- [X] T145 Run the reviews, fix CRITICAL and HIGH findings, then rerun T144:
   - `flutter-reviewer` over the Dart diff: rebuild scope; `mounted` after awaits in the purchases,
     the claim, the viewer and `StoryAfterResultImpl`; the watcher's disposal; the drift migration;
   - `python-reviewer` over `backend/apps/content` and `tools/content_kit`;
   - `security-reviewer` over the purchase and claim paths (one intent, no client price, no BONAT
     added on the phone, rollback), the new operations' wire payloads, and the share render (no
     player data beyond the panel).
+
+  Done on 2026-10-31. No CRITICAL or HIGH finding from any of the three. **Fixed:**
+  - security: the share picture carried the name the player typed (`shareSpeakerName` now gives the
+    default «الأسطى»; contracts/scene-viewer.md); `claim_request`'s `request_id` was bounded at a
+    length shorter than the content schema's `req_` + 40, so the server could refuse and roll back a
+    claim the phone accepted (`max_length=44`, boundary test);
+  - flutter: a double tap on «كمّل» could step past a chapter replay's last scene (`RangeError`):
+    `_advancing` guard; a failing first-session write in `_exit`/`_continue`/`_recordLastPanel` could
+    trap the player behind `PopScope`: reported (`FlutterError.reportError`, as M07's `ScenePage`)
+    and the viewer goes on; `RoomDone` drew the current chapter's room, so a purchase that
+    completes a room followed by a chapter with a room of its own showed the next room:
+    `roomModelOfRoom`/`roomModelOfProvider` draw the bought piece's room (the old
+    `roomModelProvider` is gone); the due watcher's unawaited write now reports its failure. Each has
+    a test; the first and the third fail without their fix.
+
+  **Deferred, none blocking** (record for the owner and the next feature):
+  - flutter, copy: the piece sheet shows nothing distinct for `OpWriteFailed`, and the goal view
+    shows nothing for `GoalRefused`/`GoalWriteFailed` — both need strings you approve (T141);
+  - flutter, perf/style: apartment views rebuild on any `RoomModel`/goal change (`==`/`select`
+    could narrow it); the stagger and share radius are raw values in `scene_viewer_page.dart`; the
+    purchases keep one held id per object, not per item;
+  - python: the rider admin's swap (two riders exchanging seats) fails on the unique constraint
+    unless migration `0013` makes it deferrable; `Chapter.clean` reads the riders from the database;
+    a `comments: {}` rider round-trips as absent;
+  - security: the payout for a story reward uses the pack version the client declares (B03's
+    design: bounded by the versions published, the amount is the pack's own); the share file name
+    carries the scene id and panel number.
+
+  Reran T144's affected parts after the fixes: mobile (format over tracked and untracked files,
+  analyze, 5,419 tests with 7 skipped, 91.29%, the five integration tests one file per run) and
+  backend (ruff, ruff format, mypy, 2,020 tests, 95.62%). `content_kit`, `content_models`,
+  `trip_engine` and `solver` were not touched by the fixes and were not rerun.
 - [ ] T146 **Owner, before merge:** review the side-by-side images of the nine artboards and every
   exported board (quickstart §4).
 - [ ] T147 **Owner, after merge:** deploy, then rebuild and publish a fresh pack on staging. Packs
@@ -1386,4 +1466,13 @@ These tasks come from `reviews/round-1.md`.
 
 These tasks come from `reviews/round-2.md`.
 
-- [ ] T157 [R2-1] Give the apartment's pre-trip page the same treatment as `linePreTrip` in `apps/mobile/lib/core/routing/router.dart` (the `RouteNames.apartmentPreTrip` case, about line 275): it wraps `PreTripCard` in `Scaffold(body: SafeArea(…))`, so the card runs edge to edge (the stop cards, the stars, the «لسه» hints and the «اطلع» button touch the screen edges; see `apps/mobile/test/goldens/goldens/all/apartmentPreTrip_western.png` beside `linePreTrip_western.png`). Build `PreTripCard` the way `linePreTrip` does (the sheet surface and side insets M09 gives it, no extra `Scaffold`), keeping the `ValueKey(tripId)`, `leaveTo: '/apartment'` and `closeTo: '/apartment'`. Regenerate the `apartmentPreTrip_*` goldens, and add a test that fails before the fix, for example a layout assertion in `apps/mobile/test/core/routing/` (or beside the card's own test) that the card's content sits inside the same side inset as the Lines card at 390×844. (MEDIUM, per FR-060, T034 and `contracts/apartment.md` "M09's `linePreTrip` pattern")
+- [X] T157 [R2-1] Give the apartment's pre-trip page the same treatment as `linePreTrip` in `apps/mobile/lib/core/routing/router.dart` (the `RouteNames.apartmentPreTrip` case, about line 275): it wraps `PreTripCard` in `Scaffold(body: SafeArea(…))`, so the card runs edge to edge (the stop cards, the stars, the «لسه» hints and the «اطلع» button touch the screen edges; see `apps/mobile/test/goldens/goldens/all/apartmentPreTrip_western.png` beside `linePreTrip_western.png`). Build `PreTripCard` the way `linePreTrip` does (the sheet surface and side insets M09 gives it, no extra `Scaffold`), keeping the `ValueKey(tripId)`, `leaveTo: '/apartment'` and `closeTo: '/apartment'`. Regenerate the `apartmentPreTrip_*` goldens, and add a test that fails before the fix, for example a layout assertion in `apps/mobile/test/core/routing/` (or beside the card's own test) that the card's content sits inside the same side inset as the Lines card at 390×844. (MEDIUM, per FR-060, T034 and `contracts/apartment.md` "M09's `linePreTrip` pattern")
+
+  Done as a sheet in the apartment's branch (`Presentation.sheet`, `Section.apartment`, in `ownHeader`),
+  so every close pops to `/apartment` and `closeTo` had no user left: it was removed from `PreTripCard`
+  (the only departure from the task text). The tests are in `pre_trip_card_test.dart` ("opened from the
+  apartment": the sheet with Lines' side inset, the four closes, the unopenable trip) and
+  `route_table_test.dart`. The page also threw a duplicate `StatefulNavigationShellState` key when the
+  tests moved between the shell and the root page; the nested sheet doesn't. The `apartmentPreTrip_*`
+  goldens are regenerated. `pre_trip_card_test`'s «a failed write» case now counts only the
+  `spend_bonat` rows, because the launch's backfill (T088) also sends the opening M07 saw.

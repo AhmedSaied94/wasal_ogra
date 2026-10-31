@@ -32,7 +32,7 @@ left, in what order, and where to look.
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
-| [015 M10 apartment and story](#015-m10-apartment-and-story) | 1 now (the ten boards), the rest at implement | at implement | Planned on 2026-10-29, on branch `015-m10-apartment-story`. Not built yet. |
+| [015 M10 apartment and story](#015-m10-apartment-and-story) | 8 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the dev-stack sync test and the story run over the draft are not run yet. |
 
 ## Every month
 
@@ -1145,31 +1145,133 @@ size, and the documents match the code.
 
 ## 015 M10 apartment and story
 
-Planned on 2026-10-29, on branch `015-m10-apartment-story`
+Built and tested on 2026-10-30, on branch `015-m10-apartment-story`
 ([spec](../specs/015-m10-apartment-story/spec.md), [plan](../specs/015-m10-apartment-story/plan.md),
+[tasks.md](../specs/015-m10-apartment-story/tasks.md),
+[quickstart](../specs/015-m10-apartment-story/quickstart.md),
 [design briefs](../specs/015-m10-apartment-story/contracts/design-briefs.md)):
 
-- The «الشقة» tab shows the chapter's goal for chapters 1–3 and the rooms from chapter 4: the piece
-  sheet, purchases, `RoomDone` and the family requests.
-- Scenes play at their moments in a new viewer, and the timeline and the album list them.
-- Story trips carry their riders.
-
-Not built yet. `/speckit-implement` completes this section with the before-merge and after-merge
-items of the plan's "Owner approvals and actions", each with its task ID.
+- The «الشقة» tab shows the chapter's goal for chapters 1–3 (bought once) and the rooms from
+  chapter 4: the piece sheet, purchases in a style, `RoomDone` with its reward «في الطريق», and the
+  family requests («خد» records the claim; the server pays the BONAT). The timeline and the album
+  list the chapters and every scene.
+- Scenes play at their moments in a new viewer, are recorded once through `StoryService`, and a
+  goal scene becomes due when its chapter's goal is met on this phone.
+- Story trips carry their riders, and the apartment opens its own pre-trip card as a sheet over the
+  tab.
+- Two new operations (`story_progress`, `claim_request`), drift schema 5, and new required content
+  fields (rules V-C6–V-C12, V-R3, migrations `content.0011`/`0012`).
 
 The nine drawn artboards each draw one state. The first release mostly shows states they don't
 draw, so you draw them, as for M09.
 
+**Run on 2026-10-30 and 31:** every CI check of all six areas (T144), M10's widget, golden and
+design tests, the five headless integration tests (`first_session`, `home_loop`, `lines_loop`,
+`apartment_loop`, `story_trip`, one file per run) and the SC-005 story run over the sample and
+`storyShaped()`, then the three reviews (T145) and the mobile and backend checks again after their
+fixes. **Not run:** the `backend`-tagged `test/backend/story_sync_test.dart` (needs the dev stack),
+and the story run over the release draft's built pack (item 7 below).
+
+**Good to know before you merge:**
+
+- `schema-diff` lists `Scene.title`, `family_request.character` and `item.slot` as newly required.
+  It passes only because `content/source/pack.json` doesn't exist yet: once it does, those three
+  become breaking changes for it.
+- The reviews found nothing CRITICAL or HIGH. What they found and what was fixed is in
+  [tasks.md T145](../specs/015-m10-apartment-story/tasks.md). Left for later, none blocking: the
+  piece sheet and the goal view say nothing distinct when a purchase's local write fails (they need
+  strings you approve, with T141), the rider admin's seat swap needs migration `0013` to defer its
+  unique constraint, and a story reward's payout uses the pack version the phone declares (B03's
+  design).
+
+Two things you'll notice that the plan didn't say. The apartment's pre-trip card is a sheet in the
+apartment's own branch, not a page over the shell (a page there put two shells on one key), so its
+`closeTo` is gone. And M09's `lines_loop_test.dart` now plays `father_visit` before
+`line_gamaa.01`: the scene that is due before that trip opens first, as story-flow.md says.
+
 ### Before the new boards' design checks
 
-- [ ] **1. Draw the ten boards the first release needs.** Each section of
+- [X] **1. Draw the ten boards the first release needs (T130).** Done on 2026-10-31: drawn on the
+  canvas and exported into `docs/design/` by Claude (T131–T133 follow). Each section of
   [design-briefs.md](../specs/015-m10-apartment-story/contracts/design-briefs.md) gives the route,
   the state, the layout against the board it starts from, the labels and its open questions:
   `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`,
   `PieceAffordable`, `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd`. Export them
   with `docs/design/tools`, or hand the export to Claude.
-  - Nothing else waits: Claude builds each state from its brief meanwhile.
-  - Only each board's sample, golden and layout test follows its export.
+  - Nothing else waits: the app draws each state from its brief meanwhile.
+  - Only each board's sample, golden and layout test follows its export (T131–T133).
+
+### Before merge
+
+- [ ] **1. The strings (T141).** Read the drafts of
+  [research R19](../specs/015-m10-apartment-story/research.md), as they stand in
+  `apps/mobile/lib/l10n/app_ar.arb` (the apartment, piece, `RoomDone`, requests, chapters, album and
+  scene keys), and any copy the boards change. Say what to change; Claude applies it and
+  regenerates the goldens it touches.
+- [ ] **2. The departures (T142).** Approve or refuse those in the plan's Complexity Tracking, and
+  the one found while building: the apartment's pre-trip card is a sheet in the apartment's branch.
+- [ ] **3. The goldens (T142).** In `apps/mobile/test/goldens/design/goldens/`, in both digit
+  styles, beside `docs/design/png/` (each test lists its expected differences, research R18):
+  - the nine artboards: `AptGoal_*`, `AptGoalReady_*`, `AptRooms_*`, `Piece_*`, `RoomDone_*`,
+    `Chapters_*`, `Requests_*`, `Album_*`, `SceneViewer_*`;
+  - the states no board draws: `AptRoomsOffline_*`, `AptRoomsSmall_*` and `AptGoalOffline_*`,
+    `AptGoalSmall_*` (the offline apartment, and a 360×640 phone at 1.3×). Offline draws the same
+    as online: the apartment needs no network. **Look at `AptGoalSmall`:** at 1.3× on that phone the
+    goal's «اشتري» button is below the first screen and the card scrolls to it. Say if the goal card
+    should be shorter there.
+- [ ] **4. The release draft's new texts (T012, T143).** Scene titles, character, ready and room
+  lines, style comments, taglines, the riders with their comments and failure reasons, and the
+  askers, in the `content-core-r1` worktree (`wasal_ogra-core-r1`). Approve or change them; Claude
+  applies a change and revalidates. Claude can't read that worktree from this session's project
+  root: say when it's ready to be bundled.
+- [ ] **5. The side-by-side images (T146).** Run
+  `fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true` in
+  `apps/mobile` and look at `build/design_compare/` for the nine artboards and every exported board
+  in both digit styles ([quickstart §4](../specs/015-m10-apartment-story/quickstart.md)).
+- [ ] **6. The dev stack (T098).** The `backend`-tagged `test/backend/story_sync_test.dart` is
+  written but has not passed here. CI's `sync-e2e` job runs it on a fresh stack; check it passes on
+  the PR. On 2026-10-31 Claude rebuilt this machine's dev image (the API and admin containers were
+  crash-looping on the pre-M10 `wassal-content`), brought the stack up and ran the test: the server
+  rejected the first operation as `unknown_content_version`, and the rest of the batch with it,
+  because your dev database has packs published up to version 14 and none at version 1, which the
+  test's phone bundles (the seed script refuses to continue unless the current pack is 1). So it
+  proves nothing about M10 yet. To run it by hand on a clean stack (this wipes the dev database and
+  its volumes; Claude didn't, since the data is yours):
+  - in `backend`: `docker compose -f docker/compose.yml -f docker/compose.dev.yml down -v`, then
+    `… up -d --wait`;
+  - seed with `uv run manage.py shell < ../apps/mobile/test/backend/seed_backend.py` (it prints
+    `published version 1`);
+  - then `WASSAL_E2E_API=http://localhost:8000 fvm flutter test --tags backend test/backend` in
+    `apps/mobile`.
+  Tell Claude to do it, or to run the test against another clean stack on a different port.
+- [ ] **7. The story run over the release draft (T135, SC-005).** The test passes over the sample
+  and `storyShaped()`; its third group runs the same script over a built pack and skips itself
+  without one. Build the draft once item 4 is done, never into `apps/mobile/assets/`:
+  `uv run wassal-content bundle dev --source <wasal_ogra-core-r1>/content/drafts/core-r1/pack --out <scratch dir>`
+  in `tools/content_kit`, then
+  `fvm flutter test test/core/progress/story_run_test.dart --dart-define=STORY_RUN_PACK=<the .json.gz it wrote>`
+  in `apps/mobile`. If the kit refuses the draft, tell Claude the reason; it goes here and the run
+  repeats when the draft is promoted.
+
+### After merge
+
+- [ ] **1. A fresh pack on staging (T147).** Tag and deploy production with M10 **before** promoting
+  its first pack: production validates a promotion with its own schemas, so an earlier production
+  refuses the new fields. Then deploy staging, fill the new fields in its admin (chapters' goal
+  and ready lines, rooms, items and their styles, scenes, the story trips' riders and the requests'
+  askers), then build and publish. Packs without the required fields no longer read
+  ([content-publishing](runbooks/content-publishing.md), research R16).
+- [ ] **2. The device pass (T148).** [Quickstart §7](../specs/015-m10-apartment-story/quickstart.md)
+  on the Redmi Note 7, or the Galaxy A06 when available: the tab, a sheet and the timeline within
+  0.5 s of the tap and a scene's first panel within 1 s (SC-009). Claude asks before connecting to
+  the phone.
+- [ ] **3. The playtest (T149).** SC-010: after opening the tab once, can four of five new players
+  say what they are saving for and how much is left? Tell Claude the count; it goes here.
+- [ ] **4. The art (T150), not blocking.** The empty salon, the twelve style drawings, chapters
+  1–4's undrawn panels and the goal drawings
+  ([research R17](../specs/015-m10-apartment-story/research.md)). The fallbacks ship meanwhile. Each
+  drawing lands in `docs/design/illustrations/` and is synced into
+  `apps/mobile/assets/illustrations/{apartment,panels}/` by `tool/design/sync_assets.dart`.
 
 ## Known for later features
 

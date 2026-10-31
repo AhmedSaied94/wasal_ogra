@@ -158,8 +158,10 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 
 | Type | Fields |
 | --- | --- |
-| `TripView` | `tMs`, `phase`, `topBar`, `strip`, `passengers`, `tokens`, `dropped`, `windows`, `hand`, `tray`, `breakButton`, `boosters`, `undoUntilMs?`, `choices`, `bubbles`, `log`, `hint?`, `banner?`, `storyCondition?` (null without the condition, false once broken), `failSummary?`, `rejection?` (a rejection line), `breakMode` («حد معاه فكة؟» waiting for a note), `controlsLocked` (the command limit), `fastForward` (nothing left for the player: the clock runs 4 times faster, trip_engine RULES.md §16) |
-| `TopBarView` | `lineName?`, `tripNumber`, `reputation` (0–100), `reputationLow` (below 40) |
+| `TripView` | `tMs`, `phase`, `topBar`, `strip`, `passengers`, `tokens`, `dropped`, `windows`, `hand`, `tray`, `breakButton`, `boosters`, `undoUntilMs?`, `choices`, `bubbles`, `log`, `hint?`, `banner?`, `storyCondition?` (null without the condition, false once broken), `storyStrip?` (015: the story strip, when the trip has a rule or its chapter words a condition), `riderBubble?` (015: a story rider's comment, while it shows), `failSummary?`, `rejection?` (a rejection line), `breakMode` («حد معاه فكة؟» waiting for a note), `controlsLocked` (the command limit), `fastForward` (nothing left for the player: the clock runs 4 times faster, trip_engine RULES.md §16) |
+| `TopBarView` | `lineName?`, `tripNumber`, `reputation` (0–100), `reputationLow` (below 40), `storyTitle?` (015: the story trip's title, under the story chip) |
+| `StoryStripView` | `text?` (015: the chapter's condition as the content wrote it), `broken?` (the rule's state: null when the trip has no rule) |
+| `RiderBubbleView` | `speaker` (015: the story character), `seatId` (where the bubble anchors), `text` |
 | `StationStripView` | `chips` (≤ 4), `vehiclePermille` (position along the strip), `countdownMs?`, `warning` (bool) |
 | `StationChip` | `stationId`, `slot` (0–3: color and letter), `name?`, `farePiasters`, `basePiasters` (008.5: the fare before a raise, struck through beside it), `atMs` (008.5: the stop's time, which places its dot), `studentIcon`, `reached`, `next` |
 | `PassengerView` | `passengerId`, `seatId`, `presence` (`boarding`, `aboard`, `leaving`, `gone`), `look` (`SkinLook`), `slot?`, `mood` (0–3), `talking`, `asleep`, `waking`, `headphones`, `attentive`, `nearStopPulse`, `dropMeHere` (the «هنا» star), `ledgerBadge?` (`paid`, `unpaid` or `onFriend` (008.5: a group member their payer paid for), only during a peek), `outcome?` (while leaving), `claimOpen` (008.5: their «أنا دافع!» waits for an answer) |
@@ -178,7 +180,7 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 | `LogLine` | `kind` (`speech`, `fareArrived`, `breakDone`, `dropped`, `lost`, `fareUp`), `speaker?`, `text?` (a passenger's line, resolved), `amountPiasters?` (a money line; the screen words it) |
 | `HintView` | `key` (the ARB key of بلية's line), `targetPassengerId?` |
 | `BannerView` | `oldPiasters`, `newPiasters`, `shownAtMs` |
-| `FailSummary` | `causes` (the top two by reputation lost), `revive?`, `brokeStoryRule` (008.5: a story trip lost to a fight), `angryFaces` (008.5: up to three, for the failure art) |
+| `FailSummary` | `causes` (the top two by reputation lost), `revive?`, `brokeStoryRule` (008.5: a story trip lost to a fight), `failReason?` (015: the chapter's line when that rule broke), `angryFaces` (008.5: up to three, for the failure art) |
 | `FailCause` | `cause`, `count?` (when the engine counts it) |
 | `ReviveOffer` | `priceBonat`, `affordable` |
 | `RejectionLine` | `code`, `untilMs` |

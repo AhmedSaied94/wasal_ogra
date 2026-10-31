@@ -129,6 +129,18 @@ The event fields are a first cut for M01 (research, "Handed to later features").
 | `goal_line` / `goal_vehicle` / `goal_room` | FK, null, PROTECT | — |
 | `story_trip` | FK `Trip`, null, PROTECT | If set, its `kind` must be `story` |
 | `completion_bonat` | int ≥ 0 | — |
+| `goal_art` | varchar, blank | M10 (migration `0011`): the slug of a drawing the app ships |
+| `goal_line_speaker`, `goal_line_ar_eg`, `goal_line_ar` | choices (`StoryCharacter`), text, blank | M10: a character's line on the goal card; the speaker is set exactly when the text is (database check) |
+| `ready_line_*`, `tagline_*` | text, blank | M10 |
+| `story_title_*`, `story_condition_*`, `story_fail_reason_*` | text, blank | M10: the pack's `story_trip_info` (`title`, `condition`, `fail_reason`). Only with `story_trip` (database check and `clean()`) |
+
+| `StoryRider` field (M10, `0011`) | Type | Rules |
+| --- | --- | --- |
+| `chapter` | FK, CASCADE, `related_name="riders"` | The chapter's `story_trip_info.riders`, in order |
+| `order` | smallint | 1 or 2; unique per chapter |
+| `character` | choices (`StoryCharacter`) | `usta`, `salma`, `bride_father`, `bride_mother`, `moallem`, `belya` |
+| `seat_id` | varchar | A seat of the story trip that no passenger sits in (V-C7); unique per chapter |
+| `comment_short_change`, `comment_false_accusation`, `comment_fight`, `comment_missed_stop`, `comment_impatient` | varchar, blank | Speech keys of the pools the rider draws from (V-C8) |
 
 | `Scene` field | Type | Rules |
 | --- | --- | --- |
@@ -136,6 +148,7 @@ The event fields are a first cut for M01 (research, "Handed to later features").
 | `scene_id` | varchar | `^[a-z][a-z0-9_]{1,31}$`, unique per chapter |
 | `order` | smallint | — |
 | `panel_art` | varchar[] | 3 to 5 art slugs, one per panel (product-spec «المشاهد») |
+| `title_ar_eg`, `title_ar` | text | M10 (`0011`): the album's and the timeline's name for the scene; required by the schema, `''` for rows from before the migration, which a build refuses |
 
 | `SceneLine` field | Type | Rules |
 | --- | --- | --- |
@@ -149,10 +162,10 @@ The event fields are a first cut for M01 (research, "Handed to later features").
 
 | Model | Fields and rules |
 | --- | --- |
-| `Room` | `room_id`: glossary closed set, unique, permanent. `name_*`. `chapter` (FK, PROTECT): the chapter that opens it. `order`. `completion_bonat` ≥ 0. |
-| `Item` | `room` (FK, PROTECT). `slug`: `^[a-z][a-z0-9_]{1,31}$`, unique per room. `item_id = f"{room_id}.{slug}"`: permanent. `name_*`. `order`. Price: catalog `(item, item_id)` in JENEHAT. |
-| `ItemVariant` | `item` (FK, CASCADE). `variant_id`: slug, unique per item, permanent. `name_*`. `art` slug. `order`. 1 to 3 per item, all at the item's price. |
-| `FamilyRequest` | `request_id`: `^req_[a-z0-9_]{1,40}$`, unique, permanent. `room` (FK). `item` (FK, in that room). `variant` (FK, null, of that item). `text_*`. `reward_bonat` > 0. |
+| `Room` | `room_id`: glossary closed set, unique, permanent. `name_*`. `chapter` (FK, PROTECT): the chapter that opens it. `order`. `completion_bonat` ≥ 0. M10 (`0011`): `art` (slug, blank), `done_line_*` (text, blank). |
+| `Item` | `room` (FK, PROTECT). `slug`: `^[a-z][a-z0-9_]{1,31}$`, unique per room. `item_id = f"{room_id}.{slug}"`: permanent. `name_*`. `order`. Price: catalog `(item, item_id)` in JENEHAT. M10 (`0011`): `slot_x`, `slot_y`, `slot_w`, `slot_h` (small positive integers, a database check for each bound of the schema's `ItemSlot`; `0` in rows from before the migration, which `0011` lets pass and a build refuses), `comment_*` (text, blank). |
+| `ItemVariant` | `item` (FK, CASCADE). `variant_id`: slug, unique per item, permanent. `name_*`. `art` slug. `order`. 1 to 3 per item, all at the item's price. M10: `comment_*` (text, blank). |
+| `FamilyRequest` | `request_id`: `^req_[a-z0-9_]{1,40}$`, unique, permanent. `room` (FK). `item` (FK, in that room). `variant` (FK, null, of that item). `text_*`. `reward_bonat` > 0. M10 (`0011`): `character` (choices, `StoryCharacter`; blank in rows from before the migration, which a build refuses). |
 
 ### `content.SpeechPool` and `content.SpeechLine` (FR-017)
 
