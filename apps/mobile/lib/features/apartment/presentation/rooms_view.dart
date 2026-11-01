@@ -123,10 +123,21 @@ class _ApartmentRoomsViewState extends ConsumerState<ApartmentRoomsView> {
       const SizedBox(height: roomsGap),
       _TabsRow(model: model),
       const SizedBox(height: roomsGap),
-      RoomScene(
-        model: model,
-        bought: bought,
-        onTap: (item) => NavGuard.go(context, '/apartment/item/${item.itemId}'),
+      // A tab switch fades the drawing to the other room in at most 150 ms
+      // (FR-015), which is the fade reduced motion allows.
+      AnimatedSwitcher(
+        duration: DesignExtras.tabFade,
+        child: SizedBox(
+          // A new room is a new drawing: the old one fades out over it.
+          key: ValueKey(model.room.roomId),
+          width: double.infinity,
+          child: RoomScene(
+            model: model,
+            bought: bought,
+            onTap: (item) =>
+                NavGuard.go(context, '/apartment/item/${item.itemId}'),
+          ),
+        ),
       ),
       const SizedBox(height: roomsGap),
       _Grid(model: model),
@@ -376,7 +387,9 @@ class _TabsRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final numbers = ref.watch(numberFormatterProvider);
-    final selected = ref.watch(roomTabIdProvider) ?? model.room.roomId;
+    // The tab drawn as chosen is the room drawn: the view's model is the
+    // selected room's already (FR-010).
+    final selected = model.room.roomId;
     final radius = BorderRadius.circular(RadiusTokens.m);
     return SizedBox(
       height: LayoutTokens.touchMin,

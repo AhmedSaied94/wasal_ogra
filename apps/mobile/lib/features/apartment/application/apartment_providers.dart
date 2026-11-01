@@ -8,6 +8,7 @@ import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/progress/application/pending_rewards_provider.dart';
+import 'package:wassal/core/progress/domain/unlocks.dart';
 import 'package:wassal/features/apartment/application/goal_purchase.dart';
 import 'package:wassal/features/apartment/application/piece_purchase.dart';
 import 'package:wassal/features/apartment/application/request_claim.dart';
@@ -23,14 +24,15 @@ int _pendingTotal(Ref ref) =>
     [for (final reward in ref.watch(pendingRewardsProvider)) reward.bonat]
         .fold(0, (sum, bonat) => sum + bonat);
 
-/// What the tab draws now, rebuilt when the pack, the progress or the view
-/// changes.
+/// What the tab draws now, rebuilt when the pack, the progress, the view or the
+/// chosen room tab changes.
 @Riverpod(keepAlive: true)
 ApartmentView apartmentView(Ref ref) {
   final view = ref.watch(economyViewProvider);
   return apartmentViewOf(
     ref.watch(contentSourceProvider),
     ref.watch(playerProgressProvider),
+    selectedRoom: ref.watch(roomTabIdProvider),
     jenehat: view.jenehat,
     variantOf: view.variantOf,
     requestsClaimed: view.requestsClaimed,
@@ -38,6 +40,14 @@ ApartmentView apartmentView(Ref ref) {
     pendingTotal: _pendingTotal(ref),
   );
 }
+
+/// The current chapter, by id. The room tab's choice is forgotten when the
+/// story moves on: the view opens on the new chapter's room (FR-010).
+@Riverpod(keepAlive: true)
+ChapterId? currentChapterId(Ref ref) => currentChapter(
+  ref.watch(contentSourceProvider),
+  ref.watch(playerProgressProvider),
+)?.chapterId;
 
 /// The bar's last value per chapter, so it animates from where it was
 /// (research R8). In memory: a relaunch draws the bar full.
@@ -81,11 +91,15 @@ class PieceStyleMemory extends _$PieceStyleMemory {
       state = {...state, itemId: variantId};
 }
 
-/// The selected room tab. In memory.
+/// The selected room tab. In memory: a relaunch opens on the current chapter's
+/// room, and so does a new chapter.
 @Riverpod(keepAlive: true)
 class RoomTabId extends _$RoomTabId {
   @override
-  RoomId? build() => null;
+  RoomId? build() {
+    ref.listen(currentChapterIdProvider, (_, _) => state = null);
+    return null;
+  }
 
   set tab(RoomId? value) => state = value;
 }

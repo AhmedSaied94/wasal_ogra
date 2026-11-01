@@ -147,6 +147,32 @@ void main() {
     expect(currentLocation(tester), '/trip/line_hay.04');
   });
 
+  // R3-2 (FR-030, FR-055): a goal scene's unlock is derived, so a refused
+  // purchase, a restore or a pack update can lock a due id again. Redirecting
+  // to it then loops `/trip` and the scene until go_router gives up.
+  testWidgets('a due id the pack locked again: the trip starts, no loop', (
+    tester,
+  ) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.02',
+      player: _player(finished: 1),
+      // ch2's goal (the microbus) isn't met: father_visit is locked.
+      scenesDue: {'father_visit'},
+    );
+    expect(currentLocation(tester), '/trip/line_hay.02');
+  });
+
+  testWidgets('a due id the pack lacks: the trip starts', (tester) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.02',
+      player: _player(finished: 1),
+      scenesDue: {'ghost_scene'},
+    );
+    expect(currentLocation(tester), '/trip/line_hay.02');
+  });
+
   testWidgets('a failed scene write: reported, the scene again, then on', (
     tester,
   ) async {

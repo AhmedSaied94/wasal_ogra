@@ -315,4 +315,48 @@ void main() {
     );
     expect(currentLocation(tester), '/home');
   });
+
+  // R3-2 (FR-030, FR-055): a due scene that locked again (a refused purchase,
+  // a restore, a pack update) opens nothing, and the queue moves on. It used
+  // to push the viewer, which redirected away, so `untilLeft` never completed
+  // and the name sheet never came.
+  testWidgets('a due scene that locked again: the next arrival item opens', (
+    tester,
+  ) async {
+    final economy = await testEconomy(
+      content: tutorialContent(),
+      firstState: (nowMs) =>
+          EconomyState.newPlayer(fuelMax: 5, nowMs: nowMs).copyWith(
+            progress: {
+              for (final trip in tutorialTripIds.take(3))
+                trip: const TripProgress(
+                  bestStars: 1,
+                  plays: 1,
+                  firstCompletedAtMs: 1,
+                ),
+            },
+          ),
+    );
+    await refuseName(economy, 'حمادة');
+    await preloadTripArt(tester);
+    await pumpWassalApp(
+      tester,
+      newPlayer: true,
+      content: contentTestOverrides(assets: tutorialBundledAssets()),
+      economy: economyOverridesOf(economy),
+      overrides: [
+        nameSeedProvider.overrideWithValue(_seed),
+        ...seededFirstSession((store) async {
+          await store.markOpeningDone(0);
+          await store.reachStep(4);
+          // ch2's goal (the microbus) isn't met: father_visit is locked.
+          await store.addSceneDue('father_visit');
+        }),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(currentLocation(tester), '/home');
+    // The name sheet is the next item, on this same arrival.
+    expect(find.byType(NameSheet), findsOneWidget);
+  });
 }

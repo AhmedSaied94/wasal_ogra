@@ -132,15 +132,20 @@ final class RoomModel {
   );
 }
 
-/// The room the tab shows while [chapter] is current: the room of the last
-/// chapter up to it that names one. Completing a room moves the story on to
-/// the next chapter, and the room stays on screen with its goal scene.
+/// The room the tab shows while [chapter] is current: [selectedRoom] when its
+/// chapter has started, else the room of the last chapter up to it that names
+/// one (FR-010). Completing a room moves the story on to the next chapter, and
+/// the room stays on screen with its goal scene.
+///
+/// A selection the pack lacks, or whose chapter hasn't started, is the current
+/// chapter's room: a locked tab shows nothing.
 ///
 /// Null when no chapter up to [chapter] names a room, or the pack has none.
 RoomModel? roomModel(
   ContentSource c,
   PlayerProgress p,
   Chapter chapter, {
+  RoomId? selectedRoom,
   required int jenehat,
   required String? Function(String itemId) variantOf,
   required Set<String> requestsClaimed,
@@ -149,7 +154,6 @@ RoomModel? roomModel(
 }) {
   final current = _roomOf(c, chapter);
   if (current == null) return null;
-  final (roomChapter, room) = current;
 
   final tabs = [
     // By the glossary's order (salon, kitchen, bedroom), including the
@@ -163,6 +167,7 @@ RoomModel? roomModel(
       else
         LockedTab(id),
   ];
+  final (roomChapter, room) = _shownRoom(c, current, tabs, selectedRoom);
   final items = [...c.itemsOf(room.roomId)]
     ..sort((a, b) => a.order.compareTo(b.order));
   final next = nextPiece(c, p, room.roomId);
@@ -238,6 +243,25 @@ RoomModel? roomModelOfRoom(
     if (room != null) found = (each, room);
   }
   return found;
+}
+
+/// The room the view draws: [selectedRoom]'s own chapter and room when its tab
+/// is selectable, else [current]. A room with no chapter of its own draws as
+/// [current].
+(Chapter, Room) _shownRoom(
+  ContentSource c,
+  (Chapter, Room) current,
+  List<RoomTab> tabs,
+  RoomId? selectedRoom,
+) {
+  if (selectedRoom == null || selectedRoom == current.$2.roomId) return current;
+  final started = tabs.any(
+    (tab) => tab is SelectableTab && tab.roomId == selectedRoom,
+  );
+  if (!started) return current;
+  final room = c.room(selectedRoom);
+  final chapter = room == null ? null : c.chapter(room.chapterId);
+  return chapter == null ? current : (chapter, room!);
 }
 
 /// [item]'s stored style, or its first: a style the pack dropped still

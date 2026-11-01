@@ -21,8 +21,8 @@ final class GoalView extends ApartmentView {
   final GoalViewModel? model;
 }
 
-/// From the apartment's chapter on: the current room, and whether the story
-/// ends here.
+/// From the apartment's chapter on: the room drawn (the tab's, else the current
+/// chapter's), and whether the story ends here.
 final class RoomsView extends ApartmentView {
   const RoomsView({required this.model, required this.storyEnd});
 
@@ -32,10 +32,12 @@ final class RoomsView extends ApartmentView {
 
 /// [content]'s tab for [progress] at [jenehat] (contracts/apartment.md "The
 /// tab"). The pending chip's total is passed through to the rooms view's
-/// header.
+/// header, and [selectedRoom] is the room tab the player chose, if any: the
+/// view opens on the current chapter's room (FR-010).
 ApartmentView apartmentViewOf(
   ContentSource content,
   PlayerProgress progress, {
+  RoomId? selectedRoom,
   required int jenehat,
   required String? Function(String itemId) variantOf,
   required Set<String> requestsClaimed,
@@ -52,6 +54,7 @@ ApartmentView apartmentViewOf(
     content,
     progress,
     chapter,
+    selectedRoom: selectedRoom,
     jenehat: jenehat,
     variantOf: variantOf,
     requestsClaimed: requestsClaimed,

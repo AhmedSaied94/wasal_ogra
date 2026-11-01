@@ -45,6 +45,7 @@ Future<ProviderContainer> _app(
   int liters = 5,
   List<Override> overrides = const [],
   bool newPlayer = false,
+  Map<String, int> extraStars = const {},
 }) async {
   final (container, _) = await pumpLinesApp(
     tester,
@@ -53,6 +54,7 @@ Future<ProviderContainer> _app(
       stars: {
         'line_hay.01': 1,
         'line_hay.02': 1,
+        ...extraStars,
         for (var n = 1; n <= 11; n++) _t('line_gamaa', n): 2,
       },
       owned: {microOld},
@@ -199,10 +201,13 @@ void main() {
     tester,
   ) async {
     // M07's due list (research R3): the after-trip scene of a first finish.
-    // M10's goal scenes join it with `StoryDueWatcher` (T088).
+    // M10's goal scenes join it with `StoryDueWatcher` (T088), and a due id
+    // plays only while its scene waits in the pack (R3-2): the_stand needs
+    // line_hay.03 finished.
     final container = await _app(
       tester,
       newPlayer: true,
+      extraStars: {'line_hay.03': 1},
       overrides: [
         ...seededFirstSession((store) => store.addSceneDue('the_stand')),
       ],

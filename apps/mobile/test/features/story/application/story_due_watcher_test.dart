@@ -5,6 +5,9 @@ import 'package:content_models/content_models.dart';
 import 'package:flutter/foundation.dart' show FlutterError, FlutterErrorDetails;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/economy/economy.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/story.dart';
+import 'package:wassal/features/onboarding/domain/first_session.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/story/application/story_due_watcher.dart';
 
@@ -108,4 +111,41 @@ void main() {
     await watcher.onView(before, after);
     expect(flags.due, isEmpty);
   });
+
+  // R3-2 (FR-030, FR-055): a goal scene's unlock is derived, so a purchase
+  // the server refuses and M06 rolls back leaves the id in the due list with
+  // its scene locked again: it must not hold a trip.
+  test(
+    'a due id a rollback locks again is not due, until it waits again',
+    () async {
+      final flags = _Flags();
+      final watcher = StoryDueWatcher(content, flags);
+      final met = _view(_state(stars: hayDone));
+      final bought = _view(
+        _state(stars: hayDone, owned: {microOld}),
+        confirmed: _state(stars: hayDone),
+      );
+      await watcher.onView(met, bought);
+      expect(flags.due, ['father_visit']);
+
+      FirstSession session(EconomyView view) => FirstSession(
+        FirstSessionFacts(
+          flags: FirstSessionFlags(scenesDue: flags.due),
+          tutorialTrips: tutorialTripsOf(content),
+          progress: view.progress,
+          fuelLiters: 5,
+          fuelUnlimited: false,
+          tutorialGranted: false,
+          waitingScenes: waitingSceneIds(
+            content,
+            playerProgressOf(view, content),
+            view.scenesSeen,
+          ),
+        ),
+      );
+
+      expect(session(met).dueScene, isNull);
+      expect(session(bought).dueScene, 'father_visit');
+    },
+  );
 }

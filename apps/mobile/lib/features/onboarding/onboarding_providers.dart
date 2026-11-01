@@ -8,6 +8,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/story.dart';
 import 'package:wassal/features/onboarding/application/first_session_service.dart';
 import 'package:wassal/features/onboarding/data/drift_first_session_store.dart';
 import 'package:wassal/features/onboarding/domain/first_session.dart';
@@ -118,6 +120,13 @@ FirstSession firstSession(Ref ref) {
       nameRefused: view.nameRefused,
       openingSceneId: plan.openingScene,
       afterTripScenes: plan.afterTripScenes,
+      // A due id plays only while its scene waits in the active pack: a
+      // refused purchase or a restore that locks it again drops it here.
+      waitingScenes: waitingSceneIds(
+        ref.watch(contentSourceProvider),
+        ref.watch(playerProgressProvider),
+        view.scenesSeen,
+      ),
       coachEverywhere: ref.watch(coachEverywhereProvider),
     ),
   );

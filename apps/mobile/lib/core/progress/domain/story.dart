@@ -90,6 +90,18 @@ List<(Chapter, Scene)> waitingScenes(
       (chapter, scene),
 ];
 
+/// The ids of the scenes waiting for [p] now: unlocked and unseen.
+///
+/// M07's due list only holds ids, so this is what says whether one may still
+/// play: a scene that locks again (a purchase the server refuses, FR-055, or a
+/// restore) or that a pack update drops is not waiting, and must not hold a
+/// trip or Home's arrival.
+Set<String> waitingSceneIds(
+  ContentSource c,
+  PlayerProgress p,
+  Map<String, Set<String>> seen,
+) => {for (final (_, scene) in waitingScenes(c, p, seen)) scene.sceneId};
+
 /// The chapter's goal scene: its one scene without `plays` (V-C10), else
 /// null.
 Scene? goalSceneOf(Chapter chapter) {

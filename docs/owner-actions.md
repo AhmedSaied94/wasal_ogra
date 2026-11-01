@@ -1189,6 +1189,13 @@ apartment's own branch, not a page over the shell (a page there put two shells o
 `closeTo` is gone. And M09's `lines_loop_test.dart` now plays `father_visit` before
 `line_gamaa.01`: the scene that is due before that trip opens first, as story-flow.md says.
 
+The third review fixed two things you can see. A room's tab now shows that room — its drawing, its
+pieces and its chapter bar, with the drawing fading over in 150 ms — and a new chapter forgets the
+room you chose, so the tab opens on the current chapter's room (FR-010, FR-015); a locked tab is
+still inert. And a scene that had become due no longer holds a trip or Home's arrival when its
+unlock goes away (a purchase the server refuses and rolls back, a restore, or a pack update that
+drops it): the trip starts, and Home's next arrival item opens.
+
 ### Before the new boards' design checks
 
 - [X] **1. Draw the ten boards the first release needs (T130).** Done on 2026-10-31: drawn on the

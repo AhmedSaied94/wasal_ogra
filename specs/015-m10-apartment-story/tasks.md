@@ -1494,3 +1494,35 @@ These tasks come from `reviews/round-2.md`.
   tests moved between the shell and the root page; the nested sheet doesn't. The `apartmentPreTrip_*`
   goldens are regenerated. `pre_trip_card_test`'s «a failed write» case now counts only the
   `spend_bonat` rows, because the launch's backfill (T088) also sends the opening M07 saw.
+
+## Phase 15: Review fixes (round 3)
+
+These tasks come from `reviews/round-3.md`.
+
+- [X] T158 [R3-1] Make the apartment's room tabs switch the room in `apps/mobile/lib/features/apartment/presentation/rooms_view.dart`, `apps/mobile/lib/features/apartment/application/apartment_providers.dart` and `apps/mobile/lib/features/apartment/domain/room_model.dart`: `roomTabIdProvider` is read only by the tab highlight (`rooms_view.dart:379,412`), so tapping a selectable tab moves the highlight and leaves the scene, grid, chapter bar and strip on the current chapter's room, and there is no crossfade (FR-010, FR-015). After the fix the displayed `RoomModel` is the selected room's (falling back to the current chapter's), the selection resets when the current chapter changes, `RoomScene` crossfades in at most 150 ms (a fade only under reduced motion), and a locked tab stays inert. Add the widget test T054 names, in `apps/mobile/test/features/apartment/rooms_view_test.dart`: with a pack that has two started rooms (`synthetic_packs.dart`), tapping the second tab changes the scene, grid and title, and a chapter change resets the selection. It fails before the fix. (HIGH, per FR-010 and FR-015)
+
+  Done in the model, not the view: `apartmentView` reads `roomTabIdProvider` and `roomModel` draws the chosen
+  room's own chapter and pieces, so the drawing, the grid, the chapter bar and the strip all follow the tab;
+  `RoomTabId` clears itself when `currentChapterId` changes, and the drawing fades over 150 ms
+  (`DesignExtras.tabFade`) in an `AnimatedSwitcher` keyed by the room — the fade reduced motion allows. A
+  locked tab stays inert, and a selection whose chapter locks falls back to the current chapter's room.
+  `rooms_view_test` gains «a tab tap shows that room: the scene, the grid and the bar» (kitchen current, the
+  salon tab tapped: two drawings while the old one fades, then the salon's bar, pieces and «شوف المشهد») and
+  «a new chapter forgets the chosen room» (the kitchen's piece bought: the selection is null and the view is
+  back on the current chapter's room).
+
+- [X] T159 [R3-2] Stop a due scene that is locked or missing from blocking trips and Home's arrival queue in `apps/mobile/lib/features/onboarding/domain/first_session.dart` (`dueScene`, about line 193), `apps/mobile/lib/features/onboarding/presentation/arrival_items.dart`, `apps/mobile/lib/features/story/application/story_due_watcher.dart` and `apps/mobile/lib/core/routing/router.dart` (`/trip` redirect, about line 208): `dueScene` returns any id in `scenesDue` not yet seen, without checking it exists or is unlocked, and nothing removes an id except seeing the scene. A goal scene's unlock is derived, so a refused purchase (FR-055), a restore or a pack update can lock it again; then `/trip/X` redirects to `/story/scene/S?then=/trip/X`, `_storyRedirect` returns `/trip/X`, and the loop repeats until go_router's redirect limit; at Home the viewer redirect never shows `/story/scene/S`, so the arrival queue's `untilLeft` never completes. After the fix `dueScene` and the arrival ignore ids whose scene is not `waiting` in the active pack (a predicate from the content and derived progress, or the watcher drops a due id when its chapter stops being complete). Add tests in `apps/mobile/test/features/story/application/story_due_watcher_test.dart`, `apps/mobile/test/core/routing/` and `apps/mobile/test/features/onboarding/arrival_items_test.dart`: a due id whose scene is locked, and one absent from the pack, give no due scene, a trip starts with no redirect cycle, and the arrival queue continues. They fail before the fix. (HIGH, per FR-030, FR-055)
+
+  Done as the predicate the review names first: `waitingSceneIds` (the pack's unlocked, unseen scenes) is passed
+  into `FirstSessionFacts` by `firstSessionProvider`, and `dueScene` skips a due id it doesn't hold — so
+  `beforeStart` (the `/trip` redirect) and `onArrivalAtHome` (`DueSceneArrival`) both do. `StoryDueWatcher`
+  and `arrival_items.dart` needed no change, and the id stays in `scenes_due`: it plays if its scene waits
+  again (a purchase the server accepts later, a star earned later). Tests: `first_session_test` (a locked id
+  and an absent one, on a trip and on Home), `first_session_redirect_test` (a locked id and an absent one: the
+  trip starts, no cycle), `arrival_items_test` (Home's queue moves on to the name sheet) and
+  `story_due_watcher_test` (a rolled-back purchase locks the watcher's scene again: not due; accepted: due).
+
+  One visible consequence, which `contracts/story-flow.md`'s table already states: an `after_trip` scene is
+  unlocked at one star, so a trip's first finish with no stars — which M07's `isFinished` counted — leaves
+  its scene in `scenes_due` until a later star on that trip unlocks it, instead of playing it.
+
