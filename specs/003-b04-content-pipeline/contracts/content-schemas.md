@@ -115,12 +115,12 @@ The §9.3 example becomes `content/examples/valid/trip/line_gamaa.12.json`, with
 | --- | --- |
 | `Line` | `line_id`, `name` (`LocalizedText`), `order` (≥ 1), `stations` (array of `{ station_id, name }`, 2–30), `unlock` (`{ kind: enum start\|vehicle\|line_complete, vehicle_id?: VehicleId, line_id?: LineId }`), `difficulty_band` (`{ min: 0–100, max: 0–100 }`), `whats_new` (`LocalizedText`) and `display_fare_piasters` (`PositivePiasters`), both since M09 (`specs/014-m09-lines-vehicles/contracts/content-fields.md`) |
 | `Vehicle` | `vehicle_id`, `name`, `short_name` (`LocalizedText`, M09), `order`, `starter` (boolean), `seats` (array of `Seat`, 1–20) |
-| `Chapter` | `chapter_id`, `order`, `title`, `goal` (`{ kind: enum complete_line\|own_vehicle\|purchase\|complete_room, line_id?, vehicle_id?, room_id? }`), opt. `story_trip_id`, `completion_bonat` (`Amount`), `scenes` (array of `Scene`, 0–10) |
-| `Scene` | `scene_id` (`StationId` pattern), `panels` (array of `Panel`, 3–5) |
+| `Chapter` | `chapter_id`, `order`, `title`, `goal` (`{ kind: enum complete_line\|own_vehicle\|purchase\|complete_room, line_id?, vehicle_id?, room_id? }`), opt. `story_trip_id`, `completion_bonat` (`Amount`), `scenes` (array of `Scene`, 0–10); since M10 (`specs/015-m10-apartment-story/contracts/content-fields.md`) opt. `goal_art` (`Slug`), `goal_line` (`CharacterLine`: `{ speaker: StoryCharacter, text }`), `ready_line`, `tagline` (`LocalizedText`) and `story_trip_info` (`StoryTripInfo`: `title`, opt. `condition` and `fail_reason`, `riders` of 1–2 `StoryRider` = `{ character: StoryCharacter, seat: SeatId pattern, opt. comments: RiderComments }`, whose opt. keys `short_change`, `false_accusation`, `fight`, `missed_stop` and `impatient` are `SpeechKey`s) |
+| `Scene` | `scene_id` (`StationId` pattern), `title` (`LocalizedText`, M10), `panels` (array of `Panel`, 3–5) |
 | `Panel` | `art` (`Slug`), `lines` (array of `{ speaker: Slug, text: LocalizedText }`, 0–8) |
-| `Room` | `room_id`, `name`, `order`, `chapter_id`, `completion_bonat` |
-| `Item` | `item_id`, `room_id`, `name`, `order`, `variants` (array of `{ variant_id: StationId pattern, name, art: Slug }`, 1–3) |
-| `FamilyRequest` | `request_id` (`^req_[a-z0-9_]{1,40}$`), `room_id`, `item_id`, opt. `variant_id`, `text`, `reward_bonat` (≥ 1) |
+| `Room` | `room_id`, `name`, `order`, `chapter_id`, `completion_bonat`; since M10 opt. `art` (`Slug`) and `done_line` (`LocalizedText`) |
+| `Item` | `item_id`, `room_id`, `name`, `order`, `variants` (array of `{ variant_id: StationId pattern, name, art: Slug, opt. comment: LocalizedText }`, 1–3); since M10 `slot` (`ItemSlot` = `{ x: 0–334, y: 0–276, w: 24–358, h: 24–300 }`, required) and opt. `comment` |
+| `FamilyRequest` | `request_id` (`^req_[a-z0-9_]{1,40}$`), `room_id`, `item_id`, opt. `variant_id`, `text`, `reward_bonat` (≥ 1), `character` (`StoryCharacter`, M10, required) |
 | `SpeechPool` | `speech_key`, `lines` (array of `{ text: LocalizedText }`, 1–50) |
 | `Catalog` | `prices` (array of `{ sku_kind: enum item\|vehicle\|chapter\|booster\|fuel\|revive\|fuel_unlimited, sku_id: string, currency, amount: integer ≥ 1 }`) |
 | `DailyRewardDay` | `day_index` (1–7), `jenehat` (`Amount`), `bonat` (`Amount`) |
@@ -157,8 +157,16 @@ id, path, message}`. Codes are stable, so tests can name them.
 | `V-C3` | error | (M07) A scene's `plays.kind` `opening` is only in the chapter with `order` 1, at most once in the pack, and with no `trip_id` |
 | `V-C4` | error | (M07) A scene's `plays.kind` `after_trip` needs a `trip_id` naming a trip in the pack, and at most one scene names each trip |
 | `V-C5` | error | (M07) A panel's `narrator` line (its caption), if any, is its first line, and there is at most one |
+| `V-C6` | error | (M10) `story_trip_info` is only on a chapter that has a `story_trip_id` |
+| `V-C7` | error | (M10) Each rider's `seat` is one of the story trip's `seats[].seat_id`, no passenger of that trip sits there, and the riders' seats differ |
+| `V-C8` | error | (M10) Each `comments` key names a speech pool in the pack, and that pool's lines have no `{amount}` or `{station}` placeholder |
+| `V-C9` | error | (M10) `fail_reason` is only on a chapter whose story trip has `rules.no_fights_required: true` |
+| `V-C10` | error | (M10) A chapter has at most one scene without `plays` (its goal scene) |
+| `V-C11` | error | (M10) `scene_id`s are unique across the pack |
+| `V-C12` | error | (M10) A panel has at most two lines whose `speaker` isn't `narrator` |
 | `V-R1` | error | Every room's `chapter_id` and every item's `room_id` exist, `item_id` starts with `room_id + "."`, and variant ids are unique per item |
 | `V-R2` | error | A family request's `item_id` is in its `room_id`, and its `variant_id` is a variant of that item |
+| `V-R3` | error | (M10) An item's `slot` fits inside its room's 358 × 300 drawing: `x + w ≤ 358` and `y + h ≤ 300` |
 | `V-K1` | error | Catalog prices and purchasable products match one to one. Each item, each non-starter vehicle, each `purchase` chapter, and each BONAT SKU listed in data-model.md `CatalogPrice` has exactly one price. Nothing else has a price. |
 | `V-D1` | error | `daily_rewards` has exactly day 1 to 7. Every day and every task grants something. |
 | `V-U1` | error | Every identifier is unique within its kind, and so are passenger, seat and scene ids within their trip, layout or chapter. Trip ids are `V-T7`'s, station ids `V-L2`'s and variant ids `V-R1`'s. |

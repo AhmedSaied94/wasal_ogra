@@ -77,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   final OpenCheck? openCheck;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// The step to each version after 1. A later schema adds its entry here,
   /// calling the step `make-migrations` generates for it.
@@ -86,6 +86,7 @@ class AppDatabase extends _$AppDatabase {
     2: _toV2,
     3: _toV3,
     4: _toV4,
+    5: _toV5,
   };
 
   /// v2 adds the trip's records (specs/008-m02-trip-screen,
@@ -135,6 +136,26 @@ class AppDatabase extends _$AppDatabase {
     await v4.alterTable(TableMigration(schema.ledgerOps));
     await v4.createTable(schema.playerState);
     await v4.createTable(schema.firstSession);
+  }
+
+  /// v5 adds M10's story state (specs/015-m10-apartment-story, data-model.md
+  /// "Drift schema 5"): `player_state`'s two columns, which start empty, and
+  /// `ledger_ops`' `op_type` check, which gains `story_progress` and
+  /// `claim_request`, so the table is rebuilt as in v3 and v4, every row kept.
+  static Future<void> _toV5(Migrator m) async {
+    final schema = Schema5(database: m.database);
+    final v5 = Migrator(m.database, schema);
+    await v5.alterTable(TableMigration(schema.ledgerOps));
+    await v5.alterTable(
+      TableMigration(
+        schema.playerState,
+        columnTransformer: {
+          // A row written before v5 saw no scene and claimed nothing.
+          schema.playerState.scenesSeen: const Constant('{}'),
+          schema.playerState.requestsClaimed: const Constant('[]'),
+        },
+      ),
+    );
   }
 
   @override

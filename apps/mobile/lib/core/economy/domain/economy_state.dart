@@ -363,12 +363,19 @@ final class EconomyState {
     this.lastResult,
     this.displayName,
     this.tutorialGranted = false,
+    Map<String, Set<String>> scenesSeen = const {},
+    Set<String> requestsClaimed = const {},
   }) : inventory = UnmodifiableMapView({
          for (final MapEntry(:key, :value) in inventory.entries)
            if (value != 0) key: value,
        }),
        ownership = UnmodifiableMapView({...ownership}),
-       progress = UnmodifiableMapView({...progress});
+       progress = UnmodifiableMapView({...progress}),
+       scenesSeen = UnmodifiableMapView({
+         for (final MapEntry(:key, :value) in scenesSeen.entries)
+           if (value.isNotEmpty) key: UnmodifiableSetView({...value}),
+       }),
+       requestsClaimed = UnmodifiableSetView({...requestsClaimed});
 
   /// A new player (FR-010): a full tank, counted from [nowMs], and nothing
   /// else.
@@ -401,6 +408,14 @@ final class EconomyState {
   /// The tutorial gift was given (on this phone, or by the server's state).
   final bool tutorialGranted;
 
+  /// The scenes seen per chapter, by the chapter's wire name (M10
+  /// contracts/economy-ops.md). The source of truth for "seen" (R3).
+  final Map<String, Set<String>> scenesSeen;
+
+  /// The family requests taken, by `request_id`. The reward arrives with the
+  /// server's base, never here (constitution IV).
+  final Set<String> requestsClaimed;
+
   EconomyState copyWith({
     int? jenehat,
     int? bonat,
@@ -412,6 +427,8 @@ final class EconomyState {
     LastResult? Function()? lastResult,
     String? Function()? displayName,
     bool? tutorialGranted,
+    Map<String, Set<String>>? scenesSeen,
+    Set<String>? requestsClaimed,
   }) => EconomyState(
     jenehat: jenehat ?? this.jenehat,
     bonat: bonat ?? this.bonat,
@@ -423,6 +440,8 @@ final class EconomyState {
     lastResult: lastResult == null ? this.lastResult : lastResult(),
     displayName: displayName == null ? this.displayName : displayName(),
     tutorialGranted: tutorialGranted ?? this.tutorialGranted,
+    scenesSeen: scenesSeen ?? this.scenesSeen,
+    requestsClaimed: requestsClaimed ?? this.requestsClaimed,
   );
 
   @override
@@ -437,7 +456,10 @@ final class EconomyState {
       other.unfinished == unfinished &&
       other.lastResult == lastResult &&
       other.displayName == displayName &&
-      other.tutorialGranted == tutorialGranted;
+      other.tutorialGranted == tutorialGranted &&
+      _nestedSetEquals(other.scenesSeen, scenesSeen) &&
+      other.requestsClaimed.length == requestsClaimed.length &&
+      other.requestsClaimed.containsAll(requestsClaimed);
 
   @override
   int get hashCode => Object.hash(
@@ -451,6 +473,8 @@ final class EconomyState {
     lastResult,
     displayName,
     tutorialGranted,
+    scenesSeen.length,
+    requestsClaimed.length,
   );
 
   // The name is the player's own; it stays out of logs (M07 plan "Security
@@ -495,6 +519,12 @@ final class EconomyState {
       'display_name': ?displayName,
       // Absent when false, so a v3 base's JSON is unchanged.
       if (tutorialGranted) 'tutorial_granted': true,
+      // M10: sorted, as the canonical form requires (contracts/economy-ops.md).
+      'scenes_seen': {
+        for (final key in (scenesSeen.keys.toList()..sort()))
+          key: (scenesSeen[key]!.toList()..sort()),
+      },
+      'requests_claimed': (requestsClaimed.toList()..sort()),
     };
   }
 
@@ -511,6 +541,8 @@ final class EconomyState {
       'last_result',
       'display_name',
       'tutorial_granted',
+      'scenes_seen',
+      'requests_claimed',
     });
     final displayName = map['display_name'];
     if (displayName is! String?) {
@@ -585,8 +617,49 @@ final class EconomyState {
       displayName: displayName,
       tutorialGranted:
           map['tutorial_granted'] != null && _bool(map, 'tutorial_granted'),
+      scenesSeen: _scenesSeen(map['scenes_seen']),
+      requestsClaimed: _stringSet(map['requests_claimed'], 'requests_claimed'),
     );
   }
+}
+
+/// `scenes_seen`: a map of chapter wire names to scene-id arrays. Absent (a
+/// base from before M10) reads as empty.
+Map<String, Set<String>> _scenesSeen(Object? json) {
+  if (json == null) return const {};
+  final map = _object(json, 'scenes_seen', null);
+  return {
+    for (final MapEntry(:key, :value) in map.entries)
+      key: _stringSet(value, 'scenes_seen.$key'),
+  };
+}
+
+Set<String> _stringSet(Object? json, String what) {
+  if (json == null) return const {};
+  if (json is! List<Object?>) {
+    throw FormatException('$what must be a list', json);
+  }
+  final values = <String>{};
+  for (final value in json) {
+    if (value is! String) {
+      throw FormatException('$what holds a non-string', value);
+    }
+    values.add(value);
+  }
+  return values;
+}
+
+bool _nestedSetEquals(Map<String, Set<String>> a, Map<String, Set<String>> b) {
+  if (a.length != b.length) return false;
+  for (final MapEntry(:key, :value) in a.entries) {
+    final other = b[key];
+    if (other == null ||
+        other.length != value.length ||
+        !other.containsAll(value)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool _mapEquals<K, V>(Map<K, V> a, Map<K, V> b) {

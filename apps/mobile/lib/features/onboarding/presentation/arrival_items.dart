@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/content/home_arrival.dart';
+import 'package:wassal/core/routing/router.dart' show dueSceneLocation;
 import 'package:wassal/features/home/application/arrival_queue.dart';
 import 'package:wassal/features/onboarding/domain/first_session.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
@@ -37,16 +38,14 @@ final class DueSceneArrival implements ArrivalItem {
     final sceneId = _due(container);
     if (sceneId == null) return Future.value();
     final router = GoRouter.of(context);
-    final path = '/onboarding/scene/$sceneId';
-    final left = untilLeft(router, path);
-    unawaited(
-      router.push<void>(
-        Uri(
-          path: path,
-          queryParameters: {'then': HomeArrival.homePath},
-        ).toString(),
-      ),
+    // M10: M07's player in the first session, the story viewer after it.
+    final location = dueSceneLocation(
+      sceneId,
+      HomeArrival.homePath,
+      firstSession: container.read(firstSessionProvider).inFirstSession,
     );
+    final left = untilLeft(router, Uri.parse(location).path);
+    unawaited(router.push<void>(location));
     return left;
   }
 }

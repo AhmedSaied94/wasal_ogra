@@ -60,6 +60,24 @@ abstract interface class Economy {
   /// (`OpRefused(alreadyGranted)` after).
   Future<OpOutcome> grantTutorialGift(TxnId id);
 
+  // The story (specs/015-m10-apartment-story, contracts/economy-ops.md).
+
+  /// Records a scene as seen. A scene the pack lacks, or one the chapter's
+  /// chapter doesn't hold, is `OpRefused(unknownSku)`; one already seen is
+  /// `OpRefused(alreadyRecorded)` and stores no row. The caller checks the
+  /// scene's unlock first (`StoryService`).
+  Future<OpOutcome> recordScene(
+    TxnId id, {
+    required ChapterId chapterId,
+    required String sceneId,
+  });
+
+  /// Takes a family request. Not owned in the named style is
+  /// `OpRefused(notEligible)`; already claimed is
+  /// `OpRefused(alreadyGranted)`. The BONAT is the server's (constitution
+  /// IV): no balance moves on the phone.
+  Future<OpOutcome> claimRequest(TxnId id, {required String requestId});
+
   // The sync's calls are on `EconomySync` (economy_sync.dart), out of the
   // screens' reach (specs/011-m06-identity-sync, research R20).
 }
@@ -100,20 +118,47 @@ final class OpWriteFailed extends OpOutcome {
   const OpWriteFailed();
 }
 
+/// The server's last accepted state, read-only (M10 research R6): what tells
+/// a reward "on its way" from one received. It carries no balances, so a
+/// screen can't read a wallet the phone doesn't own.
+final class ConfirmedState {
+  const ConfirmedState(this._state);
+
+  final EconomyState _state;
+
+  bool owns(SkuKind kind, String skuId) =>
+      _state.ownership.containsKey((kind, skuId));
+
+  /// The style the server has for an owned item, or null.
+  String? variantOf(String itemId) =>
+      _state.ownership[(SkuKind.item, itemId)]?.variantId;
+
+  Map<String, TripProgress> get progress => _state.progress;
+  Map<String, Set<String>> get scenesSeen => _state.scenesSeen;
+  Set<String> get requestsClaimed => _state.requestsClaimed;
+}
+
 /// What screens read (FR-042). [progress] and ownership may name ids the
 /// active pack lacks: readers look entries up by the ids the content source
 /// gives them, so those are skipped, never errors (FR-034).
 final class EconomyView {
-  EconomyView(EconomyState state, this.fuel, {this.nameRefused = false})
-    : jenehat = state.jenehat,
-      bonat = state.bonat,
-      inventory = state.inventory,
-      progress = state.progress,
-      unfinished = state.unfinished,
-      lastResult = state.lastResult,
-      displayName = state.displayName,
-      tutorialGranted = state.tutorialGranted,
-      _ownership = state.ownership;
+  EconomyView(
+    EconomyState state,
+    this.fuel, {
+    this.nameRefused = false,
+    ConfirmedState? confirmed,
+  }) : jenehat = state.jenehat,
+       bonat = state.bonat,
+       inventory = state.inventory,
+       progress = state.progress,
+       unfinished = state.unfinished,
+       lastResult = state.lastResult,
+       displayName = state.displayName,
+       tutorialGranted = state.tutorialGranted,
+       scenesSeen = state.scenesSeen,
+       requestsClaimed = state.requestsClaimed,
+       confirmed = confirmed ?? ConfirmedState(state),
+       _ownership = state.ownership;
 
   final int jenehat;
   final int bonat;
@@ -131,6 +176,16 @@ final class EconomyView {
   /// clears it.
   final bool nameRefused;
   final bool tutorialGranted;
+
+  /// The scenes seen, by chapter wire name, and the family requests taken
+  /// (M10). Both are the projection's.
+  final Map<String, Set<String>> scenesSeen;
+  final Set<String> requestsClaimed;
+
+  /// The server's last accepted state, read-only: what tells a reward
+  /// "on its way" from one received (M10 research R6). It carries no
+  /// balances.
+  final ConfirmedState confirmed;
   final Map<OwnedKey, Owned> _ownership;
 
   bool owns(SkuKind kind, String skuId) =>

@@ -115,10 +115,33 @@
               ]
             }
           ],
-          "scene_id": "the_stand"
+          "scene_id": "the_stand",
+          "title": {
+            "ar-EG": "المشهد"
+          }
         }
       ],
       "story_trip_id": "line_hay.03",
+      "story_trip_info": {
+        "condition": {
+          "ar-EG": "خليك هادي مع المعلم"
+        },
+        "fail_reason": {
+          "ar-EG": "المعلم زعل ونزل"
+        },
+        "riders": [
+          {
+            "character": "moallem",
+            "comments": {
+              "impatient": "passenger.impatient"
+            },
+            "seat": "A_l"
+          }
+        ],
+        "title": {
+          "ar-EG": "مشوار المعلم"
+        }
+      },
       "title": {
         "ar-EG": "أول شغلانة"
       }
@@ -201,6 +224,7 @@
   ],
   "family_requests": [
     {
+      "character": "bride_mother",
       "item_id": "salon.nish",
       "request_id": "req_nish_crystal",
       "reward_bonat": 5,
@@ -219,6 +243,12 @@
       },
       "order": 1,
       "room_id": "salon",
+      "slot": {
+        "h": 120,
+        "w": 160,
+        "x": 99,
+        "y": 140
+      },
       "variants": [
         {
           "art": "nish_classic",
@@ -250,6 +280,12 @@
       },
       "order": 2,
       "room_id": "salon",
+      "slot": {
+        "h": 120,
+        "w": 160,
+        "x": 99,
+        "y": 140
+      },
       "variants": [
         {
           "art": "sitara_plain",

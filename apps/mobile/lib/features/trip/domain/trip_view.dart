@@ -47,6 +47,8 @@ final class TripView extends ViewValue {
     required this.breakMode,
     required this.controlsLocked,
     this.fastForward = false,
+    this.storyStrip,
+    this.riderBubble,
   });
 
   final int tMs;
@@ -68,9 +70,16 @@ final class TripView extends ViewValue {
   final HintView? hint;
   final BannerView? banner;
 
-  /// A story trip's «من غير خناقات» condition: null when the trip has none,
-  /// true while it holds, false once a fight broke it.
+  /// A story trip's «من غير خناقات» rule: null when the trip has none, true
+  /// while it holds, false once a fight broke it. The strip's visibility is
+  /// [storyStrip]'s, which a content condition also sets.
   final bool? storyCondition;
+
+  /// The story strip, or null when the trip shows none.
+  final StoryStripView? storyStrip;
+
+  /// A story rider's comment, while it shows.
+  final RiderBubbleView? riderBubble;
   final FailSummary? failSummary;
 
   /// A rejection said in the log's place for a moment (trip-view.md
@@ -115,6 +124,8 @@ final class TripView extends ViewValue {
     'hint': hint,
     'banner': banner,
     'storyCondition': storyCondition,
+    'storyStrip': storyStrip,
+    'riderBubble': riderBubble,
     'failSummary': failSummary,
     'rejection': rejection,
     'breakMode': breakMode,
@@ -129,6 +140,7 @@ final class TopBarView extends ViewValue {
     required this.tripNumber,
     required this.reputation,
     required this.reputationLow,
+    this.storyTitle,
   });
 
   /// The line's name, or null when the pack no longer has the line.
@@ -141,12 +153,58 @@ final class TopBarView extends ViewValue {
   final int reputation;
   final bool reputationLow;
 
+  /// A story trip's title from its chapter's `story_trip_info` (specs/015-
+  /// m10-apartment-story): it takes the line and number's place under the
+  /// «مشوار قصة» chip. Null for any other trip.
+  final String? storyTitle;
+
   @override
   Map<String, Object?> get fields => {
     'lineName': lineName,
     'tripNumber': tripNumber,
     'reputation': reputation,
     'reputationLow': reputationLow,
+    'storyTitle': storyTitle,
+  };
+}
+
+/// A story trip's strip (specs/015-m10-apartment-story, contracts/
+/// story-trip.md "What the screen shows"): present when the trip has a story
+/// rule or its chapter words a condition.
+final class StoryStripView extends ViewValue {
+  const StoryStripView({this.text, this.broken});
+
+  /// The chapter's condition as the content wrote it; null reads M02's
+  /// «من غير خناقات».
+  final String? text;
+
+  /// The rule's state: true once a fight broke it, false while it holds,
+  /// null when the trip has no rule (nothing can break).
+  final bool? broken;
+
+  @override
+  Map<String, Object?> get fields => {'text': text, 'broken': broken};
+}
+
+/// A story rider's bubble in the character slot, over the rider's face.
+final class RiderBubbleView extends ViewValue {
+  const RiderBubbleView({
+    required this.speaker,
+    required this.seatId,
+    required this.text,
+  });
+
+  final StoryCharacter speaker;
+
+  /// The seat the rider sits in (`StoryRider.seat`), where the bubble anchors.
+  final String seatId;
+  final String text;
+
+  @override
+  Map<String, Object?> get fields => {
+    'speaker': speaker,
+    'seatId': seatId,
+    'text': text,
   };
 }
 
@@ -665,6 +723,7 @@ final class FailSummary extends ViewValue {
     required this.causes,
     required this.revive,
     this.brokeStoryRule = false,
+    this.failReason,
     this.angryFaces = const [],
   });
 
@@ -677,6 +736,10 @@ final class FailSummary extends ViewValue {
   /// A story trip lost to a fight under `no_fights_required`.
   final bool brokeStoryRule;
 
+  /// The chapter's own line for that failure (`story_trip_info.fail_reason`),
+  /// which the card says in place of M02's rule line. Null without one.
+  final String? failReason;
+
   /// Up to three passengers the card draws angry (008.5 `Fail`): those who
   /// fought, then those who missed their stop, then those still seated.
   final List<String> angryFaces;
@@ -686,6 +749,7 @@ final class FailSummary extends ViewValue {
     'causes': causes,
     'revive': revive,
     'brokeStoryRule': brokeStoryRule,
+    'failReason': failReason,
     'angryFaces': angryFaces,
   };
 }

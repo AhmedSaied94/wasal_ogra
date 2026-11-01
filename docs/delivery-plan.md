@@ -113,7 +113,7 @@ glossary, and merged decisions win on behaviour.
 | 012.5 M22 | none new: the six comic panels of `Intro` and the `Panel*` boards, animated in a second Rive file, `wassal_scenes.riv` (its board «حركة المشاهد») | none |
 | M08 | `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` | none |
 | M09 | `Lines`, `LineDetails`, `BuyVehicle`, and the owner's eight (2026-10-29): `LinesFirst`, `LinesOwned`, `LineDetailsStory`, `LineDetailsDone`, `LineDetailsLocked`, `BuyVehicleShort`, `BuyVehicleOwned`, `BuyVehicleNotForSale` (`specs/014-m09-lines-vehicles/contracts/design-briefs.md`) | none |
-| M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` | #2 when the Apartment tab opens |
+| M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests`, and the owner's ten (2026-10-31): `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`, `PieceAffordable`, `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd` (`specs/015-m10-apartment-story/contracts/design-briefs.md`) | #2 when the Apartment tab opens |
 | B10 | none | #8 a maintenance end time in the 503 response |
 | M11 | `States` 2–3 (ad not ready, daily ad limit), `RewardedAdButton` | none |
 | M12 | `Shop`, `Fuel`, `PurchaseDone`, `States` 4–6 (spend confirmation, undo toast, payment failed) | none |
@@ -449,15 +449,17 @@ Out of scope: screens owned by later features; any rule, economy or schema chang
 | `012.5-m22-animated-scenes` | M22 | Animated scenes: the comic panels as Rive animations, with the characters and the tuktuk moving | M07, M21 | `wassal_scenes.riv` and its board «حركة المشاهد»; M07's `contracts/scenes.md`; 008.5's `contracts/rive-characters.md` (see [012.5](#0125-the-animated-scenes)) |
 | `013-m08-home-result` | M08 | Home, pre-trip card, result screen | M02, M05 | ux-spec «الموقف», «كارت ما قبل المشوار», «شاشة النتيجة»; design `C-Home`, `HomeStates`, `PreTrip`, `Result`, `ShareCard` |
 | `014-m09-lines-vehicles` | M09 | Lines map, line detail, vehicle purchase | M05 | ux-spec «الخطوط والعربية والجراج»; product-spec «التقدم: الخطوط والعربيات»; design `Lines`, `LineDetails`, `BuyVehicle` |
-| `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا»; design `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` |
+| `015-m10-apartment-story` | M10 | Apartment ch1–4, item sheet, family requests, chapters, story viewer | M05 | ux-spec «الشقة والقصة»; product-spec «القصة والميتا»; design `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests` and the ten of 2026-10-31 |
 
 - **Resolve:**
   - nothing open in the architecture docs;
   - from the design (HANDOFF §9.3): before M07, whether money can be passed around a muted
     أبو سمّاعة through the neighbouring seat (#4; settled "no" in 013: he must be called twice,
     and the engine's rule stays). In M07, each tutorial trip's
-    coach line (#3; resolved in M07's research R18). In M10, when the Apartment tab opens (#2: the ux-spec locks it in chapters
-    1–2, the design shows the goal from the start).
+    coach line (#3; resolved in M07's research R18). In M10, when the Apartment tab opens (#2:
+    the ux-spec locks it in chapters 1–2, the design shows the goal from the start).
+    **Settled in 015's clarification:** the tab is open from chapter 1, with the goal view for
+    chapters 1–3 and the rooms view for chapter 4 (`specs/015-m10-apartment-story/spec.md`).
 - **Handed over from M02** (research "Handed to later features"):
   - M07: a trip layout for screens under 744 pt in which faces keep their 50/80 pt minimums, with
     goldens at 360×640. It ends M02's approved exception to constitution XI (Complexity Tracking in

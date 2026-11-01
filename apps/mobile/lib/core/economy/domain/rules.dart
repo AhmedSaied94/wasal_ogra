@@ -11,6 +11,7 @@ import 'package:wassal/core/economy/domain/gift_rules.dart';
 import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/domain/profile_rules.dart';
 import 'package:wassal/core/economy/domain/spend_rules.dart';
+import 'package:wassal/core/economy/domain/story_rules.dart';
 import 'package:wassal/core/economy/domain/trip_rules.dart';
 import 'package:wassal/core/economy/domain/txn_id.dart';
 import 'package:wassal/core/economy/domain/wire.dart';
@@ -115,6 +116,8 @@ final class ProductionRules implements Rules {
       ComebackGiftRequest() => validateComebackGift(s, request, ctx),
       SettingsUpdateRequest() => validateSettingsUpdate(s, request, ctx),
       TutorialGiftRequest() => validateTutorialGift(s, request, ctx),
+      StoryProgressRequest() => validateStoryProgress(s, request, ctx),
+      ClaimRequest() => validateClaimRequest(s, request, ctx),
     };
   }
 
@@ -137,6 +140,8 @@ final class ProductionRules implements Rules {
       OpType.comebackGift => applyComebackGift(s, op),
       OpType.settingsUpdate => applySettingsUpdate(s, op),
       OpType.tutorialGift => applyTutorialGift(s, op),
+      OpType.storyProgress => applyStoryProgress(s, op),
+      OpType.claimRequest => applyClaimRequest(s, op),
     };
   }
 
@@ -150,6 +155,8 @@ final class ProductionRules implements Rules {
     OpType.comebackGift => true,
     OpType.settingsUpdate => true,
     OpType.tutorialGift => tutorialGiftStillValid(state, op),
+    OpType.storyProgress => storyProgressStillValid(state, op),
+    OpType.claimRequest => claimRequestStillValid(state, op),
   };
 }
 
@@ -173,4 +180,10 @@ bool requestMatches(Op op, OpRequest request) => switch (request) {
   ComebackGiftRequest() => op.type == OpType.comebackGift,
   SettingsUpdateRequest() => settingsUpdateMatches(op, request),
   TutorialGiftRequest() => op.type == OpType.tutorialGift,
+  StoryProgressRequest(:final chapterId, :final sceneId) =>
+    op.type == OpType.storyProgress &&
+        op.payload['chapter_id'] == chapterWire[chapterId] &&
+        op.payload['scene_id'] == sceneId,
+  ClaimRequest(:final requestId) =>
+    op.type == OpType.claimRequest && op.payload['request_id'] == requestId,
 };

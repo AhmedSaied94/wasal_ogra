@@ -1,0 +1,11 @@
+{
+  "character": "bride_father",
+  "item_id": "salon.antreeh",
+  "request_id": "req_antreeh_classic",
+  "reward_bonat": 5,
+  "room_id": "salon",
+  "text": {
+    "ar-EG": "الأنتريه الكلاسيك بيعيش العمر كله"
+  },
+  "variant_id": "classic"
+}

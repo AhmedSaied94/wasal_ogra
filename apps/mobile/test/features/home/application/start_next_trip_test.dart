@@ -13,7 +13,9 @@ import 'package:wassal/features/home/application/checkpoint.dart';
 import 'package:wassal/features/home/application/start_next_trip.dart';
 import 'package:wassal/features/lines/presentation/lines_screen.dart';
 import 'package:wassal/features/pre_trip/application/card_mode_provider.dart';
+import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 
+import '../../../helpers/first_session.dart';
 import '../../../helpers/lines.dart';
 import '../../../helpers/memory_settings_store.dart';
 import '../../../helpers/progress.dart';
@@ -43,6 +45,7 @@ Future<ProviderContainer> _app(
   int liters = 5,
   List<Override> overrides = const [],
   bool newPlayer = false,
+  Map<String, int> extraStars = const {},
 }) async {
   final (container, _) = await pumpLinesApp(
     tester,
@@ -51,6 +54,7 @@ Future<ProviderContainer> _app(
       stars: {
         'line_hay.01': 1,
         'line_hay.02': 1,
+        ...extraStars,
         for (var n = 1; n <= 11; n++) _t('line_gamaa', n): 2,
       },
       owned: {microOld},
@@ -64,13 +68,19 @@ Future<ProviderContainer> _app(
   return container;
 }
 
-Future<bool> _start(WidgetTester tester, String tripId, StartFrom from) async {
+Future<bool> _start(
+  WidgetTester tester,
+  String tripId,
+  StartFrom from, {
+  CardSkip skipCard = skipPreTripCard,
+}) async {
   final element = tester.element(find.byType(LinesScreen));
   final started = await startNextTrip(
     element,
     element as WidgetRef,
     tripId: tripId,
     from: from,
+    skipCard: skipCard,
   );
   await tester.pumpAndSettle();
   return started;
@@ -161,6 +171,60 @@ void main() {
     expect(await first, isTrue);
     await tester.pumpAndSettle();
     expect(locationOf(container), '/lines/line_gamaa/pre-trip/line_gamaa.12');
+  });
+
+  testWidgets('from the apartment: its card, whose close lands there', (
+    tester,
+  ) async {
+    final container = await _app(tester);
+    expect(await _start(tester, 'line_gamaa.12', StartFrom.apartment), isTrue);
+    expect(locationOf(container), '/apartment/pre-trip/line_gamaa.12');
+
+    await tester.tap(find.byKey(PreTripCard.closeKey));
+    await tester.pumpAndSettle();
+    expect(locationOf(container), '/apartment');
+  });
+
+  testWidgets('from the apartment, an empty tank shows the fuel sheet, then '
+      'its card once the tank is filled (T034)', (tester) async {
+    final dry = await _app(tester, liters: 0);
+    expect(await _start(tester, 'line_gamaa.12', StartFrom.apartment), isTrue);
+    expect(locationOf(dry), fuelSheetLocation);
+
+    // The apartment's own branch, which the dry tank skipped.
+    final wet = await _app(tester);
+    expect(await _start(tester, 'line_gamaa.12', StartFrom.apartment), isTrue);
+    expect(locationOf(wet), '/apartment/pre-trip/line_gamaa.12');
+  });
+
+  testWidgets('from the apartment, a due scene takes the start first (T034)', (
+    tester,
+  ) async {
+    // M07's due list (research R3): the after-trip scene of a first finish.
+    // M10's goal scenes join it with `StoryDueWatcher` (T088), and a due id
+    // plays only while its scene waits in the pack (R3-2): the_stand needs
+    // line_hay.03 finished.
+    final container = await _app(
+      tester,
+      newPlayer: true,
+      extraStars: {'line_hay.03': 1},
+      overrides: [
+        ...seededFirstSession((store) => store.addSceneDue('the_stand')),
+      ],
+    );
+    // A trip the player has met: no card in the way of the trip's start.
+    expect(
+      await _start(
+        tester,
+        'line_gamaa.12',
+        StartFrom.apartment,
+        skipCard: (_, _) => true,
+      ),
+      isTrue,
+    );
+    final location = Uri.parse(locationOf(container));
+    expect(location.path, '/onboarding/scene/the_stand');
+    expect(location.queryParameters['then'], '/trip/line_gamaa.12');
   });
 
   testWidgets('a story trip the port accepts but the phone rules refuse '

@@ -196,6 +196,10 @@ final class RivePassengerArt implements PassengerArt {
   void play(CharacterTrigger trigger) => _person.fire(trigger.name);
 
   @override
+  void surprise({required bool on}) =>
+      _person.setBoolean('surprised', value: on);
+
+  @override
   void advance(double dt) => _person.advance(dt);
 
   @override

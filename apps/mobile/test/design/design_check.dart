@@ -37,7 +37,9 @@ void applyDesignSurface(
 /// match. A box in [tolerances] is checked within its own tolerance, for a
 /// control placed after others whose text Flutter measures a little wider
 /// than the browser did. A box in [offsets] is expected moved by its offset,
-/// for a listed difference where a later board moved it. Then every
+/// for a listed difference where a later board moved it. When two nodes
+/// carry the label, the one not yet matched and within tolerance of the box
+/// is its match (a chip in the drawing and its card in the grid). Then every
 /// tappable node that no box matched must have a label in [appOnly]. A
 /// sheet's or dialog's [scrim], which the board draws as a box, is left
 /// out: the node with that label covering the whole frame. All problems are
@@ -86,16 +88,6 @@ void expectLayoutMatches(
       problems.add('$artboard: $box has no label or text; pair it or skip it');
       continue;
     }
-    if (found.length != 1) {
-      problems.add(
-        '$artboard: $box: expected one tappable with $wanted, '
-        'found ${found.length}'
-        '${found.isEmpty ? '' : ': ${found.map((n) => n.describe()).join('; ')}'}',
-      );
-      continue;
-    }
-    final node = found.single;
-    matched.add(node.id);
     final want = Rect.fromLTWH(
       box.x,
       box.y,
@@ -103,6 +95,27 @@ void expectLayoutMatches(
       box.h,
     ).shift(offsets[box.id] ?? Offset.zero);
     final within = tolerances[box.id] ?? tolerance;
+    // Two controls may share a label (a board's chip in the drawing and its
+    // card in the grid): the one unmatched node at the box's place is it.
+    var candidates = found;
+    if (candidates.length > 1) {
+      final near = candidates
+          .where(
+            (n) => !matched.contains(n.id) && _within(n.rect, want, within),
+          )
+          .toList();
+      if (near.length == 1) candidates = near;
+    }
+    if (candidates.length != 1) {
+      problems.add(
+        '$artboard: $box: expected one tappable with $wanted, '
+        'found ${candidates.length}'
+        '${candidates.isEmpty ? '' : ': ${candidates.map((n) => n.describe()).join('; ')}'}',
+      );
+      continue;
+    }
+    final node = candidates.single;
+    matched.add(node.id);
     if (!_within(node.rect, want, within)) {
       problems.add(
         '$artboard: box ${box.id} "${paired ?? box.label ?? box.text}": '
@@ -128,7 +141,8 @@ void expectLayoutMatches(
 /// Compares [finder] with `goldens/<artboard>_<digits>.png`. With
 /// `--dart-define=DESIGN_COMPARE=true`, it also writes
 /// `build/design_compare/<artboard>_<digits>.png`: the design's PNG and the
-/// render side by side, at the render's size.
+/// render side by side, at the render's size. A state no board draws (no
+/// `docs/design/png/<artboard>.png`) has only its golden.
 Future<void> expectDesignGolden(
   WidgetTester tester,
   Finder finder,
@@ -151,12 +165,12 @@ Future<void> _writeCompare(
   String artboard,
   String name,
 ) async {
+  final board = File('../../docs/design/png/$artboard.png');
+  if (!board.existsSync()) return;
   final element = finder.evaluate().single;
   await tester.runAsync(() async {
     final render = await captureImage(element);
-    final codec = await ui.instantiateImageCodec(
-      File('../../docs/design/png/$artboard.png').readAsBytesSync(),
-    );
+    final codec = await ui.instantiateImageCodec(board.readAsBytesSync());
     final design = (await codec.getNextFrame()).image;
     final w = render.width.toDouble();
     final h = render.height.toDouble();

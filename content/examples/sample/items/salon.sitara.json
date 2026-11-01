@@ -1,13 +1,25 @@
 {
+  "comment": {
+    "ar-EG": "الستارة بتكمّل الصالون"
+  },
   "item_id": "salon.sitara",
   "name": {
     "ar-EG": "الستارة"
   },
   "order": 2,
   "room_id": "salon",
+  "slot": {
+    "h": 200,
+    "w": 120,
+    "x": 20,
+    "y": 80
+  },
   "variants": [
     {
       "art": "sitara_plain",
+      "comment": {
+        "ar-EG": "السادة بتناسب أي حاجة"
+      },
       "name": {
         "ar-EG": "سادة"
       },

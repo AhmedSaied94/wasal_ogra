@@ -1,0 +1,233 @@
+{
+  "chapter_id": "ch1_first_job",
+  "completion_bonat": 10,
+  "goal": {
+    "kind": "complete_line",
+    "line_id": "line_hay"
+  },
+  "goal_art": "goal_shabka",
+  "goal_line": {
+    "speaker": "moallem",
+    "text": {
+      "ar-EG": "لازم تجمع للشبكة يا أسطى، الشغل ده مش هزار"
+    }
+  },
+  "order": 1,
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "opening_key",
+          "lines": [
+            {
+              "speaker": "narrator",
+              "text": {
+                "ar-EG": "الموقف، الصبح بدري"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "خد مفتاح التوكتوك. لمّ الأجرة صح، والباقي يرجع لصاحبه."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_stand",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "الركاب بيدفعوا، والفلوس بتيجي لحد الدرج."
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "وأنا أرجّع الباقي لكل واحد."
+              }
+            }
+          ]
+        },
+        {
+          "art": "opening_go",
+          "lines": [
+            {
+              "speaker": "belya",
+              "text": {
+                "ar-EG": "وأنا معاك أول كام مشوار يا أسطى"
+              }
+            },
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "يلا، على الله."
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "opening"
+      },
+      "scene_id": "opening",
+      "title": {
+        "ar-EG": "المفتاح"
+      }
+    },
+    {
+      "panels": [
+        {
+          "art": "ch1_stand_morning",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "صباح الفل يا موقف.. يلا على الله"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch1_salma_asks",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "لو سمحت، ميكروباص الجامعة بيقف فين؟"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "هنا.. هنا بالظبط"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch1_usta_dreams",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "من النهارده هحوّش قرش على قرش"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "بس الأول لازم أركّز في الأجرة"
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "after_trip",
+        "trip_id": "line_hay.03"
+      },
+      "scene_id": "first_sight",
+      "title": {
+        "ar-EG": "أول نظرة"
+      }
+    },
+    {
+      "panels": [
+        {
+          "art": "ch1_moallem_counts",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "عدّيت الإيراد.. ولا مليم ناقص"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch1_moallem_advice",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "بس التوكتوك ده بتاعي يا ابني، وعمره ما جوّز حد"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "أعمل إيه يعني يا معلم؟"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch1_micro_for_sale",
+          "lines": [
+            {
+              "speaker": "moallem",
+              "text": {
+                "ar-EG": "فيه ميكروباص قديم معروض للبيع.. حوّش تمنه ويبقى بتاعك"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch1_belya_hint",
+          "lines": [
+            {
+              "speaker": "belya",
+              "text": {
+                "ar-EG": "وخط الجامعة بيعدّي على موقف سلمى كل يوم"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "يبقى ده اللي جاي"
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "after_trip",
+        "trip_id": "line_hay.20"
+      },
+      "scene_id": "moallem_verdict",
+      "title": {
+        "ar-EG": "رأي المعلم"
+      }
+    }
+  ],
+  "story_trip_id": "line_hay.20",
+  "story_trip_info": {
+    "condition": {
+      "ar-EG": "المعلم بيسمع كل حاجة، خلّي الباقي مظبوط"
+    },
+    "fail_reason": {
+      "ar-EG": "المعلم زعل من الخناقة ونزل"
+    },
+    "riders": [
+      {
+        "character": "moallem",
+        "comments": {
+          "fight": "story.moallem.fight",
+          "short_change": "story.moallem.short_change"
+        },
+        "seat": "A_m"
+      }
+    ],
+    "title": {
+      "ar-EG": "المعلم راكب معاك"
+    }
+  },
+  "tagline": {
+    "ar-EG": "أول شغلانة، وأول خطوة في الشقة"
+  },
+  "title": {
+    "ar-EG": "أول شغلانة"
+  }
+}

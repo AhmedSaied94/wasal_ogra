@@ -21,6 +21,7 @@ abstract class FamilyRequest with _$FamilyRequest {
     @JsonKey(name: 'request_id') required String requestId,
     @JsonKey(name: 'room_id') required RoomId roomId,
     @JsonKey(name: 'item_id') required String itemId,
+    @JsonKey(name: 'character') required StoryCharacter character,
     @JsonKey(name: 'variant_id') String? variantId,
     @JsonKey(name: 'text') required LocalizedText text,
     @JsonKey(name: 'reward_bonat') required int rewardBonat,

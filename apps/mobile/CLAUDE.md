@@ -14,6 +14,10 @@ The Flutter app: what it has, its commands, its guards, its conventions and the 
 - **M22** (`specs/012.5-m22-animated-scenes/`): the comic panels animate from a second Rive file, `wassal_scenes.riv`, and their lines play in turn: each bubble appears while its speaker talks, with the drawings as the fallback.
 - **M08** (`specs/013-m08-home-result/`): the loop runs from الموقف: Home with the next trip, the line card, the savings goal and one arrival item at a time; the pre-trip card with its stops, star goals, «جديد» card and boosters; the result with its breakdown, mistakes, pay, quote and a shareable picture; and the phone's port of the server's unlock rules (`lib/core/progress/domain/`).
 - **M09** (`specs/014-m09-lines-vehicles/`): الخطوط: the vehicle strip and the line map, a line's details with its trip grid, starting any open trip from Lines (its card opens at `/lines/:lineId/pre-trip/:tripId`, under the details), buying the next vehicle offline through M05's `buy`, the lines tab's «new» dot, and the phone-only rules beside the port (`playable.dart`: a story trip waits for its chapter's goal, vehicles sell in pack order).
+- **M10** (`specs/015-m10-apartment-story/`): الشقة and the story: the tab's goal view (the chapter's goal, bought once through `GoalPurchase`) and rooms view (a room's scene of pieces, each bought through `PiecePurchase` in a style, `RoomDone` with its reward «في الطريق»), the chapters timeline and the album, the scene viewer (`/story/scene/:sceneId`, `/story/:chapterId`, `/story/album`; each scene's panels play once and are recorded through `StoryService`), the family requests sheet (`/apartment/requests`; «خد» records `claim_request` and the server pays the BONAT, so the phone shows it pending), the apartment's pre-trip card (`/apartment/pre-trip/:tripId`), and a chapter's story trip with its riders. Two new operations (`story_progress`, `claim_request`) and drift schema 5. The rules are the phone's port in `lib/core/progress/domain/` (`story.dart`, `requests.dart`, `rewards.dart`).
+  - **Riders** (`features/trip/`): a chapter's `story_trip_info` gives the trip its title, the strip's condition, the failure line and the riders. `TripFacts.storyInfo` carries it; `TripView.storyStrip` and `riderBubble` project it; `RiderComponent` draws each rider in its seat through the scene's art factory (`Look.asset` is the character's own drawing). A rider's comment is the pure `riderComment` over a fresh `Xorshift32`, never the engine's generator, so the engine, its result and the parity fixtures are untouched.
+  - **Art** the app ships, not packs: `ApartmentArt` and `PanelArt` map a slug to a synced drawing, and a slug with none draws its token fallback. The salon's room and its pieces have no drawing yet (only the modern أنتريه, the shabka goal, the teaser room and the requests' tea tray), so the rooms view, the piece sheet, `RoomDone` and Home's story-end tile draw tokens.
+  - **The boards of 2026-10-31** (ten, `specs/015-m10-apartment-story/contracts/design-briefs.md` "As drawn"): the rooms header holds the pending chip (`PendingChip`, hidden when nothing is pending) beside the coins pill; after a purchase `boughtPieceProvider` makes the room drop the piece in and show سلمى's bubble until the next tap or scroll; a finished room's «شوف المشهد» is a button of its own inside `ChapterBar` (`trailingIsControl`); `PieceSheet` hangs the request mark off its style tile and prices its CTA on a `PriceChip`; `RoomDoneDialog` announces itself once; a done chapter's «شوف المشهد» is read with its scene's title; Home's card at the end of the story is «شقة العُمر» with the finished room's tile.
 
 ## Commands
 
@@ -31,6 +35,7 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 | The first session end to end (headless; there is no Linux runner) | `fvm flutter test integration_test/first_session_test.dart -d flutter-tester` |
 | The loop from Home: card, trip, result and back, with SC-002's timings (headless) | `fvm flutter test integration_test/home_loop_test.dart -d flutter-tester` |
 | The loop from Lines: buy the microbus, «كمّل», the details, the trip and back, with SC-008's timings (headless) | `fvm flutter test integration_test/lines_loop_test.dart -d flutter-tester` |
+| A story trip's rider: one short change gives one comment, an over-change none, and the result is the one without the rider (headless) | `fvm flutter test integration_test/story_trip_test.dart -d flutter-tester` |
 | Update goldens (Linux only) | `fvm flutter test --update-goldens test/goldens` |
 | Run the dev variant | `fvm flutter run --flavor dev` |
 | Build the dev APK | `fvm flutter build apk --flavor dev --debug` |
@@ -70,6 +75,7 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
   - Only `lib/core/account/drift_account_store.dart` writes `account` and `server_info` (M06: the player, and the last bootstrap's cached blocks).
   - Only `lib/features/onboarding/data/drift_first_session_store.dart` writes `first_session` (M07: the opening, the scenes seen, the fuel lesson, the step reached).
 - A table change needs a new `schemaVersion` and its step in `AppDatabase.upgradeSteps`, and `make-migrations` adds its schema to `drift_schemas/app/` and its tests to `test/drift/`. Commit both. `test/drift/app/schema_test.dart` checks that a new file has the current version's exported schema, and `make-migrations`' `test/drift/app/migration_test.dart` checks every step between versions (v2, M02, added the trip's three tables).
+- M10's schema 5 added the ops `story_progress` and `claim_request` and two `player_state` columns, `scenes_seen` (scene ids by chapter) and `requests_claimed` (request ids), written only by the economy store like the rest of the projection. `StoryService.recordSeen` records a scene and also writes M07's scenes-seen flag; `backfill` records the scenes a player had already seen without writing that flag.
 - The pre-trip card's setting is the device preference `pref.pre_trip_card`, which falls back to the `pre_trip_card_mode` tunable. Lines keeps the news it has shown in `pref.lines_seen` (M09), a read marker for the tab's «new» dot, not game state.
 
 ## Art, goldens and test content
@@ -83,6 +89,7 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
 - Goldens are generated on Linux. If CI disagrees with them, run the workflow by hand with `update_goldens: true` and commit the PNGs it uploads; CI is then the reference.
 - The result's share goes through `ShareGateway` (`lib/core/platform/share_gateway.dart`, `share_plus`), so tests use `test/helpers/fake_share_gateway.dart`; iOS gets it as a Swift Package (no Podfile).
 - M07's tests play the release draft's five tutorial trips from `apps/mobile/test/fixtures/tutorial/`, copied by hand from `content/drafts/core-r1/pack/` in the `content-core-r1` worktree and layered over the sample by `test/helpers/tutorial_content.dart` (its README says what and when). The sample's own trips and parity fixtures don't change. When the draft's `line_hay`, trips 01–05 or the sleeper's pools change, copy them again and rerun those tests.
+- M10's board samples (`test/design/samples/apt_states.dart`, `story_states.dart`) play `releaseDraftPack()` (`test/helpers/synthetic_packs.dart`): the draft's catalog, salon, items, requests and chapters 1 to 4, copied by hand into `apps/mobile/test/fixtures/release_draft/` (its README says when to copy again). **The draft wins on every text it owns** (owner decision 2026-10-31), so a board's chapter line, tagline, comment or scene title differs from the board; each difference is in the board's "As drawn" note and the layout test's header. The check harness (`test/design/design_check.dart`) takes the unmatched node near a box when two share a label.
 
 ## Repo guards
 
@@ -99,9 +106,11 @@ Flutter is pinned with FVM (`.fvmrc` at the repo root). Run everything through `
   - `lib/core/progress/domain/`: only the models, the content source and the SKU ids' wire names
   - M08's `features/{home,pre_trip,result}/domain/`: also the engine, the progress domain, the trip domain's looks and each other
   - M09's `features/lines/domain/`: the models, the content source, the SKU ids' wire names, the progress domain, Home's `savings_target.dart` and `next_trip.dart`, and itself
+  - M10's `features/apartment/domain/` and `features/story/domain/`: the models, the content source and its domain, the SKU ids' wire names, the progress domain, Home's `savings_target.dart`, and each its own folder (the trip's `rider_comments.dart` stays under the trip's list)
 - plain HTTP only in the dev source set
 - bundled packs that agree with their records
 - no REAL column
+- the ARB's keys unique (a JSON object keeps the last of two equal keys, and `gen_l10n` doesn't say)
 - the economy's tables written only by its store, with `ledger_ops` rows changing only in their sync columns (and the trip's only by theirs)
 - no `sqlite3_flutter_libs`
 - the backup exclusion (the database and the secure storage files, with no `<include>`)

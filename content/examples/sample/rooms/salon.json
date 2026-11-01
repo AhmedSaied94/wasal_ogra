@@ -1,6 +1,10 @@
 {
+  "art": "salon",
   "chapter_id": "ch4_salon",
   "completion_bonat": 20,
+  "done_line": {
+    "ar-EG": "الصالون خلص، تعالوا اتفرجوا"
+  },
   "name": {
     "ar-EG": "الصالون"
   },

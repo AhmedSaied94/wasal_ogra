@@ -27,6 +27,11 @@ abstract interface class PassengerArt {
   /// Plays a one-shot animation (contracts/rive-characters.md "Triggers").
   void play(CharacterTrigger trigger);
 
+  /// A story rider's `surprised` face, on while its comment shows
+  /// (contracts/rive-characters.md "Inputs": passengers never get it). The
+  /// static art has one face.
+  void surprise({required bool on});
+
   /// Its own animation moved on by [dt] seconds.
   void advance(double dt);
 

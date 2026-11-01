@@ -17,10 +17,11 @@ import 'package:wassal/core/sync/domain/wire/state.dart';
 ///   record and [content] has the trip, for its earnings bound;
 /// - the last result;
 /// - since M07, the player's name and the tutorial grant
-///   (specs/012-m07-onboarding research R8).
+///   (specs/012-m07-onboarding research R8);
+/// - since M10, the story's seen scenes by chapter and the claimed requests
+///   (contracts/economy-ops.md "The server's state").
 ///
-/// `story` and `stats` aren't mapped yet (M10, M13). Ids the pack lacks are
-/// kept (FR-026).
+/// `stats` isn't mapped yet (M13). Ids the pack lacks are kept (FR-026).
 EconomyState stateFromSnapshot(
   StateSnapshot snapshot, {
   required bool Function(TxnId start) hasTripRecord,
@@ -55,6 +56,12 @@ EconomyState stateFromSnapshot(
   },
   displayName: snapshot.displayName,
   tutorialGranted: snapshot.grants.tutorial,
+  scenesSeen: {
+    for (final chapter in snapshot.story.chapters)
+      if (chapter.scenesSeen.isNotEmpty)
+        chapter.chapterId: {...chapter.scenesSeen},
+  },
+  requestsClaimed: {...snapshot.story.requestsClaimed},
 );
 
 (OwnedKey, Owned)? _owned(StateOwnership row, int serverTimeMs) {

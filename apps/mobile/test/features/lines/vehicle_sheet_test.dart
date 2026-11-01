@@ -11,6 +11,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/content/content_providers.dart';
 import 'package:wassal/core/content/pack_content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
+import 'package:wassal/core/economy/domain/op.dart' show OpType;
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/progress/domain/unlocks.dart';
@@ -172,8 +173,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(locationOf(container), '/lines');
     expect(container.read(economyViewProvider).jenehat, 500);
+    // M10's launch backfill also queues a `story_progress`: only the spend
+    // is this purchase's.
     final pending = await tester.runAsync(economy.service.pendingOps);
-    expect(pending, hasLength(1));
+    expect(
+      pending!.where((row) => row.op.type == OpType.spendJenehat),
+      hasLength(1),
+    );
   });
 
   testWidgets('a balance change while open flips short and affordable', (
@@ -373,7 +379,9 @@ void main() {
       expect(economy.service.view.jenehat, 500);
       expect(economy.service.view.owns(SkuKind.vehicle, 'micro_old'), isTrue);
 
-      final spend = (await economy.service.pendingOps()).single;
+      final spend = (await economy.service.pendingOps())
+          .where((row) => row.op.type == OpType.spendJenehat)
+          .single;
       await economy.service.applyAnswer(
         SyncAnswer(
           stateVersion: 2,

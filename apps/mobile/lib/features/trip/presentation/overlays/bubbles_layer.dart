@@ -8,6 +8,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/content/domain/story_characters.dart';
 import 'package:wassal/core/theme/components/bubble_pop.dart';
 import 'package:wassal/core/theme/components/characters.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
@@ -16,6 +17,7 @@ import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
 import 'package:wassal/features/trip/presentation/trip_scope.dart';
+import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// Bubbles keep this far inside the scene.
 const bubbleMargin = 10.0;
@@ -53,10 +55,10 @@ class BubblesLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MediaQuery.withNoTextScaling(
-      child: TripSelector<(List<_Said>, int)>(
+      child: TripSelector<(List<_Said>, int, RiderBubbleView?)>(
         select: (model) {
           final view = model.view;
-          if (view == null) return (const [], 0);
+          if (view == null) return (const [], 0, null);
           final newest = [...view.bubbles]
             ..sort((a, b) => a.shownAtMs.compareTo(b.shownAtMs));
           return (
@@ -65,12 +67,14 @@ class BubblesLayer extends StatelessWidget {
                 if (view.passenger(b.passengerId)?.seatId case final seat?)
                   (bubble: b, seatId: seat),
             ],
-            (view.storyCondition != null ? 1 : 0) + (view.fastForward ? 1 : 0),
+            (view.storyStrip != null ? 1 : 0) + (view.fastForward ? 1 : 0),
+            view.riderBubble,
           );
         },
-        equals: (a, b) => a.$2 == b.$2 && listEquals(a.$1, b.$1),
+        equals: (a, b) =>
+            a.$2 == b.$2 && a.$3 == b.$3 && listEquals(a.$1, b.$1),
         builder: (context, selected) {
-          final (said, strips) = selected;
+          final (said, strips, rider) = selected;
           final shown = [
             for (final s in said)
               if (layout.seats[s.seatId] case final seat?)
@@ -79,12 +83,34 @@ class BubblesLayer extends StatelessWidget {
                   tip: Offset(seat.bubbleAnchor.x, seat.bubbleAnchor.y),
                 ),
           ];
+          // A rider's comment takes the slot the queue reserved for it, so
+          // at most two bubbles show with it (constitution XI).
+          final riderSeat = rider == null ? null : layout.seats[rider.seatId];
           return CustomMultiChildLayout(
             delegate: _BubbleLayout(
-              tips: [for (final s in shown) s.tip],
+              tips: [
+                for (final s in shown) s.tip,
+                if (riderSeat != null)
+                  Offset(riderSeat.bubbleAnchor.x, riderSeat.bubbleAnchor.y),
+              ],
               minTop: stripsBand(strips) + bubbleMargin,
             ),
             children: [
+              if (rider != null && riderSeat != null) ...[
+                LayoutId(
+                  id: (_Part.body, shown.length),
+                  child: _RiderSays(rider: rider),
+                ),
+                LayoutId(
+                  id: (_Part.tail, shown.length),
+                  child: BubblePop(
+                    child: SpeechBubbleTail(
+                      variant: SpeechBubbleVariant.character,
+                      tipKey: SpeechBubble.tailKey('rider-${rider.seatId}'),
+                    ),
+                  ),
+                ),
+              ],
               for (final (i, s) in shown.indexed) ...[
                 LayoutId(
                   id: (_Part.body, i),
@@ -111,6 +137,32 @@ class BubblesLayer extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// A story rider's comment: the character's bubble with the speaker's name
+/// over the line, said politely to screen readers as «name: line».
+class _RiderSays extends StatelessWidget {
+  const _RiderSays({required this.rider});
+
+  final RiderBubbleView rider;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final name = l10n.sceneSpeaker(storyCharacterArt(rider.speaker));
+    return Semantics(
+      liveRegion: true,
+      label: l10n.tripRiderSays(name, rider.text),
+      excludeSemantics: true,
+      child: SpeechBubble(
+        key: ValueKey('bubble-rider-${rider.seatId}-${rider.text.hashCode}'),
+        text: rider.text,
+        name: name,
+        variant: SpeechBubbleVariant.character,
+        tail: false,
       ),
     );
   }

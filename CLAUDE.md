@@ -19,7 +19,7 @@ Each area keeps what it has built, its commands, its notes and its guards in its
 | `docs/` | The design documents (below); `docs/runbooks/` for operating the servers | |
 | `.github/workflows/` | CI (`backend.yml`; `mobile.yml`, which also builds and tests `content_models` and `trip_engine`), the executable source of truth for commands and path filters | |
 
-`AGENTS.md` is a shorter guide for other agents. Features so far, by spec folder: 001 M03 app shell · 002 B01 backend skeleton · 003 B04 content pipeline · 004 M01 trip engine · 005 B05 solver and parity · 006 M04 content loader · 007 M05 local economy · 008 M02 trip screen · 008.5 M21 design refresh · 009 B02 accounts · 010 B03 ledger and sync · 011 M06 identity and sync · 012 M07 onboarding · 012.5 M22 animated scenes · 013 M08 Home and result · 014 M09 lines and vehicles. Each area's guide says what each built there.
+`AGENTS.md` is a shorter guide for other agents. Features so far, by spec folder: 001 M03 app shell · 002 B01 backend skeleton · 003 B04 content pipeline · 004 M01 trip engine · 005 B05 solver and parity · 006 M04 content loader · 007 M05 local economy · 008 M02 trip screen · 008.5 M21 design refresh · 009 B02 accounts · 010 B03 ledger and sync · 011 M06 identity and sync · 012 M07 onboarding · 012.5 M22 animated scenes · 013 M08 Home and result · 014 M09 lines and vehicles · 015 M10 apartment and story. Each area's guide says what each built there.
 
 ## Design documents (read before planning or coding)
 

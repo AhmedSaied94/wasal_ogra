@@ -30,6 +30,7 @@ final class EconomyService implements Economy, EconomySync {
     required this._tunables,
     required this._rules,
     required this._state,
+    required this._confirmed,
     required ProjectionBase base,
     required this._pending,
     required this._nameRefused,
@@ -54,6 +55,7 @@ final class EconomyService implements Economy, EconomySync {
       tunables: tunables,
       rules: rules,
       state: stored.state,
+      confirmed: stored.base.state,
       base: stored.base,
       pending: await store.pendingCount(),
       nameRefused: await store.nameRefused(),
@@ -67,6 +69,10 @@ final class EconomyService implements Economy, EconomySync {
   final ConfigSource Function() _tunables;
   final Rules _rules;
   EconomyState _state;
+
+  /// The base's own state, kept beside the projection: `view.confirmed` reads
+  /// it to tell a reward on its way from one received (M10 research R6).
+  EconomyState _confirmed;
   ({int? stateVersion, String? playerId}) _base;
   int _pending;
 
@@ -96,6 +102,7 @@ final class EconomyService implements Economy, EconomySync {
         regenMs: regenMsOf(tunables.read(Tunable.fuelRegenMinutes)),
       ),
       nameRefused: _nameRefused,
+      confirmed: ConfirmedState(_confirmed),
     );
   }
 
@@ -191,6 +198,7 @@ final class EconomyService implements Economy, EconomySync {
       takenAtMs: _clock.nowMs(),
     );
     _state = applied.fold.state;
+    _confirmed = applied.base.state;
     _base = (
       stateVersion: applied.base.stateVersion,
       playerId: applied.base.playerId,
@@ -243,6 +251,7 @@ final class EconomyService implements Economy, EconomySync {
       dropPending: dropPending,
     );
     _state = taken.fold.state;
+    _confirmed = taken.base.state;
     _base = (stateVersion: taken.base.stateVersion, playerId: playerId);
     await _recount();
     _changed();
@@ -260,6 +269,18 @@ final class EconomyService implements Economy, EconomySync {
   @override
   Future<OpOutcome> grantComebackGift(TxnId id) =>
       _submit(id, const ComebackGiftRequest());
+
+  @override
+  Future<OpOutcome> recordScene(
+    TxnId id, {
+    required ChapterId chapterId,
+    required String sceneId,
+  }) =>
+      _submit(id, StoryProgressRequest(chapterId: chapterId, sceneId: sceneId));
+
+  @override
+  Future<OpOutcome> claimRequest(TxnId id, {required String requestId}) =>
+      _submit(id, ClaimRequest(requestId: requestId));
 
   @override
   Future<void> anchorOnServer(

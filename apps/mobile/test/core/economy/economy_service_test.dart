@@ -1,3 +1,4 @@
+import 'package:content_models/content_models.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/core/economy/domain/op.dart';
@@ -212,6 +213,133 @@ void main() {
     );
     expect(outcome, isA<OpRefused>());
     expect(await _rowCount(economy), 0);
+  });
+
+  group('the story calls (M10)', () {
+    test('recordScene applies and stores one row', () async {
+      final economy = await testEconomy();
+      final id = economy.service.newRequestId();
+
+      final outcome = await economy.service.recordScene(
+        id,
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      );
+
+      expect(outcome, isA<OpApplied>());
+      final applied = outcome as OpApplied;
+      expect(applied.repeated, isFalse);
+      expect(applied.op.op.type, OpType.storyProgress);
+      expect(applied.view.scenesSeen['ch1_first_job'], {'the_stand'});
+      expect(await _rowCount(economy), 1);
+    });
+
+    test('the same TxnId again is a repeat that stores nothing', () async {
+      final economy = await testEconomy();
+      final id = economy.service.newRequestId();
+      final first = await economy.service.recordScene(
+        id,
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      ) as OpApplied;
+      final before = await dumpTables(economy.db);
+      economy.passTime(minute);
+
+      final again = await economy.service.recordScene(
+        id,
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      );
+
+      expect(again, isA<OpApplied>());
+      expect((again as OpApplied).repeated, isTrue);
+      expect(again.op.seq, first.op.seq);
+      expect(await dumpTables(economy.db), before);
+    });
+
+    test('a refused repeat (already_recorded) stores no row', () async {
+      final economy = await testEconomy();
+      final first = await economy.service.recordScene(
+        economy.service.newRequestId(),
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      );
+      expect(first, isA<OpApplied>());
+      final before = await dumpTables(economy.db);
+
+      final second = await economy.service.recordScene(
+        economy.service.newRequestId(),
+        chapterId: ChapterId.ch1FirstJob,
+        sceneId: 'the_stand',
+      );
+
+      expect(second, isA<OpRefused>());
+      expect((second as OpRefused).code, EconomyRefusal.alreadyRecorded);
+      expect(await dumpTables(economy.db), before);
+      expect(await _rowCount(economy), 1);
+    });
+
+    test(
+      'claimRequest applies, stores one row and leaves BONAT alone',
+      () async {
+        final economy = await testEconomy(
+          firstState: (nowMs) =>
+              EconomyState.newPlayer(fuelMax: 8, nowMs: nowMs).copyWith(
+                bonat: 4,
+                ownership: {
+                  (SkuKind.item, 'salon.nish'): Owned(
+                    kind: SkuKind.item,
+                    variantId: 'crystal',
+                    acquiredAtMs: nowMs,
+                  ),
+                },
+              ),
+        );
+        final id = economy.service.newRequestId();
+
+        final outcome = await economy.service.claimRequest(
+          id,
+          requestId: 'req_nish_crystal',
+        );
+
+        expect(outcome, isA<OpApplied>());
+        final applied = outcome as OpApplied;
+        expect(applied.op.op.type, OpType.claimRequest);
+        expect(applied.view.requestsClaimed, {'req_nish_crystal'});
+        expect(applied.view.bonat, 4);
+        expect(await _rowCount(economy), 1);
+        expect(economy.service.view.bonat, 4);
+      },
+    );
+
+    test('a refused claim (already_granted) stores no row', () async {
+      final economy = await testEconomy(
+        firstState: (nowMs) =>
+            EconomyState.newPlayer(fuelMax: 8, nowMs: nowMs).copyWith(
+              ownership: {
+                (SkuKind.item, 'salon.nish'): Owned(
+                  kind: SkuKind.item,
+                  variantId: 'crystal',
+                  acquiredAtMs: nowMs,
+                ),
+              },
+            ),
+      );
+      await economy.service.claimRequest(
+        economy.service.newRequestId(),
+        requestId: 'req_nish_crystal',
+      );
+      final before = await dumpTables(economy.db);
+
+      final again = await economy.service.claimRequest(
+        economy.service.newRequestId(),
+        requestId: 'req_nish_crystal',
+      );
+
+      expect(again, isA<OpRefused>());
+      expect((again as OpRefused).code, EconomyRefusal.alreadyGranted);
+      expect(await dumpTables(economy.db), before);
+    });
   });
 
   test('a QueryExecutor wrapper sees the commit as one transaction', () async {

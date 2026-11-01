@@ -41,6 +41,9 @@ _GOAL_FIELD = {
 }
 # A panel line by this speaker is the panel's caption (M07 research R5), not a bubble.
 NARRATOR = "narrator"
+# The room drawing's design space, which an item's slot fits inside (M10, V-R3).
+_ROOM_WIDTH = 358
+_ROOM_HEIGHT = 300
 
 Entity = tuple[str, str]
 
@@ -66,7 +69,7 @@ class _Index:
     chapters: Mapping[str, Any]
     rooms: Mapping[str, Any]
     items: Mapping[str, Any]
-    pools: frozenset[str]
+    pools: Mapping[str, Any]
     prices: Counter[tuple[str, str]]
 
 
@@ -85,7 +88,7 @@ def _index(pack: Mapping[str, Any]) -> _Index:
         chapters=_by_id(pack["chapters"], "chapter_id"),
         rooms=_by_id(pack["rooms"], "room_id"),
         items=_by_id(pack["items"], "item_id"),
-        pools=frozenset(pool["speech_key"] for pool in pack["speech_pools"]),
+        pools=_by_id(pack["speech_pools"], "speech_key"),
         prices=Counter((p["sku_kind"], p["sku_id"]) for p in pack["catalog"]["prices"]),
     )
 
@@ -386,17 +389,93 @@ def _chapter(chapter: Any, ix: _Index) -> Iterator[Finding]:
         yield _error("V-C2", entity, "$.story_trip_id", f"trip {story!r} is not in this pack")
     elif story is not None and ix.trips[story]["kind"] != "story":
         yield _error("V-C2", entity, "$.story_trip_id", f"trip {story!r} is not a story trip")
+    yield from _story_trip_info(chapter, ix)
     yield from _narrators(chapter, entity)
     yield from _duplicates(chapter["scenes"], "scene_id", entity, "$.scenes")
 
 
+def _story_trip_info(chapter: Any, ix: _Index) -> Iterator[Finding]:
+    """V-C6 to V-C9: the chapter's story trip, its riders and their comments.
+
+    A rider sits in a seat the trip leaves empty (V-C7), so the engine never sees them and the
+    rules don't change. A comment draws from a written pool with no placeholder (V-C8), and the
+    failure reason only replaces the rule's line on a trip that forbids fights (V-C9).
+    """
+    entity: Entity = ("chapter", chapter["chapter_id"])
+    info = chapter.get("story_trip_info")
+    if info is None:
+        return
+    story = chapter.get("story_trip_id")
+    if story is None:
+        yield _error(
+            "V-C6",
+            entity,
+            "$.story_trip_info",
+            "story_trip_info needs the chapter's story_trip_id",
+        )
+        return
+    trip = ix.trips.get(story)
+    if trip is None:
+        return  # V-C2 already reports the unknown trip.
+    seats = {seat["seat_id"] for seat in trip["seats"]}
+    taken = {passenger["seat_id"] for passenger in trip["passengers"]}
+    for n, rider in enumerate(info["riders"]):
+        base = f"$.story_trip_info.riders[{n}]"
+        seat = rider["seat"]
+        if seat not in seats:
+            yield _error("V-C7", entity, f"{base}.seat", f"{seat!r} is not a seat of {story}")
+        elif seat in taken:
+            yield _error(
+                "V-C7", entity, f"{base}.seat", f"a passenger of {story} names the seat {seat!r}"
+            )
+        elif any(other["seat"] == seat for other in info["riders"][:n]):
+            yield _error(
+                "V-C7", entity, f"{base}.seat", f"two riders can't share the seat {seat!r}"
+            )
+        for slot, key in sorted(rider.get("comments", {}).items()):
+            path = f"{base}.comments.{slot}"
+            pool = ix.pools.get(key)
+            if pool is None:
+                yield _error("V-C8", entity, path, f"no speech pool {key!r}")
+            elif any(
+                "{amount}" in text or "{station}" in text
+                for line in pool["lines"]
+                for text in line["text"].values()
+            ):
+                yield _error(
+                    "V-C8",
+                    entity,
+                    path,
+                    f"a rider's comment draws from {key!r}, which has a placeholder",
+                )
+    if "fail_reason" in info and not trip["rules"]["no_fights_required"]:
+        yield _error(
+            "V-C9",
+            entity,
+            "$.story_trip_info.fail_reason",
+            f"{story} doesn't require no fights, so it has no failure reason",
+        )
+
+
 def _narrators(chapter: Any, entity: Entity) -> Iterator[Finding]:
-    """V-C5: a panel's `narrator` line is its caption, so it comes first, and once."""
+    """V-C5 and V-C12: a panel's `narrator` line is its caption, so it comes first, and once.
+
+    A panel draws at most two speech bubbles (M10, constitution XI).
+    """
     for n, scene in enumerate(chapter["scenes"]):
         for m, panel in enumerate(scene["panels"]):
             seen = False
+            speakers = 0
             for k, line in enumerate(panel["lines"]):
                 if line["speaker"] != NARRATOR:
+                    speakers += 1
+                    if speakers > 2:
+                        yield _error(
+                            "V-C12",
+                            entity,
+                            f"$.scenes[{n}].panels[{m}].lines[{k}].speaker",
+                            "a panel has at most two lines that aren't the narrator's",
+                        )
                     continue
                 if k:
                     yield _error(
@@ -411,19 +490,42 @@ def _narrators(chapter: Any, entity: Entity) -> Iterator[Finding]:
 
 
 def _scene_plays(chapters: list[Any], ix: _Index) -> Iterator[Finding]:
-    """V-C3 and V-C4: when the app plays a scene by itself (`plays`), across the pack.
+    """V-C3, V-C4, V-C10 and V-C11: when the app plays a scene by itself (`plays`), across the pack.
 
-    The first opening and the first scene of each trip, in chapter order, are the ones kept.
+    The first opening and the first scene of each trip, in chapter order, are the ones kept. A
+    chapter has at most one scene without `plays` (its goal scene), and `scene_id`s are unique in
+    the pack, because the phone records a scene by `(chapter_id, scene_id)`.
     """
     opening: str | None = None
     claimed: dict[str, str] = {}
+    scene_ids: dict[str, str] = {}
     for chapter in sorted(chapters, key=lambda c: (c["order"], c["chapter_id"])):
         entity: Entity = ("chapter", chapter["chapter_id"])
+        goal_scene: str | None = None
         for n, scene in enumerate(chapter["scenes"]):
+            here = f"{chapter['chapter_id']}/{scene['scene_id']}"
+            if scene["scene_id"] in scene_ids:
+                yield _error(
+                    "V-C11",
+                    entity,
+                    f"$.scenes[{n}].scene_id",
+                    f"scene_id {scene['scene_id']!r} is already in {scene_ids[scene['scene_id']]}",
+                )
+            else:
+                scene_ids[scene["scene_id"]] = here
             plays = scene.get("plays")
             if plays is None:
+                if goal_scene is not None:
+                    yield _error(
+                        "V-C10",
+                        entity,
+                        f"$.scenes[{n}].plays",
+                        f"a chapter has one scene without plays, its goal scene {goal_scene}",
+                    )
+                else:
+                    goal_scene = here
                 continue
-            base, here = f"$.scenes[{n}].plays", f"{chapter['chapter_id']}/{scene['scene_id']}"
+            base = f"$.scenes[{n}].plays"
             trip_id = plays.get("trip_id")
             if plays["kind"] == "opening":
                 if chapter["order"] != 1:
@@ -480,6 +582,21 @@ def _item(item: Any, ix: _Index) -> Iterator[Finding]:
             entity,
             "$.item_id",
             f"item_id doesn't start with its room_id {item['room_id']!r}",
+        )
+    slot = item["slot"]
+    if slot["x"] + slot["w"] > _ROOM_WIDTH:
+        yield _error(
+            "V-R3",
+            entity,
+            "$.slot",
+            f"the piece runs past the room's right edge: {slot['x']} + {slot['w']} > {_ROOM_WIDTH}",
+        )
+    if slot["y"] + slot["h"] > _ROOM_HEIGHT:
+        yield _error(
+            "V-R3",
+            entity,
+            "$.slot",
+            f"the piece runs past the room's floor: {slot['y']} + {slot['h']} > {_ROOM_HEIGHT}",
         )
     yield from _duplicates(item["variants"], "variant_id", entity, "$.variants", code="V-R1")
 

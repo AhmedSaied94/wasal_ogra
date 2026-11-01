@@ -5,7 +5,10 @@
 // scene waits (M10). Opens the apartment.
 import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/art/apartment_art.dart';
+import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/l10n/number_formatter.dart';
 import 'package:wassal/core/routing/nav_guard.dart';
@@ -14,7 +17,17 @@ import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/pressable.dart';
 import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/core/content/content_providers.dart';
+import 'package:wassal/core/economy/economy_providers.dart';
+import 'package:wassal/core/progress/application/player_progress_provider.dart';
+import 'package:wassal/core/progress/domain/story.dart';
 import 'package:wassal/features/home/domain/savings_target.dart';
+import 'package:wassal/features/apartment/presentation/room_fallback.dart';
+import 'package:wassal/features/apartment/presentation/room_scene.dart'
+    show roomDesign;
+import 'package:wassal/features/onboarding/domain/first_session.dart';
+import 'package:wassal/features/onboarding/onboarding_providers.dart';
+import 'package:wassal/features/story/story_overrides.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// [target]'s goal as a title: «اشتري الميكروباص القديم».
@@ -125,12 +138,41 @@ class HomeSavingsCard extends ConsumerWidget {
         ),
         goal: true,
       ),
+      // The end of the available story: a line, no bar, no CTA.
+      StoryEndTarget(:final chapter) => (
+        title: l10n.apartmentTitle,
+        chapter: chapter.order,
+        note: l10n.storyEndLine,
+        figures: '',
+        fraction: 0.0,
+        label: l10n.homeStoryEndA11y,
+        goal: false,
+      ),
       NoTarget() => throw StateError('no savings target'),
     };
     final radius = BorderRadius.circular(RadiusTokens.card);
     final ready = target.affordable;
+    // M10: while a scene waits, the card opens the first of them (T090);
+    // otherwise it opens the apartment.
+    final waiting = sceneWaiting
+        ? waitingScenes(
+            ref.watch(contentSourceProvider),
+            ref.watch(playerProgressProvider),
+            seenScenesOf(
+              ref.watch(contentSourceProvider),
+              ref.watch(economyViewProvider),
+              ref.watch(firstSessionFlagsProvider).value ??
+                  FirstSessionFlags.empty,
+            ),
+          ).firstOrNull
+        : null;
     return Pressable(
-      onTap: () => NavGuard.go(context, '/apartment'),
+      onTap: () => waiting == null
+          ? NavGuard.go(context, '/apartment')
+          : NavGuard.go(
+              context,
+              '/story/scene/${waiting.$2.sceneId}?then=/home',
+            ),
       lip: LipTokens.card,
       borderRadius: radius,
       semanticLabel: label,
@@ -147,8 +189,13 @@ class HomeSavingsCard extends ConsumerWidget {
             Container(
               width: _tile,
               height: _tile,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: goal ? ColorTokens.primarySoft : ColorTokens.sunSoft,
+                color: switch (target) {
+                  StoryEndTarget() => ColorTokens.sceneRoom,
+                  _ when goal => ColorTokens.primarySoft,
+                  _ => ColorTokens.sunSoft,
+                },
                 borderRadius: BorderRadius.circular(RadiusTokens.bubble),
               ),
               alignment: Alignment.center,
@@ -156,6 +203,11 @@ class HomeSavingsCard extends ConsumerWidget {
                 final ChapterGoalTarget goal => goalGlyph(
                   goal,
                   size: _tileIcon,
+                ),
+                // `HomeStoryEnd` 51: the finished room, in its own drawing
+                // when the app ships one.
+                final StoryEndTarget end => _FinishedRoom(
+                  art: _roomArt(ref.watch(contentSourceProvider), end),
                 ),
                 _ => const AppIcon('ring_gem', size: _tileIcon),
               },
@@ -173,12 +225,15 @@ class HomeSavingsCard extends ConsumerWidget {
                         color: ColorTokens.ink,
                       ),
                     ),
-                    end: Text(
-                      l10n.homeSavingsChapter(numbers.integer(chapter)),
-                      style: TypeTokens.label.copyWith(
-                        color: ColorTokens.inkMuted,
-                      ),
-                    ),
+                    // The end of the story names no chapter (`HomeStoryEnd`).
+                    end: target is StoryEndTarget
+                        ? const SizedBox.shrink()
+                        : Text(
+                            l10n.homeSavingsChapter(numbers.integer(chapter)),
+                            style: TypeTokens.label.copyWith(
+                              color: ColorTokens.inkMuted,
+                            ),
+                          ),
                   ),
                   _Row(
                     start: switch (note) {
@@ -229,7 +284,7 @@ class HomeSavingsCard extends ConsumerWidget {
                           .weight(700)
                           .copyWith(color: ColorTokens.primary),
                     )
-                  else
+                  else if (target is! StoryEndTarget)
                     ProgressBar(value: fraction, color: ProgressColor.gold),
                 ],
               ),
@@ -255,5 +310,32 @@ class _Row extends StatelessWidget {
     crossAxisAlignment: WrapCrossAlignment.center,
     spacing: SpaceTokens.s8,
     children: [start, end],
+  );
+}
+
+/// The room the finished story's last chapter completed: its drawing when the
+/// app ships one, else the room's wall and floor (`HomeStoryEnd` 51).
+String? _roomArt(ContentSource content, StoryEndTarget end) {
+  final id = end.chapter.goal.roomId;
+  final art = id == null ? null : content.room(id)?.art;
+  return art == null ? null : ApartmentArt.room(art);
+}
+
+class _FinishedRoom extends StatelessWidget {
+  const _FinishedRoom({required this.art});
+
+  final String? art;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: art == null
+        ? FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox.fromSize(
+              size: roomDesign,
+              child: const RoomFallback(),
+            ),
+          )
+        : SvgPicture.asset(art!, fit: BoxFit.cover),
   );
 }

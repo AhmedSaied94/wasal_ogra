@@ -333,6 +333,7 @@ void main() {
   ) async {
     const scene = Scene(
       sceneId: 'test',
+      title: LocalizedText(arEg: 'مشهد'),
       panels: [
         Panel(
           art: 'opening_key',

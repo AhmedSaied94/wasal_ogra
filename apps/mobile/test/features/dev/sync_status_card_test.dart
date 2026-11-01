@@ -78,7 +78,8 @@ void main() {
     expect(_value(tester, 'account'), 'active');
     expect(_value(tester, 'player_id'), '${playerIdOf(1).substring(0, 8)}…');
     expect(_value(tester, 'providers'), 'google');
-    expect(_value(tester, 'pending'), '0');
+    // M10's launch backfill queued the opening scene M07 had seen.
+    expect(_value(tester, 'pending'), '1');
     for (final label in [
       'state_version',
       'last_pass',
@@ -95,9 +96,11 @@ void main() {
     final (container, api) = await _pump(tester);
     final economy = container.read(economyProvider).requireValue;
 
+    // The launch backfill's `story_progress` is already waiting (M10).
+    expect(_value(tester, 'pending'), '1');
     await economy.startTrip(economy.newRequestId(), tripId: 'line_hay.01');
     await tester.pumpAndSettle();
-    expect(_value(tester, 'pending'), '1');
+    expect(_value(tester, 'pending'), '2');
 
     await tester.tap(find.byKey(SyncStatusCard.syncNowKey));
     await tester.pumpAndSettle();

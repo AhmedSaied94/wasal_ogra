@@ -27,6 +27,7 @@ final class TripFacts {
     required this.bubbleMinMs,
     required this.hintMode,
     this.boostersLocked = false,
+    this.storyInfo,
   });
 
   final TripDefinition definition;
@@ -39,6 +40,12 @@ final class TripFacts {
 
   /// The tutorial isn't done: the boosters are a locked bar (M07 FR-038).
   final bool boostersLocked;
+
+  /// How the chapter whose `story_trip_id` is this trip presents it: who
+  /// rides, its title and condition (specs/015-m10-apartment-story,
+  /// contracts/story-trip.md "Facts"). Null for any other trip, whose
+  /// screen is exactly M02's.
+  final StoryTripInfo? storyInfo;
 
   late final Map<String, PassengerSpec> specs = {
     for (final p in definition.passengers) p.passengerId: p,

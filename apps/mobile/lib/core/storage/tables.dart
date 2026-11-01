@@ -37,6 +37,9 @@ class LedgerOps extends Table {
       // v4: M07's name and tutorial gift (research R8).
       'settings_update',
       'tutorial_gift',
+      // v5: M10's story operations (specs/015-m10-apartment-story, R5).
+      'story_progress',
+      'claim_request',
     ]),
   )();
 
@@ -204,6 +207,11 @@ class PlayerStateTable extends Table {
   TextColumn get displayName => text().nullable()();
   BoolColumn get tutorialGranted =>
       boolean().withDefault(const Constant(false))();
+
+  /// M10: a JSON object of scene-id arrays by chapter wire name, and a JSON
+  /// array of claimed request ids (specs/015-m10-apartment-story, R5).
+  TextColumn get scenesSeen => text().withDefault(const Constant('{}'))();
+  TextColumn get requestsClaimed => text().withDefault(const Constant('[]'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

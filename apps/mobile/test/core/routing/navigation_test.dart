@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/features/home/presentation/home_header.dart';
+import 'package:wassal/features/lines/presentation/lines_screen.dart';
 import 'package:wassal/features/settings/settings_screen.dart';
 import 'package:wassal/core/theme/components/nav.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
@@ -13,6 +13,20 @@ import '../../helpers/economy.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/routing.dart';
 import '../../helpers/trip.dart';
+
+/// Reached by their own screens' controls, not by a placeholder link
+/// (specs/015-m10-apartment-story, T048): the apartment's chapter bar and,
+/// from US2, the rooms view. Their screens' tests cover them.
+const _byScreen = {
+  'apartmentItem',
+  'apartmentRequests',
+  'apartmentChapters',
+  'apartmentPreTrip',
+  // And the story's pages, from the chapters timeline (US4, US6).
+  'story',
+  'storyAlbum',
+  'storyScene',
+};
 
 /// Reached by boot and the first session's redirects, not by links.
 const _onboarding = {
@@ -27,7 +41,9 @@ Iterable<Destination> get _routable =>
 
 void main() {
   group('links (FR-017a, SC-006)', () {
-    for (final d in _routable.where((d) => !_onboarding.contains(d.name))) {
+    for (final d in _routable.where(
+      (d) => !_onboarding.contains(d.name) && !_byScreen.contains(d.name),
+    )) {
       testWidgets('الموقف reaches ${d.name}', (tester) async {
         final route = routeTo(d.name);
         expect(route, isNotNull, reason: '${d.name} is unreachable');
@@ -46,6 +62,15 @@ void main() {
         expect(currentLocation(tester), d.location);
       });
     }
+
+    testWidgets('the apartment tab draws the goal view, and its chapter bar '
+        'opens the timeline (T048)', (tester) async {
+      await pumpWassalApp(tester, initialLocation: '/apartment');
+      expect(find.text('تحويش الجواز'), findsOneWidget);
+      await tester.tap(find.text('كل الفصول'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/apartment/chapters');
+    });
 
     testWidgets('a new player: intro, the Name card, then trip 1, by the '
         "screens' own buttons", (tester) async {
@@ -68,15 +93,29 @@ void main() {
         await pumpWassalApp(
           tester,
           initialLocation: d.location,
-          // With nothing kept, the result is Home (M08 FR-036).
-          economy: d.name == RouteNames.result
-              ? economyOverridesOf(await lastFinishedEconomy())
-              : null,
+          // With nothing kept, the result is Home (M08 FR-036); a scene
+          // still locked goes to the apartment (M10 story-flow.md).
+          economy: switch (d.name) {
+            RouteNames.result => economyOverridesOf(
+              await lastFinishedEconomy(),
+            ),
+            RouteNames.storyScene => economyOverridesOf(
+              await testEconomy(firstState: standPlayedState),
+            ),
+            _ => null,
+          },
         );
-        expect(currentLocation(tester), d.location);
+        // A piece in a locked room leaves to the tab (M10 T064).
+        expect(
+          currentLocation(tester),
+          d.name == RouteNames.apartmentItem ? '/apartment' : d.location,
+        );
         expect(
           find.byType(BottomNav).hitTestable(),
-          d.presentation == Presentation.tab ? findsOneWidget : findsNothing,
+          d.presentation == Presentation.tab ||
+                  d.name == RouteNames.apartmentItem
+              ? findsOneWidget
+              : findsNothing,
         );
       });
     }
@@ -84,7 +123,11 @@ void main() {
 
   group('sheets close three ways (FR-018)', () {
     final sheets = destinations.where(
-      (d) => d.presentation == Presentation.sheet,
+      (d) =>
+          d.presentation == Presentation.sheet &&
+          // The piece sheet needs an unlocked room to open; its own test
+          // covers closing (M10 T055).
+          d.name != RouteNames.apartmentItem,
     );
     final closers = <String, Future<void> Function(WidgetTester)>{
       'drag down': (tester) =>
@@ -123,23 +166,18 @@ void main() {
 
   group('tabs (FR-016)', () {
     testWidgets('a tab keeps its state while another is open', (tester) async {
-      // The apartment is still a placeholder; the lines tab opens at its
-      // root since M09 (shell_test).
-      await pumpWassalApp(tester, initialLocation: '/apartment');
-      final before = tester.state<ScrollableState>(
-        find.descendant(
-          of: find.byType(PlaceholderScreen),
-          matching: find.byType(Scrollable),
-        ),
-      );
+      // Lines' map keeps its scroll while another tab is open.
+      await pumpWassalApp(tester, initialLocation: '/lines');
+      final scrollable = find
+          .descendant(
+            of: find.byType(LinesScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      final before = tester.state<ScrollableState>(scrollable);
       await tapTab(tester, Section.shop);
-      await tapTab(tester, Section.apartment);
-      final after = tester.state<ScrollableState>(
-        find.descendant(
-          of: find.byType(PlaceholderScreen),
-          matching: find.byType(Scrollable),
-        ),
-      );
+      await tapTab(tester, Section.lines);
+      final after = tester.state<ScrollableState>(scrollable);
       expect(identical(before, after), isTrue);
     });
 

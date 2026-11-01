@@ -7,6 +7,7 @@ import 'package:wassal/features/trip/data/drift_trip_records.dart';
 import 'package:wassal/features/trip/data/trip_records.dart';
 import 'package:wassal/features/onboarding/onboarding_providers.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
+import 'package:wassal/features/story/presentation/scene_viewer_page.dart';
 
 import '../../helpers/content.dart';
 import '../../helpers/economy.dart';
@@ -122,6 +123,54 @@ void main() {
     );
     await _skipScene(tester);
     expect(currentLocation(tester), '/trip/line_hay.04');
+  });
+
+  testWidgets('after the first session the due scene is the story viewer\'s '
+      '(specs/015-m10-apartment-story, T081)', (tester) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.04',
+      player: _player(finished: tutorialTripIds.length),
+      scenesDue: {'the_stand'},
+    );
+    expect(
+      Uri.parse(currentLocation(tester)),
+      Uri(
+        path: '/story/scene/the_stand',
+        queryParameters: {'then': '/trip/line_hay.04'},
+      ),
+    );
+    await tester.tap(find.byKey(SceneViewerPage.skipKey));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    expect(currentLocation(tester), '/trip/line_hay.04');
+  });
+
+  // R3-2 (FR-030, FR-055): a goal scene's unlock is derived, so a refused
+  // purchase, a restore or a pack update can lock a due id again. Redirecting
+  // to it then loops `/trip` and the scene until go_router gives up.
+  testWidgets('a due id the pack locked again: the trip starts, no loop', (
+    tester,
+  ) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.02',
+      player: _player(finished: 1),
+      // ch2's goal (the microbus) isn't met: father_visit is locked.
+      scenesDue: {'father_visit'},
+    );
+    expect(currentLocation(tester), '/trip/line_hay.02');
+  });
+
+  testWidgets('a due id the pack lacks: the trip starts', (tester) async {
+    await _launch(
+      tester,
+      '/trip/line_hay.02',
+      player: _player(finished: 1),
+      scenesDue: {'ghost_scene'},
+    );
+    expect(currentLocation(tester), '/trip/line_hay.02');
   });
 
   testWidgets('a failed scene write: reported, the scene again, then on', (

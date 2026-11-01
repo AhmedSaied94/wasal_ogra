@@ -30,6 +30,11 @@ FailSummary failSummary(
           final byPoints = b.value.compareTo(a.value);
           return byPoints != 0 ? byPoints : a.key.index.compareTo(b.key.index);
         });
+  final brokeStoryRule =
+      state != null &&
+      facts.storyNoFights &&
+      state.status == TripStatus.failed &&
+      state.counters.fights > 0;
   return FailSummary(
     causes: [
       for (final MapEntry(key: cause, value: points) in lost.take(2))
@@ -42,11 +47,10 @@ FailSummary failSummary(
         ),
     ],
     revive: revive,
-    brokeStoryRule:
-        state != null &&
-        facts.storyNoFights &&
-        state.status == TripStatus.failed &&
-        state.counters.fights > 0,
+    brokeStoryRule: brokeStoryRule,
+    // The chapter's own line replaces M02's rule line (M10, contracts/
+    // story-trip.md "Failure reason").
+    failReason: brokeStoryRule ? facts.storyInfo?.failReason?.arEg : null,
     angryFaces: state == null ? const [] : _angryFaces(state, facts),
   );
 }

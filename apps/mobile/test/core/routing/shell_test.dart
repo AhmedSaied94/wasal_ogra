@@ -59,10 +59,16 @@ void main() {
     expect(currentLocation(tester), '/shop/fuel');
   });
 
-  const tabs = {
-    '/apartment': (index: 2, title: 'الشقة'),
-    '/shop': (index: 3, title: 'المحل'),
-  };
+  const tabs = {'/shop': (index: 3, title: 'المحل')};
+
+  testWidgets('/apartment draws its goal view inside the shell (T048)', (
+    tester,
+  ) async {
+    await pumpWassalApp(tester, initialLocation: '/apartment');
+    expect(currentLocation(tester), '/apartment');
+    expect(tester.widget<BottomNav>(find.byType(BottomNav)).currentIndex, 2);
+    expect(find.text('تحويش الجواز'), findsOneWidget);
+  });
 
   for (final MapEntry(key: path, value: tab) in tabs.entries) {
     testWidgets('$path shows its placeholder inside the shell', (tester) async {

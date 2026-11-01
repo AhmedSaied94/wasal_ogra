@@ -1,13 +1,25 @@
 {
+  "comment": {
+    "ar-EG": "النيش بياخد العين على طول"
+  },
   "item_id": "salon.nish",
   "name": {
     "ar-EG": "النيش"
   },
   "order": 1,
   "room_id": "salon",
+  "slot": {
+    "h": 150,
+    "w": 180,
+    "x": 89,
+    "y": 40
+  },
   "variants": [
     {
       "art": "nish_classic",
+      "comment": {
+        "ar-EG": "الكلاسيك مالوش حل"
+      },
       "name": {
         "ar-EG": "كلاسيك"
       },
@@ -15,6 +27,9 @@
     },
     {
       "art": "nish_crystal",
+      "comment": {
+        "ar-EG": "الكريستال بيلمع في النور"
+      },
       "name": {
         "ar-EG": "كريستال"
       },
@@ -22,6 +37,9 @@
     },
     {
       "art": "nish_modern",
+      "comment": {
+        "ar-EG": "المودرن بسيط وشيك"
+      },
       "name": {
         "ar-EG": "مودرن"
       },

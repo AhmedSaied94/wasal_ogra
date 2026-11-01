@@ -16,7 +16,17 @@ from apps.accounts.tests.test_admin_csp import (
     csp_hash,
     script_sources,
 )
-from apps.content.models import Line, Seat, Trip, Vehicle
+from apps.content.models import (
+    Chapter,
+    FamilyRequest,
+    Item,
+    Line,
+    Room,
+    Seat,
+    StoryRider,
+    Trip,
+    Vehicle,
+)
 from apps.content.tests import factories as make
 from apps.content.tests.conftest import admin_client
 
@@ -378,3 +388,178 @@ def test_the_review_columns_are_read_only(author_client: Client, sample_imported
 
     assert "reviewed_by" not in form.fields
     assert "reviewed_at" not in form.fields
+
+
+# -- M10's story fields (specs/015-m10-apartment-story, contracts/content-fields.md "B04") ---------
+
+
+def story_chapter_post(world: dict[str, Any]) -> dict[str, str]:
+    story = Trip.objects.create(
+        line=world["line"],
+        number=3,
+        vehicle=world["micro"],
+        kind="story",
+        seed=12345,
+        max_earnings_jenehat=60,
+        star_two="no_fights",
+        star_three="no_fights_no_mistakes",
+        student_discount_pct=0,
+        bag_fare_piasters=0,
+        child_free_age=6,
+        max_break_requests=2,
+        no_fights_required=True,
+    )
+    return {
+        "chapter_id": "ch5_kitchen",
+        "order": "5",
+        "title_ar_eg": "المطبخ",
+        "title_ar": "",
+        "goal_kind": "purchase",
+        "story_trip": str(story.pk),
+        "completion_bonat": "5",
+        "goal_art": "goal_shabka",
+        "goal_line_speaker": "moallem",
+        "goal_line_ar_eg": "لمّ قرشين",
+        "goal_line_ar": "",
+        "ready_line_ar_eg": "جاهزة",
+        "ready_line_ar": "",
+        "tagline_ar_eg": "شقة العمر",
+        "tagline_ar": "",
+        "story_title_ar_eg": "مشوار المعلم",
+        "story_title_ar": "",
+        "story_condition_ar_eg": "خليك هادي",
+        "story_condition_ar": "",
+        "story_fail_reason_ar_eg": "زعل ونزل",
+        "story_fail_reason_ar": "",
+        **management("scenes", 0),
+        **management("riders", 2),
+        "riders-0-order": "1",
+        "riders-0-character": "moallem",
+        "riders-0-seat_id": "A_l",
+        "riders-0-comment_short_change": "story.moallem.short_change",
+        "riders-0-comment_false_accusation": "",
+        "riders-0-comment_fight": "story.moallem.fight",
+        "riders-0-comment_missed_stop": "",
+        "riders-0-comment_impatient": "",
+        "riders-1-order": "2",
+        "riders-1-character": "salma",
+        "riders-1-seat_id": "A_m",
+        **{
+            f"riders-1-comment_{slot}": ""
+            for slot in (
+                "short_change",
+                "false_accusation",
+                "fight",
+                "missed_stop",
+                "impatient",
+            )
+        },
+    }
+
+
+def test_a_chapter_saves_every_story_field_and_its_riders(
+    author_client: Client, world: dict[str, Any]
+) -> None:
+    response = author_client.post("/admin/content/chapter/add/", story_chapter_post(world))
+
+    assert response.status_code == 302, response.context and response.context["errors"]
+    [chapter] = Chapter.objects.filter(chapter_id="ch5_kitchen")
+    assert chapter.goal_art == "goal_shabka"
+    assert (chapter.goal_line_speaker, chapter.goal_line_ar_eg) == ("moallem", "لمّ قرشين")
+    assert chapter.ready_line_ar_eg == "جاهزة"
+    assert chapter.tagline_ar_eg == "شقة العمر"
+    assert chapter.story_title_ar_eg == "مشوار المعلم"
+    assert chapter.story_condition_ar_eg == "خليك هادي"
+    assert chapter.story_fail_reason_ar_eg == "زعل ونزل"
+    assert [
+        (
+            rider.order,
+            rider.character,
+            rider.seat_id,
+            rider.comment_short_change,
+            rider.comment_fight,
+        )
+        for rider in chapter.riders.order_by("order")
+    ] == [
+        (1, "moallem", "A_l", "story.moallem.short_change", "story.moallem.fight"),
+        (2, "salma", "A_m", "", ""),
+    ]
+
+
+def test_the_rider_inline_allows_two(author_client: Client, world: dict[str, Any]) -> None:
+    formset = author_client.get("/admin/content/chapter/add/").context["inline_admin_formsets"]
+    riders = next(f for f in formset if f.formset.model is StoryRider)
+    assert riders.formset.max_num == 2
+
+
+def test_the_room_item_and_request_save_their_new_fields(
+    author_client: Client, sample_imported: User
+) -> None:
+    chapter = Chapter.objects.get(chapter_id="ch4_salon")
+    room = author_client.post(
+        "/admin/content/room/add/",
+        {
+            "room_id": "kitchen",
+            "name_ar_eg": "المطبخ",
+            "name_ar": "",
+            "chapter": str(chapter.pk),
+            "order": "2",
+            "completion_bonat": "20",
+            "art": "kitchen_01",
+            "done_line_ar_eg": "المطبخ خلص",
+            "done_line_ar": "",
+        },
+    )
+    assert room.status_code == 302, room.context and room.context["errors"]
+    stored_room = Room.objects.get(room_id="kitchen")
+    assert (stored_room.art, stored_room.done_line_ar_eg) == ("kitchen_01", "المطبخ خلص")
+
+    item = author_client.post(
+        "/admin/content/item/add/",
+        {
+            "room": str(stored_room.pk),
+            "slug": "table",
+            "name_ar_eg": "الترابيزة",
+            "name_ar": "",
+            "order": "1",
+            "slot_x": "40",
+            "slot_y": "120",
+            "slot_w": "160",
+            "slot_h": "100",
+            "comment_ar_eg": "الترابيزة بتلم العيلة",
+            "comment_ar": "",
+            **management("variants", 1),
+            "variants-0-variant_id": "wood",
+            "variants-0-name_ar_eg": "خشب",
+            "variants-0-name_ar": "",
+            "variants-0-art": "table_wood",
+            "variants-0-order": "1",
+            "variants-0-comment_ar_eg": "الخشب دافي",
+            "variants-0-comment_ar": "",
+        },
+    )
+    assert item.status_code == 302, item.context and item.context["errors"]
+    stored_item = Item.objects.get(room=stored_room, slug="table")
+    assert (stored_item.slot_x, stored_item.slot_y, stored_item.slot_w, stored_item.slot_h) == (
+        40,
+        120,
+        160,
+        100,
+    )
+    assert stored_item.comment_ar_eg == "الترابيزة بتلم العيلة"
+    assert stored_item.variants.get(variant_id="wood").comment_ar_eg == "الخشب دافي"
+
+    request = author_client.post(
+        "/admin/content/familyrequest/add/",
+        {
+            "request_id": "req_table_wood",
+            "room": str(stored_room.pk),
+            "item": str(stored_item.pk),
+            "character": "bride_father",
+            "text_ar_eg": "أبو العروسة عايز ترابيزة خشب",
+            "text_ar": "",
+            "reward_bonat": "6",
+        },
+    )
+    assert request.status_code == 302, request.context and request.context["errors"]
+    assert FamilyRequest.objects.get(request_id="req_table_wood").character == "bride_father"

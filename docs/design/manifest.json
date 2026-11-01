@@ -126,6 +126,15 @@
   "h": 844
  },
  {
+  "file": "screens/HomeStoryEnd.html",
+  "png": "png/HomeStoryEnd.png",
+  "artboard": "HomeStoryEnd",
+  "title": "الموقف · آخر الحكاية",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
   "file": "screens/C-Trip.html",
   "png": "png/C-Trip.png",
   "artboard": "C-Trip",
@@ -346,6 +355,87 @@
   "png": "png/Album.png",
   "artboard": "Album",
   "title": "ألبوم المشاهد",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptGoalLine.html",
+  "png": "png/AptGoalLine.png",
+  "artboard": "AptGoalLine",
+  "title": "الشقة · هدف الفصل ١",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptGoalVehicle.html",
+  "png": "png/AptGoalVehicle.png",
+  "artboard": "AptGoalVehicle",
+  "title": "الشقة · الميكروباص جاهز",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptRoomsAffordable.html",
+  "png": "png/AptRoomsAffordable.png",
+  "artboard": "AptRoomsAffordable",
+  "title": "الشقة · قطعة تقدر تشتريها",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptRoomsBought.html",
+  "png": "png/AptRoomsBought.png",
+  "artboard": "AptRoomsBought",
+  "title": "الشقة · بعد شرا القطعة",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/AptRoomsDone.html",
+  "png": "png/AptRoomsDone.png",
+  "artboard": "AptRoomsDone",
+  "title": "الشقة · الصالة خلصت",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PieceAffordable.html",
+  "png": "png/PieceAffordable.png",
+  "artboard": "PieceAffordable",
+  "title": "لوح القطعة · تقدر تشتريها",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/RoomDonePending.html",
+  "png": "png/RoomDonePending.png",
+  "artboard": "RoomDonePending",
+  "title": "الغرفة خلصت · المكافأة في الطريق",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/ChaptersGoal.html",
+  "png": "png/ChaptersGoal.png",
+  "artboard": "ChaptersGoal",
+  "title": "خط الفصول · فصل هدف",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/RequestsEmpty.html",
+  "png": "png/RequestsEmpty.png",
+  "artboard": "RequestsEmpty",
+  "title": "طلبات أهل العروسة · مفيش طلبات",
   "page": "v1",
   "w": 390,
   "h": 844

@@ -61,7 +61,8 @@ class FailureCard extends ConsumerWidget {
     final numbers = ref.watch(numberFormatterProvider);
     final causes = l10n.failCauses(summary, numbers);
     final reasons = [
-      if (summary.brokeStoryRule) l10n.tripFailStoryRule,
+      // The chapter's own line replaces M02's (M10, story-trip.md).
+      if (summary.brokeStoryRule) summary.failReason ?? l10n.tripFailStoryRule,
       if (causes.isNotEmpty) causes,
     ];
     final revive = summary.revive;

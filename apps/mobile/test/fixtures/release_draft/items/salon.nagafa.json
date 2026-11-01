@@ -1,0 +1,49 @@
+{
+  "comment": {
+    "ar-EG": "النجفة بتنوّر الصالة كلها"
+  },
+  "item_id": "salon.nagafa",
+  "name": {
+    "ar-EG": "النجفة"
+  },
+  "order": 2,
+  "room_id": "salon",
+  "slot": {
+    "h": 90,
+    "w": 120,
+    "x": 119,
+    "y": 8
+  },
+  "variants": [
+    {
+      "art": "nagafa_crystal",
+      "comment": {
+        "ar-EG": "الكريستال بيلمع في النور"
+      },
+      "name": {
+        "ar-EG": "كريستال"
+      },
+      "variant_id": "crystal"
+    },
+    {
+      "art": "nagafa_modern",
+      "comment": {
+        "ar-EG": "المودرن بسيطة وشيك"
+      },
+      "name": {
+        "ar-EG": "مودرن"
+      },
+      "variant_id": "modern"
+    },
+    {
+      "art": "nagafa_brass",
+      "comment": {
+        "ar-EG": "النحاس كلاسيك وثقيل"
+      },
+      "name": {
+        "ar-EG": "نحاس"
+      },
+      "variant_id": "brass"
+    }
+  ]
+}

@@ -137,6 +137,15 @@ class GoalKind(StrEnum):
     COMPLETE_ROOM = "complete_room"
 
 
+class ItemSlot(ContentModel):
+    """Where the piece sits in its room's drawing, in a 358×300 design space."""
+
+    x: StrictInt
+    y: StrictInt
+    w: StrictInt
+    h: StrictInt
+
+
 class LineId(StrEnum):
     """A line (glossary 3.6)."""
 
@@ -160,6 +169,7 @@ class ItemVariant(ContentModel):
     variant_id: StrictStr
     name: LocalizedText
     art: StrictStr
+    comment: LocalizedText | None = None
 
 
 class LineStation(ContentModel):
@@ -217,23 +227,22 @@ class PassengerSpec(ContentModel):
     speech_keys: dict[StrictStr, StrictStr] | None = None
 
 
+class RiderComments(ContentModel):
+    """The speech pool a rider draws from, per mistake."""
+
+    short_change: StrictStr | None = None
+    false_accusation: StrictStr | None = None
+    fight: StrictStr | None = None
+    missed_stop: StrictStr | None = None
+    impatient: StrictStr | None = None
+
+
 class RoomId(StrEnum):
     """An apartment room (glossary 3.6)."""
 
     SALON = "salon"
     KITCHEN = "kitchen"
     BEDROOM = "bedroom"
-
-
-class FamilyRequest(ContentModel):
-    """An optional side task from the bride's family, with a BONAT reward."""
-
-    request_id: StrictStr
-    room_id: RoomId
-    item_id: StrictStr
-    variant_id: StrictStr | None = None
-    text: LocalizedText
-    reward_bonat: StrictInt
 
 
 class Item(ContentModel):
@@ -243,6 +252,8 @@ class Item(ContentModel):
     room_id: RoomId
     name: LocalizedText
     order: StrictInt
+    slot: ItemSlot
+    comment: LocalizedText | None = None
     variants: tuple[ItemVariant, ...]
 
 
@@ -254,6 +265,8 @@ class Room(ContentModel):
     order: StrictInt
     chapter_id: ChapterId
     completion_bonat: StrictInt
+    art: StrictStr | None = None
+    done_line: LocalizedText | None = None
 
 
 class ScenePlaysKind(StrEnum):
@@ -264,7 +277,7 @@ class ScenePlaysKind(StrEnum):
 
 
 class ScenePlays(ContentModel):
-    """When the app plays the scene by itself. Absent: M10's rules (album, chapter end)."""
+    """When the app plays the scene by itself. Absent: when the chapter's goal is met (M10)."""
 
     kind: ScenePlaysKind
     trip_id: StrictStr | None = None
@@ -274,6 +287,7 @@ class Scene(ContentModel):
     """A comic scene of 3 to 5 panels."""
 
     scene_id: StrictStr
+    title: LocalizedText
     panels: tuple[Panel, ...]
     plays: ScenePlays | None = None
 
@@ -364,6 +378,53 @@ class StarRules(ContentModel):
     three: StarRuleThree
 
 
+class StoryCharacter(StrEnum):
+    """A story character (the design's character ids)."""
+
+    USTA = "usta"
+    SALMA = "salma"
+    BRIDE_FATHER = "bride_father"
+    BRIDE_MOTHER = "bride_mother"
+    MOALLEM = "moallem"
+    BELYA = "belya"
+
+
+class CharacterLine(ContentModel):
+    """A character's line on a screen (the goal card)."""
+
+    speaker: StoryCharacter
+    text: LocalizedText
+
+
+class FamilyRequest(ContentModel):
+    """An optional side task from the bride's family, with a BONAT reward."""
+
+    request_id: StrictStr
+    room_id: RoomId
+    item_id: StrictStr
+    character: StoryCharacter
+    variant_id: StrictStr | None = None
+    text: LocalizedText
+    reward_bonat: StrictInt
+
+
+class StoryRider(ContentModel):
+    """A story character riding in a seat the trip leaves empty."""
+
+    character: StoryCharacter
+    seat: StrictStr
+    comments: RiderComments | None = None
+
+
+class StoryTripInfo(ContentModel):
+    """How the chapter's story trip is presented: who rides, its title and condition (M10)."""
+
+    title: LocalizedText
+    condition: LocalizedText | None = None
+    fail_reason: LocalizedText | None = None
+    riders: tuple[StoryRider, ...]
+
+
 class TaskTemplate(ContentModel):
     """A task template. Its text may use {target}."""
 
@@ -446,6 +507,11 @@ class Chapter(ContentModel):
     goal: ChapterGoal
     story_trip_id: StrictStr | None = None
     completion_bonat: StrictInt
+    goal_art: StrictStr | None = None
+    goal_line: CharacterLine | None = None
+    ready_line: LocalizedText | None = None
+    tagline: LocalizedText | None = None
+    story_trip_info: StoryTripInfo | None = None
     scenes: tuple[Scene, ...]
 
 

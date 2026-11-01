@@ -11,6 +11,7 @@ import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/preferences/settings_store.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/sync/server_status.dart';
+import 'package:wassal/features/story/story_overrides.dart';
 
 import 'account.dart';
 import 'content.dart';
@@ -79,6 +80,8 @@ Future<ProviderContainer> pumpWassalApp(
         ...economy ?? economyTestOverrides(),
         ...account ?? accountTestOverrides(),
         ...trip ?? tripTestOverrides(),
+        // M10's slots, before the test's own (specs/015-m10-apartment-story).
+        ...storyOverrides(),
         if (serverStatus != null)
           serverStatusProvider.overrideWith(
             () => PinnedServerStatus(serverStatus),

@@ -17,6 +17,7 @@ import 'package:wassal/features/trip/domain/poses.dart';
 import 'package:wassal/features/trip/domain/scene_layout.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
 import 'package:wassal/features/trip/presentation/scene/passenger_art.dart';
+import 'package:wassal/features/trip/presentation/scene/rider_component.dart';
 import 'package:wassal/features/trip/presentation/trip_motion.dart';
 
 /// The sweat drop's round bottom, in the art's units.
@@ -42,7 +43,7 @@ final class SvgPassengerArtFactory implements PassengerArtFactory {
   /// A decode still in flight starts again: one begun where nothing could
   /// finish it (a test's fake clock) would hold the wait forever.
   static Future<void> preload() => Future.wait([
-    for (final look in looks.values)
+    for (final look in [...looks.values, ...riderLooks])
       if (!_pictures.containsKey(look.svg))
         _loads[look.svg] = _decode(look.svg),
   ]);
@@ -175,6 +176,9 @@ final class SvgPassengerArt implements PassengerArt {
   /// fade in code (passenger_component.dart), and the glow is the scene's.
   @override
   void play(CharacterTrigger trigger) {}
+
+  @override
+  void surprise({required bool on}) {}
 
   @override
   void advance(double dt) => _clock += dt;

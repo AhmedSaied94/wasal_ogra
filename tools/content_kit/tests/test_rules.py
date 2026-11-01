@@ -98,6 +98,78 @@ def _jenehat_booster(pack: dict[str, Any]) -> None:
     _price(pack, "booster", "change_bag")["currency"] = "JENEHAT"
 
 
+# The story fields (specs/015-m10-apartment-story, contracts/content-fields.md "Rules").
+CHAPTER_CH1, CHAPTER_CH2 = 0, 1
+TRIP_HAY_03 = 4
+
+
+def _riders(pack: dict[str, Any]) -> list[dict[str, Any]]:
+    riders: list[dict[str, Any]] = pack["chapters"][CHAPTER_CH1]["story_trip_info"]["riders"]
+    return riders
+
+
+def _set_rider_seat(seat: str, index: int = 0) -> Mutation:
+    def apply(pack: dict[str, Any]) -> None:
+        _riders(pack)[index]["seat"] = seat
+
+    return apply
+
+
+def _story_info_without_trip(pack: dict[str, Any]) -> None:
+    # ch2 has no story_trip_id, so its info has nothing to describe (V-C6).
+    pack["chapters"][CHAPTER_CH2]["story_trip_info"] = copy.deepcopy(
+        pack["chapters"][CHAPTER_CH1]["story_trip_info"]
+    )
+
+
+def _two_riders_in_one_seat(pack: dict[str, Any]) -> None:
+    riders = _riders(pack)
+    riders.append({"character": "salma", "seat": riders[0]["seat"]})
+
+
+def _comment_naming_no_pool(pack: dict[str, Any]) -> None:
+    _riders(pack)[0]["comments"] = {"impatient": "story.nobody.gone"}
+
+
+def _comment_pool_with_amount(pack: dict[str, Any]) -> None:
+    # passenger.short_change's lines carry {amount}: a rider's comment can't.
+    _riders(pack)[0]["comments"] = {"impatient": "passenger.short_change"}
+
+
+def _fail_reason_without_no_fights(pack: dict[str, Any]) -> None:
+    pack["trips"][TRIP_HAY_03]["rules"]["no_fights_required"] = False
+
+
+def _second_scene_without_plays(pack: dict[str, Any]) -> None:
+    scene = copy.deepcopy(pack["chapters"][CHAPTER_CH1]["scenes"][0])
+    scene["scene_id"] = "the_wait"
+    scene["title"] = {"ar-EG": "الانتظار"}
+    pack["chapters"][CHAPTER_CH1]["scenes"].append(scene)
+
+
+def _duplicate_scene_id(pack: dict[str, Any]) -> None:
+    # The phone records a scene by (chapter_id, scene_id), so a scene_id is unique in the pack.
+    scene = copy.deepcopy(pack["chapters"][CHAPTER_CH1]["scenes"][0])
+    pack["chapters"][CHAPTER_CH2]["scenes"].append(scene)
+
+
+def _three_speakers(pack: dict[str, Any]) -> None:
+    lines = pack["chapters"][CHAPTER_CH1]["scenes"][0]["panels"][0]["lines"]
+    lines.extend(
+        [
+            {"speaker": "salma", "text": {"ar-EG": "طب والأجرة؟"}},
+            {"speaker": "usta", "text": {"ar-EG": "على الله"}},
+        ]
+    )
+
+
+def _set_slot(**slot: int) -> Mutation:
+    def apply(pack: dict[str, Any]) -> None:
+        pack["items"][ITEM_NISH]["slot"].update(slot)
+
+    return apply
+
+
 def _replace_amount(new: str) -> Mutation:
     # By key: the pack has a pool per engine slot (specs/004), so the index would shift.
     def apply(pack: dict[str, Any]) -> None:
@@ -174,6 +246,28 @@ CASES: list[tuple[str, Mutation, str, tuple[str, str], str]] = [
      ("chapter", "ch3_shabka"), "$.goal"),
     ("V-C2", _set("chapters", 0, "story_trip_id", value="line_hay.01"), "V-C2",
      ("chapter", "ch1_first_job"), "$.story_trip_id"),
+    ("V-C6", _story_info_without_trip, "V-C6", ("chapter", "ch2_her_father"),
+     "$.story_trip_info"),
+    ("V-C7 seat not in the trip", _set_rider_seat("B_r"), "V-C7", ("chapter", "ch1_first_job"),
+     "$.story_trip_info.riders[0].seat"),
+    ("V-C7 seat a passenger names", _set_rider_seat("A_m"), "V-C7",
+     ("chapter", "ch1_first_job"), "$.story_trip_info.riders[0].seat"),
+    ("V-C7 two riders in one seat", _two_riders_in_one_seat, "V-C7",
+     ("chapter", "ch1_first_job"), "$.story_trip_info.riders[1].seat"),
+    ("V-C8 no such pool", _comment_naming_no_pool, "V-C8", ("chapter", "ch1_first_job"),
+     "$.story_trip_info.riders[0].comments.impatient"),
+    ("V-C8 pool with a placeholder", _comment_pool_with_amount, "V-C8",
+     ("chapter", "ch1_first_job"), "$.story_trip_info.riders[0].comments.impatient"),
+    ("V-C9 without no_fights_required", _fail_reason_without_no_fights, "V-C9",
+     ("chapter", "ch1_first_job"), "$.story_trip_info.fail_reason"),
+    ("V-C10", _second_scene_without_plays, "V-C10", ("chapter", "ch1_first_job"),
+     "$.scenes[1].plays"),
+    ("V-C11", _duplicate_scene_id, "V-C11", ("chapter", "ch2_her_father"),
+     "$.scenes[0].scene_id"),
+    ("V-C12", _three_speakers, "V-C12", ("chapter", "ch1_first_job"),
+     "$.scenes[0].panels[0].lines[2].speaker"),
+    ("V-R3 width", _set_slot(x=300, w=100), "V-R3", ("item", "salon.nish"), "$.slot"),
+    ("V-R3 height", _set_slot(y=200, h=150), "V-R3", ("item", "salon.nish"), "$.slot"),
     ("V-R1 prefix", _set("items", ITEM_SITARA, "item_id", value="kitchen.sitara"), "V-R1",
      ("item", "kitchen.sitara"), "$.item_id"),
     ("V-R1 variants", _set("items", ITEM_NISH, "variants", 1, "variant_id", value="classic"),
@@ -270,8 +364,17 @@ def test_every_rule_code_has_a_case() -> None:
         "V-C3",
         "V-C4",
         "V-C5",
+        "V-C6",
+        "V-C7",
+        "V-C8",
+        "V-C9",
+        "V-C10",
+        "V-C11",
+        "V-C12",
         "V-R1",
         "V-R2",
+        # V-R4 is V-R2's case: a request's variant_id must be one of its item's.
+        "V-R3",
         "V-K1",
         "V-D1",
         "V-U1",

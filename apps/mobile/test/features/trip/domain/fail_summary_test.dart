@@ -307,6 +307,50 @@ void main() {
       expect(faces, greaterThan(0));
     });
 
+    test('failReason: the chapter\'s line when the rule broke, else none '
+        '(M10)', () {
+      const info = StoryTripInfo(
+        title: LocalizedText(arEg: 't'),
+        failReason: LocalizedText(arEg: 'المعلم زعل'),
+        riders: [],
+      );
+      var broke = 0;
+      for (final name in allFixtureNames()) {
+        final fixture = loadFixture(name);
+        final state = replayed(fixture).state;
+        final facts = factsFor(
+          fixture.definition,
+          params: fixture.params,
+          withLine: false,
+          storyInfo: info,
+        );
+        final summary = failSummary(
+          state.reputationLost,
+          facts,
+          null,
+          state: state,
+        );
+        expect(
+          summary.failReason,
+          summary.brokeStoryRule ? 'المعلم زعل' : isNull,
+          reason: name,
+        );
+        if (summary.brokeStoryRule) broke++;
+        // Without the content's line, M02's rule line stands.
+        expect(
+          failSummary(
+            state.reputationLost,
+            factsOf(fixture),
+            null,
+            state: state,
+          ).failReason,
+          isNull,
+          reason: name,
+        );
+      }
+      expect(broke, greaterThan(0));
+    });
+
     test('without the state, none of it', () {
       final fixture = loadFixture('ending__story_fight_fails');
       final state = replayed(fixture).state;

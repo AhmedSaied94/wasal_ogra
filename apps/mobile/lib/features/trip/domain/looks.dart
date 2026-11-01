@@ -12,6 +12,7 @@ final class Look extends ViewValue {
     required this.labelKey,
     required this.rive,
     this.feminine = false,
+    this.asset,
   });
 
   /// The design's art id (HANDOFF §5.3), such as `hagga`.
@@ -28,8 +29,12 @@ final class Look extends ViewValue {
   /// (specs/013-m08-home-result research R15).
   final bool feminine;
 
+  /// Where the static art is when it isn't a passenger's: a story rider's
+  /// (specs/015-m10-apartment-story, contracts/story-trip.md "Riders").
+  final String? asset;
+
   /// The static art, drawn when Rive isn't.
-  String get svg => 'assets/illustrations/passengers/$id.svg';
+  String get svg => asset ?? 'assets/illustrations/passengers/$id.svg';
 
   @override
   Map<String, Object?> get fields => {
@@ -37,6 +42,7 @@ final class Look extends ViewValue {
     'labelKey': labelKey,
     'rive': rive,
     'feminine': feminine,
+    'asset': asset,
   };
 }
 

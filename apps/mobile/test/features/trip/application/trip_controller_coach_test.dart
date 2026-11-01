@@ -158,18 +158,18 @@ void main() {
 
     test('with two riders talking, the step waits for its bubble', () {
       var memory = talking(['a', 'b'])
-          .belyaAt(step, tMs: 0, bubbleMinMs: minMs);
-      expect(memory.belya, isNull);
+          .characterAt(step, tMs: 0, bubbleMinMs: minMs);
+      expect(memory.character, isNull);
       memory = memory
           .at(minMs, bubbleMinMs: minMs)
-          .belyaAt(step, tMs: minMs, bubbleMinMs: minMs);
-      expect(memory.belya?.line, const TapRiderLine());
-      expect(memory.belya?.shownAtMs, minMs);
+          .characterAt(step, tMs: minMs, bubbleMinMs: minMs);
+      expect(memory.character?.line, const TapRiderLine());
+      expect(memory.character?.shownAtMs, minMs);
     });
 
     test('while it shows, a second rider line waits', () {
-      var memory = talking(['a']).belyaAt(step, tMs: 0, bubbleMinMs: minMs);
-      expect(memory.belya, isNotNull);
+      var memory = talking(['a']).characterAt(step, tMs: 0, bubbleMinMs: minMs);
+      expect(memory.character, isNotNull);
       memory = memory.update(const [], const [], tMs: 33, bubbleMinMs: minMs);
       memory = PresentationMemory(
         bubbles: memory.bubbles.push(
@@ -180,47 +180,47 @@ void main() {
             emittedAtMs: 33,
           ),
         ),
-        belya: memory.belya,
+        character: memory.character,
       ).at(66, bubbleMinMs: minMs);
       expect(memory.bubbles.visible.map((b) => b.passengerId), ['a']);
       expect(memory.bubbles.waiting.map((w) => w.passengerId), ['b']);
     });
 
     test('a step that ends early keeps the bubble its minimum time', () {
-      var memory = PresentationMemory.empty.belyaAt(
+      var memory = PresentationMemory.empty.characterAt(
         step,
         tMs: 0,
         bubbleMinMs: minMs,
       );
-      memory = memory.belyaAt(null, tMs: 1000, bubbleMinMs: minMs);
-      expect(memory.belya?.line, const TapRiderLine());
-      memory = memory.belyaAt(null, tMs: minMs, bubbleMinMs: minMs);
-      expect(memory.belya, isNull);
+      memory = memory.characterAt(null, tMs: 1000, bubbleMinMs: minMs);
+      expect(memory.character?.line, const TapRiderLine());
+      memory = memory.characterAt(null, tMs: minMs, bubbleMinMs: minMs);
+      expect(memory.character, isNull);
     });
 
     test('the next bubble waits for the one showing', () {
       const next = (source: CoachStepId.stopNear, line: StopNearLine('x'));
-      var memory = PresentationMemory.empty.belyaAt(
+      var memory = PresentationMemory.empty.characterAt(
         step,
         tMs: 0,
         bubbleMinMs: minMs,
       );
-      memory = memory.belyaAt(next, tMs: 1000, bubbleMinMs: minMs);
-      expect(memory.belya?.line, const TapRiderLine());
-      memory = memory.belyaAt(next, tMs: minMs, bubbleMinMs: minMs);
-      expect(memory.belya?.line, const StopNearLine('x'));
+      memory = memory.characterAt(next, tMs: 1000, bubbleMinMs: minMs);
+      expect(memory.character?.line, const TapRiderLine());
+      memory = memory.characterAt(next, tMs: minMs, bubbleMinMs: minMs);
+      expect(memory.character?.line, const StopNearLine('x'));
     });
 
     test('a hint follows the same rules', () {
       const hint = HintView(key: 'tripHintOwed', targetPassengerId: 'a');
       final wish = (source: hint.key, line: hint);
       var memory = talking(['a', 'b'])
-          .belyaAt(wish, tMs: 0, bubbleMinMs: minMs);
-      expect(memory.belya, isNull);
+          .characterAt(wish, tMs: 0, bubbleMinMs: minMs);
+      expect(memory.character, isNull);
       memory = memory
           .at(minMs, bubbleMinMs: minMs)
-          .belyaAt(wish, tMs: minMs, bubbleMinMs: minMs);
-      expect(memory.belya?.line, hint);
+          .characterAt(wish, tMs: minMs, bubbleMinMs: minMs);
+      expect(memory.character?.line, hint);
     });
   });
 }

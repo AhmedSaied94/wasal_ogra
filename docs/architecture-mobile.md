@@ -213,8 +213,14 @@ wassal/
 │       │       │   ├── application/ # LinesModel, the details' model, the offer, VehiclePurchase, the seen set (`pref.lines_seen`), LinesDotWatcher
 │       │       │   └── presentation/ # LinesScreen (strip, map, cards), LineDetailsSheet (grid), VehicleSheet (preview, benefits, price, impact)
 │       │       ├── garage/         # upgrades + cosmetics (phase 2)
-│       │       ├── apartment/      # rooms, item sheet, requests, chapters
-│       │       ├── story/          # comic scene viewer, album
+│       │       ├── apartment/      # الشقة (M10)
+│       │       │   ├── domain/     # the goal and rooms views, a room's pieces and styles, RoomDone, the chapters timeline, the requests (no Flutter)
+│       │       │   ├── application/ # ApartmentModel, GoalPurchase, PiecePurchase, the requests' claim, the apartment's pre-trip briefing
+│       │       │   └── presentation/ # goal and rooms views, PieceSheet, RoomDone, ChaptersView, RequestsSheet, the apartment's pre-trip card
+│       │       ├── story/          # the comic scenes (M10)
+│       │       │   ├── domain/     # a chapter's scenes, what the viewer shows next, the album's entries (no Flutter)
+│       │       │   ├── application/ # StoryService: records a scene seen (`story_progress`) and backfills the ones seen before M10
+│       │       │   └── presentation/ # SceneViewer (`/story/scene/:sceneId`, `/story/:chapterId`), AlbumScreen (`/story/album`)
 │       │       ├── shop/           # shop, fuel sheet, starter pack (phase 2)
 │       │       ├── daily/          # daily reward, tasks, daily challenge
 │       │       ├── leagues/        # ملك الخط (public launch)
@@ -464,7 +470,8 @@ Rules from the UX doc that the renderer must enforce:
 | `/lines/vehicle/:vehicleId` (sheet) | شراء العربية | MVP |
 | `/garage` | الجراج | Phase 2 |
 | `/apartment`, `/apartment/item/:itemId` (sheet), `/apartment/requests` (sheet), `/apartment/chapters` | الشقة, لوح القطعة, الطلبات, خط الفصول | MVP (ch1–4) |
-| `/story/:chapterId` | عارض المشاهد | MVP |
+| `/apartment/pre-trip/:tripId` (sheet over the apartment) | كارت ما قبل المشوار over the chapter's story trip, closing to the apartment (M10) | MVP |
+| `/story/:chapterId`, `/story/scene/:sceneId?then=` | عارض المشاهد: a chapter's scenes in turn, one scene (M10) | MVP |
 | `/shop`, `/shop/fuel` (sheet) | المحل, نافذة البنزين | MVP |
 | `/daily/reward`, `/daily/tasks`, `/daily/challenge` | الرجوع اليومي | MVP |
 | `/leagues` | ملك الخط | Public launch |
@@ -482,6 +489,8 @@ The last six routes come from the design (`docs/design/HANDOFF.md` §7), which s
 M08 adds no route; it fills `/home`, `/home/pre-trip/:tripId` and `/trip/:tripId/result`. The result reads the trip's hand-over (`ResultArgs`, the route's `extra`); opened without one, it shows the last finished result the phone kept, and with nothing kept the router sends it to `/home` before any page is built (`specs/013-m08-home-result` FR-036).
 
 M09 fills `/lines`, `/lines/:lineId` and `/lines/vehicle/:vehicleId`, and adds `/lines/:lineId/pre-trip/:tripId`: every start from Lines goes through `startNextTrip(from: StartFrom.lines)`, whose card opens under the line's details, so its close lands there. The lines tab always opens at `/lines`, so a card left for a trip is never rebuilt on the next visit; the other tabs keep where they were (`specs/014-m09-lines-vehicles` research R5).
+
+M10 fills `/apartment`, `/apartment/item/:itemId`, `/apartment/requests`, `/apartment/chapters`, `/story/:chapterId` and `/story/album`, and adds `/apartment/pre-trip/:tripId` and `/story/scene/:sceneId` (`specs/015-m10-apartment-story/contracts/story-flow.md`, "Where scenes play"). The literal segments `/story/album` and `/story/scene/:sceneId` come before `/story/:chapterId` in the router, so neither is read as a chapter id. A scene's `?then=` is where its route goes on to: a due scene at the arrival at Home or before a trip starts plays in M07's `/onboarding/scene/:id` while the first session lasts and in `/story/scene/:id` after it; a finished room's scene, a waiting scene from Home or the rooms view, and a replay from the timeline or the album each open the viewer. The apartment's pre-trip card is M08's over a story trip a chapter names, a sheet in the apartment's branch as the card opened from Lines is in the lines', so every close lands on `/apartment` and an unopenable trip leaves there.
 
 **Home's arrival queue** (M08, `lib/features/home/application/arrival_queue.dart`). Each arrival at `/home` opens at most one `ArrivalItem`, the due one with the lowest rank: 10 a story scene that is due, 20 the name sheet (both M07's, which opened them on their own before), 30 the notification ask (M14), 40 the morning piggy (M13). Nothing opens while an item is open or on the arrival that returns from one, and an item opens only if Home is still on top when the frame ends. Later features add their items to `arrivalItemsProvider`.
 
@@ -519,7 +528,7 @@ M05 created the economy's eight tables (`specs/007-m05-local-economy/data-model.
 | `trip_session` | one row: the unfinished trip and the last result, which a ×2 or a revive needs (M05) |
 | `projection_base` | one row: the state the projection folds from, the new player or (M06) the server's snapshot, with the last `seq` it includes (M05) and (M06) the player whose state it is |
 | `clock_anchor` | one row: the trusted-time anchor (§13) and the latest trusted time handed out (M05) |
-| `story_state` | `chapter_id`, `status`, scenes unlocked, family requests status |
+| `story_state` | not a table. The story's state is in `player_state` (M10, schema 5): `scenes_seen` (scene ids by chapter wire name, canonical JSON) and `requests_claimed` (request ids). A chapter's `status` isn't stored: completion is derived from what is owned (§13) |
 | `daily_state` | login streak, tasks, challenge attempts |
 | `entitlements_cache` | `remove_ads`, `subscription_until`, `season_pass` keys |
 | `content_cache` | installed pack versions and paths. Not a drift table: `state.json` in `<app support>/content/`, next to the stored packs (M04, `specs/006-m04-content-loader/data-model.md`), which M05 keeps as it is |
@@ -558,6 +567,7 @@ A trip is sent as two ops: `trip_start` (fuel spend) and `trip_result` carrying 
 
 - **M07's two local operations.** `settings_update` (`{"display_name"}`) records the driver's name, and `tutorial_gift` (`{}`) fills the tank once, at the fuel lesson; both apply offline at once and sync as is, without `content_version`. They live in the economy's projection: the `player_state` table (one row: `display_name`, `tutorial_granted`), written only by `DriftEconomyStore`; the first session's own flags are in `first_session`, written only by `DriftFirstSessionStore`. A refused name (`validation_error`) rolls back through the fold, so the name shown falls back to the server's or «الأسطى»; it sets `nameRefused`, which makes Home ask again, and it shows no toast (`settings_update` changes nothing the player can count). A refused `tutorial_gift` rolls back like any fuel change, with the toast. Contracts: `specs/012-m07-onboarding/contracts/name.md`, `fuel-lesson.md`.
 - **The three grants** (B03). `tutorial_gift` fills the tank once per player (M07). `comeback_gift` fills the tank and adds a `change_bag` once per return: send it only when bootstrap answers `comeback.claimable`, and never a second while one is pending, because bootstrap keeps answering `claimable` until the claim has synced. M06 records it as a local operation from `server_info`'s cached flag, so it works offline (`lib/core/sync/comeback_gift.dart`). `claim_request` collects a family request's BONAT once its item is owned (M10). Room and chapter BONAT is not an op: the server pays it in the batch of the op that completes them, in that op's `granted`.
+- **M10's two story operations** (`specs/015-m10-apartment-story/contracts/economy-ops.md`). `story_progress` (`{"chapter_id", "scene_id"}`) records a scene played to its end or skipped, and `claim_request` (`{"request_id"}`) collects a family request's BONAT. Both apply offline at once through `EconomyService` (`recordScene`, `claimRequest`, each taking a held id like `buy`), and neither changes a balance: they add to `scenes_seen` and `requests_claimed` in the projection. A repeat is refused locally (`already_recorded`, `already_granted`) and stores no row; a claim whose piece isn't owned in the style the request names is `not_eligible`. The economy domain can't import the progress rules, so the unlock order is the caller's: `StoryService.recordSeen` sends only a scene that isn't `locked`, and the server's `not_unlocked` rolls back through M06's fold. The server's state maps back: `stateFromSnapshot` reads `story.chapters[].scenes_seen` and `story.requests_claimed` into the same two fields, and a chapter or scene the active pack lacks is kept.
 - **`content_version` in the payload.** Every op that reads the pack (`trip_start`, `spend_jenehat`, `spend_bonat`, `story_progress`, `claim_request`) carries `content_version` in its payload, from the version its `ledger_ops` row recorded. The server reads prices, trips and rules from that version's pack, and accepts the current version and any published in the last 45 days.
 
 ---
@@ -573,6 +583,10 @@ The rules, the API and the storage contract are in `specs/007-m05-local-economy/
 - **Prices** (JENEHAT for items, vehicles and chapters; BONAT for boosters, fuel, revives and cosmetics) come from the active pack's catalog when the purchase applies, never from code or the caller. The kind decides the currency.
 - **Unlock rules** (M08, `lib/core/progress/domain/unlocks.dart`, `specs/013-m08-home-result/contracts/progress-rules.md`). A port of the server's `backend/apps/progress/services/unlocks.py`, with its names, argument order and edge cases, and its tests ported too: a vehicle owned, a line unlocked and complete, a trip unlocked, a chapter unlocked and complete, a room complete, an item purchasable, the current chapter. They read `PlayerProgress` (best stars by trip and what is owned, from the projection). Each is permissive where a mistake is harmless and strict where it protects value. The server still decides; the phone checks first so it never offers a start or a purchase the server would refuse as `not_unlocked`. A change to `unlocks.py` changes the port in the same PR.
 - **Phone-only rules** (M09, `lib/core/progress/domain/playable.dart`, `specs/014-m09-lines-vehicles/contracts/progress-rules.md`), beside the port and never more permissive than it (a sweep proves it): `tripPlayable`, which holds a story trip a chapter names until that chapter's goal is met, and `vehicleSale`, which sells vehicles in pack order (`Owned`, `ForSale`, `NeedsFirst`, `NoPrice`). Home's next trip, the pre-trip card, `startNextTrip` and Lines all read `tripPlayable`; the port isn't edited.
+- **Story and request rules** (M10, `lib/core/progress/domain/story.dart`, `requests.dart`, `rewards.dart`; `specs/015-m10-apartment-story/contracts/story-flow.md`, `apartment.md`), pure, over `PlayerProgress` and the economy's `scenesSeen` and `requestsClaimed`:
+  - A scene's moment is `plays` (`Opening`, `AfterTrip(tripId)`) or, when `plays` is absent, `GoalMet`. It is unlocked at once for the opening, after its trip's first finish, or once its chapter is complete. A locked scene is `locked`, an unlocked unseen one `waiting`, a seen one `seen`; `seen` is the economy's, never M07's first-session flags (those are only how the first session knows what to play).
+  - A request is `locked` until its room's chapter unlocks, `claimed` once taken, `done` when its piece is owned in the style it names (or any, when it names none), `missed` when it's owned in another style and `open` otherwise. The states follow the server's rule (B03 R9), so a claim the phone offers is never refused as `not_eligible`.
+  - **Pending and received.** The phone never adds BONAT (constitution IV). A room's, a chapter's or a request's reward is *pending* («في الطريق») when the projection has completed or claimed it and the confirmed base hasn't, and *received* once a sync moves the base. `pendingRewards` compares the two (`EconomyView.confirmed`), so a new player before the first sync shows every completion pending, and a restore from the server's state shows none.
 - **Rule from product doc:** BONAT can never be converted into JENEHAT in v1. No code path may do it: no device operation adds BONAT, and none spends BONAT and adds JENEHAT (`direction_test.dart` builds every one).
 
 ---
@@ -591,9 +605,18 @@ The rules, the API and the storage contract are in `specs/007-m05-local-economy/
 - **Verify before reading.** The manifest's `sha256` is the SHA-256 of the gzip file as served. The app checks the downloaded bytes against it (and against `size`) before it decompresses or parses anything, and decompresses with a size cap. A mismatch discards the file and keeps the current pack.
 - `packages/content_models` holds the freezed models that `wassal-content codegen` generates from the JSON Schemas, so client and server never drift. Its `canonicalJson` gives the same canonical form as the backend (keys in UTF-16 code-unit order, no whitespace, integers only).
 
+- **M10's fields** (`specs/015-m10-apartment-story/contracts/content-fields.md`). The pack carries what the apartment and the story show, and none of it is text in code:
+  - a chapter's `goal_art`, `goal_line` (a character's line on the goal card), `ready_line`, `tagline` and `story_trip_info` (the trip's `title`, the strip's `condition`, the `fail_reason`, and one or two `riders`, each a character in an empty seat with the speech pool it draws a comment from per mistake);
+  - a scene's `title`, required;
+  - a room's `art` and `done_line`;
+  - an item's `slot` (its place in the room's 358 × 300 drawing, required) and `comment`, and a variant's `comment`;
+  - a family request's `character`.
+
+  `ApartmentArt` and `PanelArt` map a slug to a drawing the app ships; a slug with none draws its token fallback. A pack built before the required fields no longer reads, so staging builds and publishes a fresh one after the deploy.
+
 ### 14.2 Speech pools
 
-Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholders (`{amount}`, `{station}`). The client picks lines deterministically with the trip seed. All lines are written and reviewed offline; there is no runtime text generation.
+Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholders (`{amount}`, `{station}`). The client picks lines deterministically with the trip seed. All lines are written and reviewed offline; there is no runtime text generation. A story rider's comments (M10) are lines in the pools its chapter's `story_trip_info` names, and those pools hold no `{amount}` or `{station}` (the rider never knows either, V-C8). The app picks one with a generator of its own, a fresh `Xorshift32` over the trip seed, and never reads or advances the engine's, so a rider changes nothing in a trip's result.
 
 ### 14.3 Remote Config keys (defaults bundled)
 

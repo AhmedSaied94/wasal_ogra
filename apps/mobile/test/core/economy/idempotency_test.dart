@@ -96,6 +96,51 @@ void main() {
     expect(e.service.view.jenehat, 0);
   });
 
+  test('a scene sent 100 times is recorded once', () async {
+    final e = await testEconomy();
+    final id = e.service.newRequestId();
+    Future<OpOutcome> record() => e.service.recordScene(
+      id,
+      chapterId: ChapterId.ch1FirstJob,
+      sceneId: 'the_stand',
+    );
+
+    final first = await record() as OpApplied;
+    final rest = [for (var i = 1; i < _sends; i++) await record()];
+
+    _expectRepeats(rest, first);
+    expect(await _rows(e), 1);
+    expect(e.service.view.scenesSeen['ch1_first_job'], {'the_stand'});
+  });
+
+  test('a claim sent 100 times at once is granted once', () async {
+    final e = await testEconomy(
+      firstState: (nowMs) =>
+          EconomyState.newPlayer(fuelMax: 8, nowMs: nowMs).copyWith(
+            bonat: 7,
+            ownership: {
+              (SkuKind.item, 'salon.nish'): Owned(
+                kind: SkuKind.item,
+                variantId: 'crystal',
+                acquiredAtMs: nowMs,
+              ),
+            },
+          ),
+    );
+    final id = e.service.newRequestId();
+    final outcomes = await Future.wait([
+      for (var i = 0; i < _sends; i++)
+        e.service.claimRequest(id, requestId: 'req_nish_crystal'),
+    ]);
+
+    final first = outcomes.first as OpApplied;
+    expect(first.repeated, isFalse);
+    _expectRepeats(outcomes.skip(1).toList(), first);
+    expect(await _rows(e), 1);
+    expect(e.service.view.requestsClaimed, {'req_nish_crystal'});
+    expect(e.service.view.bonat, 7);
+  });
+
   test('a repeat after a relaunch is still the stored op', () async {
     var e = await testEconomy(
       dbFile: tempDbFile(),

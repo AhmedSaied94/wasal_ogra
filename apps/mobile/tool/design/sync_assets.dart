@@ -86,6 +86,30 @@ const renamedFiles = <SyncedFile>[
     source: 'illustrations/screens/PanelUstaDecides_01.svg',
     target: 'illustrations/panels/usta_decides.svg',
   ),
+  // M10's apartment art (specs/015-m10-apartment-story, research R17). The
+  // drawn goal, the empty room the teaser shows, the salon's أنتريه in its
+  // modern style, and the viewer's sample panel.
+  (
+    source: 'illustrations/screens/AptGoal_01.svg',
+    target: 'illustrations/apartment/goals/goal_shabka.svg',
+  ),
+  (
+    source: 'illustrations/screens/AptGoal_03.svg',
+    target: 'illustrations/apartment/teaser_room.svg',
+  ),
+  (
+    source: 'illustrations/screens/Piece_01.svg',
+    target: 'illustrations/apartment/pieces/antreeh_modern.svg',
+  ),
+  (
+    source: 'illustrations/screens/SceneViewer_01.svg',
+    target: 'illustrations/panels/ch4_mother_looks.svg',
+  ),
+  // The tea tray on the requests sheet's empty card (`RequestsEmpty`, T132).
+  (
+    source: 'illustrations/screens/RequestsEmpty_01.svg',
+    target: 'illustrations/apartment/tea_tray.svg',
+  ),
 ];
 
 /// One file to copy, as paths relative to `docs/design` and `assets`.

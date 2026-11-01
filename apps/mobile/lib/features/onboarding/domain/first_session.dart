@@ -95,6 +95,7 @@ final class FirstSessionFacts {
     this.nameRefused = false,
     this.openingSceneId,
     this.afterTripScenes = const {},
+    this.waitingScenes = const {},
     this.coachEverywhere = false,
   });
 
@@ -117,6 +118,12 @@ final class FirstSessionFacts {
 
   /// The pack's `after_trip` scenes, by the trip they follow.
   final Map<String, String> afterTripScenes;
+
+  /// The scenes the active pack has waiting for this player now
+  /// (`waitingSceneIds`): unlocked and unseen. A due id outside it no longer
+  /// plays, so it can't hold a trip or Home's arrival: empty when the pack's
+  /// scenes aren't known.
+  final Set<String> waitingScenes;
 
   /// The testers' "coach on every tutorial trip" (R21).
   final bool coachEverywhere;
@@ -189,10 +196,16 @@ final class FirstSession {
     return trips.isEmpty ? '/home' : '/trip/${trips.first}';
   }
 
-  /// The first due scene not seen yet.
+  /// The first due scene still waiting in the active pack.
+  ///
+  /// A due id whose scene is locked now (a purchase the server refused, FR-055,
+  /// a restore, a pack update that drops it) is skipped rather than played: a
+  /// scene the viewer would redirect away from would otherwise loop a trip's
+  /// start between `/trip` and the scene, and stall Home's arrival queue.
   String? get dueScene {
     for (final scene in _flags.scenesDue) {
-      if (!_flags.scenesSeen.contains(scene)) return scene;
+      if (_flags.scenesSeen.contains(scene)) continue;
+      if (facts.waitingScenes.contains(scene)) return scene;
     }
     return null;
   }

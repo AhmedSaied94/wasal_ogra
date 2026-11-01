@@ -4,7 +4,17 @@
   "goal": {
     "kind": "purchase"
   },
+  "goal_art": "goal_shabka",
+  "goal_line": {
+    "speaker": "bride_mother",
+    "text": {
+      "ar-EG": "الشبكة هي اللي بتفرّح البنت"
+    }
+  },
   "order": 3,
+  "ready_line": {
+    "ar-EG": "الشبكة جاهزة، روح اطلبها"
+  },
   "scenes": [],
   "title": {
     "ar-EG": "الشبكة"

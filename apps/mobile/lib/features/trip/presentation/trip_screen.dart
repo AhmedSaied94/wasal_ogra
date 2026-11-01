@@ -37,6 +37,7 @@ import 'package:wassal/features/trip/presentation/overlays/choices_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/fast_forward_strip.dart';
 import 'package:wassal/features/trip/presentation/overlays/hint_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/hit_areas.dart';
+import 'package:wassal/features/trip/presentation/overlays/rider_labels.dart';
 import 'package:wassal/features/trip/presentation/overlays/patches_layer.dart';
 import 'package:wassal/features/trip/presentation/overlays/station_sign_name.dart';
 import 'package:wassal/features/trip/presentation/overlays/story_strip.dart';
@@ -304,6 +305,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
             Positioned.fill(child: PatchesLayer(layout: layout)),
             Positioned.fill(child: TokenLayer(layout: layout)),
             Positioned.fill(child: HitAreas(layout: layout)),
+            Positioned.fill(child: RiderLabels(layout: layout)),
             // Over the hit areas, so a note on the floor takes its tap.
             Positioned.fill(child: DroppedLayer(layout: layout)),
             Positioned.fill(child: ChoicesLayer(layout: layout)),
@@ -348,6 +350,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
       art: ref.read(passengerArtProvider),
       reduceMotion: reduced,
       drivesClock: _drivesClock,
+      riders: _controller.session?.facts.storyInfo?.riders ?? const [],
     );
     // The first frames mount the scene's parts, also when nothing ticks: a
     // step a frame, since each mounts one level (the stage, then its parts)

@@ -21,7 +21,15 @@ enum OpType {
   settingsUpdate('settings_update'),
 
   /// The fuel lesson's full tank, once per player (M07 research R8, R9).
-  tutorialGift('tutorial_gift');
+  tutorialGift('tutorial_gift'),
+
+  /// A scene the player has seen (M10 contracts/economy-ops.md). Records
+  /// progress only; the server pays the rewards a completion unlocks.
+  storyProgress('story_progress'),
+
+  /// A family request the player takes the BONAT for (M10). The phone never
+  /// adds the reward: the server's grant arrives through M06.
+  claimRequest('claim_request');
 
   const OpType(this.wire);
 
@@ -148,6 +156,25 @@ final class SettingsUpdateRequest extends OpRequest {
 /// The fuel lesson's gift (M07 contracts/fuel-lesson.md).
 final class TutorialGiftRequest extends OpRequest {
   const TutorialGiftRequest();
+}
+
+/// A scene played to its end, or skipped (M10 contracts/story-flow.md).
+/// The chapter's unlock is the caller's rule: the economy domain may not read
+/// `core/progress/`.
+final class StoryProgressRequest extends OpRequest {
+  const StoryProgressRequest({required this.chapterId, required this.sceneId});
+
+  final ChapterId chapterId;
+  final String sceneId;
+}
+
+/// A family request the player takes (M10 contracts/apartment.md "Family
+/// requests"). The local rule is the server's, so the phone never offers a
+/// claim the server refuses.
+final class ClaimRequest extends OpRequest {
+  const ClaimRequest({required this.requestId});
+
+  final String requestId;
 }
 
 /// An operation: what a request became once validated, and what is stored

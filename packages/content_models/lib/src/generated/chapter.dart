@@ -55,6 +55,26 @@ abstract class Panel with _$Panel {
       _$PanelFromJson(json);
 }
 
+/// The speech pool a rider draws from, per mistake.
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class RiderComments with _$RiderComments {
+  const factory RiderComments({
+    @JsonKey(name: 'short_change') String? shortChange,
+    @JsonKey(name: 'false_accusation') String? falseAccusation,
+    @JsonKey(name: 'fight') String? fight,
+    @JsonKey(name: 'missed_stop') String? missedStop,
+    @JsonKey(name: 'impatient') String? impatient,
+  }) = _RiderComments;
+
+  factory RiderComments.fromJson(Map<String, dynamic> json) =>
+      _$RiderCommentsFromJson(json);
+}
+
 /// opening: at the first open, before the Name card. after_trip: right after
 /// the trip's first finish.
 enum ScenePlaysKind {
@@ -64,8 +84,8 @@ enum ScenePlaysKind {
   afterTrip,
 }
 
-/// When the app plays the scene by itself. Absent: M10's rules (album, chapter
-/// end).
+/// When the app plays the scene by itself. Absent: when the chapter's goal is
+/// met (M10).
 @Freezed(
   copyWith: false,
   toStringOverride: false,
@@ -92,12 +112,68 @@ abstract class ScenePlays with _$ScenePlays {
 abstract class Scene with _$Scene {
   const factory Scene({
     @JsonKey(name: 'scene_id') required String sceneId,
+    @JsonKey(name: 'title') required LocalizedText title,
     @JsonKey(name: 'panels') required List<Panel> panels,
     @JsonKey(name: 'plays') ScenePlays? plays,
   }) = _Scene;
 
   factory Scene.fromJson(Map<String, dynamic> json) =>
       _$SceneFromJson(json);
+}
+
+/// A character's line on a screen (the goal card).
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class CharacterLine with _$CharacterLine {
+  const factory CharacterLine({
+    @JsonKey(name: 'speaker') required StoryCharacter speaker,
+    @JsonKey(name: 'text') required LocalizedText text,
+  }) = _CharacterLine;
+
+  factory CharacterLine.fromJson(Map<String, dynamic> json) =>
+      _$CharacterLineFromJson(json);
+}
+
+/// A story character riding in a seat the trip leaves empty.
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class StoryRider with _$StoryRider {
+  const factory StoryRider({
+    @JsonKey(name: 'character') required StoryCharacter character,
+    @JsonKey(name: 'seat') required String seat,
+    @JsonKey(name: 'comments') RiderComments? comments,
+  }) = _StoryRider;
+
+  factory StoryRider.fromJson(Map<String, dynamic> json) =>
+      _$StoryRiderFromJson(json);
+}
+
+/// How the chapter's story trip is presented: who rides, its title and
+/// condition (M10).
+@Freezed(
+  copyWith: false,
+  toStringOverride: false,
+  map: FreezedMapOptions.none,
+  when: FreezedWhenOptions.none,
+)
+abstract class StoryTripInfo with _$StoryTripInfo {
+  const factory StoryTripInfo({
+    @JsonKey(name: 'title') required LocalizedText title,
+    @JsonKey(name: 'condition') LocalizedText? condition,
+    @JsonKey(name: 'fail_reason') LocalizedText? failReason,
+    @JsonKey(name: 'riders') required List<StoryRider> riders,
+  }) = _StoryTripInfo;
+
+  factory StoryTripInfo.fromJson(Map<String, dynamic> json) =>
+      _$StoryTripInfoFromJson(json);
 }
 
 /// A chapter's goal: complete_line needs line_id, own_vehicle vehicle_id,
@@ -135,6 +211,11 @@ abstract class Chapter with _$Chapter {
     @JsonKey(name: 'goal') required ChapterGoal goal,
     @JsonKey(name: 'story_trip_id') String? storyTripId,
     @JsonKey(name: 'completion_bonat') required int completionBonat,
+    @JsonKey(name: 'goal_art') String? goalArt,
+    @JsonKey(name: 'goal_line') CharacterLine? goalLine,
+    @JsonKey(name: 'ready_line') LocalizedText? readyLine,
+    @JsonKey(name: 'tagline') LocalizedText? tagline,
+    @JsonKey(name: 'story_trip_info') StoryTripInfo? storyTripInfo,
     @JsonKey(name: 'scenes') required List<Scene> scenes,
   }) = _Chapter;
 

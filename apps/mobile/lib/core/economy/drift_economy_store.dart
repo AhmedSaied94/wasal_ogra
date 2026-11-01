@@ -177,7 +177,8 @@ final class DriftEconomyStore {
       }
       _kill(EconomyKillPoint.afterSession);
       if (before.displayName != after.displayName ||
-          before.tutorialGranted != after.tutorialGranted) {
+          before.tutorialGranted != after.tutorialGranted ||
+          !_sameStory(before, after)) {
         await _writePlayer(after);
       }
       _kill(EconomyKillPoint.afterPlayer);
@@ -485,7 +486,45 @@ final class DriftEconomyStore {
       lastResult: _lastResultOf(session),
       displayName: player?.displayName,
       tutorialGranted: player?.tutorialGranted ?? false,
+      scenesSeen: _scenesSeenOf(player?.scenesSeen),
+      requestsClaimed: _stringListOf(player?.requestsClaimed),
     );
+  }
+
+  /// `player_state.scenes_seen`: a JSON object of arrays. A row from before
+  /// v5 holds `'{}'`.
+  static Map<String, Set<String>> _scenesSeenOf(String? json) {
+    if (json == null || json.isEmpty) return const {};
+    final decoded = jsonDecode(json);
+    if (decoded is! Map<String, Object?>) return const {};
+    return {
+      for (final MapEntry(:key, :value) in decoded.entries)
+        if (value is List<Object?>) key: {...value.whereType<String>()},
+    };
+  }
+
+  static Set<String> _stringListOf(String? json) {
+    if (json == null || json.isEmpty) return const {};
+    final decoded = jsonDecode(json);
+    if (decoded is! List<Object?>) return const {};
+    return {...decoded.whereType<String>()};
+  }
+
+  static bool _sameStory(EconomyState a, EconomyState b) {
+    if (a.requestsClaimed.length != b.requestsClaimed.length ||
+        !a.requestsClaimed.containsAll(b.requestsClaimed) ||
+        a.scenesSeen.length != b.scenesSeen.length) {
+      return false;
+    }
+    for (final MapEntry(:key, :value) in a.scenesSeen.entries) {
+      final other = b.scenesSeen[key];
+      if (other == null ||
+          other.length != value.length ||
+          !other.containsAll(value)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   UnfinishedTrip? _unfinishedOf(TripSessionRow row) {
@@ -720,8 +759,20 @@ final class DriftEconomyStore {
           id: const Value(1),
           displayName: Value(state.displayName),
           tutorialGranted: Value(state.tutorialGranted),
+          scenesSeen: Value(_scenesSeenJson(state.scenesSeen)),
+          requestsClaimed: Value(
+            jsonEncode(state.requestsClaimed.toList()..sort()),
+          ),
         ),
       );
+
+  /// The canonical order of `player_state.scenes_seen`: chapters and their
+  /// scenes sorted, so a rebuild writes the same text.
+  static String _scenesSeenJson(Map<String, Set<String>> scenesSeen) =>
+      jsonEncode({
+        for (final key in (scenesSeen.keys.toList()..sort()))
+          key: (scenesSeen[key]!.toList()..sort()),
+      });
 
   Future<void> _writeBase(ProjectionBase base) => _db
       .update(_db.projectionBaseTable)

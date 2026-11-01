@@ -352,7 +352,14 @@ def test_the_snapshot_and_the_pack_carry_no_fights_required(sample_reviewed: Use
 
 def test_one_reviewed_line_per_engine_slot_builds_to_validated(engine_pools: User) -> None:
     keys = {slot.default_key for slot in capabilities().speech_slots.values()}
-    assert set(SpeechPool.objects.values_list("speech_key", flat=True)) == keys
+    # M10's riders name their own pools; the engine's slots are all there beside them.
+    story = set(
+        SpeechPool.objects.filter(speech_key__startswith="story.").values_list(
+            "speech_key", flat=True
+        )
+    )
+    assert set(SpeechPool.objects.values_list("speech_key", flat=True)) == keys | story
+    assert story == {"story.moallem.short_change", "story.moallem.fight"}
 
     pack = built(engine_pools)
 

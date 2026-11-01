@@ -1,0 +1,160 @@
+{
+  "chapter_id": "ch2_her_father",
+  "completion_bonat": 15,
+  "goal": {
+    "kind": "own_vehicle",
+    "vehicle_id": "micro_old"
+  },
+  "goal_line": {
+    "speaker": "bride_father",
+    "text": {
+      "ar-EG": "عايز أشوفك راكب عربية محترمة، مش توك توك"
+    }
+  },
+  "order": 2,
+  "ready_line": {
+    "ar-EG": "الميكروباص جاهز، روح قابل أبوها"
+  },
+  "scenes": [
+    {
+      "panels": [
+        {
+          "art": "ch2_father_door",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "إنت بقى اللي بتسأل على سلمى؟"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch2_father_asks",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "بتشتغل إيه يا ابني؟"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "سوّاق يا عمي.. وعندي عربيتي"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch2_show_micro",
+          "lines": [
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "اتفضل شوفها بنفسك"
+              }
+            },
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "قديمة.. بس نضيفة"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch2_father_test",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "بكرة هركب معاك مشوار، وأشوف شغلك بعيني"
+              }
+            }
+          ]
+        }
+      ],
+      "scene_id": "what_do_you_do",
+      "title": {
+        "ar-EG": "أبوها بيسأل"
+      }
+    },
+    {
+      "panels": [
+        {
+          "art": "ch2_trip_over",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "ولا خناقة، وكل واحد خد باقيه"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch2_father_nods",
+          "lines": [
+            {
+              "speaker": "bride_father",
+              "text": {
+                "ar-EG": "ماشي يا أسطى.. روح اتكلم مع أمها في الشبكة"
+              }
+            }
+          ]
+        },
+        {
+          "art": "ch2_salma_window",
+          "lines": [
+            {
+              "speaker": "salma",
+              "text": {
+                "ar-EG": "قلتلك إنه هيعجبه"
+              }
+            },
+            {
+              "speaker": "usta",
+              "text": {
+                "ar-EG": "الحمد لله.. فاضل الشبكة"
+              }
+            }
+          ]
+        }
+      ],
+      "plays": {
+        "kind": "after_trip",
+        "trip_id": "line_gamaa.01"
+      },
+      "scene_id": "father_approves",
+      "title": {
+        "ar-EG": "أبوها وافق"
+      }
+    }
+  ],
+  "story_trip_id": "line_gamaa.01",
+  "story_trip_info": {
+    "condition": {
+      "ar-EG": "أبو العروسة راكب، خلّي بالك من كل قرش"
+    },
+    "fail_reason": {
+      "ar-EG": "أبو العروسة نزل زعلان ومشي"
+    },
+    "riders": [
+      {
+        "character": "bride_father",
+        "comments": {
+          "false_accusation": "story.bride_father.false_accusation",
+          "missed_stop": "story.bride_father.missed_stop"
+        },
+        "seat": "front_r"
+      }
+    ],
+    "title": {
+      "ar-EG": "أبو العروسة معاك"
+    }
+  },
+  "title": {
+    "ar-EG": "الكلام مع أبوها"
+  }
+}

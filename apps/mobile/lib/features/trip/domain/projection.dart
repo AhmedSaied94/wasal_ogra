@@ -74,6 +74,7 @@ TripView projectTripView(
       tripNumber: facts.tripNumber,
       reputation: state.reputation,
       reputationLow: state.reputation < reputationLowBelow,
+      storyTitle: facts.storyInfo?.title.arEg,
     ),
     strip: stationStrip(state, facts),
     passengers: _passengers(state, memory, facts),
@@ -121,6 +122,8 @@ TripView projectTripView(
     hint: hint,
     banner: memory.banner,
     storyCondition: facts.storyNoFights ? state.counters.fights == 0 : null,
+    storyStrip: _storyStrip(state, facts),
+    riderBubble: _riderBubble(memory, facts),
     failSummary: state.status == TripStatus.failed
         ? failSummary(state.reputationLost, facts, screen.revive, state: state)
         : null,
@@ -132,6 +135,36 @@ TripView projectTripView(
     controlsLocked: screen.controlsLocked,
     fastForward: screen.fastForward,
   );
+}
+
+/// The strip a story trip shows (specs/015-m10-apartment-story, contracts/
+/// story-trip.md): present for a story rule or a condition the chapter
+/// words, saying the content's condition when there is one.
+StoryStripView? _storyStrip(TripState state, TripFacts facts) {
+  final condition = facts.storyInfo?.condition?.arEg;
+  if (!facts.storyNoFights && condition == null) return null;
+  return StoryStripView(
+    text: condition,
+    broken: facts.storyNoFights ? state.counters.fights > 0 : null,
+  );
+}
+
+/// The rider comment in the character slot, over its rider's seat.
+RiderBubbleView? _riderBubble(PresentationMemory memory, TripFacts facts) {
+  final bubble = memory.character;
+  if (bubble == null) return null;
+  final line = bubble.line;
+  if (line is! RiderLine) return null;
+  for (final rider in facts.storyInfo?.riders ?? const <StoryRider>[]) {
+    if (rider.character == bubble.speaker) {
+      return RiderBubbleView(
+        speaker: rider.character,
+        seatId: rider.seat,
+        text: line.text,
+      );
+    }
+  }
+  return null;
 }
 
 List<ChoiceView> _choices(TripState state, int? dispute) => [

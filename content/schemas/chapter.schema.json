@@ -32,6 +32,21 @@
     "completion_bonat": {
       "$ref": "common.schema.json#/$defs/Amount"
     },
+    "goal_art": {
+      "$ref": "common.schema.json#/$defs/Slug"
+    },
+    "goal_line": {
+      "$ref": "#/$defs/CharacterLine"
+    },
+    "ready_line": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "tagline": {
+      "$ref": "common.schema.json#/$defs/LocalizedText"
+    },
+    "story_trip_info": {
+      "$ref": "#/$defs/StoryTripInfo"
+    },
     "scenes": {
       "type": "array",
       "items": {
@@ -80,12 +95,16 @@
       "type": "object",
       "required": [
         "scene_id",
+        "title",
         "panels"
       ],
       "properties": {
         "scene_id": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]{1,31}$"
+        },
+        "title": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
         },
         "panels": {
           "type": "array",
@@ -102,7 +121,7 @@
       "additionalProperties": false
     },
     "ScenePlays": {
-      "description": "When the app plays the scene by itself. Absent: M10's rules (album, chapter end).",
+      "description": "When the app plays the scene by itself. Absent: when the chapter's goal is met (M10).",
       "type": "object",
       "required": [
         "kind"
@@ -163,6 +182,93 @@
         }
       },
       "additionalProperties": false
+    },
+    "CharacterLine": {
+      "description": "A character's line on a screen (the goal card).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "properties": {
+        "speaker": {
+          "$ref": "common.schema.json#/$defs/StoryCharacter"
+        },
+        "text": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        }
+      }
+    },
+    "StoryTripInfo": {
+      "description": "How the chapter's story trip is presented: who rides, its title and condition (M10).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "riders"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "condition": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "fail_reason": {
+          "$ref": "common.schema.json#/$defs/LocalizedText"
+        },
+        "riders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StoryRider"
+          },
+          "minItems": 1,
+          "maxItems": 2
+        }
+      }
+    },
+    "StoryRider": {
+      "description": "A story character riding in a seat the trip leaves empty.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "character",
+        "seat"
+      ],
+      "properties": {
+        "character": {
+          "$ref": "common.schema.json#/$defs/StoryCharacter"
+        },
+        "seat": {
+          "$ref": "common.schema.json#/$defs/SeatId"
+        },
+        "comments": {
+          "$ref": "#/$defs/RiderComments"
+        }
+      }
+    },
+    "RiderComments": {
+      "description": "The speech pool a rider draws from, per mistake.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "short_change": {
+          "$ref": "common.schema.json#/$defs/SpeechKey"
+        },
+        "false_accusation": {
+          "$ref": "common.schema.json#/$defs/SpeechKey"
+        },
+        "fight": {
+          "$ref": "common.schema.json#/$defs/SpeechKey"
+        },
+        "missed_stop": {
+          "$ref": "common.schema.json#/$defs/SpeechKey"
+        },
+        "impatient": {
+          "$ref": "common.schema.json#/$defs/SpeechKey"
+        }
+      }
     }
   }
 }

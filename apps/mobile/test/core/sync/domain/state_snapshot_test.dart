@@ -51,8 +51,18 @@ Map<String, Object?> _json({Map<String, Object?>? openTrip}) => {
   },
   'story': {
     'chapters': [
-      {'chapter_id': 'ch1_first_job', 'status': 'complete'},
+      {
+        'chapter_id': 'ch1_first_job',
+        'status': 'complete',
+        'scenes_seen': ['opening', 'the_stand'],
+      },
+      {
+        'chapter_id': 'ch9_gone',
+        'status': 'locked',
+        'scenes_seen': ['lost'],
+      },
     ],
+    'requests_claimed': ['req_nish_crystal', 'req_gone'],
   },
   'grants': {'tutorial': true},
   'stats': {'trips_played': 99},
@@ -199,10 +209,33 @@ void main() {
     );
   });
 
-  test('story and stats change nothing', () {
-    final bare = {..._json()}
-      ..['story'] = {'chapters': <Object?>[]}
-      ..['stats'] = <String, Object?>{};
+  test('the story maps into scenesSeen and requestsClaimed (M10)', () {
+    final state = _map(_json());
+    expect(state.scenesSeen, {
+      'ch1_first_job': {'opening', 'the_stand'},
+      'ch9_gone': {'lost'},
+    });
+    expect(state.requestsClaimed, {'req_nish_crystal', 'req_gone'});
+  });
+
+  test('a chapter\'s status changes nothing: completion is derived', () {
+    final json = _json();
+    final chapters =
+        (json['story']! as Map<String, Object?>)['chapters']! as List<Object?>;
+    for (final chapter in chapters) {
+      (chapter! as Map<String, Object?>)['status'] = 'draft';
+    }
+    expect(_map(json).toJson(), _map(_json()).toJson());
+  });
+
+  test('stats change nothing (M13)', () {
+    final bare = {..._json()}..['stats'] = <String, Object?>{};
     expect(_map(_json()).toJson(), _map(bare).toJson());
+  });
+
+  test('a story the phone has never synced is empty', () {
+    final state = _map({..._json()}..remove('story'));
+    expect(state.scenesSeen, isEmpty);
+    expect(state.requestsClaimed, isEmpty);
   });
 }

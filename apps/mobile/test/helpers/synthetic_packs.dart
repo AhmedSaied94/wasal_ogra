@@ -396,3 +396,367 @@ Map<String, Object?> artboardLines() {
     },
   };
 }
+
+// -- M10's two packs (specs/015-m10-apartment-story, T031) -------------------
+
+/// The sample's JSON, deep-copied so a builder can change it.
+Map<String, Object?> _sampleCopy() =>
+    (jsonDecode(jsonEncode(samplePackJson())) as Map<String, dynamic>)
+        .cast<String, Object?>();
+
+Map<String, Object?> _variant(
+  String id,
+  String name,
+  String art,
+  String comment,
+) => {
+  'art': art,
+  'comment': {'ar-EG': comment},
+  'name': {'ar-EG': name},
+  'variant_id': id,
+};
+
+Map<String, Object?> _item(
+  String slug,
+  int order,
+  String name,
+  (int, int, int, int) slot,
+  List<Map<String, Object?>> variants,
+  String comment,
+) => {
+  'comment': {'ar-EG': comment},
+  'item_id': 'salon.$slug',
+  'name': {'ar-EG': name},
+  'order': order,
+  'room_id': 'salon',
+  'slot': {'h': slot.$4, 'w': slot.$3, 'x': slot.$1, 'y': slot.$2},
+  'variants': variants,
+};
+
+/// The boards' salon: the sample's نيش and ستاير (given a red style for its
+/// request), and the أنتريه and النجفة the artboards draw. Every slot fits
+/// the room's 358 x 300 space.
+List<Map<String, Object?>> _salonItems(Map<String, Object?> json) {
+  final items = _list(json, 'items');
+  final nish = items.firstWhere((i) => i['item_id'] == 'salon.nish');
+  final sitara = items.firstWhere((i) => i['item_id'] == 'salon.sitara');
+  return [
+    nish,
+    {
+      ...sitara,
+      'variants': [
+        ...(sitara['variants']! as List<Object?>),
+        _variant('red', 'أحمر', 'sitara_red', 'الأحمر دفا الصالة'),
+      ],
+    },
+    _item(
+      'antreeh',
+      3,
+      'الأنتريه',
+      (99, 180, 200, 110),
+      [
+        _variant('classic', 'كلاسيك', 'antreeh_classic', 'الكلاسيك مضمون'),
+        _variant('modern', 'مودرن', 'antreeh_modern', 'المودرن مريح وشيك'),
+        _variant('shaabi', 'شعبي', 'antreeh_shaabi', 'الشعبي فيه روح البيت'),
+      ],
+      'الأنتريه بياخد العين',
+    ),
+    _item(
+      'nagfa',
+      4,
+      'النجفة',
+      (129, 20, 100, 60),
+      [
+        _variant(
+          'crystal',
+          'كريستال',
+          'nagfa_crystal',
+          'الكريستال بينوّر الصالة',
+        ),
+        _variant('classic', 'كلاسيك', 'nagfa_classic', 'الكلاسيك مالوش حل'),
+      ],
+      'النجفة تاج الصالة',
+    ),
+  ];
+}
+
+Map<String, Object?> _request(
+  String id,
+  String character,
+  String item,
+  String variant,
+  int bonat,
+  String text,
+) => {
+  'character': character,
+  'item_id': 'salon.$item',
+  'request_id': id,
+  'reward_bonat': bonat,
+  'room_id': 'salon',
+  'text': {'ar-EG': text},
+  if (variant.isNotEmpty) 'variant_id': variant,
+};
+
+/// The sample's request and the boards' two: three in all.
+List<Map<String, Object?>> _salonRequests(Map<String, Object?> json) => [
+  ..._list(json, 'family_requests'),
+  _request(
+    'req_sitara_red',
+    'bride_mother',
+    'sitara',
+    'red',
+    10,
+    '«الستاير لونها أحمر زي بتاعتنا»',
+  ),
+  _request(
+    'req_nagfa_crystal',
+    'bride_father',
+    'nagfa',
+    'crystal',
+    15,
+    '«النجفة لازم تبقى كريستال»',
+  ),
+];
+
+/// A chapter with no scene and a purchase goal: the timeline's locked rows
+/// (ch5 to ch7) need a name and nothing else.
+Map<String, Object?> _lockedChapter(
+  String id,
+  int order,
+  String title,
+  int bonat,
+) => {
+  'chapter_id': id,
+  'completion_bonat': bonat,
+  'goal': {'kind': 'purchase'},
+  'order': order,
+  'scenes': <Object?>[],
+  'title': {'ar-EG': title},
+};
+
+List<Map<String, Object?>> _prices(Map<String, Object?> json) => _list(
+  (json['catalog']! as Map<String, dynamic>).cast<String, Object?>(),
+  'prices',
+);
+
+Map<String, Object?> _withCatalog(
+  Map<String, Object?> json,
+  List<Map<String, Object?>> prices,
+) => {
+  ...(json['catalog']! as Map<String, dynamic>).cast<String, Object?>(),
+  'prices': prices,
+};
+
+/// The artboards' salon (T031; `AptGoal`, `AptGoalReady`, `AptRooms`,
+/// `Piece`, `Requests`, `Chapters`, `RoomDone`), built from the sample:
+/// - the salon's four pieces: نيش and ستاير as the sample has them (ستاير
+///   gains the boards' red style), أنتريه at 3,200 and نجفة at 2,400;
+/// - the shabka at the board's 6,000;
+/// - three requests: the sample's كريستال نيش, the red ستاير and the
+///   crystal نجفة;
+/// - seven chapters, ch4 (the salon) the apartment's, ch5 to ch7 the
+///   timeline's locked rows.
+Map<String, Object?> artboardSalon() {
+  final json = _sampleCopy();
+  var prices = _prices(json);
+  for (final (sku, amount) in [
+    ('ch3_shabka', 6000),
+    ('salon.antreeh', 3200),
+    ('salon.nagfa', 2400),
+    ('ch5_kitchen', 8000),
+    ('ch6_bedroom', 9000),
+    ('ch7_wedding', 12000),
+  ]) {
+    prices = _withPrice(
+      prices,
+      sku.startsWith('salon.') ? 'item' : 'chapter',
+      sku,
+      amount,
+    );
+  }
+  return {
+    ...json,
+    // The board names the room الصالة; the sample's salon is الصالون.
+    'rooms': [
+      for (final room in _list(json, 'rooms'))
+        if (room['room_id'] == 'salon')
+          {
+            ...room,
+            'name': {'ar-EG': 'الصالة'},
+          }
+        else
+          room,
+    ],
+    'items': _salonItems(json),
+    'family_requests': _salonRequests(json),
+    'chapters': [
+      ..._list(json, 'chapters'),
+      _lockedChapter('ch5_kitchen', 5, 'المطبخ', 20),
+      _lockedChapter('ch6_bedroom', 6, 'أوضة النوم', 25),
+      _lockedChapter('ch7_wedding', 7, 'الفرح', 30),
+    ],
+    'catalog': _withCatalog(json, prices),
+  };
+}
+
+/// [artboardSalon] with the kitchen a room of its own right after the salon:
+/// `ch5_kitchen` completes the room `kitchen` (one piece, at 8,000), so
+/// finishing the salon makes the kitchen the current chapter's room.
+Map<String, Object?> artboardSalonThenKitchen() {
+  final json = artboardSalon();
+  final prices = _withPrice(_prices(json), 'item', 'kitchen.stove', 8000);
+  return {
+    ...json,
+    'rooms': [
+      ..._list(json, 'rooms'),
+      {
+        'chapter_id': 'ch5_kitchen',
+        'completion_bonat': 20,
+        'name': {'ar-EG': 'المطبخ'},
+        'order': 2,
+        'room_id': 'kitchen',
+      },
+    ],
+    'items': [
+      ..._list(json, 'items'),
+      {
+        'comment': {'ar-EG': 'البوتاجاز قلب المطبخ'},
+        'item_id': 'kitchen.stove',
+        'name': {'ar-EG': 'البوتاجاز'},
+        'order': 1,
+        'room_id': 'kitchen',
+        'slot': {'h': 100, 'w': 100, 'x': 129, 'y': 150},
+        'variants': [
+          _variant('classic', 'كلاسيك', 'stove_classic', 'الكلاسيك مضمون'),
+        ],
+      },
+    ],
+    'chapters': [
+      for (final chapter in _list(json, 'chapters'))
+        if (chapter['chapter_id'] == 'ch5_kitchen')
+          {
+            ...chapter,
+            'goal': {'kind': 'complete_room', 'room_id': 'kitchen'},
+          }
+        else
+          chapter,
+    ],
+    'catalog': _withCatalog(json, prices),
+  };
+}
+
+/// `ch3_shabka`'s after-trip scene (the release draft, contracts/
+/// content-fields.md "The release draft"): the_fatha after `line_gamaa.18`.
+Map<String, Object?> _fatha() => {
+  'panels': [
+    {
+      'art': 'ch4_mother_looks',
+      'lines': [
+        {
+          'speaker': 'narrator',
+          'text': {'ar-EG': 'أهل العروسة قعدوا في الصالون'},
+        },
+      ],
+    },
+    {
+      'art': 'ch4_mother_looks',
+      'lines': [
+        {
+          'speaker': 'bride_mother',
+          'text': {'ar-EG': 'الفاتحة تتقرا في الصالون الجديد'},
+        },
+      ],
+    },
+    {
+      'art': 'salma_waiting',
+      'lines': [
+        {
+          'speaker': 'salma',
+          'text': {'ar-EG': 'أنا كنت عارفة إنك هتوصل'},
+        },
+      ],
+    },
+  ],
+  'plays': {'kind': 'after_trip', 'trip_id': 'line_gamaa.18'},
+  'scene_id': 'the_fatha',
+  'title': {'ar-EG': 'الفاتحة'},
+};
+
+/// The release draft's story shape (T031; `story-flow.md`), on
+/// [draftShaped]'s trips and chapters: ch1 to ch4, the salon's four pieces
+/// at 750, 1,050, 1,300 and 1,600, three requests, ch2's and ch4's goal
+/// scenes, and `the_fatha` after `line_gamaa.18`.
+Map<String, Object?> storyShaped() {
+  final json = draftShaped();
+  var prices = _prices(json);
+  for (final (sku, amount) in [
+    ('salon.nish', 750),
+    ('salon.sitara', 1050),
+    ('salon.antreeh', 1300),
+    ('salon.nagfa', 1600),
+  ]) {
+    prices = _withPrice(prices, 'item', sku, amount);
+  }
+  return {
+    ...json,
+    'items': _salonItems(json),
+    'family_requests': _salonRequests(json),
+    'chapters': [
+      for (final chapter in _list(json, 'chapters'))
+        if (chapter['chapter_id'] == 'ch3_shabka')
+          {
+            ...chapter,
+            'scenes': [...(chapter['scenes']! as List<Object?>), _fatha()],
+          }
+        else
+          chapter,
+    ],
+    'catalog': _withCatalog(json, prices),
+  };
+}
+
+// -- The release draft's first four chapters (T131, T132) -------------------
+
+Map<String, Object?> _draftJson(String path) => (jsonDecode(
+  File('test/fixtures/release_draft/$path').readAsStringSync(),
+) as Map<String, dynamic>).cast<String, Object?>();
+
+/// The release draft's story as the ten boards of 2026-10-31 are drawn on it
+/// (`AptGoalLine` to `HomeStoryEnd`): [draftShaped]'s trips (خط الحي's 19
+/// regular trips and the story trip `.20`) with the draft's own catalog,
+/// salon, items, requests and chapters 1 to 4, copied by hand from
+/// `content/drafts/core-r1/pack/` in the `content-core-r1` worktree to
+/// `test/fixtures/release_draft/` (its README says when to copy again).
+/// The draft has chapters 1 to 4 only, so the salon ends the story; the
+/// timeline names the three it lacks from its own strings.
+Map<String, Object?> releaseDraftPack() {
+  final json = draftShaped();
+  final prices = [
+    for (final price in jsonDecode(
+      File('test/fixtures/release_draft/prices.json').readAsStringSync(),
+    ) as List<Object?>)
+      (price! as Map<String, dynamic>).cast<String, Object?>(),
+  ];
+  return {
+    ...json,
+    'rooms': [_draftJson('rooms/salon.json')],
+    'items': [
+      for (final id in ['sitara', 'nagafa', 'nish', 'antreeh'])
+        _draftJson('items/salon.$id.json'),
+    ],
+    'family_requests': [
+      for (final id in ['nagafa_crystal', 'nish_golden', 'antreeh_classic'])
+        _draftJson('family_requests/req_$id.json'),
+    ],
+    'chapters': [
+      for (final id in [
+        'ch1_first_job',
+        'ch2_her_father',
+        'ch3_shabka',
+        'ch4_salon',
+      ])
+        _draftJson('chapters/$id.json'),
+    ],
+    'catalog': _withCatalog(json, prices),
+  };
+}

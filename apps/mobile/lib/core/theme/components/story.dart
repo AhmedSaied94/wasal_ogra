@@ -79,7 +79,7 @@ class ComicPanel extends StatelessWidget {
               PositionedDirectional(
                 top: _inset,
                 end: _inset,
-                child: _Caption(caption, key: captionKey),
+                child: ComicCaption(caption, key: captionKey),
               ),
             if (lines.isNotEmpty)
               PositionedDirectional(
@@ -178,8 +178,10 @@ Widget _turn(Widget bubble, {required bool? shown, required Key key}) =>
       ),
     };
 
-class _Caption extends StatelessWidget {
-  const _Caption(this.text, {super.key});
+/// A narrator's line as the panel's `sun` caption chip. The story viewer
+/// (specs/015-m10-apartment-story) draws the same one.
+class ComicCaption extends StatelessWidget {
+  const ComicCaption(this.text, {super.key});
 
   final String text;
 

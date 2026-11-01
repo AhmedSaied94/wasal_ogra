@@ -37,6 +37,9 @@ FirstSession _session({
   bool nameRefused = false,
   String? opening = 'opening',
   Map<String, String> afterTrip = const {'line_hay.03': 'the_stand'},
+  // The scenes these tests make due, waiting in the pack unless a case says
+  // otherwise: the sample's after-trip scene of line_hay.03.
+  Set<String> waitingScenes = const {'the_stand'},
   bool coachEverywhere = false,
 }) => FirstSession(
   FirstSessionFacts(
@@ -51,6 +54,7 @@ FirstSession _session({
     nameRefused: nameRefused,
     openingSceneId: opening,
     afterTripScenes: afterTrip,
+    waitingScenes: waitingScenes,
     coachEverywhere: coachEverywhere,
   ),
 );
@@ -171,6 +175,30 @@ void main() {
       );
     });
 
+    // R3-2 (FR-030, FR-055): a goal scene's unlock is derived, so a refused
+    // purchase, a restore or a pack update can lock a due id again.
+    test('a due id the pack locks again is skipped, and the trip starts', () {
+      const flags = FirstSessionFlags(scenesDue: ['father_visit', 'the_stand']);
+      expect(
+        _session(flags: flags).beforeStart('line_hay.04'),
+        const DueScene('the_stand'),
+      );
+      expect(
+        _session(
+          flags: flags,
+          waitingScenes: const {},
+        ).beforeStart('line_hay.04'),
+        isNull,
+      );
+    });
+
+    test('a due id the pack lacks is skipped', () {
+      const flags = FirstSessionFlags(scenesDue: ['ghost_scene']);
+      final session = _session(flags: flags);
+      expect(session.beforeStart('line_hay.04'), isNull);
+      expect(session.onArrivalAtHome(), isNull);
+    });
+
     test('the fuel lesson before trip 5 is first played', () {
       expect(
         _session(progress: _done(4)).beforeStart('line_hay.05'),
@@ -232,6 +260,16 @@ void main() {
       expect(
         _session(flags: flags).onArrivalAtHome(),
         const DueScene('the_stand'),
+      );
+    });
+
+    // R3-2: a due id the pack no longer waits on never opens, so the queue
+    // moves on to its next item.
+    test('a due id that locked again: nothing to open', () {
+      const flags = FirstSessionFlags(scenesDue: ['the_stand']);
+      expect(
+        _session(flags: flags, waitingScenes: const {}).onArrivalAtHome(),
+        isNull,
       );
     });
   });

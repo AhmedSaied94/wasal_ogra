@@ -54,6 +54,10 @@ EconomyState fullState() => EconomyState(
   ),
   displayName: 'Hamada',
   tutorialGranted: true,
+  scenesSeen: const {
+    'ch1_first_job': {'the_stand', 'opening'},
+  },
+  requestsClaimed: const {'req_nish_crystal'},
 );
 
 Map<String, Object?> _json(EconomyState state) =>
@@ -126,6 +130,81 @@ void main() {
     expect(fullState().copyWith(unfinished: () => null), isNot(fullState()));
     expect(fullState().copyWith(displayName: () => 'x'), isNot(fullState()));
     expect(fullState().copyWith(tutorialGranted: false), isNot(fullState()));
+  });
+
+  group('the story state (M10)', () {
+    test('newPlayer starts both empty', () {
+      final state = EconomyState.newPlayer(fuelMax: 5, nowMs: 1);
+      expect(state.scenesSeen, isEmpty);
+      expect(state.requestsClaimed, isEmpty);
+    });
+
+    test('the canonical JSON writes them sorted, and reads them back', () {
+      final json = _json(
+        EconomyState.newPlayer(fuelMax: 5, nowMs: 1).copyWith(
+          scenesSeen: {
+            'ch4_salon': {'family_visit'},
+            'ch1_first_job': {'the_stand', 'opening'},
+          },
+          requestsClaimed: {'req_b', 'req_a'},
+        ),
+      );
+      expect(json['scenes_seen'], {
+        'ch1_first_job': ['opening', 'the_stand'],
+        'ch4_salon': ['family_visit'],
+      });
+      expect(json['requests_claimed'], ['req_a', 'req_b']);
+      final back = EconomyState.fromJson(json);
+      expect(back.scenesSeen['ch1_first_job'], {'opening', 'the_stand'});
+      expect(back.requestsClaimed, {'req_a', 'req_b'});
+    });
+
+    test('a base from before M10 reads as empty', () {
+      final json = _json(EconomyState.newPlayer(fuelMax: 5, nowMs: 1))
+        ..remove('scenes_seen')
+        ..remove('requests_claimed');
+      final read = EconomyState.fromJson(json);
+      expect(read.scenesSeen, isEmpty);
+      expect(read.requestsClaimed, isEmpty);
+    });
+
+    test('equality looks at both', () {
+      final base = EconomyState.newPlayer(fuelMax: 5, nowMs: 1);
+      expect(
+        base.copyWith(
+          scenesSeen: {
+            'ch1_first_job': {'opening'},
+          },
+        ),
+        isNot(base),
+      );
+      expect(base.copyWith(requestsClaimed: {'req_a'}), isNot(base));
+      expect(
+        base
+            .copyWith(
+              scenesSeen: {
+                'ch1_first_job': {'opening'},
+              },
+            )
+            .hashCode,
+        isNot(base.hashCode),
+      );
+    });
+
+    test('both are unmodifiable', () {
+      final state = EconomyState.newPlayer(fuelMax: 5, nowMs: 1).copyWith(
+        scenesSeen: {
+          'ch1_first_job': {'opening'},
+        },
+        requestsClaimed: {'req_a'},
+      );
+      expect(() => state.scenesSeen['x'] = const {}, throwsUnsupportedError);
+      expect(() => state.requestsClaimed.add('y'), throwsUnsupportedError);
+      expect(
+        () => state.scenesSeen['ch1_first_job']!.add('z'),
+        throwsUnsupportedError,
+      );
+    });
   });
 
   test('a zero inventory count is dropped', () {

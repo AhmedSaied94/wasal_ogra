@@ -97,6 +97,13 @@ flutter:
     - assets/illustrations/screens/
     # The scenes' panel drawings (specs/012-m07-onboarding/contracts/scenes.md).
     - assets/illustrations/panels/
+    # The apartment's pieces and goals (specs/015-m10-apartment-story,
+    # research R17), synced from docs/design by tool/design/sync_assets.dart.
+    # `rooms/` is declared when R17's room drawings land; the fallbacks draw
+    # every room meanwhile.
+    - assets/illustrations/apartment/
+    - assets/illustrations/apartment/pieces/
+    - assets/illustrations/apartment/goals/
     - path: assets/config/tunables.dev.json
       flavors:
         - dev

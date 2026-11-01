@@ -32,7 +32,10 @@
           ]
         }
       ],
-      "scene_id": "the_stand"
+      "scene_id": "the_stand",
+      "title": {
+        "ar-EG": "المشهد"
+      }
     }
   ],
   "story_trip_id": "line_hay.03",

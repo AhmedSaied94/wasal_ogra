@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/features/trip/domain/presentation_memory.dart';
 import 'package:wassal/features/trip/domain/projection.dart';
+import 'package:wassal/features/trip/domain/rider_comments.dart';
 import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/trip_facts.dart';
 import 'package:wassal/features/trip/domain/trip_view.dart';
@@ -305,6 +306,98 @@ void main() {
     );
   });
 
+  group('a story trip\'s presentation (specs/015-m10-apartment-story)', () {
+    const info = StoryTripInfo(
+      title: LocalizedText(arEg: 'مشوار المعلم'),
+      condition: LocalizedText(arEg: 'من غير ما حد يزعل'),
+      failReason: LocalizedText(arEg: 'المعلم زعل'),
+      riders: [StoryRider(character: StoryCharacter.moallem, seat: 'A_l')],
+    );
+
+    TripView viewWith(String tripId, {StoryTripInfo? storyInfo}) {
+      final definition = sampleTrip(tripId);
+      final facts = factsFor(definition, storyInfo: storyInfo);
+      return viewOf(TripEngine.start(definition, facts.params), facts);
+    }
+
+    test('the strip: a rule alone says M02\'s line, unbroken', () {
+      final view = viewWith('line_hay.03');
+      expect(view.storyStrip, const StoryStripView(text: null, broken: false));
+      expect(view.topBar.storyTitle, isNull);
+    });
+
+    test('the strip: the content\'s condition on top of the rule', () {
+      final view = viewWith('line_hay.03', storyInfo: info);
+      expect(
+        view.storyStrip,
+        const StoryStripView(text: 'من غير ما حد يزعل', broken: false),
+      );
+      expect(view.topBar.storyTitle, 'مشوار المعلم');
+    });
+
+    test('the strip: a condition without a rule never breaks', () {
+      // line_hay.01 is no story trip, so it has no rule; the content's
+      // condition alone still shows the strip.
+      final view = viewWith('line_hay.01', storyInfo: info);
+      expect(
+        view.storyStrip,
+        const StoryStripView(text: 'من غير ما حد يزعل', broken: null),
+      );
+      expect(view.storyCondition, isNull);
+    });
+
+    test('no strip without a rule or a condition', () {
+      expect(viewWith('line_hay.01').storyStrip, isNull);
+      const bare = StoryTripInfo(
+        title: LocalizedText(arEg: 'مشوار'),
+        riders: [],
+      );
+      final view = viewWith('line_hay.01', storyInfo: bare);
+      expect(view.storyStrip, isNull);
+      expect(view.topBar.storyTitle, 'مشوار');
+    });
+
+    test('a rider\'s comment shows over its seat, and only a rider\'s', () {
+      final definition = sampleTrip('line_hay.03');
+      final facts = factsFor(definition, storyInfo: info);
+      final engine = TripEngine.start(definition, facts.params);
+      final said = PresentationMemory.empty
+          .update(
+            const [],
+            const [],
+            tMs: 0,
+            bubbleMinMs: 4000,
+            riderComments: const [
+              RiderComment(
+                speaker: StoryCharacter.moallem,
+                line: 'الفكة يا أسطى',
+                ordinal: 0,
+              ),
+            ],
+          )
+          .characterAt(null, tMs: 0, bubbleMinMs: 4000);
+      expect(
+        viewOf(engine, facts, memory: said).riderBubble,
+        const RiderBubbleView(
+          speaker: StoryCharacter.moallem,
+          seatId: 'A_l',
+          text: 'الفكة يا أسطى',
+        ),
+      );
+      // بلية's bubble is the hint's, not a rider's.
+      final belya = PresentationMemory.empty.characterAt(
+        (
+          source: 'tripHintOwed',
+          line: const HintView(key: 'tripHintOwed', targetPassengerId: 'a'),
+        ),
+        tMs: 0,
+        bubbleMinMs: 4000,
+      );
+      expect(viewOf(engine, facts, memory: belya).riderBubble, isNull);
+      expect(viewOf(engine, facts).riderBubble, isNull);
+    });
+  });
+
   test('boosters: stock, price when out, traffic jam limit', () {
     final definition = sampleTrip('line_hay.01');
     final facts = factsFor(definition);
@@ -397,6 +490,12 @@ void main() {
       const LogLine(kind: LogKind.speech),
       const HintView(key: 'k', targetPassengerId: null),
       const BannerView(oldPiasters: 0, newPiasters: 0, shownAtMs: 0),
+      const StoryStripView(),
+      const RiderBubbleView(
+        speaker: StoryCharacter.salma,
+        seatId: 's',
+        text: '',
+      ),
       const FailSummary(causes: [], revive: null),
       const FailCause(cause: RepCause.fight, count: 1),
       const ReviveOffer(priceBonat: 0, affordable: false),

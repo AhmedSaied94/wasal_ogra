@@ -50,6 +50,12 @@ void main() {
     // M07 contracts/name.md and fuel-lesson.md: sent as stored.
     OpType.settingsUpdate: {'display_name': 'Hamada'},
     OpType.tutorialGift: {},
+    // M10's two operations (contracts/economy-ops.md "Wire").
+    OpType.storyProgress: {
+      'chapter_id': 'ch4_salon',
+      'scene_id': 'family_visit',
+    },
+    OpType.claimRequest: {'request_id': 'req_nagafa_crystal'},
   };
 
   test('covers every operation type', () {
@@ -71,11 +77,27 @@ void main() {
     });
   }
 
-  test('content_version only for trip_start and the two spends', () {
+  test('content_version for a trip start, the two spends and M10\'s two', () {
     expect(contentVersionTypes, {
       OpType.tripStart,
       OpType.spendJenehat,
       OpType.spendBonat,
+      OpType.storyProgress,
+      OpType.claimRequest,
+    });
+  });
+
+  test('a story_progress op omits the reason and the ref', () {
+    final wire = opWire(
+      _op(OpType.storyProgress, {
+        'chapter_id': 'ch4_salon',
+        'scene_id': 'family_visit',
+      }),
+    );
+    expect(wire['payload'], {
+      'chapter_id': 'ch4_salon',
+      'scene_id': 'family_visit',
+      'content_version': 7,
     });
   });
 

@@ -159,6 +159,26 @@ final class ApartmentPieceTarget extends SavingsTarget {
       '$jenehat/$priceJenehat)';
 }
 
+/// The end of the available story: the last chapter is complete.
+final class StoryEndTarget extends SavingsTarget {
+  const StoryEndTarget(this.chapter);
+
+  final Chapter chapter;
+
+  @override
+  bool get affordable => false;
+
+  @override
+  bool operator ==(Object other) =>
+      other is StoryEndTarget && other.chapter.chapterId == chapter.chapterId;
+
+  @override
+  int get hashCode => Object.hash(StoryEndTarget, chapter.chapterId);
+
+  @override
+  String toString() => 'StoryEndTarget(${chapter.chapterId.name})';
+}
+
 /// A pack without chapters, or nothing left to save for.
 final class NoTarget extends SavingsTarget {
   const NoTarget();
@@ -180,11 +200,17 @@ final class NoTarget extends SavingsTarget {
 SavingsTarget savingsTarget(ContentSource c, PlayerProgress p, int jenehat) {
   final chapter = currentChapter(c, p);
   if (chapter == null) return const NoTarget();
+  final order = chaptersInOrder(c);
+  // The story's last chapter complete: there is nothing left to save for.
+  if (order.last.chapterId == chapter.chapterId &&
+      chapterComplete(c, p, chapter.chapterId)) {
+    return StoryEndTarget(chapter);
+  }
   final opens = apartmentOpens(c);
   final open = opens != null && chapter.order >= opens.order;
   if (open && chapter.goal.kind == GoalKind.completeRoom) {
     final room = chapter.goal.roomId;
-    final piece = room == null ? null : _nextPiece(c, p, room);
+    final piece = room == null ? null : nextPiece(c, p, room);
     if (piece == null) return const NoTarget();
     final (item, price) = piece;
     return ApartmentPieceTarget(
@@ -242,13 +268,14 @@ ChapterGoalTarget? _goalTarget(
     case GoalKind.completeRoom:
       final room = goal.roomId == null ? null : c.room(goal.roomId!);
       if (room == null) return null;
-      final piece = _nextPiece(c, p, room.roomId);
+      final piece = nextPiece(c, p, room.roomId);
       return target(room.name.arEg, amount(piece?.$2));
   }
 }
 
-/// The first unowned item of [room] by `order`, with its JENEHAT price.
-(Item, int)? _nextPiece(ContentSource c, PlayerProgress p, RoomId room) {
+/// The first unowned item of [room] by `order`, with its JENEHAT price
+/// (M10's rooms view reuses it, so Home and the grid agree).
+(Item, int)? nextPiece(ContentSource c, PlayerProgress p, RoomId room) {
   final items = [...c.itemsOf(room)]
     ..sort((a, b) => a.order.compareTo(b.order));
   for (final item in items) {

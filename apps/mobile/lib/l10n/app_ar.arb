@@ -92,6 +92,14 @@
   "@destStory": {
     "description": "Placeholder title: a story scene."
   },
+  "destStoryScene": "المشهد",
+  "@destStoryScene": {
+    "description": "A story scene's page title (M10)."
+  },
+  "destStoryAlbum": "ألبوم المشاهد",
+  "@destStoryAlbum": {
+    "description": "The scenes album's page title (M10)."
+  },
   "destFuel": "البنزين",
   "@destFuel": {
     "description": "Placeholder title: the fuel sheet."
@@ -1215,6 +1223,30 @@
   "tripHintSpeaker": "بلية",
   "@tripHintSpeaker": {
     "description": "The name over بلية's hint in his bubble (SpeechBubble character)."
+  },
+  "tripRiderA11y": "{name} راكب معاك",
+  "@tripRiderA11y": {
+    "description": "Screen reader: a story character rides along in a story trip (specs/015-m10-apartment-story contracts/story-trip.md).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "سلمى"
+      }
+    }
+  },
+  "tripRiderSays": "{name}: {line}",
+  "@tripRiderSays": {
+    "description": "Screen reader, announced politely: a story rider comments on the trip.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "سلمى"
+      },
+      "line": {
+        "type": "String",
+        "example": "حسابك ناقص يا أسطى"
+      }
+    }
   },
   "tripPlaytestTrips": "مشاوير التجربة",
   "@tripPlaytestTrips": {
@@ -3283,5 +3315,870 @@
   "buyVehicleDone": "تمام",
   "@buyVehicleDone": {
     "description": "The owned and not-for-sale sheets' one close button (draft, R14)."
+  },
+  "aptGoalTitle": "تحويش الجواز",
+  "@aptGoalTitle": {
+    "description": "The apartment tab's goal view title (M10)."
+  },
+  "aptGoalChapterBar": "الفصل {n} · {name}",
+  "@aptGoalChapterBar": {
+    "description": "The goal view's chapter bar. `n` and `name` as the pack numbers them.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalAllChapters": "كل الفصول",
+  "@aptGoalAllChapters": {
+    "description": "The chapter bar's trailing text: it opens the timeline."
+  },
+  "aptGoalProgress": "{saved} / {target} ج",
+  "@aptGoalProgress": {
+    "description": "A goal's saved amount of its price, both preformatted.",
+    "placeholders": {
+      "saved": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalTrips": "{done} / {total} مشوار",
+  "@aptGoalTrips": {
+    "description": "A line goal's finished regular trips, both preformatted.",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "apartmentTitle": "شقة العُمر",
+  "@apartmentTitle": {
+    "description": "The apartment tab's header from the rooms view on (M10)."
+  },
+  "aptGoalLockedBody": "فاضية ومستنياك. العفش بيبدأ من الفصل ٤: الصالة.",
+  "@aptGoalLockedBody": {
+    "description": "The teaser under the goal card (M10)."
+  },
+  "apartmentGoalReady": "{gender, select, m{جاهز!} other{جاهزة!}}",
+  "@apartmentGoalReady": {
+    "description": "The chip beside the amount when the goal is affordable (M10); `gender` is m for a vehicle (الميكروباص جاهز!, `AptGoalVehicle`), else f (الشبكة جاهزة!).",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalFinishLine": "خلّص {line}",
+  "@aptGoalFinishLine": {
+    "description": "A line goal's name: finish the line (`AptGoalLine`); `line` as the pack names it.",
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalTripsA11y": "{goal}، {done} من {total} مشوار",
+  "@aptGoalTripsA11y": {
+    "description": "A line goal's bar read aloud (`AptGoalLine`); the numbers preformatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "apartmentBuyVehicle": "{vehicle, select, tuktuk{اشتري التوكتوك} other{اشتري الميكروباص}}",
+  "@apartmentBuyVehicle": {
+    "description": "A vehicle goal's CTA, the kind of vehicle and not its full name (`AptGoalVehicle`: «اشتري الميكروباص»); `vehicle` is the vehicle's wire id. Its spoken label keeps the full name.",
+    "placeholders": {
+      "vehicle": {
+        "type": "String"
+      }
+    }
+  },
+  "apartmentBuyGoal": "اشتري {goal}",
+  "@apartmentBuyGoal": {
+    "description": "The goal's CTA in the ready state; `goal` as the pack names it.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "apartmentBuyGoalA11y": "اشتري {goal} بـ{price} جنيه",
+  "@apartmentBuyGoalA11y": {
+    "description": "The goal CTA read aloud; `price` preformatted.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "apartmentGoalReadyA11y": "{goal} {gender, select, m{جاهز} other{جاهزة}}",
+  "@apartmentGoalReadyA11y": {
+    "description": "Announced when the goal view enters the ready state (`AptGoalVehicle`: «الميكروباص القديم جاهز»); `gender` as in `apartmentGoalReady`.",
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "gender": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalChapterA11y": "الفصل {n}: {name}، كل الفصول",
+  "@aptGoalChapterA11y": {
+    "description": "The chapter bar read aloud; `n` preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalProgressA11y": "{goal}، {saved} من {target} جنيه",
+  "@aptGoalProgressA11y": {
+    "description": "The goal's progress read aloud; both preformatted.",
+    "placeholders": {
+      "saved": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "aptGoalPrice": "−{price} ج",
+  "@aptGoalPrice": {
+    "description": "The goal's ready CTA: the price it spends, preformatted (M10).",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsChapterProgress": "جهّزت {owned} من {total}",
+  "@aptRoomsChapterProgress": {
+    "description": "The room's progress in the chapter bar (M10).",
+    "placeholders": {
+      "owned": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsRequests": "الطلبات",
+  "@aptRoomsRequests": {
+    "description": "The requests button's label (M10)."
+  },
+  "aptRoomsRequestsA11y": "طلبات أهل العروسة، {n} مفتوحين",
+  "@aptRoomsRequestsA11y": {
+    "description": "The requests button read aloud (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsTabsLabel": "الغرف",
+  "@aptRoomsTabsLabel": {
+    "description": "The room tabs' group read aloud (M10)."
+  },
+  "aptRoomsTabsA11y": "{state, select, locked{{room}، مقفولة} other{{room}}}",
+  "@aptRoomsTabsA11y": {
+    "description": "A room tab read aloud (M10, the boards of 2026-10-31): the room's name, and «مقفولة» when `state` is locked.",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsChapterA11y": "الفصل {n}: {name}، جهّزت {owned} من {total}، كل الفصول",
+  "@aptRoomsChapterA11y": {
+    "description": "The rooms view's chapter bar read aloud while the room is not complete (`AptRoomsAffordable`); the numbers preformatted.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "owned": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsChapterDoneA11y": "الفصل {n}: {name}، خلصت، كل الفصول",
+  "@aptRoomsChapterDoneA11y": {
+    "description": "The rooms view's chapter bar read aloud once the room is complete (`AptRoomsDone`).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsRequestsNoneA11y": "طلبات أهل العروسة، مفيش طلبات مفتوحة",
+  "@aptRoomsRequestsNoneA11y": {
+    "description": "The requests button read aloud with none open (`AptRoomsDone`)."
+  },
+  "aptRoomsCellShortA11y": "{item}، ناقصك {n} جنيه",
+  "@aptRoomsCellShortA11y": {
+    "description": "The next piece's card read aloud while the player is short (`AptRoomsBought`); `n` preformatted.",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsCellAffordableA11y": "{item}، تقدر تشتريها، {price} جنيه",
+  "@aptRoomsCellAffordableA11y": {
+    "description": "The next piece's card read aloud when the player can buy it (`AptRoomsAffordable`; the board spells the price in words, the app says its digits).",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsLockedTab": "مقفولة",
+  "@aptRoomsLockedTab": {
+    "description": "A locked room tab's lock caption (M10)."
+  },
+  "aptRoomsChip": "{item} · {price}",
+  "@aptRoomsChip": {
+    "description": "A missing piece's chip on the room's drawing (M10).",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsChipA11y": "{item}، {price} جنيه",
+  "@aptRoomsChipA11y": {
+    "description": "The chip read aloud (M10).",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsGridA11y": "قطع {room}",
+  "@aptRoomsGridA11y": {
+    "description": "The pieces grid's name (M10).",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsInstalled": "اتركّبت",
+  "@aptRoomsInstalled": {
+    "description": "An owned piece's caption in the grid (M10)."
+  },
+  "aptRoomsShort": "ناقصك {n}",
+  "@aptRoomsShort": {
+    "description": "The next piece's shortfall (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsAffordable": "تقدر تشتريها",
+  "@aptRoomsAffordable": {
+    "description": "The next piece when the balance covers it (M10)."
+  },
+  "aptRoomsPrice": "{price} ج",
+  "@aptRoomsPrice": {
+    "description": "A missing piece's price in the grid (M10).",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "aptRoomsStrip": "خلّص {room} وافتح مشهد «{scene}»",
+  "@aptRoomsStrip": {
+    "description": "The strip above the nav while the room is incomplete (M10).",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      },
+      "scene": {
+        "type": "String"
+      }
+    }
+  },
+  "roomTeaserName": "{room}",
+  "@roomTeaserName": {
+    "description": "A room's name for a pack that lacks it (M10).",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceSamePrice": "السعر (نفسه لكل الأشكال)",
+  "@pieceSamePrice": {
+    "description": "The piece sheet's price caption (M10)."
+  },
+  "pieceBalance": "معاك",
+  "@pieceBalance": {
+    "description": "The piece sheet's balance caption (M10)."
+  },
+  "pieceShort": "ناقصك {n} ج",
+  "@pieceShort": {
+    "description": "The piece sheet's shortfall (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceGoTrip": "اطلع مشوار",
+  "@pieceGoTrip": {
+    "description": "The piece sheet's CTA when the balance is short (M10)."
+  },
+  "pieceBuy": "اشتري",
+  "@pieceBuy": {
+    "description": "The piece sheet's CTA (M10)."
+  },
+  "pieceBuyA11y": "اشتري {piece} {style} بـ{price} جنيه",
+  "@pieceBuyA11y": {
+    "description": "The piece CTA read aloud (M10): the piece, its chosen style and the price.",
+    "placeholders": {
+      "piece": {
+        "type": "String"
+      },
+      "style": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceBuyCost": "−{price} ج",
+  "@pieceBuyCost": {
+    "description": "The price taken, on the piece CTA's sun chip (M10, the board PieceAffordable).",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceRequestA11y": "{style}، {mark}",
+  "@pieceRequestA11y": {
+    "description": "A style tile read aloud with the family's request mark (M10).",
+    "placeholders": {
+      "style": {
+        "type": "String"
+      },
+      "mark": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceRequestMark": "طلب {asker}",
+  "@pieceRequestMark": {
+    "description": "A style a family request names (M10).",
+    "placeholders": {
+      "asker": {
+        "type": "String"
+      }
+    }
+  },
+  "pieceMissesRequest": "لو اخترت ده، طلب {asker} هيفوتك",
+  "@pieceMissesRequest": {
+    "description": "The line under a style that would miss a request (M10).",
+    "placeholders": {
+      "asker": {
+        "type": "String"
+      }
+    }
+  },
+  "aptBoughtBubble": "«{line}»",
+  "@aptBoughtBubble": {
+    "description": "سلمى's comment in her bubble over the room after a purchase (`AptRoomsBought`).",
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "aptBoughtBubbleA11y": "سلمى: {line}",
+  "@aptBoughtBubbleA11y": {
+    "description": "The bubble read aloud.",
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "aptBought": "اشتريت {piece}",
+  "@aptBought": {
+    "description": "Announced after a piece is bought (M10).",
+    "placeholders": {
+      "piece": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingRewards": "+{n} بون",
+  "@pendingRewards": {
+    "description": "The pending BONAT chip's amount, over «في الطريق» (M10, `AptRoomsAffordable`).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "pendingRewardsWay": "في الطريق",
+  "@pendingRewardsWay": {
+    "description": "The pending chip's second line: the reward is on its way, not here yet (M10)."
+  },
+  "pendingRewardsA11y": "{count, plural, =1{بون واحد} =2{بونين} few{{n} بونات} other{{n} بون}} في الطريق، هتوصل مع المزامنة",
+  "@pendingRewardsA11y": {
+    "description": "The pending chip read aloud (M10, `AptRoomsAffordable`); BONAT agreement as §9.1 #3: ٥ بونات, ٢٥ بون.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "roomNameSalon": "الصالة",
+  "@roomNameSalon": {
+    "description": "The salon’s name when the pack lacks it (M10)."
+  },
+  "roomNameKitchen": "المطبخ",
+  "@roomNameKitchen": {
+    "description": "The kitchen’s name when the pack lacks it (M10)."
+  },
+  "roomNameBedroom": "أوضة النوم",
+  "@roomNameBedroom": {
+    "description": "The bedroom’s name when the pack lacks it (M10)."
+  },
+  "pieceSalma": "سلمى: «{line}»",
+  "@pieceSalma": {
+    "description": "The piece sheet’s quote, the content’s line in سلمى’s mouth (M10).",
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "storyEndLine": "باقي الحكاية جاية في تحديث قريب",
+  "@storyEndLine": {
+    "description": "The end of the available story (M10)."
+  },
+  "homeStoryEndA11y": "شقة العُمر، باقي الحكاية جاية في تحديث قريب",
+  "@homeStoryEndA11y": {
+    "description": "The end-of-story card read aloud (M10)."
+  },
+  "roomDoneTitle": "{room} خلصت!",
+  "@roomDoneTitle": {
+    "description": "RoomDone: the room finished (M10).",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "roomDoneChip": "الفصل {n} · {done} من {total} قطع",
+  "@roomDoneChip": {
+    "description": "RoomDone: the chapter and the pieces (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "roomDoneReward": "+{n} بون مكافأة",
+  "@roomDoneReward": {
+    "description": "RoomDone: the reward the server will pay (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "roomDonePending": "في الطريق",
+  "@roomDonePending": {
+    "description": "RoomDone: under the reward while it is pending (M10)."
+  },
+  "roomDoneCta": "شوف المشهد",
+  "@roomDoneCta": {
+    "description": "RoomDone: opens the chapter's scene (M10)."
+  },
+  "roomDoneLater": "بعدين",
+  "@roomDoneLater": {
+    "description": "RoomDone: closes and leaves the scene waiting (M10)."
+  },
+  "roomDoneA11y": "{room} خلصت، المكافأة {n} بون في الطريق",
+  "@roomDoneA11y": {
+    "description": "RoomDone read aloud (M10).",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      },
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneViewerChapterLabel": "الفصل {n} · المشهد",
+  "@sceneViewerChapterLabel": {
+    "description": "The viewer’s chapter label over the scene’s title (M10, HANDOFF scene.chapterLabel).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneViewerSkip": "تخطّى",
+  "@sceneViewerSkip": {
+    "description": "The viewer’s skip (M10)."
+  },
+  "sceneViewerPageA11y": "{name}، مشهد",
+  "@sceneViewerPageA11y": {
+    "description": "The viewer’s page name (M10).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneViewerShare": "شارك",
+  "@sceneViewerShare": {
+    "description": "The viewer’s share (M10)."
+  },
+  "sceneViewerContinue": "كمّل",
+  "@sceneViewerContinue": {
+    "description": "The viewer’s last-panel action (M10)."
+  },
+  "sceneViewerNextPanelA11y": "اللوحة الجاية",
+  "@sceneViewerNextPanelA11y": {
+    "description": "The viewer’s panel as a button (M10)."
+  },
+  "shareSceneText": "شوف المشهد من «وصّل الأجرة»",
+  "@shareSceneText": {
+    "description": "The scene share’s caption (M10)."
+  },
+  "aptWatchScene": "شوف المشهد: {title}",
+  "@aptWatchScene": {
+    "description": "The rooms view chip that opens the goal scene (M10).",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersTitle": "حكاية الجواز",
+  "@chaptersTitle": {
+    "description": "The timeline’s title (M10, HANDOFF chapters.title)."
+  },
+  "chaptersAlbum": "ألبوم المشاهد",
+  "@chaptersAlbum": {
+    "description": "The timeline header’s pill that opens the album (M10)."
+  },
+  "chaptersNumber": "الفصل {n}",
+  "@chaptersNumber": {
+    "description": "A chapter’s number over its name, on the timeline and the album (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersWatchScene": "شوف المشهد",
+  "@chaptersWatchScene": {
+    "description": "A done chapter’s button that replays its scenes (M10)."
+  },
+  "chaptersWatchSceneA11y": "شوف المشهد، الفصل {n}",
+  "@chaptersWatchSceneA11y": {
+    "description": "A done chapter’s replay button read aloud, so the three of them differ (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersCurrent": "الفصل {n} · دلوقتي",
+  "@chaptersCurrent": {
+    "description": "The current chapter’s label (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersItemsChip": "{owned} من {total} قطع",
+  "@chaptersItemsChip": {
+    "description": "The current chapter’s chip when its goal is a room (M10).",
+    "placeholders": {
+      "owned": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersAmountChip": "{have} / {target} ج",
+  "@chaptersAmountChip": {
+    "description": "The current chapter’s chip when its goal is a price (M10).",
+    "placeholders": {
+      "have": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersCountChip": "{done} / {total} مشوار",
+  "@chaptersCountChip": {
+    "description": "The current chapter’s chip when its goal is a line’s trips (M10).",
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersItemSeparator": "، ",
+  "@chaptersItemSeparator": {
+    "description": "Between the pieces’ names in the current chapter’s description (M10)."
+  },
+  "chaptersCurrentDesc": "{items} · المشهد: {sceneName}",
+  "@chaptersCurrentDesc": {
+    "description": "The current chapter’s description when its goal is a room: the pieces and the goal scene (M10).",
+    "placeholders": {
+      "items": {
+        "type": "String"
+      },
+      "sceneName": {
+        "type": "String"
+      }
+    }
+  },
+  "chaptersRowA11y": "{state, select, done{الفصل {n}، {name}، خلص} current{الفصل {n}، {name}، دلوقتي، {goal}} other{الفصل {n}، {name}، مقفول}}",
+  "@chaptersRowA11y": {
+    "description": "A timeline row read as one sentence (M10): done, current with its goal, or locked.",
+    "placeholders": {
+      "state": {
+        "type": "String",
+        "example": "done"
+      },
+      "n": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chapterTeaserName": "{chapter, select, ch1_first_job{أول شغلانة} ch2_her_father{الكلام مع أبوها} ch3_shabka{الشبكة} ch4_salon{الصالة} ch5_kitchen{المطبخ} ch6_bedroom{أوضة النوم} ch7_wedding{الفرح} other{}}",
+  "@chapterTeaserName": {
+    "description": "A chapter’s name for a pack that lacks it, so a locked row still has one (M10). Interface text, not story content; a pack that adds the chapter replaces it with its own title.",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "ch5_kitchen"
+      }
+    }
+  },
+  "albumTitle": "ألبوم المشاهد",
+  "@albumTitle": {
+    "description": "The album’s title (M10, HANDOFF album.title)."
+  },
+  "albumCount": "{n} من {total}",
+  "@albumCount": {
+    "description": "The album header’s chip: the scenes unlocked of all (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "albumIntro": "كل مشهد بيتفتح لما تخلّص فصله. تقدر تتفرج عليه تاني وتشاركه.",
+  "@albumIntro": {
+    "description": "The album’s intro line (M10)."
+  },
+  "albumWatchAgain": "اتفرج تاني",
+  "@albumWatchAgain": {
+    "description": "An unlocked album card’s button (M10)."
+  },
+  "albumLocked": "بيتفتح لما الفصل يخلص",
+  "@albumLocked": {
+    "description": "A locked album card’s line (M10)."
+  },
+  "albumCardA11y": "{state, select, unlocked{الفصل {n}: {title}، اتفرج تاني} other{الفصل {n}: {title}، لسه مقفول}}",
+  "@albumCardA11y": {
+    "description": "An album card read as one sentence (M10): unlocked, or locked.",
+    "placeholders": {
+      "state": {
+        "type": "String",
+        "example": "unlocked"
+      },
+      "n": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsTitle": "طلبات أهل العروسة",
+  "@requestsTitle": {
+    "description": "The family requests sheet’s title (M10, HANDOFF requests.title)."
+  },
+  "requestsSubtitle": "اختيارية، ومش بتوقف القصة. مكافأتها بونات.",
+  "@requestsSubtitle": {
+    "description": "The requests sheet’s line under its title (M10): they are optional, and pay BONAT."
+  },
+  "requestsDone": "خلص · +{n} بونات",
+  "@requestsDone": {
+    "description": "A done request’s status line (M10): the piece is in, and what it pays.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsClaim": "خد",
+  "@requestsClaim": {
+    "description": "A done request’s button: take the reward (M10)."
+  },
+  "requestsReward": "+{n} بون",
+  "@requestsReward": {
+    "description": "An open request’s reward, at the row’s end (M10).",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "requestConditionVariant": "{item} بشكل «{variant}»",
+  "@requestConditionVariant": {
+    "description": "What an open request wants when it names a style (M10, research R11): the piece’s name and the style’s name from the pack, around a template so no preposition joins a name.",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "variant": {
+        "type": "String"
+      }
+    }
+  },
+  "requestCondition": "اشتري {item}",
+  "@requestCondition": {
+    "description": "What an open request wants when it names no style (M10).",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsEmpty": "مفيش طلبات مفتوحة دلوقتي. لو أهل العروسة طلبوا حاجة جديدة، هتلاقيها هنا.",
+  "@requestsEmpty": {
+    "description": "The requests sheet when no request is open or waiting to be taken (M10, the board RequestsEmpty of 2026-10-31)."
+  },
+  "requestsRowA11y": "{asker}: {text}، {condition}، المكافأة {n} بون",
+  "@requestsRowA11y": {
+    "description": "A request read as one sentence (M10).",
+    "placeholders": {
+      "asker": {
+        "type": "String"
+      },
+      "text": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      },
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsClaimToast": "+{n} بون في الطريق",
+  "@requestsClaimToast": {
+    "description": "The toast after taking a request online (M10): the BONAT is the server’s, so it is on its way.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "requestsClaimToastOffline": "+{n} بون في الطريق، توصل مع النت",
+  "@requestsClaimToastOffline": {
+    "description": "The toast after taking a request offline (M10): it arrives with the next sync.",
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
   }
 }

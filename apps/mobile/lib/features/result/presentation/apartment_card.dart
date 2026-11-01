@@ -67,7 +67,7 @@ class ApartmentCard extends ConsumerWidget {
           Count() => goalTitle(l10n, target),
         },
       ),
-      NoTarget() => (
+      StoryEndTarget() || NoTarget() => (
         title: '',
         amount: null,
         figures: '',
@@ -75,7 +75,9 @@ class ApartmentCard extends ConsumerWidget {
         label: '',
       ),
     };
-    if (target is NoTarget) return const SizedBox.shrink();
+    if (target is NoTarget || target is StoryEndTarget) {
+      return const SizedBox.shrink();
+    }
     final to = switch (target) {
       ChapterGoalTarget(:final progress) => progress.fraction,
       _ => amount?.fraction ?? 0,

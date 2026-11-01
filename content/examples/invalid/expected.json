@@ -10,6 +10,10 @@
     "code": "V-C4",
     "path": "$.scenes[1].plays"
   },
+  "chapter/duplicate_scene_id.json": {
+    "code": "V-C11",
+    "path": "$.scenes[0].scene_id"
+  },
   "chapter/narrator_not_first.json": {
     "code": "V-C5",
     "path": "$.scenes[0].panels[0].lines[1].speaker"
@@ -24,6 +28,27 @@
   },
   "chapter/plays_unknown_kind.json": "$.scenes[1].plays.kind",
   "chapter/plays_without_kind.json": "$.scenes[1].plays.kind",
+  "chapter/rider_comment_no_pool.json": {
+    "code": "V-C8",
+    "path": "$.story_trip_info.riders[0].comments.impatient"
+  },
+  "chapter/rider_seat_taken.json": {
+    "code": "V-C7",
+    "path": "$.story_trip_info.riders[0].seat"
+  },
+  "chapter/scene_no_title.json": "$.scenes[0].title",
+  "chapter/story_info_without_trip.json": {
+    "code": "V-C6",
+    "path": "$.story_trip_info"
+  },
+  "chapter/three_speakers.json": {
+    "code": "V-C12",
+    "path": "$.scenes[0].panels[0].lines[3].speaker"
+  },
+  "chapter/two_goal_scenes.json": {
+    "code": "V-C10",
+    "path": "$.scenes[1].plays"
+  },
   "chapter/two_narrators.json": {
     "code": "V-C5",
     "path": "$.scenes[0].panels[0].lines[1].speaker"
@@ -44,10 +69,18 @@
   "daily_reward/no_bonat.json": "$.bonat",
   "family_request/bad_request_id.json": "$.request_id",
   "family_request/extra_property.json": "$.deadline",
+  "family_request/no_character.json": "$.character",
+  "family_request/unknown_character.json": "$.character",
   "family_request/zero_reward.json": "$.reward_bonat",
   "item/empty_name.json": "$.name.ar-EG",
   "item/four_variants.json": "$.variants",
   "item/item_id_without_room.json": "$.item_id",
+  "item/no_slot.json": "$.slot",
+  "item/slot_overflows.json": {
+    "code": "V-R3",
+    "path": "$.slot"
+  },
+  "item/slot_w_10.json": "$.slot.w",
   "line/display_fare_475.json": "$.display_fare_piasters",
   "line/name_without_ar_eg.json": "$.name.ar-EG",
   "line/one_station.json": "$.stations",
