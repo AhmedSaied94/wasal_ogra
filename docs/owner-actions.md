@@ -1236,6 +1236,10 @@ drops it): the trip starts, and Home's next arrival item opens.
   `fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true` in
   `apps/mobile` and look at `build/design_compare/` for the nine artboards and every exported board
   in both digit styles ([quickstart §4](../specs/015-m10-apartment-story/quickstart.md)).
+  On 2026-11-01 Claude ran it on the test box (185 passed) and copied the 96 images to this
+  machine; each has the board on the left and the app on the right. A state no board draws
+  (offline, the small phone, M09's sheets) now has only its golden: the compare used to fail on
+  it.
 - [x] **6. The dev stack (T098).** Done 2026-11-01: `test/backend/story_sync_test.dart` passes in
   CI's `sync-e2e` job on PR #25 (commit `5b9a383`). Its first CI run failed because the test sent
   each trip's result with a fixed 60 s duration, under the server's `SYNC_MIN_DURATION_PERCENT` of
@@ -1253,12 +1257,16 @@ drops it): the trip starts, and Home's next arrival item opens.
     `apps/mobile`.
 - [ ] **7. The story run over the release draft (T135, SC-005).** The test passes over the sample
   and `storyShaped()`; its third group runs the same script over a built pack and skips itself
-  without one. Build the draft once item 4 is done, never into `apps/mobile/assets/`:
-  `uv run wassal-content bundle dev --source <wasal_ogra-core-r1>/content/drafts/core-r1/pack --out <scratch dir>`
-  in `tools/content_kit`, then
-  `fvm flutter test test/core/progress/story_run_test.dart --dart-define=STORY_RUN_PACK=<the .json.gz it wrote>`
-  in `apps/mobile`. If the kit refuses the draft, tell Claude the reason; it goes here and the run
-  repeats when the draft is promoted.
+  without one. **Preview passed on 2026-11-01**, before item 4: the dev stack's v2, built from the
+  draft that morning (no draft file has changed since), ran on the test box, and all 3 groups passed,
+  the built pack's included. Run it again once item 4 changes the draft.
+  - The kit can't build the draft: `bundle dev` always checks the sample's golden, and
+    `bundle release` refuses a pack that was never promoted (`version 0`). Build it on the dev stack
+    instead: import, build and publish it as `seed_backend.py` does, and take
+    `backend/var/packs/core-<N>.json.gz`.
+  - Then run
+    `fvm flutter test test/core/progress/story_run_test.dart --dart-define=STORY_RUN_PACK=<that .json.gz>`
+    in `apps/mobile`, on the test box (rtest), with the pack copied there first.
 
 ### After merge
 
