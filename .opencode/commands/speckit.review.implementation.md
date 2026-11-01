@@ -19,7 +19,7 @@ You **MUST** consider the user input before proceeding (if not empty). It may co
 - `layers=<a,b,...>`: review only these layers (the names in step 2's table). Spec conformance and
   security always run.
 - `no-run`: skip the test suites and builds and review the code only. The report must say so.
-- `fix`: after the report, fix the confirmed CRITICAL and HIGH findings yourself (step 8).
+- `fix`: after the report, fix the confirmed findings yourself (step 8).
 - Anything else is an area to look at harder.
 
 ## Goal
@@ -49,6 +49,9 @@ The review produces:
 - **Evidence or nothing.** Every finding names a `file:line` and what you saw there. Every passed
   check names the command you ran and its exit code. A check you did not run is `NOT RUN`, never
   passed.
+- **CRITICAL and HIGH only.** The review targets only what is CRITICAL or HIGH by step 5's scale.
+  Anything less severe (partial secondary requirements, minor edge cases, docs gaps, polish,
+  maintainability) is not a finding: don't report it, don't make a task for it.
 - **No noise.** Skip what formatters and linters own. Don't pad the report: one real finding
   outweighs ten guesses.
 - **Stay on the change.** Review the change set, and read the code around it as far as needed to
@@ -135,8 +138,8 @@ spec conformance always gets its own. Run them on a cheaper model than yours whe
 you choose one (in Claude Code on Opus, `model: "sonnet"`): step 5 re-checks each of their findings
 on yours. Give each one its checklist below, its file list, the paths of `FEATURE_DIR`, the
 constitution, the root `CLAUDE.md` and the `CLAUDE.md` of each area its files are in, the base and
-head commits, and the finding format of step 5. Ask it to report what it checked as well as what it
-found. Use a specialized reviewer (security, database, Python, Flutter) where your agent has one.
+head commits, the finding format and severity scale of step 5, and the rule that it reports only
+CRITICAL and HIGH findings. Ask it to report what it checked as well as what it found. Use a specialized reviewer (security, database, Python, Flutter) where your agent has one.
 Give subagents the code and the checklist, not your suspicions. Without subagents, review the
 layers yourself, one at a time.
 
@@ -294,12 +297,10 @@ Severity:
 - **HIGH**: a P1 requirement or acceptance scenario missing or wrong; a task ticked but not done; a
   failing check; a crash or unhandled error on a normal path; a test-first area without real tests;
   a way around the checks (step 3).
-- **MEDIUM**: a secondary requirement partly met; an unhandled edge case; missing docs or owner
-  actions; a maintainability problem with a concrete future failure.
-- **LOW**: minor polish.
 
-Verdict: **BLOCK** if any CRITICAL, **CHANGES REQUESTED** if any HIGH, **APPROVE WITH NOTES** if
-only MEDIUM or LOW, **APPROVE** if none.
+Anything below HIGH is dropped, not downgraded into the report.
+
+Verdict: **BLOCK** if any CRITICAL, **CHANGES REQUESTED** if any HIGH, **APPROVE** if none.
 
 ### 6. Write the round file
 
@@ -311,7 +312,7 @@ Create `FEATURE_DIR/reviews/round-<K>.md`:
 - Date: <YYYY-MM-DD> · Reviewer: <agent and model>
 - Branch: <BRANCH> · Base: <BASE> (merge base <short sha>) · Head: <short sha>, plus <n> uncommitted files
 - Change: <commits> commits, <files> files, +<added> −<deleted>
-- Verdict: <verdict> · CRITICAL <n> · HIGH <n> · MEDIUM <n> · LOW <n>
+- Verdict: <verdict> · CRITICAL <n> · HIGH <n>
 
 ## Checks
 | Check | Command | Result |
@@ -327,8 +328,6 @@ Create `FEATURE_DIR/reviews/round-<K>.md`:
 - Failure scenario:
 - Fix direction:
 ### HIGH
-### MEDIUM
-### LOW
 
 ## Requirements
 | Requirement | Built in | Proven by | Status |   (every FR, buildable SC and acceptance scenario)
@@ -344,7 +343,7 @@ What you did not check or run, and why.
 
 ### 7. Append the fix tasks
 
-If there are CONFIRMED findings of MEDIUM or higher, append to the end of `tasks.md`:
+If there are CONFIRMED findings, append to the end of `tasks.md`:
 
 1. Find the highest task ID `M` and the highest phase number; this phase is that number plus one.
 2. Write the header `## Phase <N>: Review fixes (round <K>)` and one line saying the tasks come
@@ -360,12 +359,12 @@ If there are CONFIRMED findings of MEDIUM or higher, append to the end of `tasks
    behaviour, the right behaviour and the test that proves it. A fix that needs a decision from the
    owner (a spec, plan or constitution change) becomes a task to ask, not a guess.
 
-LOW and PLAUSIBLE findings stay in the round file only. With no CONFIRMED finding of MEDIUM or
-higher, leave `tasks.md` byte for byte unchanged.
+PLAUSIBLE findings stay in the round file only. With no CONFIRMED finding, leave `tasks.md` byte
+for byte unchanged.
 
 ### 8. Fix mode (only with `fix`)
 
-For each CONFIRMED CRITICAL and HIGH finding, in order: write the failing test first where the
+For each CONFIRMED finding, CRITICAL first: write the failing test first where the
 area is test-first, make the smallest fix that follows the plan and the constitution, rerun the
 checks it affects, tick its appended task, and add `Fixed in round <K> by the reviewer.` under the
 finding in the round file. Never make a check pass by weakening it. Stop and ask when a fix needs a
@@ -379,7 +378,6 @@ Then give the next step:
 
 - With appended tasks: run `/speckit.implement` (in whichever agent implements) to fix
   them, then run `/speckit.review.implementation` again for round K+1.
-- With APPROVE or APPROVE WITH NOTES: the feature is ready for its PR once the owner has read the
-  notes.
+- With APPROVE: the feature is ready for its PR.
 
 Do not commit. The user decides when to commit.
