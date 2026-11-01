@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:content_models/content_models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/core/content/domain/content_source.dart';
 import 'package:wassal/core/economy/economy.dart' hide Owned;
 import 'package:wassal/core/economy/economy_service.dart';
 import 'package:wassal/core/network/api_client.dart';
@@ -27,8 +28,16 @@ import 'e2e.dart';
 // its way, and a fresh install of the same account restores all of it with
 // nothing left pending.
 
-/// A trip on the sample's line_hay: its start and its result.
-Future<void> _play(EconomyService economy, String tripId) async {
+/// A trip on the sample's line_hay: its start and its result, as long as the
+/// trip's run to its last station (the server refuses a finished run under
+/// `SYNC_MIN_DURATION_PERCENT` of it).
+Future<void> _play(
+  EconomyService economy,
+  ContentSource content,
+  String tripId,
+) async {
+  final trip = content.trip(tripId);
+  if (trip == null) fail('$tripId is not in the pack');
   final start = economy.newRequestId();
   expect(await economy.startTrip(start, tripId: tripId), isA<OpApplied>());
   expect(
@@ -39,7 +48,7 @@ Future<void> _play(EconomyService economy, String tripId) async {
         tripId: tripId,
         stars: 2,
         earnings: 12,
-        durationMs: 60000,
+        durationMs: trip.stations.last.atSeconds * 1000,
       ),
     ),
     isA<OpApplied>(),
@@ -100,9 +109,9 @@ void main() {
 
     // Offline. Chapter 1: the line, the opening, the story trip and its scene.
     await _see(economy, ChapterId.ch1FirstJob, 'opening');
-    await _play(economy, 'line_hay.01');
-    await _play(economy, 'line_hay.02');
-    await _play(economy, 'line_hay.03');
+    await _play(economy, content, 'line_hay.01');
+    await _play(economy, content, 'line_hay.02');
+    await _play(economy, content, 'line_hay.03');
     await _see(economy, ChapterId.ch1FirstJob, 'the_stand');
 
     // Chapter 2: the microbus, then her father's visit.
