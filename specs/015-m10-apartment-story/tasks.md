@@ -915,7 +915,7 @@ match, and no scene plays by itself.
 - [X] T097 [US5] Call `StoryService.backfill()` once from `apps/mobile/lib/bootstrap/app.dart` after
   the economy and content providers resolve, and guard it so it runs once per launch. Make T075's
   backfill cases and T096 pass.
-- [ ] T098 [US5] Write `apps/mobile/test/backend/story_sync_test.dart` (tag `backend`), with its seed
+- [X] T098 [US5] Write `apps/mobile/test/backend/story_sync_test.dart` (tag `backend`), with its seed
   in `apps/mobile/test/backend/seed_backend.py` if needed (quickstart §6):
   - the shabka bought, a scene recorded, the salon's pieces bought and a claim made through M10's
     paths, then a sync;

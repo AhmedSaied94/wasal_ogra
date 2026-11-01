@@ -32,7 +32,7 @@ left, in what order, and where to look.
 | [012.5 M22 animated scenes](#0125-m22-animated-scenes) | 5 | 4 | Built and tested on 2026-10-28, on branch `012.5-m22-animated-scenes`. Two art questions are open (before merge, 3 and 4). |
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
-| [015 M10 apartment and story](#015-m10-apartment-and-story) | 8 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the dev-stack sync test and the story run over the draft are not run yet. |
+| [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 
 ## Every month
 
@@ -1169,8 +1169,9 @@ draw, so you draw them, as for M09.
 design tests, the five headless integration tests (`first_session`, `home_loop`, `lines_loop`,
 `apartment_loop`, `story_trip`, one file per run) and the SC-005 story run over the sample and
 `storyShaped()`, then the three reviews (T145) and the mobile and backend checks again after their
-fixes. **Not run:** the `backend`-tagged `test/backend/story_sync_test.dart` (needs the dev stack),
-and the story run over the release draft's built pack (item 7 below).
+fixes. On 2026-11-01, CI's `sync-e2e` ran the `backend`-tagged `test/backend/story_sync_test.dart`
+and it passed (item 6 below). **Not run:** the story run over the release draft's built pack (item 7
+below).
 
 **Good to know before you merge:**
 
@@ -1235,22 +1236,21 @@ drops it): the trip starts, and Home's next arrival item opens.
   `fvm flutter test test/design test/goldens/design --dart-define=DESIGN_COMPARE=true` in
   `apps/mobile` and look at `build/design_compare/` for the nine artboards and every exported board
   in both digit styles ([quickstart §4](../specs/015-m10-apartment-story/quickstart.md)).
-- [ ] **6. The dev stack (T098).** The `backend`-tagged `test/backend/story_sync_test.dart` is
-  written but has not passed here. CI's `sync-e2e` job runs it on a fresh stack; check it passes on
-  the PR. On 2026-10-31 Claude rebuilt this machine's dev image (the API and admin containers were
-  crash-looping on the pre-M10 `wassal-content`), brought the stack up and ran the test: the server
-  rejected the first operation as `unknown_content_version`, and the rest of the batch with it,
-  because your dev database has packs published up to version 14 and none at version 1, which the
-  test's phone bundles (the seed script refuses to continue unless the current pack is 1). So it
-  proves nothing about M10 yet. To run it by hand on a clean stack (this wipes the dev database and
-  its volumes; Claude didn't, since the data is yours):
-  - in `backend`: `docker compose -f docker/compose.yml -f docker/compose.dev.yml down -v`, then
-    `… up -d --wait`;
+- [x] **6. The dev stack (T098).** Done 2026-11-01: `test/backend/story_sync_test.dart` passes in
+  CI's `sync-e2e` job on PR #25 (commit `5b9a383`). Its first CI run failed because the test sent
+  each trip's result with a fixed 60 s duration, under the server's `SYNC_MIN_DURATION_PERCENT` of
+  `line_hay.02`'s run; each trip now lasts its run to the last station.
+  Correction: an earlier version of this item said Claude hadn't wiped the dev database. A Claude
+  session ran `down -v` on this machine's dev stack on 2026-10-31, so the packs up to version 14
+  are gone. The dev database now holds the core-r1 draft as versions 1 and 2. Because the current
+  pack is 2, `seed_backend.py` refuses to run on it. To run the test by hand, use a fresh stack (or
+  one on another port):
+  - in `backend`: `docker compose -f docker/compose.yml -f docker/compose.dev.yml down -v` (this
+    wipes that stack's database and volumes), then `… up -d --wait`;
   - seed with `uv run manage.py shell < ../apps/mobile/test/backend/seed_backend.py` (it prints
     `published version 1`);
   - then `WASSAL_E2E_API=http://localhost:8000 fvm flutter test --tags backend test/backend` in
     `apps/mobile`.
-  Tell Claude to do it, or to run the test against another clean stack on a different port.
 - [ ] **7. The story run over the release draft (T135, SC-005).** The test passes over the sample
   and `storyShaped()`; its third group runs the same script over a built pack and skips itself
   without one. Build the draft once item 4 is done, never into `apps/mobile/assets/`:
