@@ -181,14 +181,18 @@ void main() {
     final processed = await backendShell('''
 import json
 from apps.economy.models import ProcessedOp
-rows = ProcessedOp.objects.filter(player_id="$player")
-print(json.dumps([[r.status, r.reason] for r in rows]))
+rows = ProcessedOp.objects.filter(player_id="$player").order_by("processed_at", "id")
+print(json.dumps([[r.status, r.reason, r.op_type] for r in rows]))
 ''');
     final rows = (jsonDecode(processed.trim().split('\n').last) as List)
         .cast<List<Object?>>();
+    // Each refused op with its type and reason, so a failure says why.
+    final refused = [
+      for (final row in rows)
+        if (row.first != 'accepted') '${row[2]}: ${row[1]}',
+    ];
     expect(rows, hasLength(queued));
-    expect([for (final row in rows) row.first], everyElement('accepted'));
-    expect([for (final row in rows) row.last], isNot(contains('not_unlocked')));
+    expect(refused, isEmpty, reason: 'ops in order: $rows');
 
     // The server paid what the phone showed, once.
     final server = await _state(device);
