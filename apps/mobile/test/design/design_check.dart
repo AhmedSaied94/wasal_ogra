@@ -141,7 +141,8 @@ void expectLayoutMatches(
 /// Compares [finder] with `goldens/<artboard>_<digits>.png`. With
 /// `--dart-define=DESIGN_COMPARE=true`, it also writes
 /// `build/design_compare/<artboard>_<digits>.png`: the design's PNG and the
-/// render side by side, at the render's size.
+/// render side by side, at the render's size. A state no board draws (no
+/// `docs/design/png/<artboard>.png`) has only its golden.
 Future<void> expectDesignGolden(
   WidgetTester tester,
   Finder finder,
@@ -164,12 +165,12 @@ Future<void> _writeCompare(
   String artboard,
   String name,
 ) async {
+  final board = File('../../docs/design/png/$artboard.png');
+  if (!board.existsSync()) return;
   final element = finder.evaluate().single;
   await tester.runAsync(() async {
     final render = await captureImage(element);
-    final codec = await ui.instantiateImageCodec(
-      File('../../docs/design/png/$artboard.png').readAsBytesSync(),
-    );
+    final codec = await ui.instantiateImageCodec(board.readAsBytesSync());
     final design = (await codec.getNextFrame()).image;
     final w = render.width.toDouble();
     final h = render.height.toDouble();
