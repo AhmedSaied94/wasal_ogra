@@ -1,7 +1,9 @@
-"""The economy settings, typed (specs/010-b03-ledger-sync/contracts/environment.md).
+"""The economy settings, typed (B10 research R4, contracts/settings.md).
 
-Read from `django.conf.settings` once per request or batch, so a test overrides one value with the
-`settings` fixture and a deploy changes it with a restart.
+Every balancing number comes from one `liveops.settings.current()` snapshot, which the batch reads
+once; a change applies within a minute without a restart. Only the game timezone and the operation
+retention stay environment variables: the timezone is a contract with the phone and the retention
+sizes the database.
 """
 
 from __future__ import annotations
@@ -9,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.conf import settings
+
+from apps.liveops import settings as live
 
 
 @dataclass(frozen=True)
@@ -30,29 +34,26 @@ class EconomySettings:
     session_gap_minutes: int
     comeback_away_days: int
     comeback_cooldown_days: int
-    client_min_version: str
-    client_latest_version: str
 
 
 def current() -> EconomySettings:
+    snapshot = live.current()
     return EconomySettings(
-        fuel_max=settings.ECONOMY_FUEL_MAX,
-        fuel_max_subscriber=settings.ECONOMY_FUEL_MAX_SUBSCRIBER,
-        fuel_regen_minutes=settings.ECONOMY_FUEL_REGEN_MINUTES,
-        fuel_refill_daily_cap=settings.ECONOMY_FUEL_REFILL_DAILY_CAP,
-        fuel_overdraft_per_day=settings.ECONOMY_FUEL_OVERDRAFT_PER_DAY,
-        traffic_jam_ads_per_trip=settings.ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP,
-        name_min_length=settings.ECONOMY_NAME_MIN_LENGTH,
-        name_max_length=settings.ECONOMY_NAME_MAX_LENGTH,
+        fuel_max=snapshot["fuel_max"],
+        fuel_max_subscriber=snapshot["fuel_max_subscriber"],
+        fuel_regen_minutes=snapshot["fuel_regen_minutes"],
+        fuel_refill_daily_cap=snapshot["ads_fuel_refill_daily_cap"],
+        fuel_overdraft_per_day=snapshot["fuel_overdraft_per_day"],
+        traffic_jam_ads_per_trip=snapshot["traffic_jam_ads_per_trip"],
+        name_min_length=snapshot["name_min_length"],
+        name_max_length=snapshot["name_max_length"],
         op_retention_days=settings.SYNC_OP_RETENTION_DAYS,
-        content_max_age_days=settings.SYNC_CONTENT_MAX_AGE_DAYS,
-        min_duration_percent=settings.SYNC_MIN_DURATION_PERCENT,
-        fast_run_percent=settings.SYNC_FAST_RUN_PERCENT,
-        trips_per_day_flag=settings.SYNC_TRIPS_PER_DAY_FLAG,
-        clock_clamp_flag_minutes=settings.SYNC_CLOCK_CLAMP_FLAG_MINUTES,
-        session_gap_minutes=settings.SYNC_SESSION_GAP_MINUTES,
-        comeback_away_days=settings.SYNC_COMEBACK_AWAY_DAYS,
-        comeback_cooldown_days=settings.SYNC_COMEBACK_COOLDOWN_DAYS,
-        client_min_version=settings.CLIENT_MIN_VERSION,
-        client_latest_version=settings.CLIENT_LATEST_VERSION,
+        content_max_age_days=snapshot["content_max_age_days"],
+        min_duration_percent=snapshot["min_duration_percent"],
+        fast_run_percent=snapshot["fast_run_percent"],
+        trips_per_day_flag=snapshot["trips_per_day_flag"],
+        clock_clamp_flag_minutes=snapshot["clock_clamp_flag_minutes"],
+        session_gap_minutes=snapshot["session_gap_minutes"],
+        comeback_away_days=snapshot["comeback_away_days"],
+        comeback_cooldown_days=snapshot["comeback_cooldown_days"],
     )

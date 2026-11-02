@@ -58,6 +58,7 @@ def test_a_seed_entry_blocks_its_spelling_variants() -> None:
     assert names.validate_display_name("حمادة", blocked) == "حمادة"
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ("name", "reason"),
     [("ح", "length"), ("حمادة‏", "characters"), ("٠١٢ ٣٤", "digits")],

@@ -15,6 +15,7 @@ from apps.accounts import tokens
 from apps.accounts.models import Device, Player, User
 from apps.accounts.tests.factories import HEADERS, access_for, bearer, make_device, make_player
 from apps.common.ids import uuid7
+from apps.liveops import settings as live
 
 if TYPE_CHECKING:
     from django.test.client import _MonkeyPatchedWSGIResponse as TestResponse
@@ -108,7 +109,12 @@ def test_a_missing_player_is_token_invalid(client: Client) -> None:
 def test_a_request_with_an_access_token_writes_nothing(
     client: Client, django_assert_num_queries: DjangoAssertNumQueries
 ) -> None:
-    """Only token issue and renewal record `last_seen_at` (FR-018). One query: the player."""
+    """Only token issue and renewal record `last_seen_at` (FR-018). One query: the player.
+
+    The live-settings snapshot is warmed first: a process loads it once, then the permissions
+    add no query to a request (B10 research R3).
+    """
+    live.refresh()
     player = make_player()
     device = make_device(player)
     token = access_for(player)

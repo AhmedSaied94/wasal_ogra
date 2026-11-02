@@ -7,6 +7,7 @@ from django.db import OperationalError
 
 from apps.accounts.models import User
 from apps.content.services import build, files, preview, promote, publish
+from apps.liveops.tasks import skip_in_maintenance
 
 
 @shared_task(
@@ -25,6 +26,7 @@ def build_pack(self: Task[[str], None], pack_pk: str) -> None:
 
 
 @shared_task(name="content.tasks.sweep_stuck_builds", bind=True, queue="content", max_retries=0)
+@skip_in_maintenance
 def sweep_stuck_builds(self: Task[[], int]) -> int:
     """Every 10 minutes: builds still `running` after 30 minutes become `failed`."""
     return build.sweep_stuck_builds()
@@ -47,6 +49,7 @@ def publish_pack(self: Task[[str, str], None], pack_pk: str, username: str) -> N
 
 
 @shared_task(name="content.tasks.sync_files", bind=True, queue="content", max_retries=0)
+@skip_in_maintenance
 def sync_files(self: Task[[bool], None], verify: bool = False) -> None:
     """Daily with `verify`: rewrite missing pack files and check the present ones."""
     files.sync_files(verify=verify)

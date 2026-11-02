@@ -25,6 +25,7 @@ its own:
 | [content-publishing.md](content-publishing.md) | Authoring, building and publishing on staging, promoting to production, `content/source`, rollback, the minimum app version |
 | [auth-keys.md](auth-keys.md) | The players' token signing keys: the variables B02 needs, generating, rotating and revoking a key, measuring auth latency |
 | [economy.md](economy.md) | Balances and sync: the rules index after B03's deploy, checking the books, flags and their review, adjusting a balance, tuning the flag thresholds, retention |
+| [live-ops.md](live-ops.md) | Live settings and their history, the keys Remote Config also holds, the drift check and its Sentry alert, raising a minimum version, products and offers, maintenance |
 | [break-glass.md](break-glass.md) | Getting back into a VM when WireGuard or SSH doesn't work |
 | [ios-test-build.md](ios-test-build.md) | The unsigned iOS dev build on Codemagic, and installing it on an iPhone with a free Apple ID |
 
@@ -116,6 +117,7 @@ Feature-specific checks (task IDs, scenarios to walk) are in [owner-actions.md](
 | Adding a registry cleanup, or deleting images | [deploy-and-rollback.md "Images in GHCR"](deploy-and-rollback.md#images-in-ghcr) |
 | A device needs a private network, or one is lost | [private-network.md "Peers"](private-network.md#peers) |
 | New staff, a lost phone, a forgotten password, a lockout, someone leaving | [staff-accounts.md](staff-accounts.md) |
+| Retuning a number, raising a minimum version, a catalog or an offer, or maintenance | [live-ops.md](live-ops.md) |
 | The first of the month | [monitoring-setup.md "Monthly routine"](monitoring-setup.md#monthly-routine) |
 | The drill failed | [restore.md "Reading drill-results.jsonl"](restore.md#reading-drill-resultsjsonl) |
 | Publishing or promoting content, rolling it back, or raising the minimum app version | [content-publishing.md](content-publishing.md) |

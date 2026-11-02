@@ -11,7 +11,6 @@ from collections.abc import Callable
 
 import pytest
 from django.utils import timezone
-from pytest_django import Settings
 
 from apps.accounts.models import Player
 from apps.content.models import PackTripIndex
@@ -19,6 +18,7 @@ from apps.content.services import lookups
 from apps.economy.models import DayCounter, PlayerFlag
 from apps.economy.services.gameday import game_date
 from apps.economy.tests.helpers import reasons, run, trip_result, trip_start, txn_of, wallet_of
+from apps.liveops import settings as live
 from apps.progress.models import TripProgress, TripRun, TripSession
 
 pytestmark = pytest.mark.django_db
@@ -140,10 +140,8 @@ def test_a_start_while_another_is_open_abandons_the_older(
     assert wallet_of(player).fuel == 3
 
 
-def test_an_empty_tank_overdrafts_twice_a_game_day(
-    player: Player, published_pack: int, settings: Settings
-) -> None:
-    assert settings.ECONOMY_FUEL_OVERDRAFT_PER_DAY == 2
+def test_an_empty_tank_overdrafts_twice_a_game_day(player: Player, published_pack: int) -> None:
+    assert live.current()["fuel_overdraft_per_day"] == 2
     starts = [trip_start("line_hay.01", published_pack) for _ in range(8)]
     result = run(player, *starts)
     assert reasons(result) == ["accepted"] * 7 + ["cap_reached"]

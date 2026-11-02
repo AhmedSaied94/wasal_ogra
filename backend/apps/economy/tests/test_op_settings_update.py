@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pytest_django import Settings
 
 from apps.accounts.models import NameFilterEntry, Player
 from apps.economy.services.batch import Outcome
@@ -56,8 +56,10 @@ def test_a_name_that_breaks_a_rule_is_refused(player: Player, name: str) -> None
     assert player.display_name == ""
 
 
-def test_the_length_comes_from_the_settings(player: Player, settings: Settings) -> None:
-    settings.ECONOMY_NAME_MIN_LENGTH = 4
+def test_the_length_comes_from_the_settings(
+    player: Player, live_settings: Callable[..., None]
+) -> None:
+    live_settings(name_min_length=4)
     assert refused_field(player, update(display_name="حمد")) == "display_name"
     assert outcome(player, update(display_name="حمادة")).status == "accepted"
 

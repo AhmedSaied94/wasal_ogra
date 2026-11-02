@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.accounts",
     "apps.content",
+    # `economy`, `accounts` and `content` import `liveops`; `liveops` never imports `economy`
+    # (B10 research R1).
+    "apps.liveops",
     # `economy` imports `progress`, never the reverse (B03 research R1).
     "apps.progress",
     "apps.economy",
@@ -193,6 +196,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
         "apps.common.permissions.ClientHeaders",
+        # B10: 426 for an app below the platform minimum, 503 for a write during maintenance.
+        "apps.liveops.permissions.CurrentClient",
+        "apps.liveops.permissions.NotInMaintenance",
     ],
     "DEFAULT_THROTTLE_CLASSES": [
         "apps.common.throttles.AddressRateThrottle",
@@ -240,29 +246,18 @@ CONTENT_MANIFEST_CACHE_SECONDS = _content.manifest_cache_seconds
 CONTENT_HTTP_TIMEOUT_SECONDS = _content.http_timeout_seconds
 CONTENT_INDEX_KEEP = _content.index_keep
 
-# -- Economy, bootstrap and sync (B03, specs/010-b03-ledger-sync/contracts/environment.md) ---------
+# -- Economy, bootstrap and sync (B10 research R4: the numbers are live settings now) --------------
 
 _economy = env.economy()
-ECONOMY_FUEL_MAX = _economy.fuel_max
-ECONOMY_FUEL_MAX_SUBSCRIBER = _economy.fuel_max_subscriber
-ECONOMY_FUEL_REGEN_MINUTES = _economy.fuel_regen_minutes
-ECONOMY_FUEL_REFILL_DAILY_CAP = _economy.fuel_refill_daily_cap
-ECONOMY_FUEL_OVERDRAFT_PER_DAY = _economy.fuel_overdraft_per_day
-ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP = _economy.traffic_jam_ads_per_trip
-ECONOMY_NAME_MIN_LENGTH = _economy.name_min_length
-ECONOMY_NAME_MAX_LENGTH = _economy.name_max_length
 SYNC_GAME_TIMEZONE = _economy.game_timezone
 SYNC_OP_RETENTION_DAYS = _economy.op_retention_days
-SYNC_CONTENT_MAX_AGE_DAYS = _economy.content_max_age_days
-SYNC_MIN_DURATION_PERCENT = _economy.min_duration_percent
-SYNC_FAST_RUN_PERCENT = _economy.fast_run_percent
-SYNC_TRIPS_PER_DAY_FLAG = _economy.trips_per_day_flag
-SYNC_CLOCK_CLAMP_FLAG_MINUTES = _economy.clock_clamp_flag_minutes
-SYNC_SESSION_GAP_MINUTES = _economy.session_gap_minutes
-SYNC_COMEBACK_AWAY_DAYS = _economy.comeback_away_days
-SYNC_COMEBACK_COOLDOWN_DAYS = _economy.comeback_cooldown_days
-CLIENT_MIN_VERSION = _economy.client_min_version
-CLIENT_LATEST_VERSION = _economy.client_latest_version
+
+# -- Live ops (B10, specs/016-b10-catalog-offers/contracts/environment.md) -------------------------
+
+_liveops = env.liveops()
+LIVEOPS_REFRESH_SECONDS = _liveops.refresh_seconds
+FIREBASE_PROJECT_ID = _liveops.firebase_project_id
+REMOTE_CONFIG_SERVICE_ACCOUNT = _liveops.remote_config_service_account
 
 # -- Background tasks (FR-006, FR-007) -------------------------------------------------------------
 

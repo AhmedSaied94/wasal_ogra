@@ -545,9 +545,11 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
 | `018-m11-ads` | M11 | Ads integration: rewarded, interstitial, consent | M05, B07 | mobile §15.1; product-spec «تحقيق الدخل» (أماكن الإعلانات); design `States` 2–3, `RewardedAdButton` |
 
 - **Resolve:**
-  - backend §22.10 (BONAT pack amounts) in B10;
-  - in B10, a maintenance end time in the 503 response, which the design's maintenance state shows
-    (HANDOFF §9.3 #8);
+  - ~~backend §22.10 (BONAT pack amounts) in B10~~ **Resolved (B10):** the catalog seeds 60,
+    300 + 30 bonus and 800 + 120 bonus (FR-020, `specs/016-b10-catalog-offers/data-model.md`);
+  - ~~in B10, a maintenance end time in the 503 response, which the design's maintenance state
+    shows (HANDOFF §9.3 #8)~~ **Resolved (B10):** `details.until` on `503 maintenance` when the
+    end is set and in the future (contracts/api.md);
   - in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets the
     ad content rating).
 - **Handed over from M01** (research R19): in B10, create `liveops.LiveSetting` with every key in
@@ -564,7 +566,21 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
     constitution VIII. Move the rest of B03's economy settings
     (`specs/010-b03-ledger-sync/contracts/environment.md`) with them.
   - In B10, answer `426 client_outdated` and make bootstrap's `client` block live, replacing
-    `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION`.
+    `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION`. **Done in 016.**
+- **Handed on from B10** (`specs/016-b10-catalog-offers/research.md` "Handed to later features"):
+  - **B06:** call `apps.liveops.services.catalog.grants_for(product_id, platform)` inside the grant
+    transaction and store its result (`bonat_total`, `entitlement`) on `Purchase`; replace the
+    `payer`/entitlement hooks in `apps/liveops/services/facts.py` (one function); add the iOS
+    products to `StoreProduct.platforms` when iOS sells.
+  - **B07:** add its caps to `apps/liveops/registry.py` as `applied_by: both` and read them from the
+    snapshot, not the environment; its scheduled jobs that write use `skip_in_maintenance`.
+  - **B08, B11:** their tunables (the daily challenge's retry cost; `notif_daily_max` is already a
+    phone key) go in the registry; a write job uses `skip_in_maintenance`.
+  - **B12, B14:** the starter pack and the season pass are offer and product data; `starter_pack`
+    widens the `product_non_consumable_grants` check constraint.
+  - **M11, M12:** the app reads `GET /v1/offers` for the shop (M12) and bundles no pack amounts; it
+    honours `426 client_outdated` and `503 maintenance` with `details.until` (M06 already parses
+    both).
 - **Done when:**
   - Every placement in Glossary §3.4 works, with its caps enforced on the device and on the server.
   - No ad call is ever made while a trip is running.

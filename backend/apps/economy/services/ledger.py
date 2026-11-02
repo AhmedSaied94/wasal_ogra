@@ -34,11 +34,13 @@ class LedgerMisuse(RuntimeError):
     """A programming error: the wallet isn't locked, or no transaction is open."""
 
 
-def create_wallet(player: Player, *, now: datetime | None = None) -> None:
+def create_wallet(
+    player: Player, *, now: datetime | None = None, config: settings.EconomySettings | None = None
+) -> None:
     """Create the player's wallet if it doesn't exist: a full tank, 0 JENEHAT, 0 BONAT and
     `state_version` 0, every time at `now` (FR-011). Takes no lock."""
     at = now or timezone.now()
-    fuel_max = entitlements.tank_size(player, at, settings.current())
+    fuel_max = entitlements.tank_size(player, at, config or settings.current())
     Wallet.objects.bulk_create(
         [
             Wallet(
@@ -54,12 +56,14 @@ def create_wallet(player: Player, *, now: datetime | None = None) -> None:
     )
 
 
-def lock_wallet(player: Player, *, now: datetime | None = None) -> Wallet:
+def lock_wallet(
+    player: Player, *, now: datetime | None = None, config: settings.EconomySettings | None = None
+) -> Wallet:
     """The player's wallet, locked `FOR UPDATE` until the transaction ends, created on first use."""
     _require_transaction()
     wallet = Wallet.objects.select_for_update().filter(pk=player.pk).first()
     if wallet is None:
-        create_wallet(player, now=now)
+        create_wallet(player, now=now, config=config)
         wallet = Wallet.objects.select_for_update().get(pk=player.pk)
     setattr(wallet, _LOCKED, True)
     return wallet

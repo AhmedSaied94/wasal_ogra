@@ -1,0 +1,11 @@
+{% extends "liveops/history_change_form.html" %}
+
+{% block object-tools-items %}
+  {{ block.super }}
+  {% if original.key|slice:":4" == "min_" or original.key|slice:":7" == "latest_" %}
+    <li><a href="{% url 'admin:liveops_livesetting_versions' %}">App versions</a></li>
+  {% endif %}
+  {% if perms.liveops.switch_maintenance %}
+    <li><a href="{% url 'admin:liveops_livesetting_maintenance' %}">Maintenance</a></li>
+  {% endif %}
+{% endblock %}

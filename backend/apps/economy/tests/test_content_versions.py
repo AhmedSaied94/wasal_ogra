@@ -23,6 +23,7 @@ from apps.content.models import PackPriceIndex, PackRulesIndex
 from apps.economy.models import Currency, LedgerEntry
 from apps.economy.services import sync
 from apps.economy.tests.helpers import grant, op, reasons, run, spend, trip_start, wallet_of
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -80,7 +81,7 @@ def test_a_version_too_old_is_unsupported(
     settings: Settings,
     op_type: str,
 ) -> None:
-    long_ago = timezone.now() - timedelta(days=settings.SYNC_CONTENT_MAX_AGE_DAYS + 1)
+    long_ago = timezone.now() - timedelta(days=live.current()["content_max_age_days"] + 1)
     with time_machine.travel(long_ago, tick=False):
         [old] = published_packs(1)
     published_packs(1)  # the current one
@@ -99,9 +100,9 @@ def test_a_version_no_longer_indexed_is_unsupported(
 
 
 def test_the_current_version_stays_supported_however_old(
-    funded: Player, published_packs: Callable[[int], list[int]], settings: Settings
+    funded: Player, published_packs: Callable[[int], list[int]]
 ) -> None:
-    long_ago = timezone.now() - timedelta(days=settings.SYNC_CONTENT_MAX_AGE_DAYS + 30)
+    long_ago = timezone.now() - timedelta(days=live.current()["content_max_age_days"] + 30)
     with time_machine.travel(long_ago, tick=False):
         [only] = published_packs(1)
     assert reasons(run(funded, trip_start("line_hay.01", only))) == ["accepted"]

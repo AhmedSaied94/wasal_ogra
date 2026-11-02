@@ -6,9 +6,10 @@ Run on the operator's machine, from `backend/`, against staging (or production, 
         [--concurrency 10] [--trip line_hay.01]
 
 It signs in `--players` new anonymous players (they show in the admin as anonymous players with
-no progress worth keeping), and for each one times `GET /v1/bootstrap`, `GET /v1/state` and
-`--batches` batches of 100 operations, then prints p50 and p95 per call. The targets (SC-008):
-p95 under 200 ms for bootstrap, 400 ms for state and 1 s for a batch of 100.
+no progress worth keeping), and for each one times `GET /v1/bootstrap`, `GET /v1/offers`,
+`GET /v1/state` and `--batches` batches of 100 operations, then prints p50 and p95 per call. The
+targets: p95 under 200 ms for bootstrap, 150 ms for offers (B10 research R16), 400 ms for state
+and 1 s for a batch of 100 (SC-008).
 
 Each batch holds ten starts and results of `--trip` (from the second batch on, most starts are
 refused for fuel, which is still the full path) and 80 `settings_update` operations. A 429 is
@@ -39,7 +40,7 @@ HEADERS = {"X-Client-Version": "1.0.0", "X-Platform": "android"}
 OPS_PER_BATCH = 100
 TRIPS_PER_BATCH = 10
 LOCAL_HOSTS = ("localhost", "127.0.0.1")
-TARGET_P95_MS = {"bootstrap": 200, "state": 400, "sync": 1000}
+TARGET_P95_MS = {"bootstrap": 200, "offers": 150, "state": 400, "sync": 1000}
 
 
 @dataclass
@@ -127,6 +128,7 @@ def one_player(base: str, batches: int, trip: str) -> Timings:
         if version is None:
             raise SystemExit("The server has no published pack: nothing to sync against.")
         state_version = launch["state_version"]
+        timed(session, timings, "offers", "GET", f"{base}/v1/offers")
         timed(session, timings, "state", "GET", f"{base}/v1/state")
         for _ in range(batches):
             answer = timed(

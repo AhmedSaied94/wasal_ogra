@@ -39,8 +39,6 @@ SIGNING_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
 MIN_SIGNING_KEY_BYTES = 32
 MAX_SIGNING_KEYS = 4
 GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
-# CLIENT_MIN_VERSION and CLIENT_LATEST_VERSION (B03): a plain MAJOR.MINOR.PATCH.
-VERSION_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
@@ -284,78 +282,32 @@ class Env:
         )
 
     def economy(self) -> EconomyConfig:
-        """B03's settings and their cross-checks (specs/010-b03-ledger-sync/contracts/
-        environment.md). None is a secret, so every environment checks them the same way."""
-        fuel_max = self.integer("ECONOMY_FUEL_MAX", 5, minimum=1, maximum=20)
-        fuel_max_subscriber = self.integer("ECONOMY_FUEL_MAX_SUBSCRIBER", 7, minimum=1, maximum=20)
-        if fuel_max_subscriber < fuel_max:
-            raise ImproperlyConfigured(
-                "ECONOMY_FUEL_MAX_SUBSCRIBER is invalid: it must be at least ECONOMY_FUEL_MAX"
-            )
-        name_min = self.integer("ECONOMY_NAME_MIN_LENGTH", 2, minimum=1, maximum=32)
-        name_max = self.integer("ECONOMY_NAME_MAX_LENGTH", 20, minimum=1, maximum=32)
-        if name_max < name_min:
-            raise ImproperlyConfigured(
-                "ECONOMY_NAME_MAX_LENGTH is invalid: it must be at least ECONOMY_NAME_MIN_LENGTH"
-            )
-        min_duration = self.integer("SYNC_MIN_DURATION_PERCENT", 85, minimum=1, maximum=100)
-        fast_run = self.integer("SYNC_FAST_RUN_PERCENT", 95, minimum=1, maximum=100)
-        if fast_run < min_duration:
-            raise ImproperlyConfigured(
-                "SYNC_FAST_RUN_PERCENT is invalid: it must be at least SYNC_MIN_DURATION_PERCENT"
-            )
-        client_min = self._version("CLIENT_MIN_VERSION")
-        client_latest = self._version("CLIENT_LATEST_VERSION")
-        if _version_tuple(client_min) > _version_tuple(client_latest):
-            raise ImproperlyConfigured(
-                "CLIENT_MIN_VERSION is invalid: it must not be above CLIENT_LATEST_VERSION"
-            )
+        """What stays in the environment of B03's settings (B10 research R4, FR-003).
+
+        Every balancing number moved to the live settings (`apps/liveops/registry.py`). The game
+        timezone is a contract with the phone and the retention sizes the database, so both stay.
+        """
         return EconomyConfig(
-            fuel_max=fuel_max,
-            fuel_max_subscriber=fuel_max_subscriber,
-            fuel_regen_minutes=self.integer(
-                "ECONOMY_FUEL_REGEN_MINUTES", 20, minimum=1, maximum=240
-            ),
-            fuel_refill_daily_cap=self.integer(
-                "ECONOMY_FUEL_REFILL_DAILY_CAP", 3, minimum=0, maximum=50
-            ),
-            fuel_overdraft_per_day=self.integer(
-                "ECONOMY_FUEL_OVERDRAFT_PER_DAY", 2, minimum=0, maximum=20
-            ),
-            traffic_jam_ads_per_trip=self.integer(
-                "ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP", 1, minimum=0, maximum=10
-            ),
-            name_min_length=name_min,
-            name_max_length=name_max,
             game_timezone=self._timezone("SYNC_GAME_TIMEZONE", "Africa/Cairo"),
             op_retention_days=self.integer("SYNC_OP_RETENTION_DAYS", 180, minimum=30, maximum=730),
-            content_max_age_days=self.integer(
-                "SYNC_CONTENT_MAX_AGE_DAYS", 45, minimum=1, maximum=365
-            ),
-            min_duration_percent=min_duration,
-            fast_run_percent=fast_run,
-            trips_per_day_flag=self.integer(
-                "SYNC_TRIPS_PER_DAY_FLAG", 400, minimum=10, maximum=5000
-            ),
-            clock_clamp_flag_minutes=self.integer(
-                "SYNC_CLOCK_CLAMP_FLAG_MINUTES", 10, minimum=1, maximum=1440
-            ),
-            session_gap_minutes=self.integer(
-                "SYNC_SESSION_GAP_MINUTES", 30, minimum=1, maximum=1440
-            ),
-            comeback_away_days=self.integer("SYNC_COMEBACK_AWAY_DAYS", 7, minimum=1, maximum=365),
-            comeback_cooldown_days=self.integer(
-                "SYNC_COMEBACK_COOLDOWN_DAYS", 30, minimum=0, maximum=365
-            ),
-            client_min_version=client_min,
-            client_latest_version=client_latest,
         )
 
-    def _version(self, name: str) -> str:
-        value = self.string(name, "1.0.0")
-        if not VERSION_PATTERN.match(value):
-            raise ImproperlyConfigured(f"{name} is invalid: use MAJOR.MINOR.PATCH")
-        return value
+    def liveops(self) -> LiveopsConfig:
+        """B10's three variables (specs/016-b10-catalog-offers/contracts/environment.md "New").
+
+        Neither Firebase variable is required, so a missing value never stops a deploy; one set
+        without the other stops the process, naming the missing one.
+        """
+        project_id = self.string("FIREBASE_PROJECT_ID", "")
+        service_account = self.secret("REMOTE_CONFIG_SERVICE_ACCOUNT", "")
+        if bool(project_id) != bool(service_account):
+            missing = "FIREBASE_PROJECT_ID" if not project_id else "REMOTE_CONFIG_SERVICE_ACCOUNT"
+            raise ImproperlyConfigured(f"{missing} is required with the other Firebase variable")
+        return LiveopsConfig(
+            refresh_seconds=self.integer("LIVEOPS_REFRESH_SECONDS", 30, minimum=5, maximum=55),
+            firebase_project_id=project_id,
+            remote_config_service_account=service_account,
+        )
 
     def _timezone(self, name: str, default: str) -> str:
         value = self.string(name, default)
@@ -391,28 +343,19 @@ class ContentConfig:
 
 @dataclass(frozen=True)
 class EconomyConfig:
-    """B03's settings (specs/010-b03-ledger-sync/contracts/environment.md). Integers only."""
+    """What B03's settings keep in the environment (B10 research R4, FR-003)."""
 
-    fuel_max: int
-    fuel_max_subscriber: int
-    fuel_regen_minutes: int
-    fuel_refill_daily_cap: int
-    fuel_overdraft_per_day: int
-    traffic_jam_ads_per_trip: int
-    name_min_length: int
-    name_max_length: int
     game_timezone: str
     op_retention_days: int
-    content_max_age_days: int
-    min_duration_percent: int
-    fast_run_percent: int
-    trips_per_day_flag: int
-    clock_clamp_flag_minutes: int
-    session_gap_minutes: int
-    comeback_away_days: int
-    comeback_cooldown_days: int
-    client_min_version: str
-    client_latest_version: str
+
+
+@dataclass(frozen=True)
+class LiveopsConfig:
+    """B10's settings (specs/016-b10-catalog-offers/contracts/environment.md)."""
+
+    refresh_seconds: int
+    firebase_project_id: str
+    remote_config_service_account: str = field(repr=False)
 
 
 @dataclass(frozen=True)
@@ -454,11 +397,6 @@ def _base64url(name: str, encoded: str) -> bytes:
             f"{name} is invalid: each key must decode to at least {MIN_SIGNING_KEY_BYTES} bytes"
         )
     return key
-
-
-def _version_tuple(value: str) -> tuple[int, int, int]:
-    major, minor, patch = value.split(".")
-    return int(major), int(minor), int(patch)
 
 
 def with_default_query(url: str, key: str, value: str) -> str:

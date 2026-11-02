@@ -3,7 +3,7 @@
 The index rows exist only for the last `CONTENT_INDEX_KEEP` published versions (B04 kept 5).
 Publishing or promoting one more retires the oldest: its rows go, and its file and record stay.
 A version is supported for sync while it is indexed and is either the current one or was
-published within `SYNC_CONTENT_MAX_AGE_DAYS`.
+published within `content_max_age_days` (a live setting).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from apps.content.models import (
 )
 from apps.content.models.packs import STORED, Status
 from apps.content.services.versioning import PACK_ID
+from apps.liveops import settings as live
 
 # What `supported` answers (B03 contracts/operations.md "Reasons").
 SUPPORTED = "supported"
@@ -93,7 +94,7 @@ def rebuild_index(now: datetime | None = None) -> list[Rebuilt]:
     stored file (B03 research R2, quickstart B1). Packs indexed before B03 have no rules row.
     Idempotent: a second run writes nothing."""
     at = now or timezone.now()
-    window = timedelta(days=settings.SYNC_CONTENT_MAX_AGE_DAYS)
+    window = timedelta(days=live.current()["content_max_age_days"])
     current = current_version()
     packs = ContentPack.objects.filter(pack_id=PACK_ID, status=Status.PUBLISHED).order_by("version")
     results = []
@@ -283,9 +284,12 @@ def rules(version: int) -> dict[str, Any] | None:
     return None if document is None else dict(document)
 
 
-def supported(version: int, *, now: datetime | None = None) -> str:
+def supported(version: int, *, now: datetime | None = None, max_age_days: int | None = None) -> str:
     """`SUPPORTED`, `UNKNOWN` (never published) or `UNSUPPORTED` (retired from the index, older
-    than `SYNC_CONTENT_MAX_AGE_DAYS`, or indexed before B03 and not rebuilt)."""
+    than `content_max_age_days`, or indexed before B03 and not rebuilt).
+
+    A batch passes its own snapshot's window, so it reads the live settings once (FR-007).
+    """
     pack = (
         ContentPack.objects.filter(pack_id=PACK_ID, version=version, status__in=sorted(STORED))
         .values("published_at", "promoted_at")
@@ -302,8 +306,10 @@ def supported(version: int, *, now: datetime | None = None) -> str:
     )
     if current == version:
         return SUPPORTED
+    if max_age_days is None:
+        max_age_days = int(live.current()["content_max_age_days"])
     published = pack["published_at"] or pack["promoted_at"]
-    window = timedelta(days=settings.SYNC_CONTENT_MAX_AGE_DAYS)
+    window = timedelta(days=max_age_days)
     if published is not None and (now or timezone.now()) - published <= window:
         return SUPPORTED
     return UNSUPPORTED

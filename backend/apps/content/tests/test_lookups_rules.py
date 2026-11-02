@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 from io import StringIO
 from pathlib import Path
@@ -95,9 +96,9 @@ def test_trip_bounds_and_prices_come_from_the_index(sample_reviewed: User, publi
 
 
 def test_supported_distinguishes_unknown_unsupported_and_supported(
-    sample_reviewed: User, publisher: User, settings: Settings
+    sample_reviewed: User, publisher: User, live_settings: Callable[..., None]
 ) -> None:
-    settings.SYNC_CONTENT_MAX_AGE_DAYS = 45
+    live_settings(content_max_age_days=45)
     first = published(built(sample_reviewed), publisher)
     assert lookups.supported(first.version or 0) == lookups.SUPPORTED  # the current one
     assert lookups.supported(99) == lookups.UNKNOWN  # never published
@@ -182,9 +183,9 @@ def test_content_index_rebuild_writes_the_missing_rows_once(
 
 
 def test_content_index_rebuild_skips_versions_outside_the_window(
-    sample_reviewed: User, publisher: User, settings: Settings
+    sample_reviewed: User, publisher: User, live_settings: Callable[..., None]
 ) -> None:
-    settings.SYNC_CONTENT_MAX_AGE_DAYS = 45
+    live_settings(content_max_age_days=45)
     old = published(built(sample_reviewed), publisher)
     with time_machine.travel(timezone.now() + timedelta(days=60), tick=False):
         published(built(sample_reviewed), publisher)

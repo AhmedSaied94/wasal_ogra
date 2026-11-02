@@ -218,7 +218,9 @@ class BatchState:
 
     def version_status(self, version: int) -> str:
         if version not in self._support:
-            self._support[version] = lookups.supported(version, now=self.now)
+            self._support[version] = lookups.supported(
+                version, now=self.now, max_age_days=self.settings.content_max_age_days
+            )
         return self._support[version]
 
     def pack(self, version: int) -> PackView:

@@ -12,12 +12,12 @@ from datetime import datetime, timedelta
 import pytest
 import time_machine
 from django.utils import timezone
-from pytest_django import Settings
 
 from apps.accounts.models import Player
 from apps.economy.models import PlayerFlag
 from apps.economy.services.timeline import to_ms
 from apps.economy.tests.helpers import reasons, run, trip_result, trip_start, wallet_of
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -77,14 +77,14 @@ def test_a_late_sync_of_five_trips_gives_the_phones_liters(
 
 
 def test_a_large_clamp_is_flagged_once_a_day_with_a_count(
-    player: Player, published_pack: int, t0: datetime, settings: Settings
+    player: Player, published_pack: int, t0: datetime
 ) -> None:
-    ahead = timezone.now() + timedelta(minutes=settings.SYNC_CLOCK_CLAMP_FLAG_MINUTES + 10)
+    ahead = timezone.now() + timedelta(minutes=live.current()["clock_clamp_flag_minutes"] + 10)
     run(player, trip_start("line_hay.01", published_pack, at=ahead))
     run(player, trip_start("line_hay.03", published_pack, at=ahead))
-    small = timezone.now() + timedelta(minutes=settings.SYNC_CLOCK_CLAMP_FLAG_MINUTES - 5)
+    small = timezone.now() + timedelta(minutes=live.current()["clock_clamp_flag_minutes"] - 5)
     run(player, trip_start("line_hay.01", published_pack, at=small))
     flag = PlayerFlag.objects.get(player=player)
     assert flag.kind == PlayerFlag.Kind.CLOCK_CLAMPED
     assert flag.details["count"] == 2
-    assert flag.details["moved_ms"] > settings.SYNC_CLOCK_CLAMP_FLAG_MINUTES * 60_000
+    assert flag.details["moved_ms"] > live.current()["clock_clamp_flag_minutes"] * 60_000

@@ -1,5 +1,11 @@
 # Contract: Environment
 
+Most of these variables are **retired by B10**: every balancing number now lives in
+`apps.liveops.registry.py` as a live setting, and the host's value was imported once on migrate
+(`specs/016-b10-catalog-offers/contracts/environment.md`, research R4/R5). What stays here is
+`SYNC_GAME_TIMEZONE`, `SYNC_OP_RETENTION_DAYS`, `CONTENT_INDEX_KEEP`, `THROTTLE_*` and the secrets.
+The tables below are kept for the record of the import's mapping.
+
 New settings, all read in `config/env.py` (`env.economy()`), validated at startup, and listed in
 `backend/.env.example`. None is a secret, so no placeholder refusal applies; a value outside its
 range stops the process at startup in every environment (like B02's rates). Integers only: a

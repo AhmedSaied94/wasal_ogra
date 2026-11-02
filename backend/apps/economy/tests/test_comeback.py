@@ -28,6 +28,7 @@ from apps.economy.tests.helpers import (
     trip_start,
     wallet_of,
 )
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -48,10 +49,10 @@ def claimable(api: Api) -> bool:
 
 
 @pytest.fixture
-def returned(api: Api, settings: Settings) -> datetime:
+def returned(api: Api) -> datetime:
     """The player's first bootstrap, then one after a week away: the return it set."""
     api.bootstrap()
-    away_since(api, timezone.now() - timedelta(days=settings.SYNC_COMEBACK_AWAY_DAYS + 1))
+    away_since(api, timezone.now() - timedelta(days=live.current()["comeback_away_days"] + 1))
     assert claimable(api) is True
     return_at = wallet_of(api.player).comeback_return_at
     assert return_at is not None
@@ -63,9 +64,9 @@ def test_a_week_away_offers_a_return(api: Api, returned: datetime) -> None:
     assert api.state().json()["comeback"] == {"claimable": True}
 
 
-def test_a_bootstrap_within_the_session_offers_nothing(api: Api, settings: Settings) -> None:
+def test_a_bootstrap_within_the_session_offers_nothing(api: Api) -> None:
     api.bootstrap()
-    away_since(api, timezone.now() - timedelta(minutes=settings.SYNC_SESSION_GAP_MINUTES - 1))
+    away_since(api, timezone.now() - timedelta(minutes=live.current()["session_gap_minutes"] - 1))
     assert claimable(api) is False
     assert wallet_of(api.player).comeback_return_at is None
 
@@ -107,7 +108,7 @@ def test_no_new_return_inside_the_cooldown(
     api: Api, returned: datetime, settings: Settings
 ) -> None:
     run(api.player, gift())
-    away_since(api, timezone.now() - timedelta(days=settings.SYNC_COMEBACK_AWAY_DAYS + 1))
+    away_since(api, timezone.now() - timedelta(days=live.current()["comeback_away_days"] + 1))
     assert claimable(api) is False
     assert wallet_of(api.player).comeback_return_at == returned
     # A return the cooldown doesn't allow can't be claimed either.
@@ -121,9 +122,9 @@ def test_after_the_cooldown_a_new_absence_offers_a_new_return(
     api: Api, returned: datetime, settings: Settings
 ) -> None:
     run(api.player, gift())
-    long_ago = timezone.now() - timedelta(days=settings.SYNC_COMEBACK_COOLDOWN_DAYS + 1)
+    long_ago = timezone.now() - timedelta(days=live.current()["comeback_cooldown_days"] + 1)
     GrantRecord.objects.filter(player_id=api.player_id, kind="comeback").update(granted_at=long_ago)
-    away_since(api, timezone.now() - timedelta(days=settings.SYNC_COMEBACK_AWAY_DAYS + 1))
+    away_since(api, timezone.now() - timedelta(days=live.current()["comeback_away_days"] + 1))
     assert claimable(api) is True
     assert wallet_of(api.player).comeback_return_at != returned
     assert reasons(run(api.player, gift())) == ["accepted"]
@@ -140,7 +141,7 @@ def test_after_the_cooldown_a_new_absence_offers_a_new_return(
 def test_away_days_are_counted_in_cairo_calendar_days(
     db: None, settings: Settings, last_active: datetime, offered: bool
 ) -> None:
-    assert settings.SYNC_COMEBACK_AWAY_DAYS == 7
+    assert live.current()["comeback_away_days"] == 7
     with time_machine.travel(datetime(2026, 10, 20, 0, 10, tzinfo=CAIRO), tick=False):
         api = signed_in_api()
         api.bootstrap()

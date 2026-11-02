@@ -63,7 +63,7 @@ __all__ = [
 ]
 
 CONTRACT = Path(__file__).resolve().parents[2] / "contracts" / "openapi.yaml"
-PLAYER_PATHS = ("/v1/auth/link", "/v1/bootstrap", "/v1/state", "/v1/sync")
+PLAYER_PATHS = ("/v1/auth/link", "/v1/bootstrap", "/v1/state", "/v1/sync", "/v1/offers")
 CLIENT_HEADERS = {"X-Client-Version": "1.0.0", "X-Platform": "android"}
 # No schema can describe a valid Google ID token, so a schema-valid random one is a 422, as it
 # should be: that one check doesn't apply to the link (every other check does).
@@ -92,6 +92,12 @@ def signed_in(base_url: str) -> tuple[Player, str]:
     return Player.objects.get(pk=body["player_id"]), body["access"]
 
 
+def align_client_version(case: schemathesis.Case[Any]) -> None:
+    """The version gate (B10) refuses a generated `0.0.0`; a positive case must pass it."""
+    if case.path in PLAYER_PATHS and case.headers and "X-Client-Version" in case.headers:
+        case.headers["X-Client-Version"] = "1.0.0"
+
+
 def align_platform(case: schemathesis.Case[Any]) -> None:
     """`POST /v1/auth/anonymous` needs the body's `platform` to equal `X-Platform`, which the
     schema can't say (B02 contracts/api.md). Generated cases get the two in step."""
@@ -112,6 +118,7 @@ def test_operation_conforms(case: schemathesis.Case[Any], live_server: LiveServe
     if case.path in PLAYER_PATHS:
         case.headers["Authorization"] = f"Bearer {player_token(live_server.url)}"
     align_platform(case)
+    align_client_version(case)
     excluded = [positive_data_acceptance] if case.path in OPAQUE_CREDENTIALS else []
     response = case.call_and_validate(base_url=live_server.url, excluded_checks=excluded)
     # The coverage phase also sends cases with the token removed on purpose; those must be 401.
@@ -187,6 +194,52 @@ def test_too_many_requests_conform(
     _, token = signed_in(live_server.url)
     answers = [call(live_server, method, path, token, json=body).status_code for _ in range(3)]
     assert answers == [200, 200, 429]
+
+
+# -- B10: the version gate and maintenance ---------------------------------------------------------
+
+
+@pytest.mark.usefixtures("no_throttle")
+def test_the_b10_errors_conform(live_server: LiveServer) -> None:
+    from apps.accounts.models import User
+    from apps.liveops import settings as live
+    from apps.liveops.services import maintenance, settings_admin
+
+    actor = User.objects.create_user("liveops-contract", is_staff=True)
+    settings_admin.change_many(
+        {
+            "min_client_version_android": "9.9.9",
+            "latest_client_version_android": "9.9.9",
+        },
+        actor,
+    )
+    live.refresh()
+    _, token = signed_in(live_server.url)
+    for method, path, body in (
+        ("GET", "/v1/state", None),
+        ("GET", "/v1/offers", None),
+        ("POST", "/v1/sync", batch()),
+        ("POST", "/v1/auth/link", {"provider": "google", "id_token": "x"}),
+    ):
+        outdated = call(live_server, method, path, token, json=body)
+        assert (outdated.status_code, code_of(outdated)) == (426, "client_outdated")
+    # Bootstrap is exempt: it is how the app learns to update.
+    assert call(live_server, "GET", "/v1/bootstrap", token).status_code == 200
+
+    settings_admin.change_many(
+        {
+            "min_client_version_android": "1.0.0",
+            "latest_client_version_android": "1.0.0",
+        },
+        actor,
+    )
+    maintenance.switch(True, actor=actor)
+    live.refresh()
+    blocked = call(live_server, "POST", "/v1/sync", token, json=batch())
+    assert (blocked.status_code, code_of(blocked)) == (503, "maintenance")
+    assert call(live_server, "GET", "/v1/offers", token).status_code == 200
+    settings_admin.change("maintenance_enabled", False, actor)
+    live.refresh()
 
 
 # -- B03: one case per operation reason ------------------------------------------------------------

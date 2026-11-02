@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from config.env import Env, read_dotenv, with_default_query
+from config.env import EconomyConfig, Env, read_dotenv, with_default_query
 
 DB_URL = "postgres://wassal:test-db-password@db.invalid:5432/wassal"
 
@@ -50,6 +50,26 @@ def test_number_parsing_and_bounds() -> None:
     for raw in ("high", "0.2"):
         with pytest.raises(ImproperlyConfigured, match="R is invalid"):
             lenient(R=raw).number("R", 0.05, minimum=0, maximum=0.1)
+
+
+def test_liveops_refresh_window() -> None:
+    assert lenient().liveops().refresh_seconds == 30
+    assert lenient(LIVEOPS_REFRESH_SECONDS="5").liveops().refresh_seconds == 5
+    for raw in ("4", "56", "soon"):
+        with pytest.raises(ImproperlyConfigured, match="LIVEOPS_REFRESH_SECONDS is invalid"):
+            lenient(LIVEOPS_REFRESH_SECONDS=raw).liveops()
+
+
+def test_the_firebase_variables_come_together() -> None:
+    assert lenient().liveops().firebase_project_id == ""
+    both = lenient(
+        FIREBASE_PROJECT_ID="wassal-ogra", REMOTE_CONFIG_SERVICE_ACCOUNT='{"private_key": "x"}'
+    ).liveops()
+    assert both.firebase_project_id == "wassal-ogra"
+    with pytest.raises(ImproperlyConfigured, match="REMOTE_CONFIG_SERVICE_ACCOUNT is required"):
+        lenient(FIREBASE_PROJECT_ID="wassal-ogra").liveops()
+    with pytest.raises(ImproperlyConfigured, match="FIREBASE_PROJECT_ID is required"):
+        lenient(REMOTE_CONFIG_SERVICE_ACCOUNT='{"private_key": "x"}').liveops()
 
 
 def test_required_outside_dev() -> None:
@@ -212,22 +232,20 @@ def test_auth_config_defaults_and_google_ids() -> None:
         strict().auth()
 
 
-# -- B03's economy settings (specs/010-b03-ledger-sync/contracts/environment.md) -------------------
+# -- What B03's settings keep in the environment (B10 research R4) ---------------------------------
 
 
 def test_economy_defaults_are_the_same_in_every_environment() -> None:
     assert strict().economy() == lenient().economy()
     config = strict().economy()
-    assert (config.fuel_max, config.fuel_max_subscriber, config.fuel_regen_minutes) == (5, 7, 20)
     assert config.game_timezone == "Africa/Cairo"
-    assert (config.client_min_version, config.client_latest_version) == ("1.0.0", "1.0.0")
+    assert config.op_retention_days == 180
 
 
-def test_economy_versions_compare_as_numbers() -> None:
-    config = lenient(CLIENT_MIN_VERSION="1.9.0", CLIENT_LATEST_VERSION="1.10.0").economy()
-    assert config.client_latest_version == "1.10.0"
-    with pytest.raises(ImproperlyConfigured, match="CLIENT_MIN_VERSION is invalid"):
-        lenient(CLIENT_MIN_VERSION="1.10.0", CLIENT_LATEST_VERSION="1.9.0").economy()
+def test_a_retired_economy_variable_is_not_read() -> None:
+    # The numbers are live settings now; the env value must not come back.
+    config = lenient(ECONOMY_FUEL_MAX="9", CLIENT_MIN_VERSION="9.9.9").economy()
+    assert config == EconomyConfig(game_timezone="Africa/Cairo", op_retention_days=180)
 
 
 @pytest.mark.parametrize("zone", ["", "Not/AZone", "UTC+3", "../../etc/passwd"])

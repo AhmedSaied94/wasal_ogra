@@ -45,9 +45,11 @@ edge:
 | 413 | **`payload_too_large`** | The edge's `request_body` limit. The backstop is `BodySizeLimitMiddleware`, which compares `Content-Length` with `DATA_UPLOAD_MAX_MEMORY_SIZE` (DRF reads the body stream itself, which skips Django's own check), plus `RequestDataTooBig` in the DRF handler | `{limit_bytes: 524288}` |
 | 415 | **`unsupported_media_type`** | DRF `UnsupportedMediaType` | `{}` |
 | 429 | `rate_limited` | DRF throttle | `{retry_after_s: int}`, plus a `Retry-After` header |
+| 426 | `client_outdated` | B10: `X-Client-Version` below the live platform minimum, on a default endpoint | `{min_version: "1.3.0"}` |
 | 500 | **`server_error`** | Any unhandled exception (`handler500` and the DRF handler fallback) | `{}` (the request id is in the header) |
 | 503 | **`not_ready`** | `/readyz` when a check fails | `{checks: {database, cache, migrations}}` |
 | 503 | **`dependency_unavailable`** | Database or cache unreachable during a request (fails within 5 s, spec edge case) | `{}` |
+| 503 | `maintenance` | B10: a write while maintenance is on, on a default endpoint | `{until?: "2026-11-03T15:30:00Z"}` (only when set and in the future) |
 
 B02 adds `409 provider_already_linked` and `422 provider_token_invalid`, and maps DRF's
 `NotAuthenticated` and `AuthenticationFailed` to `401 token_invalid`
@@ -57,6 +59,11 @@ B03 adds `400 batch_too_large` (the row above). `POST /v1/sync` also answers
 `413 payload_too_large` with `{limit_bytes: 262144}` above its own 256 KB limit, under the edge's.
 An operation the server refuses inside a batch is not an error code: the request answers 200 with
 the operation's reason (`specs/010-b03-ledger-sync/contracts/api.md`).
+
+B10 adds `426 client_outdated` and `503 maintenance` on every endpoint with the default permissions
+(bootstrap is exempt from 426; `413`/manifest/auth/health are exempt from both). The order is
+authentication → `ClientHeaders` → `CurrentClient` → `NotInMaintenance` → throttle
+(`specs/016-b10-catalog-offers/contracts/api.md`).
 
 - Mapping rule: an explicit table entry wins. Any other DRF `APIException` uses its `default_code`,
   which must then be added to §6.2 before it ships. Django's `Http404` and `PermissionDenied` are

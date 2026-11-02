@@ -1,7 +1,7 @@
 """Shared pytest fixtures. Tests run against the real PostgreSQL and Valkey (constitution XIII)."""
 
 import os
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -46,3 +46,49 @@ def no_throttle(settings: Settings) -> None:
     settings.THROTTLE_REFRESH_RATE = None
     settings.THROTTLE_LINK_RATE = None
     settings.THROTTLE_SYNC_RATE = None
+
+
+@pytest.fixture(autouse=True)
+def _fresh_liveops_snapshot() -> Iterator[None]:
+    """A process-wide snapshot must not leak a value between tests (B10 research R3)."""
+    from apps.liveops import settings as live
+
+    live.reset()
+    yield
+    live.reset()
+
+
+@pytest.fixture
+def live_settings(db: None) -> Iterator[Callable[..., None]]:
+    """`live_settings(fuel_overdraft_per_day=1)`: write live values for one test (B10 R4, T013).
+
+    The rows are written through the service, so the rule checks and the history run as in
+    production, and the process snapshot is refreshed; the defaults come back after the test.
+    """
+    from apps.accounts.models import User
+    from apps.liveops import registry
+    from apps.liveops import settings as live
+    from apps.liveops.models import LiveopsChange
+    from apps.liveops.services import settings_admin
+
+    actor = User.objects.get_or_create(username="live-ops-tests", defaults={"is_staff": True})[0]
+    changed: list[str] = []
+    live.refresh()
+
+    def apply(**values: object) -> None:
+        settings_admin.change_many(values, actor, note="test")
+        changed.extend(key for key in values if key not in changed)
+        live.refresh()
+
+    yield apply
+
+    if changed:
+        # Reset the keys a rule shares too, so a pair goes back together.
+        keys = {other for key in changed for other in registry.rule_keys(key)}
+        settings_admin.change_many(
+            {key: registry.get(key).default for key in keys},
+            actor,
+            note="test teardown",
+            source=LiveopsChange.Source.RESET,
+        )
+    live.refresh()

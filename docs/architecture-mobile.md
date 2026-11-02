@@ -641,6 +641,15 @@ Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholder
 | `pre_trip_card_mode` | `always` |
 | `notif_daily_max` | 2 |
 
+The server keeps a copy of every key above in `apps/liveops/registry.py`, and a CI test keeps the
+defaults equal (B10 FR-008). Four of them are applied on both sides (`applied_by: both`): `fuel_max`,
+`fuel_max_subscriber`, `fuel_regen_minutes` and `ads_fuel_refill_daily_cap`. The server-only numbers
+(overdraft, traffic-jam ads, name lengths, the sync thresholds, the comeback gaps) and the version and
+maintenance keys are live settings with **no Remote Config key**, because the phone never applies them
+(B10 research R9). A daily server job compares Remote Config's defaults with the live settings and
+marks any drift in the admin (a `both` key also sends one Sentry warning), so the two copies don't
+silently diverge.
+
 The backend keeps its own copies of `fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes` and `ads_fuel_refill_daily_cap` as env settings, and a CI test fails when their defaults differ from `tunables.json` (B03 research R14).
 
 **Server-only numbers (no Remote Config key until B10).** The phone never reads these: the server alone applies them (constitution IV). They are env settings with these defaults (`backend/config/env.py`, `specs/010-b03-ledger-sync/contracts/environment.md`), the deviation from constitution VIII tracked in B03's plan (Complexity Tracking). B10 moves each into `liveops.LiveSetting`.
@@ -669,7 +678,7 @@ The backend keeps its own copies of `fuel_max`, `fuel_max_subscriber`, `fuel_reg
 
 ### 15.2 PurchaseGateway
 
-1. Query products for §3.5 IDs from the store.
+1. Query the store for the products `GET /v1/offers` lists, which carries the amounts and the bonus (B10): the shop shows 60, 300 + 30, 800 + 120 and `remove_ads` without bundling any amount, and reads its prices from the store only.
 2. Start purchase → receive token/transaction.
 3. `POST /v1/purchases/verify` → server verifies with Google/Apple and grants (backend §8).
 4. Client completes/acknowledges the store transaction **only after** server success; refreshes wallet and entitlements.

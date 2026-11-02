@@ -33,6 +33,7 @@ left, in what order, and where to look.
 | [013 M08 Home, pre-trip card and result](#013-m08-home-pre-trip-card-and-result) | 4 | 2 | Built and tested on 2026-10-28, on branch `013-m08-home-result`. The strings and the design departures wait for your approval. |
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
+| [016 B10 catalog and offers](#016-b10-catalog-and-offers) | 1 (can follow the merge) | 3, and 1 before M12 | Built and tested on branch `016-b10-catalog-offers`. The Firebase service account, the Sentry alert rule, the `live_ops` members and the Play Console products wait for you. |
 
 ## Every month
 
@@ -1287,6 +1288,37 @@ drops it): the trip starts, and Home's next arrival item opens.
   ([research R17](../specs/015-m10-apartment-story/research.md)). The fallbacks ship meanwhile. Each
   drawing lands in `docs/design/illustrations/` and is synced into
   `apps/mobile/assets/illustrations/{apartment,panels}/` by `tool/design/sync_assets.dart`.
+
+## 016 B10 catalog and offers
+
+What it built: the live settings and their history, the version gate, maintenance, the store
+catalog, offers and the Remote Config drift check. Runbook:
+[live-ops.md](runbooks/live-ops.md). Contract: `specs/016-b10-catalog-offers/`.
+
+### Before merge (or after: nothing fails without it)
+
+- [ ] **1. The Remote Config service account (T066).** In Google Cloud project `wassal-ogra`, create
+  a service account with only the **Firebase Remote Config Viewer** role and one JSON key per host
+  (staging and production). Put `FIREBASE_PROJECT_ID=wassal-ogra` and
+  `REMOTE_CONFIG_SERVICE_ACCOUNT=<the JSON>` in each host's `/etc/wassal/<env>.env`
+  ([monitoring-setup](runbooks/monitoring-setup.md#firebase-remote-config-b10s-drift-check)). Without
+  it the drift check records `not_configured` and nothing fails, so this can follow the merge.
+
+### After merge
+
+- [ ] **2. The Sentry alert (T067).** Add an alert rule that emails on the fingerprint `liveops` /
+  `remote-config-drift`, for both environments.
+- [ ] **3. The `live_ops` members and the staging pass (T068).** On each host,
+  `create_staff <name> --group live_ops`, then run
+  [quickstart §1–§4 and §6](../specs/016-b10-catalog-offers/quickstart.md) on staging. On
+  production, check that every setting shows its default (or the imported value) and that the deploy
+  log has no `liveops.W001` (or remove the named lines from the env file).
+
+### Before M12
+
+- [ ] **4. The Play Console products (T069).** Create `bonat_pack_s`, `bonat_pack_m`, `bonat_pack_l`
+  (consumable) and `remove_ads` (non-consumable) with their price tiers; price the smallest pack for
+  mobile-balance payment (product spec «المشتريات»).
 
 ## Known for later features
 

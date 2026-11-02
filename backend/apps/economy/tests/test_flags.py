@@ -6,16 +6,17 @@ threshold (95 %) is 52,250 ms.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pytest
 from django.utils import timezone
-from pytest_django import Settings
 
 from apps.accounts.models import Player
-from apps.economy.models import PlayerFlag
+from apps.economy.models import DayCounter, PlayerFlag
 from apps.economy.services.gameday import game_date
 from apps.economy.tests.helpers import reasons, run, trip_result, trip_start, txn_of, wallet_of
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -32,8 +33,8 @@ def flags(player: Player, kind: str) -> list[PlayerFlag]:
     return list(PlayerFlag.objects.filter(player=player, kind=kind))
 
 
-def test_the_thresholds_are_the_settings(settings: Settings) -> None:
-    assert (settings.SYNC_MIN_DURATION_PERCENT, settings.SYNC_FAST_RUN_PERCENT) == (85, 95)
+def test_the_thresholds_are_the_settings() -> None:
+    assert (live.current()["min_duration_percent"], live.current()["fast_run_percent"]) == (85, 95)
 
 
 def test_a_fast_three_star_run_is_accepted_and_flagged(player: Player, published_pack: int) -> None:
@@ -85,15 +86,21 @@ def test_flags_of_a_day_are_one_row_with_a_count(player: Player, published_pack:
 
 
 def test_too_many_starts_in_a_game_day_raise_trip_rate(
-    player: Player, published_pack: int, settings: Settings
+    player: Player, published_pack: int, live_settings: Callable[..., None]
 ) -> None:
-    assert settings.SYNC_TRIPS_PER_DAY_FLAG == 400
-    settings.SYNC_TRIPS_PER_DAY_FLAG = 3
-    starts = [trip_start("line_hay.01", published_pack) for _ in range(5)]
-    assert reasons(run(player, *starts)) == ["accepted"] * 5
+    assert live.current()["trips_per_day_flag"] == 400
+    live_settings(trips_per_day_flag=10)
+    DayCounter.objects.create(
+        player=player,
+        game_date=game_date(timezone.now()),
+        kind=DayCounter.Kind.TRIPS_STARTED,
+        count=9,
+    )
+    starts = [trip_start("line_hay.01", published_pack) for _ in range(3)]
+    assert reasons(run(player, *starts)) == ["accepted"] * 3
     (flag,) = flags(player, "trip_rate")
-    assert flag.details == {"count": 2, "started_today": 5}
-    assert wallet_of(player).fuel == 0  # the starts were charged as usual
+    assert flag.details == {"count": 2, "started_today": 12}
+    assert wallet_of(player).fuel == 2  # the starts were charged as usual
 
 
 def test_flag_details_hold_ids_and_numbers_only(player: Player, published_pack: int) -> None:

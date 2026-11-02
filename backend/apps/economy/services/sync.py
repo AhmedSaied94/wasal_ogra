@@ -188,8 +188,9 @@ def process_batch(
         raise ValueError("a batch holds at most 100 operations")
     # Whole milliseconds, like every time the economy keeps (contracts/fuel.md).
     now = from_ms(to_ms(timezone.now()))
+    config = settings.current()
     with transaction.atomic():
-        wallet = ledger.lock_wallet(player, now=now)
+        wallet = ledger.lock_wallet(player, now=now, config=config)
         before = wallet.state_version
         referenced = {
             ref
@@ -202,7 +203,7 @@ def process_batch(
             player,
             wallet,
             now=now,
-            settings=settings.current(),
+            settings=config,
             processed=ProcessedOp.objects.filter(player=player, client_txn_id__in=ids),
             referenced=referenced,
             client_version=client_version,
