@@ -12,6 +12,7 @@ from apps.common import errors
 from apps.common.api.views import HealthzView, ReadyzView
 from apps.content.api.views import ManifestView
 from apps.economy.api.views import BootstrapView, StateView, SyncView
+from apps.liveops.api.views import OffersView
 
 router = SimpleRouter()
 
@@ -39,6 +40,7 @@ urlpatterns = [
     path("v1/bootstrap", BootstrapView.as_view(), name="bootstrap"),
     path("v1/state", StateView.as_view(), name="state"),
     path("v1/sync", SyncView.as_view(), name="sync"),
+    path("v1/offers", OffersView.as_view(), name="offers"),
     path("v1/", include(router.urls)),
 ]
 

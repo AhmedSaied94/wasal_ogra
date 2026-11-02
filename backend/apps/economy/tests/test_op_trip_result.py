@@ -6,7 +6,6 @@ import uuid
 from typing import Any
 
 import pytest
-from pytest_django import Settings
 
 from apps.accounts.models import Player
 from apps.content.services import lookups
@@ -22,6 +21,7 @@ from apps.economy.tests.helpers import (
     txn_of,
     wallet_of,
 )
+from apps.liveops import settings as live
 from apps.progress.models import TripProgress, TripRun, TripSession
 
 pytestmark = pytest.mark.django_db
@@ -119,9 +119,9 @@ def test_earnings_out_of_their_bounds(player: Player, published_pack: int) -> No
 
 
 def test_a_finished_trip_faster_than_the_bound_is_refused(
-    player: Player, published_pack: int, settings: Settings
+    player: Player, published_pack: int
 ) -> None:
-    floor = settings.SYNC_MIN_DURATION_PERCENT * last_station_ms(published_pack) // 100
+    floor = live.current()["min_duration_percent"] * last_station_ms(published_pack) // 100
     start = started(player, published_pack)
     assert reasons(run(player, trip_result(start, HAY, duration_ms=floor - 1))) == [
         "duration_out_of_bounds"

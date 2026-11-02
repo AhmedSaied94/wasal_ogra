@@ -13,6 +13,7 @@ from django.utils import timezone
 from apps.economy.models import DayCounter, ProcessedOp
 from apps.economy.services import settings
 from apps.economy.services.gameday import game_date
+from apps.liveops.tasks import skip_in_maintenance
 from apps.progress.models import TripRun
 
 # Deleted in chunks, so one day's prune never holds a long lock or a huge transaction.
@@ -31,6 +32,7 @@ FUTURE_ID_MARGIN = timedelta(days=1)
     retry_backoff=True,
     max_retries=3,
 )
+@skip_in_maintenance
 def prune(self: Task[[], dict[str, int]]) -> dict[str, int]:
     """Daily at 04:45 Cairo time, after the sessions' prune. The ledger, progress, ownership and
     inventory are never deleted. A pruned operation id stays refused: it is older than the

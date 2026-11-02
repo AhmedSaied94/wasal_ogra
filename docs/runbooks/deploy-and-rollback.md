@@ -203,3 +203,26 @@ curl -s https://api.<host>/v1/content/manifest              # {"version":0,"pack
 ```
 
 Publishing and promoting are in [content-publishing.md](content-publishing.md).
+
+
+### Maintenance window (B10)
+
+Use it when a release's migration rewrites or locks a large table: any non-expand migration, or one
+marked `# maintenance` in review. Reads and offline play continue; writes answer
+`503 maintenance` and every scheduled job that writes skips its run (it catches up on its next run).
+
+1. Turn it on in the `api` container, with an end time you expect to beat and a note:
+
+   ```bash
+   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance on        --actor <staff> --until 2026-11-03T15:30Z --note "release <tag>"
+   ```
+
+2. Wait 60 s, so every process's settings snapshot sees it.
+3. Deploy as usual.
+4. Check `/readyz` and the release, then turn it off:
+
+   ```bash
+   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance off --actor <staff>
+   ```
+
+Players' queued batches then apply once each. Full detail: [live-ops.md](live-ops.md#maintenance).

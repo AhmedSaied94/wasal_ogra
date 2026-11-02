@@ -24,6 +24,7 @@ from apps.economy.services.payloads import Field
 from apps.economy.services.sync import Ctx, Rejected, process_batch
 from apps.economy.services.timeline import to_ms
 from apps.economy.tests.helpers import as_ops, ledger_sum, op, uuid7_at, wallet_of
+from apps.liveops import settings as live
 
 CREDIT = "test_credit"
 REFUSE = "test_refuse"
@@ -85,14 +86,14 @@ def statuses(result: sync.BatchResult) -> list[tuple[str, str]]:
 # -- the wallet ------------------------------------------------------------------------------------
 
 
-def test_the_wallet_is_created_on_first_use(player: Player, settings: Settings) -> None:
+def test_the_wallet_is_created_on_first_use(player: Player) -> None:
     assert not Wallet.objects.filter(pk=player.pk).exists()
     result = run(player)
     wallet = wallet_of(player)
     assert (wallet.jenehat, wallet.bonat, wallet.state_version) == (0, 0, 0)
-    assert wallet.fuel == settings.ECONOMY_FUEL_MAX
+    assert wallet.fuel == live.current()["fuel_max"]
     assert result.state_version == 0
-    assert result.wallet["fuel"] == settings.ECONOMY_FUEL_MAX
+    assert result.wallet["fuel"] == live.current()["fuel_max"]
     assert wallet.last_active_at is not None
 
 
@@ -293,7 +294,7 @@ def test_the_effective_time_never_goes_back_or_past_now(player: Player, settings
     wallet = wallet_of(player)
     assert to_ms(wallet.timeline_at) == times[2]
     # Ten minutes back is under the flag's threshold; two hours ahead is over it.
-    assert settings.SYNC_CLOCK_CLAMP_FLAG_MINUTES > 9
+    assert live.current()["clock_clamp_flag_minutes"] > 9
     flag = PlayerFlag.objects.get(player=player)
     assert flag.kind == PlayerFlag.Kind.CLOCK_CLAMPED
     assert flag.details["count"] == 1

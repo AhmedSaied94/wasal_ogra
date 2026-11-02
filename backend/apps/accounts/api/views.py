@@ -191,8 +191,11 @@ class LinkView(APIView):
             413: error("Payload too large"),
             415: error("Unsupported media type"),
             422: error("provider_token_invalid, with details.reason"),
+            426: error("client_outdated: the app is below the platform's minimum"),
             429: error("Too many requests from this player"),
-            503: error("Google's keys can't be fetched, or the database is down"),
+            503: error(
+                "Google's keys can't be fetched, the database is down, or maintenance is on"
+            ),
         },
         tags=["auth"],
     )

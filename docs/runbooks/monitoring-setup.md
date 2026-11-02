@@ -12,8 +12,8 @@ green check.
 
 | File | VM | What this page puts in it |
 | --- | --- | --- |
-| `prod.env` | prod | `SENTRY_DSN`, and `heartbeat-prod`'s URL as `HC_PING_HEARTBEAT_URL` |
-| `staging.env` | staging | `SENTRY_DSN`, and `heartbeat-staging`'s URL as `HC_PING_HEARTBEAT_URL` |
+| `prod.env` | prod | `SENTRY_DSN`, `heartbeat-prod`'s URL as `HC_PING_HEARTBEAT_URL`, and the Firebase Remote Config key (below) |
+| `staging.env` | staging | `SENTRY_DSN`, `heartbeat-staging`'s URL as `HC_PING_HEARTBEAT_URL`, and the Firebase Remote Config key (below) |
 | `prod-backup.env` | prod | The B2 backup key lines, and `backup-prod`'s URL as `HC_PING_BACKUP_URL` |
 | `prod-drill.env` | staging | The B2 drill key lines, and `restore-drill-prod`'s URL as `HC_PING_DRILL_URL` |
 | `host-monitor.env` | each | That VM's own host-monitor URL as `HC_PING_HOST_MONITOR_URL`, and the thresholds |
@@ -237,3 +237,23 @@ reminder in your calendar.
   `uv run tools/b2_setup.py [--env staging] --daily-bucket <daily> --weekly-bucket <weekly> --check`
   for each environment.
 - Check that no service shows a charge (SC-013).
+
+
+## Firebase Remote Config (B10's drift check)
+
+The daily drift check reads Remote Config's client template. It needs a service account with only
+the **Firebase Remote Config Viewer** role, in the Google Cloud project `wassal-ogra`, and one JSON
+key per host (staging and production), rotated like any secret:
+
+1. Google Cloud console → IAM & Admin → Service accounts → create `wassal-remote-config-reader`
+   with that one role.
+2. Keys → Add key → JSON. It downloads once; keep it in your password manager.
+3. Put two lines in each host's `/etc/wassal/<env>.env` (mode `0400`), the key on one line with no
+   newlines:
+   - `FIREBASE_PROJECT_ID=wassal-ogra`
+   - `REMOTE_CONFIG_SERVICE_ACCOUNT={"type":"service_account", …}` (the whole JSON)
+4. Restart the worker so the task reads them, then `sudo docker compose -p wassal-<env> exec api uv
+   run manage.py shell -c "from apps.liveops.services import remote_config; print(remote_config.run())"`.
+   A run shows `ok`, or `not_configured` when the variables are empty (nothing fails).
+5. **Sentry alert rule:** for the fingerprint `liveops` / `remote-config-drift`, email both
+   environments' operators (Settings → Alerts → create a rule on the event's fingerprint).

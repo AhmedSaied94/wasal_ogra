@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
 import time_machine
 from django.utils import timezone
-from pytest_django import Settings
 
 from apps.accounts.models import Player
 from apps.economy.models import Currency, DayCounter, PlayerFlag
@@ -24,6 +24,7 @@ from apps.economy.tests.helpers import (
     trip_start,
     wallet_of,
 )
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -68,9 +69,9 @@ def test_unlimited_mode_costs_nothing_inside_the_window_only(
 
 
 def test_a_refill_ad_fills_the_tank_and_is_capped_a_day(
-    player: Player, published_pack: int, settings: Settings
+    player: Player, published_pack: int
 ) -> None:
-    assert settings.ECONOMY_FUEL_REFILL_DAILY_CAP == 3
+    assert live.current()["ads_fuel_refill_daily_cap"] == 3
     ops = [refill()]  # a full tank
     for _ in range(4):
         ops += [trip_start("line_hay.01", published_pack), refill()]
@@ -119,17 +120,17 @@ def test_bonat_buys_a_full_tank_or_an_hour(player: Player, published_pack: int) 
 
 
 def test_a_lowered_maximum_keeps_the_liters_and_regenerates_nothing_above_it(
-    player: Player, published_pack: int, settings: Settings
+    player: Player, published_pack: int, live_settings: Callable[..., None]
 ) -> None:
     created_at(player, timezone.now() - timedelta(hours=2))
-    settings.ECONOMY_FUEL_MAX = 3
+    live_settings(fuel_max=3)
     run(player, trip_start("line_hay.01", published_pack, at=timezone.now() - timedelta(hours=1)))
     wallet = run(player).wallet
     assert (wallet["fuel"], wallet["fuel_max"]) == (4, 3)
 
 
 def test_a_subscriber_has_the_larger_tank(
-    player: Player, published_pack: int, settings: Settings, monkeypatch: pytest.MonkeyPatch
+    player: Player, published_pack: int, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     flags = {"no_interstitials": False, "fuel_max_bonus": 2}
     monkeypatch.setattr(entitlements, "flags_for", lambda player, at: flags)
@@ -137,7 +138,7 @@ def test_a_subscriber_has_the_larger_tank(
     start_at = timezone.now() - timedelta(hours=2)
     run(player, trip_start("line_hay.01", published_pack, at=start_at))
     wallet = run(player).wallet
-    assert wallet["fuel_max"] == settings.ECONOMY_FUEL_MAX_SUBSCRIBER == 7
+    assert wallet["fuel_max"] == live.current()["fuel_max_subscriber"] == 7
     assert wallet["fuel"] == 7
 
 

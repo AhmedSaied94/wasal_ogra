@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from django.conf import settings
+from apps.liveops import settings as live
 
 # Folded to a bare alef, alef maqsura to ya, ta marbuta to ha (research R10). The Arabic letters
 # are the point of the table, so ruff's look-alike warning is off for it.
@@ -70,10 +70,26 @@ def clean_display_name(text: str) -> str:
     return _SPACES.sub(" ", unicodedata.normalize("NFKC", text)).strip()
 
 
-def validate_display_name(text: str, blocked: list[str]) -> str:
-    """The cleaned name, or `NameRefused`. `blocked` holds the filter's normalized terms."""
+def validate_display_name(
+    text: str,
+    blocked: list[str],
+    *,
+    min_length: int | None = None,
+    max_length: int | None = None,
+) -> str:
+    """The cleaned name, or `NameRefused`. `blocked` holds the filter's normalized terms.
+
+    A batch passes its own snapshot's lengths, so it reads the live settings once (FR-007);
+    outside a batch they come from `live.current()`.
+    """
     name = clean_display_name(text)
-    if not settings.ECONOMY_NAME_MIN_LENGTH <= len(name) <= settings.ECONOMY_NAME_MAX_LENGTH:
+    if min_length is None or max_length is None:
+        snapshot = live.current()
+        if min_length is None:
+            min_length = int(snapshot["name_min_length"])
+        if max_length is None:
+            max_length = int(snapshot["name_max_length"])
+    if not min_length <= len(name) <= max_length:
         raise NameRefused("length")
     if _INVISIBLE.search(name) or any(
         unicodedata.category(ch) in ("Cc", "Cf", "Cs", "Co") for ch in name

@@ -14,6 +14,7 @@ from apps.accounts.models import Identity, Player
 from apps.economy.models import Wallet
 from apps.economy.services.gameday import game_date
 from apps.economy.tests.helpers import Api, iso, run, trip_result, trip_start, wallet_of
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -34,7 +35,7 @@ def parse(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
-def test_a_new_player_starts_with_a_full_tank(api: Api, settings: Settings) -> None:
+def test_a_new_player_starts_with_a_full_tank(api: Api) -> None:
     before = timezone.now()
     response = api.bootstrap()
     assert response.status_code == 200, response.content
@@ -45,7 +46,7 @@ def test_a_new_player_starts_with_a_full_tank(api: Api, settings: Settings) -> N
     assert body["state_version"] == 0
     wallet = body["wallet"]
     assert (wallet["jenehat"], wallet["bonat"]) == (0, 0)
-    assert wallet["fuel"] == wallet["fuel_max"] == settings.ECONOMY_FUEL_MAX
+    assert wallet["fuel"] == wallet["fuel_max"] == live.current()["fuel_max"]
     assert wallet["fuel_unlimited_until"] is None
     assert body["player"] == {
         "player_id": api.player_id,
@@ -75,8 +76,8 @@ def test_the_neutral_blocks(api: Api, settings: Settings) -> None:
     }
     assert body["comeback"] == {"claimable": False}
     assert body["client"] == {
-        "min_version": settings.CLIENT_MIN_VERSION,
-        "latest_version": settings.CLIENT_LATEST_VERSION,
+        "min_version": live.current()["min_client_version_android"],
+        "latest_version": live.current()["latest_client_version_android"],
         "force_update": False,
     }
 
@@ -132,10 +133,9 @@ def test_the_fuel_is_recounted_to_now(api: Api, published_pack: int) -> None:
 
 
 def test_an_app_below_the_minimum_must_update_and_still_gets_its_answer(
-    api: Api, settings: Settings
+    api: Api, live_settings: Callable[..., None]
 ) -> None:
-    settings.CLIENT_MIN_VERSION = "1.2.0"
-    settings.CLIENT_LATEST_VERSION = "1.3.0"
+    live_settings(min_client_version_android="1.2.0", latest_client_version_android="1.3.0")
     old = api.bootstrap(**{"x-client-version": "1.1.9+40"})
     assert old.status_code == 200
     assert old.json()["client"] == {
@@ -147,19 +147,19 @@ def test_an_app_below_the_minimum_must_update_and_still_gets_its_answer(
     assert current["client"]["force_update"] is False
 
 
-def test_a_bootstrap_after_the_session_gap_starts_a_session(api: Api, settings: Settings) -> None:
+def test_a_bootstrap_after_the_session_gap_starts_a_session(api: Api) -> None:
     api.bootstrap()
     first = wallet_of(api.player)
     assert first.session_started_at == first.last_active_at
     # Within the gap: the same session.
-    earlier = timezone.now() - timedelta(minutes=settings.SYNC_SESSION_GAP_MINUTES - 5)
+    earlier = timezone.now() - timedelta(minutes=live.current()["session_gap_minutes"] - 5)
     Wallet.objects.filter(pk=first.pk).update(last_active_at=earlier, session_started_at=earlier)
     api.bootstrap()
     within = wallet_of(api.player)
     assert within.session_started_at == earlier
     assert within.last_active_at > earlier
     # After it: a new one.
-    long_ago = timezone.now() - timedelta(minutes=settings.SYNC_SESSION_GAP_MINUTES + 1)
+    long_ago = timezone.now() - timedelta(minutes=live.current()["session_gap_minutes"] + 1)
     Wallet.objects.filter(pk=first.pk).update(last_active_at=long_ago)
     api.bootstrap()
     after = wallet_of(api.player)

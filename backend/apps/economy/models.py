@@ -57,6 +57,10 @@ class Wallet(models.Model):
 
     class Meta:
         permissions = (("adjust_wallet", "Can adjust a player's balance"),)
+        # The 7-day "active players" counts of the version page (B10 research R10).
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=("last_active_at",), name="wallet_last_active_idx")
+        ]
         constraints = (
             models.CheckConstraint(condition=Q(jenehat__gte=0), name="wallet_jenehat_not_negative"),
             models.CheckConstraint(condition=Q(bonat__gte=0), name="wallet_bonat_not_negative"),

@@ -74,8 +74,11 @@ class SyncView(APIView):
             406: error("Not acceptable"),
             413: error("Over 256 KB (details.limit_bytes)"),
             415: error("Unsupported media type"),
+            426: error("client_outdated: the app is below the platform's minimum"),
             429: error("Too many batches from this player"),
-            503: error("The database or the cache is down; nothing was applied"),
+            503: error(
+                "maintenance is on (nothing was applied), or the database or the cache is down"
+            ),
         },
         tags=["economy"],
     )
@@ -106,8 +109,9 @@ class SyncView(APIView):
 
 
 class BootstrapView(APIView):
-    """A player endpoint: the default authentication, permissions and limit."""
+    """A player endpoint, exempt from the version gate: it is how the app learns to update."""
 
+    allow_outdated_client = True
     throttle_classes = (PlayerRateThrottle,)
     http_method_names = ("get", "options")
 
@@ -159,6 +163,7 @@ class StateView(APIView):
             403: error("account_deleted"),
             405: error("Method not allowed"),
             406: error("Not acceptable"),
+            426: error("client_outdated: the app is below the platform's minimum"),
             429: error("Too many requests from this player"),
             503: error("The database or the cache is down"),
         },

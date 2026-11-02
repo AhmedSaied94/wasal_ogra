@@ -6,14 +6,15 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pytest_django import Settings
 
 from apps.accounts.models import Player
 from apps.economy.models import Currency, LedgerEntry
 from apps.economy.tests.helpers import ledger_sum, op, reasons, run, trip_result, trip_start, txn_of
+from apps.liveops import settings as live
 from apps.progress.models import TripSession
 
 pytestmark = pytest.mark.django_db
@@ -130,9 +131,9 @@ def test_a_trip_is_revived_once(player: Player, published_pack: int) -> None:
 
 
 def test_traffic_jam_ads_are_capped_per_trip(
-    player: Player, published_pack: int, settings: Settings
+    player: Player, published_pack: int, live_settings: Callable[..., None]
 ) -> None:
-    assert settings.ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP == 1
+    assert live.current()["traffic_jam_ads_per_trip"] == 1
     first, second = (
         trip_start("line_hay.01", published_pack),
         trip_start("line_hay.01", published_pack),
@@ -146,7 +147,7 @@ def test_traffic_jam_ads_are_capped_per_trip(
         ad("traffic_jam", second),
     )
     assert reasons(result) == ["accepted", "accepted", "cap_reached", "accepted", "accepted"]
-    settings.ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP = 2
+    live_settings(traffic_jam_ads_per_trip=2)
     assert reasons(run(player, ad("traffic_jam", second))) == ["accepted"]
     assert TripSession.objects.get(player=player).open_traffic_jam_ads == 2
 

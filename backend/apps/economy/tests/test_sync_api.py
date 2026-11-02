@@ -26,6 +26,7 @@ from apps.economy.tests.helpers import (
     trip_start,
     txn_of,
 )
+from apps.liveops import settings as live
 
 pytestmark = pytest.mark.django_db
 
@@ -67,7 +68,7 @@ def test_a_validation_error_names_the_field(api: Api) -> None:
     assert entry["details"] == {"field": "content_version"}
 
 
-def test_an_empty_batch_answers_the_current_wallet(api: Api, settings: Settings) -> None:
+def test_an_empty_batch_answers_the_current_wallet(api: Api) -> None:
     response = api.sync(batch())
     assert response.status_code == 200
     body = response.json()
@@ -77,7 +78,7 @@ def test_an_empty_batch_answers_the_current_wallet(api: Api, settings: Settings)
         "results": [],
         "wallet": body["wallet"],
     }
-    assert body["wallet"]["fuel"] == settings.ECONOMY_FUEL_MAX
+    assert body["wallet"]["fuel"] == live.current()["fuel_max"]
     assert (body["wallet"]["jenehat"], body["wallet"]["bonat"]) == (0, 0)
     assert Wallet.objects.filter(player_id=api.player_id).exists()
 

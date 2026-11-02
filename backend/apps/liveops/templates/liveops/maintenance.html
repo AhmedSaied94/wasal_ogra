@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:liveops_livesetting_changelist' %}">Live settings</a>
+    &rsaquo; Maintenance
+  </div>
+{% endblock %}
+
+{% block content %}
+  <h1>Maintenance</h1>
+  <p>
+    {% if state.enabled %}
+      <strong>On</strong>{% if state.until %}, until {{ state.until }}{% endif %}.
+      Writes answer 503; reads and offline play go on.
+    {% else %}
+      <strong>Off.</strong>
+    {% endif %}
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" name="action" value="on">Turn on</button>
+    <button type="submit" name="action" value="off">Turn off</button>
+  </form>
+{% endblock %}

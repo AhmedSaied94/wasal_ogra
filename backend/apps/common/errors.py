@@ -38,6 +38,9 @@ class ErrorCode(StrEnum):
     PROVIDER_TOKEN_INVALID = "provider_token_invalid"  # noqa: S105
     # B03 (specs/010-b03-ledger-sync/contracts/api.md)
     BATCH_TOO_LARGE = "batch_too_large"
+    # B10 (specs/016-b10-catalog-offers/contracts/api.md)
+    CLIENT_OUTDATED = "client_outdated"
+    MAINTENANCE = "maintenance"
 
 
 MESSAGES: dict[ErrorCode, str] = {
@@ -58,6 +61,8 @@ MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.PROVIDER_ALREADY_LINKED: "Another account of this provider is already linked",
     ErrorCode.PROVIDER_TOKEN_INVALID: "Provider token could not be verified",
     ErrorCode.BATCH_TOO_LARGE: "Batch too large",
+    ErrorCode.CLIENT_OUTDATED: "Client outdated",
+    ErrorCode.MAINTENANCE: "Down for maintenance",
 }
 
 STATUSES: dict[ErrorCode, int] = {
@@ -78,6 +83,8 @@ STATUSES: dict[ErrorCode, int] = {
     ErrorCode.PROVIDER_ALREADY_LINKED: 409,
     ErrorCode.PROVIDER_TOKEN_INVALID: 422,
     ErrorCode.BATCH_TOO_LARGE: 400,
+    ErrorCode.CLIENT_OUTDATED: 426,
+    ErrorCode.MAINTENANCE: 503,
 }
 
 # Every 401 tells the client which scheme to use (B02 research R8).

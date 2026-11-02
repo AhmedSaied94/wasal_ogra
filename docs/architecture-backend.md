@@ -243,12 +243,12 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | 413 | `payload_too_large` (the edge's 512 KB limit, with a backstop in Django) |
 | 415 | `unsupported_media_type` |
 | 422 | `provider_token_invalid`, `insufficient_funds`, `not_eligible`, `price_mismatch`, `cap_reached`, `trip_locked` |
-| 426 | `client_outdated` (below `min_client_version`) |
+| 426 | `client_outdated` (below the platform's `min_client_version`, with `details.min_version`) |
 | 429 | `rate_limited` |
 | 500 | `server_error` (any unhandled exception; the request id is in the `X-Request-ID` header) |
-| 503 | `maintenance`, `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
+| 503 | `maintenance` (a write while it is on, with `details.until` when set), `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
 
-B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). B03 added `batch_too_large`: a `POST /v1/sync` with more than 100 operations, with `details.max` = 100. The same endpoint answers `413 payload_too_large` above its own 256 KB limit, with `details.limit_bytes` = 262144, and `400 validation_error` for a malformed body or operation envelope, with `details.fields` naming the problem in dotted names (`ops.3.client_txn_id`). An operation the server refuses is not an HTTP error: the request answers 200, and the operation's `reason` (`unknown_op_type`, `insufficient_funds`, …) comes from the table in B03 contracts/operations.md (§7.3). Any DRF exception code that ships must be listed here first.
+B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). B03 added `batch_too_large`: a `POST /v1/sync` with more than 100 operations, with `details.max` = 100. The same endpoint answers `413 payload_too_large` above its own 256 KB limit, with `details.limit_bytes` = 262144, and `400 validation_error` for a malformed body or operation envelope, with `details.fields` naming the problem in dotted names (`ops.3.client_txn_id`). An operation the server refuses is not an HTTP error: the request answers 200, and the operation's `reason` (`unknown_op_type`, `insufficient_funds`, …) comes from the table in B03 contracts/operations.md (§7.3). Any DRF exception code that ships must be listed here first. B10 added `426 client_outdated` (`details.min_version`, the platform's live minimum) and `503 maintenance` (`details.until` only when set and in the future, on unsafe methods of default endpoints); the check order is authentication → client headers → version → maintenance → throttle (B10 contracts/api.md).
 
 ### 6.3 Endpoints
 
@@ -328,7 +328,7 @@ The shapes of bootstrap, state and sync are in B03 contracts/api.md.
 
 - The first bootstrap, state or sync request creates the player's wallet.
 - `wallet.fuel` is the liters now, recounted to the server's time without writing it. `fuel_updated_at` is the countdown anchor, M05's `countedFrom`: when the current countdown started, or when the tank last became full. The app rebuilds its countdown from it and `fuel_max`. Times carry milliseconds when they have them.
-- `entitlements` is neutral until B06, and `daily` until B08 and M13. `client` comes from `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION` (both `1.0.0`) until B10. `force_update` is true when `X-Client-Version` is below the minimum, and bootstrap still answers 200.
+- `entitlements` is neutral until B06, and `daily` until B08 and M13. `client` comes from the live settings `min_client_version_<platform>` and `latest_client_version_<platform>` for the request's `X-Platform` (B10 FR-012), and bootstrap also records the player's platform and version when they differ. `force_update` is true when `X-Client-Version` is below the minimum, and bootstrap still answers 200.
 - **Sessions and the comeback return** (B03 research R13). Every bootstrap, state and sync request sets `Wallet.last_active_at`. A bootstrap after `SYNC_SESSION_GAP_MINUTES` (30) without activity starts a new session. If the player was also away at least `SYNC_COMEBACK_AWAY_DAYS` (7) Cairo calendar days, and no comeback gift was granted within `SYNC_COMEBACK_COOLDOWN_DAYS` (30), it sets `Wallet.comeback_return_at` to now. A claim keeps the return and records `GrantRecord(comeback, <return time>)`; a later return replaces it.
 - `comeback.claimable` is true when a return is set, it has no grant, and the cooldown has passed. It stays true until the claim has synced, so the app never sends a second `comeback_gift` while one is pending (§7.4).
 
@@ -395,7 +395,7 @@ A full snapshot at one `state_version`, read under a shared lock on the wallet r
 ### 6.5 Versioning, force update, rate limits
 
 - Breaking changes go to `/v2`; `/v1` stays until active clients below the new version are < 2%.
-- `min_client_version` per platform lives in `liveops` settings. Requests from older clients get `426 client_outdated`, except `/v1/bootstrap`, which returns `force_update: true` so the app can show the update screen. Until B10, bootstrap reads the versions from `CLIENT_MIN_VERSION` and `CLIENT_LATEST_VERSION`, and nothing answers 426.
+- `min_client_version` per platform lives in `liveops` settings. Requests from older clients get `426 client_outdated` (`details.min_version`) on any endpoint with the default permissions; `/v1/bootstrap` is exempt and returns `force_update: true` so the app can show the update screen. `auth/anonymous`, `auth/refresh`, the manifest and the health endpoints are exempt too, so a phone can always reach bootstrap. B10 adds both codes; the order is authentication → client headers → version → maintenance → throttle.
 - DRF throttles backed by Redis, each rate an environment setting:
   - **Default:** 120/min per player on every request authenticated as a player, and 120/min per client address on the rest.
   - **`auth/anonymous`:** 60/hour per client address. Egyptian carriers put many subscribers behind each public address (carrier-grade NAT). At the 100k DAU design point, launch day brings about 10,000 installs an hour nationwide, a handful per carrier address. Returns through the install id count too, and a request costs only a few rows, with no currency (B02 research R9).
@@ -504,7 +504,7 @@ Flagged players are excluded from leagues and reviewed in admin. Offline play mu
 - Server fuel state, on `Wallet`: `fuel`, `fuel_updated_at` (M05's `countedFrom`: when the current countdown started, or when the tank last became full), `fuel_unlimited_until`, and `timeline_at` (§7.3 rule 7). `fuel_max` is 5, or 7 with the subscription flag at the op's time.
 - **The timeline rule** (B03 research R7). Each op recounts fuel at its own effective time `t`, not at the server's `now`: it regenerates, `fuel = min(fuel_max, fuel + floor((t − fuel_updated_at) / 20 min))` in integer milliseconds, then applies its own step. A late sync gives the liters the phone had when it played, and a phone with a wrong clock gains nothing beyond the time that really passed on the server since the previous op. Reads (bootstrap, state, the sync answer) show the tank recounted to `now` without writing it.
 - If `fuel == 0` after the recount and no unlimited window: accept with `fuel = 0`, record a `fuel_overdraft` flag, and count it for the game day of `t`. `ECONOMY_FUEL_OVERDRAFT_PER_DAY` (2) overdrafts are accepted in a game day; the next start is rejected with `cap_reached`.
-- The tank, the subscriber's tank, the regeneration minutes and the daily refill ad cap are env settings (`ECONOMY_FUEL_MAX`, `ECONOMY_FUEL_MAX_SUBSCRIBER`, `ECONOMY_FUEL_REGEN_MINUTES`, `ECONOMY_FUEL_REFILL_DAILY_CAP`) whose defaults a CI test keeps equal to the Remote Config defaults in mobile §14.3. The overdraft limit and the other server-only numbers have no Remote Config key (mobile §14.3). B10 moves all of them into `liveops.LiveSetting`.
+- The tank, the subscriber's tank, the regeneration minutes and the daily refill ad cap are live settings (`fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes`, `ads_fuel_refill_daily_cap`, `applied_by: both`), read from one snapshot per batch; a CI test keeps their defaults equal to the app's `tunables.json` (B10 research R9). The overdraft limit (`fuel_overdraft_per_day`) and the other server-only numbers are live settings with no Remote Config key (mobile §14.3); every retired environment variable is imported once on migrate.
 - **M05's rules, which B03 applies** (`specs/007-m05-local-economy/contracts/fuel-and-time.md`, research R8 and R20; B03 contracts/fuel.md). The client applies them offline; the server replays them at the ops' effective times:
   - a start from a full tank starts the countdown to the next liter at that moment; below full, the time already counted is kept; when the tank fills, counting stops;
   - liters above `fuel_max` (after it is lowered) are kept, and nothing regenerates until the tank is below the maximum;
@@ -524,13 +524,15 @@ Flagged players are excluded from leagues and reviewed in admin. Offline play mu
 
 | `product_id` | Type | Grants |
 | --- | --- | --- |
-| `bonat_pack_s/m/l` | consumable | BONAT amount (values from product spec pricing table) |
+| `bonat_pack_s/m/l` | consumable | 60 BONAT; 300 + 30 bonus; 800 + 120 bonus (B10 FR-020). The bonus is shown as «+N هدية» |
 | `starter_pack` | non-consumable (phase 2), offered once after chapter 1 and kept in the shop until day 7 after install | BONAT + exclusive cosmetic + 2 h `fuel_unlimited` |
 | `remove_ads` | non-consumable | entitlement `remove_ads` → flag `no_interstitials` |
 | `sub_ostaz_weekly/monthly` | subscription (phase 2) | entitlement `subscription` → flags `no_interstitials`, `fuel_max_bonus: 2`, plus any daily grant in the product spec (issued by a Celery job, §11.2) |
 | `season_pass_<key>` | non-consumable (phase 3) | entitlement `season_pass:<key>` |
 
-Real-money prices and local currencies are configured in Play Console / App Store Connect only. The backend never stores prices for real-money products.
+Grants are typed columns, not JSON (`bonat`, `bonus_bonat`, `entitlement`), so a check constraint keeps them coherent with `kind`: a consumable needs BONAT and no entitlement, a non-consumable needs an entitlement and no BONAT, and only one active product may be `best_value` (B10 research R11). `catalog.grants_for(product_id, platform)` returns `bonat + bonus_bonat` and the entitlement for B06.
+
+Real-money prices and local currencies are configured in Play Console / App Store Connect only. The backend never stores prices for real-money products, and `GET /v1/offers` returns none.
 
 ### 8.2 Verification flow
 
@@ -746,9 +748,12 @@ The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends
 | `subscription_expiry_sweep` | hourly | B12 |
 | `subscriber_daily_grant` | daily (if defined in product spec) | B12 |
 | `process_account_deletions` | daily | B09 |
-| `expire_offers` | hourly | B10 |
+| `liveops.expire_offers` | hourly at :00 Cairo: `scheduled` → `active`, `active` → `expired` | B10 |
+| `liveops.check_remote_config` | daily 05:15 Cairo: compares every phone-applied setting with Remote Config's default, records a row and sends Sentry one warning on a `both` drift | B10 |
 | `league_rollover` | weekly | B13 |
 | `economy.tasks.prune` | daily 04:45 Cairo: deletes `ProcessedOp` older than `SYNC_OP_RETENTION_DAYS` (180), `TripRun` older than 90 days and `DayCounter` older than 40 days, in chunks of 10,000 | B03 |
+
+Every scheduled job that writes is wrapped by `liveops.tasks.skip_in_maintenance`, which returns `{"skipped": "maintenance"}` and logs `task_skipped_maintenance` while maintenance is on (B10 FR-034). The exceptions are the jobs that write only their own check rows: `common.tasks.heartbeat` and `liveops.check_remote_config`.
 
 ### 11.3 Push notifications
 
@@ -758,7 +763,17 @@ The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends
 
 ### 11.4 Offers
 
-`GET /v1/offers` returns active offers for the player: starter pack (phase 2: after chapter 1, until day 7 since install, not yet bought), seasonal sale, season pass. Eligibility rules are data on `liveops.Offer` (country, days since install, payer status, owned products), evaluated server-side.
+`GET /v1/offers` returns the catalog and the player's eligible offers (B10). Every offer also obeys its times (`starts_at ≤ now < ends_at`, null end open), the product's platform and `active`, and a non-consumable the player owns is never shown. `Offer.rules` is a validated JSON list; a player sees the offer only when every rule holds:
+
+| `rule` | Fields | Holds when |
+| --- | --- | --- |
+| `country_in` | `countries` (ISO 3166-1 alpha-2) | the player's country is in the list; a blank country never matches |
+| `days_since_install` | `min`, `max` | Cairo calendar days since install are within the bounds (day 0 = the install day) |
+| `payer` | `is` | the player has or hasn't a granted purchase (B06 fills this) |
+| `owns_product` / `lacks_product` | `product_id` | the player holds that product's entitlement, or doesn't |
+| `chapter_reached` | `chapter_id`, `status` (`open`, `completed`) | the player's story state for that chapter is at least that status |
+
+Listing filters over a per-process snapshot and loads the player's facts once, so the query count is fixed whatever the number of offers (B10 research R12).
 
 ---
 
@@ -819,13 +834,15 @@ The daily `economy.tasks.prune` (§11.2) deletes old `ProcessedOp`, `TripRun` an
 
 | Model | Fields |
 | --- | --- |
-| `StoreProduct` | `product_id`, `platforms`, `kind`, `grants` (JSON), `active` |
+| `StoreProduct` | `product_id`, `kind` (`consumable`, `non_consumable`, `subscription`), `platforms`, typed grants `bonat`, `bonus_bonat`, `entitlement`, `best_value`, `display_order`, `active`; no price |
 | `Purchase` | `player`, `platform`, `product_id`, `store_txn_id` (unique), `original_txn_id`, `purchase_token`, `state` (`pending`, `granted`, `refunded`, `revoked`), `environment` (`sandbox`, `production`), `raw` (JSON), `verified_at`, `granted_at`, `client_txn_id` |
 | `Entitlement` | `player`, `kind` (`remove_ads`, `subscription`, `season_pass`, `starter_pack`), `key`, `active_from`, `expires_at`, `state`, `source_purchase` |
 | `StoreNotification` | `platform`, `notification_id` (unique), `type`, `payload`, `received_at`, `processed_at`, `status` |
-| `Offer` | `offer_id`, `kind`, `product_id`, `rules` (JSON), `starts_at`, `ends_at`, `priority` |
+| `Offer` | `offer_id`, `kind` (`starter`, `sale`, `season_pass`, `other`), `product` FK, `rules` (validated JSON), `starts_at`, `ends_at`, `priority`, `status` (`scheduled`, `active`, `expired`) |
 | `Season` (phase 3) | `season_key`, `starts_at`, `ends_at`, `pass_product_id`, `reward_track` (JSON) |
-| `LiveSetting` | key/value for server-side tunables (`min_client_version_*`, fuel regen, caps) |
+| `LiveSetting` | `key` (unique), `value` (JSON, typed by `apps/liveops/registry.py`), `unused`, `updated_by`, `updated_at`; one row per registry key |
+| `LiveopsChange` | append-only history: `target` (`setting`, `product`, `offer`), `key`, `old`, `new`, `source` (`admin`, `command`, `import`, `reset`), `actor`, `note`, `at`; index(`target`, `key`) |
+| `RemoteConfigCheck` | `ran_at`, `status` (`ok`, `drift`, `unreachable`, `not_configured`), `template_version`, `drift` (JSON); rows older than 90 days are pruned |
 
 ### ads, challenges, notifications, phase 3
 
@@ -915,7 +932,7 @@ erDiagram
 | Observability | Sentry, US region (organization `saied-store-div`, project `wassal-backend`), free Developer plan (errors + traces at a low sample rate; IPs, cookies, headers, bodies and local variables scrubbed); structured JSON logs with a request id; `pg_stat_statements`; UptimeRobot on `/healthz`; Healthchecks.io dead-man's switches for the heartbeat task, the backup, the drill and each host's monitor; each host monitor (every 5 min) checks its host's disk, certificate expiry, queue backlog and its own backup storage. Setup: `docs/runbooks/monitoring-setup.md`. |
 | CI (GitHub Actions) | `backend.yml`: `ruff`, `mypy --strict` (django-stubs), `pytest` with real PostgreSQL and Valkey and an 80% coverage gate, the OpenAPI drift check and `schemathesis`, the host-script and edge smoke tests, then an `linux/arm64` image pushed to GHCR as `sha-<commit>`. `secrets.yml`: gitleaks. Schema and parity checks arrive with their features. |
 | CD | A merge to `master` deploys staging; a `vX.Y.Z` tag on a `master` commit re-tags that image and deploys prod. Each goes over its host's WireGuard to that host's own forced-command SSH key, limited to its environment (`deploy@10.67.0.1` for staging, `deploy@10.66.0.1` for prod), which runs the host's `deploy` script: lock → pull → migrate → restart `api`, `admin`, `worker`, `beat` → verify `/readyz` and the release in `/healthz`, restoring the previous release if verification fails. Rollback is a deploy of an older tag. Migrations follow expand/contract so the previous release keeps working during deploy. Runbook: `docs/runbooks/deploy-and-rollback.md`. |
-| Maintenance mode | `LiveSetting` flag returns 503 `maintenance` on writes; reads and offline play continue |
+| Maintenance mode | `liveops` settings `maintenance_enabled` and `maintenance_until` answer 503 `maintenance` on unsafe methods (with `details.until` only when set and in the future); reads and offline play continue. Switched in the admin or with `manage.py maintenance on|off --actor <staff>` (both in the history, permission `liveops.switch_maintenance`); every scheduled job that writes skips its run, and the runbook has the deploy procedure |
 | Monthly routine | Check the drill result on the staging host; sign in to the OCI console (idle tenancies can be suspended) and to Healthchecks.io; check the B2 caps and storage; confirm every service still shows USD 0 (`docs/runbooks/monitoring-setup.md`). |
 
 ---
@@ -1041,7 +1058,7 @@ Joint MVP sequence: M03 + B01 → M01 + B04 → B05 (parity) → M04 + M05 → M
 7. Device attestation for competitive features (phase 3).
 8. Store target age group and ad content rating.
 9. Legal review: Egypt PDPL and Gulf data protection; purchase record retention period.
-10. BONAT pack amounts and the exact BONAT count in the starter pack (from the product spec pricing table into `StoreProduct`).
+10. ~~BONAT pack amounts and the exact BONAT count in the starter pack.~~ **Resolved (B10):** the pack amounts are 60, 300 + 30 bonus and 800 + 120 bonus (the `StoreProduct` seed); the starter pack is B12's and widens `product_non_consumable_grants`. See `specs/016-b10-catalog-offers/data-model.md`.
 11. Daily challenge retry cost after the free first attempt.
 
 ---

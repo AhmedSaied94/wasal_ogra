@@ -91,7 +91,8 @@ class NoStoreMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
-        response["Cache-Control"] = "no-store"
+        if not response.has_header("Cache-Control"):
+            response["Cache-Control"] = "no-store"
         return response
 
 

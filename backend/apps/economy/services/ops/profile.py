@@ -54,7 +54,12 @@ def settings_update(state: BatchState, ctx: Ctx) -> None:
         raise Rejected("validation_error", {"field": "payload"})
     if name is not None:
         try:
-            name = names.validate_display_name(name, state.name_filter())
+            name = names.validate_display_name(
+                name,
+                state.name_filter(),
+                min_length=state.settings.name_min_length,
+                max_length=state.settings.name_max_length,
+            )
         except names.NameRefused:
             raise Rejected("validation_error", {"field": "display_name"}) from None
     merged = None

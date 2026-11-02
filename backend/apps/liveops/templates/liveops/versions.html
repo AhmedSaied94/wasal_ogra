@@ -1,0 +1,40 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{% url 'admin:liveops_livesetting_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; App versions
+  </div>
+{% endblock %}
+
+{% block content %}
+  <h1>App versions</h1>
+  <p>Active players are those whose wallet was active in the last 7 days.</p>
+  {% for platform, by_version in counts.items %}
+    <h2>{{ platform|capfirst }}</h2>
+    <table>
+      <thead><tr><th>Version</th><th>Active players</th></tr></thead>
+      <tbody>
+        {% for version, players in by_version.items %}
+          <tr><td>{{ version }}</td><td>{{ players }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2">No active player yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+
+  <h2>Raise a minimum</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Preview</button>
+    {% if preview %}
+      <p><strong>{{ preview.minimum }}</strong> on {{ preview.platform }} would block
+        {{ preview.count }} active player{{ preview.count|pluralize }} ({{ preview.share }}%).</p>
+      <button type="submit" name="confirm" value="1">Save the minimum</button>
+    {% endif %}
+  </form>
+{% endblock %}

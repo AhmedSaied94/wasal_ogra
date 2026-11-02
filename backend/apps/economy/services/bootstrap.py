@@ -22,16 +22,21 @@ from apps.economy.services import comeback, entitlements, ledger, settings, wall
 from apps.economy.services.gameday import game_date
 from apps.economy.services.settings import EconomySettings
 from apps.economy.services.timeline import from_ms, to_ms
+from apps.liveops import settings as live
 
 
 def bootstrap(player: Player, client: ClientInfo) -> dict[str, Any]:
     now = from_ms(to_ms(timezone.now()))
     config = settings.current()
+    snapshot = live.current()
     with transaction.atomic():
-        wallet = ledger.lock_wallet(player, now=now)
+        wallet = ledger.lock_wallet(player, now=now, config=config)
         _mark_session(wallet, now, config)
+        _record_client(player, client, now)
         claimable = comeback.claimable(wallet, now, config)
     providers = sorted(player.identities.values_list("provider", flat=True))
+    minimum = snapshot[f"min_client_version_{client.platform}"]
+    latest = snapshot[f"latest_client_version_{client.platform}"]
     return {
         "server_time": wallets.iso(now),
         "player": {
@@ -49,9 +54,9 @@ def bootstrap(player: Player, client: ClientInfo) -> dict[str, Any]:
             "manifest_url": reverse("content-manifest"),
         },
         "client": {
-            "min_version": config.client_min_version,
-            "latest_version": config.client_latest_version,
-            "force_update": _below(client.version, config.client_min_version),
+            "min_version": minimum,
+            "latest_version": latest,
+            "force_update": _below(client.version, minimum),
         },
         "daily": {
             "game_date": game_date(now).isoformat(),
@@ -60,6 +65,13 @@ def bootstrap(player: Player, client: ClientInfo) -> dict[str, Any]:
         },
         "comeback": {"claimable": claimable},
     }
+
+
+def _record_client(player: Player, client: ClientInfo, now: datetime) -> None:
+    """Keep the player's platform and version current, so the version counts are exact (R10)."""
+    Player.objects.filter(pk=player.pk).exclude(
+        platform=client.platform, client_version=client.version
+    ).update(platform=client.platform, client_version=client.version, updated_at=now)
 
 
 def _mark_session(wallet: Wallet, now: datetime, config: EconomySettings) -> None:

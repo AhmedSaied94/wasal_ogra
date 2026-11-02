@@ -9,7 +9,7 @@ import pytest
 from django.test import Client, override_settings
 from pytest_django import Settings
 
-from apps.common.errors import MESSAGES, ErrorCode
+from apps.common.errors import MESSAGES, ApiError, ErrorCode, exception_handler
 
 if TYPE_CHECKING:
     # The stubs' name for what the test client returns.
@@ -53,8 +53,33 @@ def test_error_codes_are_exactly_the_contract() -> None:
         "provider_token_invalid",
         # B03 (specs/010-b03-ledger-sync/contracts/api.md)
         "batch_too_large",
+        # B10 (specs/016-b10-catalog-offers/contracts/api.md)
+        "client_outdated",
+        "maintenance",
     }
     assert set(MESSAGES) == set(ErrorCode)
+
+
+@pytest.mark.parametrize(
+    ("code", "status", "details"),
+    [
+        (ErrorCode.CLIENT_OUTDATED, 426, {"min_version": "1.3.0"}),
+        (ErrorCode.MAINTENANCE, 503, {}),
+        (ErrorCode.MAINTENANCE, 503, {"until": "2026-11-03T15:30:00Z"}),
+    ],
+)
+def test_b10_codes_render_their_envelope(
+    code: ErrorCode, status: int, details: dict[str, Any]
+) -> None:
+    response = exception_handler(ApiError(code, details), {})
+    assert response is not None
+    assert response.status_code == status
+    error = json.loads(response.content)["error"]
+    assert (error["code"], error["message"], error["details"]) == (
+        code.value,
+        MESSAGES[code],
+        details,
+    )
 
 
 @pytest.mark.parametrize("debug", [False, True])

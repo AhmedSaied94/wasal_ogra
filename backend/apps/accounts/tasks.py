@@ -10,6 +10,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import PlayerSession
+from apps.liveops.tasks import skip_in_maintenance
 
 # Sessions ended or lapsed this long ago are deleted. Their tokens can't verify by then anyway:
 # the keys that signed them may have been retired (research R3, R13).
@@ -23,6 +24,7 @@ KEEP = timedelta(days=30)
     retry_backoff=True,
     max_retries=3,
 )
+@skip_in_maintenance
 def prune_sessions(self: Task[[], int]) -> int:
     """Daily at 04:30 Cairo time, after the 03:00 backup. Returns how many rows it deleted."""
     cutoff = timezone.now() - KEEP
