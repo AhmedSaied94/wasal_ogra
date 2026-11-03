@@ -96,11 +96,17 @@ SETUPS: dict[str, Setup] = {
     "tutorial_gift": lambda p, v: {},
     "comeback_gift": _comeback_gift,
     "claim_request": _claim_request,
+    "ad_reward_seen": lambda p, v: {"nonce": str(uuid.uuid4())},  # B07
 }
 
 
 def test_every_operation_type_has_a_case() -> None:
     assert set(sync.registered()) <= set(SETUPS)
+
+
+# Values an operation accepts by its contract, so they aren't corruptions of it. `ad_reward_seen`
+# answers every well-formed reference the same, so another id changes nothing (B07 FR-017a).
+ACCEPTED_BY_CONTRACT = {("ad_reward_seen", "nonce", "another id")}
 
 
 def corruptions(op_type: str, payload: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
@@ -127,6 +133,8 @@ def corruptions(op_type: str, payload: dict[str, Any]) -> Iterator[tuple[str, di
                 yield f"{key} {label}", {**payload, key: bad}
         elif field.kind == UUID:
             for label, bad in (("another id", str(uuid.uuid4())), ("not an id", "x")):
+                if (op_type, key, label) in ACCEPTED_BY_CONTRACT:
+                    continue
                 yield f"{key} {label}", {**payload, key: bad}
         elif field.kind == OBJECT and key == "result":
             yield from (

@@ -35,6 +35,7 @@ NAME = "Privacy Driver Qx"
 LOG_HASH = "feedfacecafebeef" * 4
 UNKNOWN_TRIP = "line_privacy.77"
 UNKNOWN_REQUEST = "req_privacy_marker"
+UNSEEN_REFERENCE = "5b1f0a52-7c1e-4c7a-9e55-0d6f1f3a9b77"
 JENEHAT = 987_651
 BONAT = 4_321
 
@@ -58,6 +59,7 @@ def every_operation(version: int) -> list[dict[str, Any]]:
         op("comeback_gift", {}),
         op("claim_request", {"request_id": "req_nish_crystal", "content_version": version}),
         op("claim_request", {"request_id": UNKNOWN_REQUEST, "content_version": version}),
+        op("ad_reward_seen", {"nonce": UNSEEN_REFERENCE}),  # B07
     ]
 
 
@@ -77,7 +79,7 @@ def test_nothing_of_the_economy_is_logged(
     assert api.state().status_code == 200
     wallet = wallet_of(api.player)
 
-    secrets = [NAME, LOG_HASH, UNKNOWN_TRIP, UNKNOWN_REQUEST]
+    secrets = [NAME, LOG_HASH, UNKNOWN_TRIP, UNKNOWN_REQUEST, UNSEEN_REFERENCE]
     secrets += [str(n) for n in (JENEHAT, BONAT, wallet.jenehat, wallet.bonat)]
     assert logged(caplog.records, secrets) == []
     assert caplog.records, "nothing was captured, so the log check proves nothing"

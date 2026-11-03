@@ -26,6 +26,8 @@ EXEMPT: dict[str, dict[str, str]] = {
         LEDGER: "the one writer",
         # A content daily-reward day's amounts, not a wallet.
         "apps/content/services/importer.py": "content fields named like the currencies",
+        # B07: a reward record's own amount columns, set to prove the record refuses the change.
+        "apps/ads/tests/test_models.py": "AdReward's amounts, refused by its guard",
     },
     "write": {
         LEDGER: "the one writer",
@@ -34,6 +36,7 @@ EXEMPT: dict[str, dict[str, str]] = {
         "apps/economy/tests/test_ledger.py": "the CHECK and append-only tests",
         "apps/economy/tests/test_models.py": "the append-only tests",
         "apps/economy/tests/test_invariant.py": "corrupts a wallet on purpose",
+        "apps/ads/tests/test_models.py": "AdReward's amounts, refused by its guard",
     },
 }
 

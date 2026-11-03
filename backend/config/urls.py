@@ -8,6 +8,7 @@ from django.views.static import serve
 from rest_framework.routers import SimpleRouter
 
 from apps.accounts.api.views import AnonymousView, LinkView, RefreshView
+from apps.ads.api.views import RewardView, SsvView
 from apps.common import errors
 from apps.common.api.views import HealthzView, ReadyzView
 from apps.content.api.views import ManifestView
@@ -41,6 +42,8 @@ urlpatterns = [
     path("v1/state", StateView.as_view(), name="state"),
     path("v1/sync", SyncView.as_view(), name="sync"),
     path("v1/offers", OffersView.as_view(), name="offers"),
+    path("v1/ads/ssv", SsvView.as_view(), name="ads-ssv"),
+    path("v1/ads/rewards/<str:nonce>", RewardView.as_view(), name="ads-reward"),
     path("v1/", include(router.urls)),
 ]
 

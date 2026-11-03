@@ -235,7 +235,7 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | --- | --- |
 | 400 | `validation_error`, `batch_too_large` |
 | 401 | `token_expired`, `token_invalid` |
-| 403 | `account_deleted`, `forbidden` |
+| 403 | `account_deleted`, `forbidden`, `signature_invalid` (a webhook's signature is missing or doesn't verify; B07) |
 | 404 | `not_found` |
 | 405 | `method_not_allowed` |
 | 406 | `not_acceptable` |
@@ -248,7 +248,7 @@ Inside each app: `models.py`, `services/` (all business logic, transactional, no
 | 500 | `server_error` (any unhandled exception; the request id is in the `X-Request-ID` header) |
 | 503 | `maintenance` (a write while it is on, with `details.until` when set), `not_ready` (`/readyz`), `dependency_unavailable` (database or cache unreachable) |
 
-B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). B03 added `batch_too_large`: a `POST /v1/sync` with more than 100 operations, with `details.max` = 100. The same endpoint answers `413 payload_too_large` above its own 256 KB limit, with `details.limit_bytes` = 262144, and `400 validation_error` for a malformed body or operation envelope, with `details.fields` naming the problem in dotted names (`ops.3.client_txn_id`). An operation the server refuses is not an HTTP error: the request answers 200, and the operation's `reason` (`unknown_op_type`, `insufficient_funds`, …) comes from the table in B03 contracts/operations.md (§7.3). Any DRF exception code that ships must be listed here first. B10 added `426 client_outdated` (`details.min_version`, the platform's live minimum) and `503 maintenance` (`details.until` only when set and in the future, on unsafe methods of default endpoints); the check order is authentication → client headers → version → maintenance → throttle (B10 contracts/api.md).
+B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsupported_media_type`, `server_error`, `not_ready` and `dependency_unavailable`, with their `details` in B01 contracts/api.md. B02 added `provider_already_linked` and `provider_token_invalid` (a bad Google token is a 422, never a 401, so the app doesn't renew its own session over it), and maps DRF's `NotAuthenticated` and `AuthenticationFailed` to `token_invalid`. Every 401 carries `WWW-Authenticate: Bearer` (B02 contracts/api.md). B03 added `batch_too_large`: a `POST /v1/sync` with more than 100 operations, with `details.max` = 100. The same endpoint answers `413 payload_too_large` above its own 256 KB limit, with `details.limit_bytes` = 262144, and `400 validation_error` for a malformed body or operation envelope, with `details.fields` naming the problem in dotted names (`ops.3.client_txn_id`). An operation the server refuses is not an HTTP error: the request answers 200, and the operation's `reason` (`unknown_op_type`, `insufficient_funds`, …) comes from the table in B03 contracts/operations.md (§7.3). Any DRF exception code that ships must be listed here first. B07 added `403 signature_invalid`: a webhook's signature is missing or doesn't verify (the AdMob callback, B07 contracts/api.md). B10 added `426 client_outdated` (`details.min_version`, the platform's live minimum) and `503 maintenance` (`details.until` only when set and in the future, on unsafe methods of default endpoints); the check order is authentication → client headers → version → maintenance → throttle (B10 contracts/api.md).
 
 ### 6.3 Endpoints
 
@@ -266,7 +266,7 @@ B01 added `method_not_allowed`, `not_acceptable`, `payload_too_large`, `unsuppor
 | `POST /v1/purchases/verify` | Verify a store purchase and grant | access | MVP | B06 |
 | `POST /v1/purchases/google/rtdn` | Google Play RTDN (Pub/Sub push) | OIDC | MVP | B06 |
 | `POST /v1/purchases/apple/notifications` | App Store Server Notifications V2 | JWS | Phase 3 (iOS) | B06 |
-| `GET /v1/ads/ssv` | AdMob server-side verification callback | ECDSA signature | MVP | B07 |
+| `GET /v1/ads/ssv` | AdMob server-side verification callback (no token or client headers; its own limit per address, `THROTTLE_SSV_RATE` 600/min) | ECDSA signature | MVP | B07 |
 | `GET /v1/ads/rewards/{nonce}` | Client checks an SSV reward | access | MVP | B07 |
 | `GET /v1/daily-challenge` | Today's challenge | access | MVP | B08 |
 | `POST /v1/daily-challenge/result` | Submit attempt for replay verification | access | MVP | B08 |
@@ -320,16 +320,18 @@ Accounts are never merged, so currency can never be duplicated.
   "content": { "version": 7, "manifest_url": "/v1/content/manifest" },
   "client": { "min_version": "1.0.0", "latest_version": "1.0.0", "force_update": false },
   "daily": { "game_date": "2026-10-17", "challenge_available": false, "reward_claimable": false },
-  "comeback": { "claimable": false }
+  "comeback": { "claimable": false },
+  "ads": { "morning_piggy": { "available": true, "unseen": [] } }
 }
 ```
 
-The shapes of bootstrap, state and sync are in B03 contracts/api.md.
+The shapes of bootstrap, state and sync are in B03 contracts/api.md; the `ads` block and the reward lookup in B07 contracts/api.md.
 
 - The first bootstrap, state or sync request creates the player's wallet.
 - `wallet.fuel` is the liters now, recounted to the server's time without writing it. `fuel_updated_at` is the countdown anchor, M05's `countedFrom`: when the current countdown started, or when the tank last became full. The app rebuilds its countdown from it and `fuel_max`. Times carry milliseconds when they have them.
 - `entitlements` is neutral until B06, and `daily` until B08 and M13. `client` comes from the live settings `min_client_version_<platform>` and `latest_client_version_<platform>` for the request's `X-Platform` (B10 FR-012), and bootstrap also records the player's platform and version when they differ. `force_update` is true when `X-Client-Version` is below the minimum, and bootstrap still answers 200.
 - **Sessions and the comeback return** (B03 research R13). Every bootstrap, state and sync request sets `Wallet.last_active_at`. A bootstrap after `SYNC_SESSION_GAP_MINUTES` (30) without activity starts a new session. If the player was also away at least `SYNC_COMEBACK_AWAY_DAYS` (7) Cairo calendar days, and no comeback gift was granted within `SYNC_COMEBACK_COOLDOWN_DAYS` (30), it sets `Wallet.comeback_return_at` to now. A claim keeps the return and records `GrantRecord(comeback, <return time>)`; a later return replaces it.
+- `ads.morning_piggy` (B07): `available` is true while the player's granted piggy rewards on the current game day are fewer than `ads_morning_piggy_daily_cap`; `unseen` lists at most 5 granted rewards not yet shown, newest first, each `{nonce, jenehat, bonat, granted_at}`. The app shows each, then sends `ad_reward_seen` (§7.4).
 - `comeback.claimable` is true when a return is set, it has no grant, and the cooldown has passed. It stays true until the claim has synced, so the app never sends a second `comeback_gift` while one is pending (§7.4).
 
 **`GET /v1/state`**
@@ -362,6 +364,8 @@ A full snapshot at one `state_version`, read under a shared lock on the wallet r
 ```
 
 **`POST /v1/sync`** — see §7.3.
+
+**`GET /v1/ads/rewards/{nonce}`** (B07): the caller's reward with this reference. `200 {"status": "granted", "jenehat", "bonat", "granted_at", "wallet"}` (the wallet recounted to now), `200 {"status": "refused", "reason"}` with `cap_reached`, `not_server_placement` or `expired`, or `404 not_found` when the reference isn't recorded yet, belongs to another player, is unattributed or isn't a UUID: one answer for all of them, and the app keeps polling. It never writes.
 
 **`POST /v1/purchases/verify`**
 
@@ -475,6 +479,7 @@ Processing rules (the checks in order and every reason are in B03 contracts/oper
 | `trip_start` | `trip_id`, `content_version`, `fuel_mode` (`fuel` \| `unlimited` \| `challenge`) | trip exists in that pack; `unlimited` needs the window running at the op's time, and `challenge` is `not_eligible` until B08; line, vehicle and previous trip unlocked; fuel reconciliation (§7.5) | an open start with no result is closed as abandoned; fuel −1 unless `unlimited` window active (an empty tank is an overdraft); the start opens with the trip's `max_earnings_jenehat` and last station time copied from the declared pack |
 | `trip_result` | `trip_start_txn`, `result` (M01's `TripResult`, mobile §7.2, ≤ 8 KB) | the start was accepted and is the open one; one result per start; the same `trip_id`; `0 ≤ stars ≤ 3` and `0 ≤ earnings_jenehat ≤` the start's `max_earnings_jenehat`, both 0 unless the outcome is `finished`; for `finished`, `duration_ms ≥ SYNC_MIN_DURATION_PERCENT` (85) % of the last station time | JENEHAT + (`trip_earnings`); `TripProgress` best; `TripRun` row; room and chapter rewards; task/league counters later |
 | `ad_reward` | `ad_placement` ∈ {`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`}; `ref` (trip start txn), except for `fuel_refill`, which belongs to no trip and sends no `ref`. `morning_piggy` is never a client op: it grants BONAT, which only SSV does (§8), and is rejected `server_only` | caps from §3.4: `result_double` once, for the last result if `finished` with earnings; `fuel_refill` refused on a full tank and after `ECONOMY_FUEL_REFILL_DAILY_CAP` (3) a game day; `trip_revive` once a trip; `traffic_jam` `ECONOMY_TRAFFIC_JAM_ADS_PER_TRIP` (1) a trip | `result_double`: JENEHAT + equal to that trip's earnings; `fuel_refill`: fuel to max; others: recorded on the open trip, for caps only |
+| `ad_reward_seen` | `nonce` (UUID, required): the reference of a granted morning piggy reward the app has shown | always accepted; marks the player's granted, not-yet-shown reward with that reference, and changes nothing for any other reference; doesn't move `state_version` (B07 research R7) | none: `shown_at` set, so bootstrap's `ads.morning_piggy.unseen` stops listing it |
 | `spend_jenehat` | `sku_kind` ∈ {`item`, `vehicle`, `chapter`, `upgrade`}, `sku_id`, `variant` (items only), `price`, `content_version` | known in that pack; a JENEHAT catalog price, else `not_for_sale` (a BONAT-priced or unpriced sku); price equals it; the variant is the item's; not owned; prerequisites (an item's chapter unlocked, a chapter's predecessor complete); balance | JENEHAT −; `Ownership` +; room and chapter rewards |
 | `spend_bonat` | `sku_kind` ∈ {`booster`, `fuel`, `revive`, `fuel_unlimited`, `cosmetic`}, `sku_id`, `price`, `content_version`; a revive adds `ref` (its trip start txn) | a BONAT catalog price in that pack, else `not_for_sale`; price equals it; the row's own checks (`tank_full`, the open trip, `already_owned`); **authoritative balance check** last | BONAT −; inventory / fuel / unlimited window / revive / ownership |
 | `use_booster` | `booster_id`, `ref` | `ref` is the open start; inventory count > 0 | inventory −1 |
@@ -579,10 +584,11 @@ sequenceDiagram
 
 1. The app sets SSV options on the rewarded ad: `user_id = player_id`, `custom_data = {"placement":"morning_piggy","nonce":"<uuid>"}` (mobile §15.1).
 2. AdMob calls `GET /v1/ads/ssv?ad_network=…&ad_unit=…&custom_data=…&reward_amount=…&reward_item=…&timestamp=…&transaction_id=…&user_id=…&signature=…&key_id=…`.
-3. The server verifies the ECDSA signature over the query string preceding `signature`, using Google's published verifier keys (cached 24 h, refreshed on unknown `key_id`).
-4. `transaction_id` is unique (`AdReward` table). The daily cap (1 per game day) is enforced. The grant is a `LedgerEntry` with reason `ssv_grant`.
-5. The endpoint returns 200 for any validly signed callback (including duplicates), so AdMob does not retry.
-6. The app polls `GET /v1/ads/rewards/{nonce}` (1 s, 2 s, 4 s, then gives up and shows «هتوصلك المكافأة أول ما توصل»). Late grants appear on the next bootstrap.
+3. The server verifies the ECDSA signature (P-256, SHA-256, DER in URL-safe base64) over the raw query string preceding `&signature=`, never over re-encoded parameters, using Google's published verifier keys (held per process for `ADS_KEYS_CACHE_SECONDS`, 24 h; an unknown `key_id` refetches at most once a minute; after a failed fetch the process answers 503 at once for 15 s, while keys already held keep verifying). `signature` and `key_id` must be the last two parameters. This happens before any database access. Google's keys sign every publisher's callbacks, so a callback grants only for an ad unit listed in `ADS_ALLOWED_AD_UNITS` (staging's and production's piggy units); any other unit is answered 200, logged `foreign_ad_unit` and not recorded, and an empty list grants nothing outside dev and test. A parameter sent twice is refused like a bad signature.
+4. One transaction per callback, idempotent on `transaction_id` (unique in `AdReward`). The outcome is decided in this order (B07 data-model.md): no usable `transaction_id` (answered, logged, not recorded) → a recorded `transaction_id` (a repeat, no new row) → `malformed` → `expired` (AdMob's `timestamp` more than 7 days old) → `unattributed` (no active player for `user_id`) → `not_server_placement` → under the wallet lock sync takes: `duplicate_reference` → `cap_reached` (`ads_morning_piggy_daily_cap`, 1 per Cairo game day of the server's time) → `granted`. The amounts are the live settings `ads_morning_piggy_jenehat` (30) and `ads_morning_piggy_bonat` (2), never the callback's `reward_amount`. A grant writes one `ssv_grant` `LedgerEntry` per non-zero amount (`source = ssv`, `ref_type = ad_reward`, `ref_id` = the reward's id) and moves `state_version`.
+5. Answers: `200 {}` for every validly signed callback whatever its outcome (so AdMob doesn't retry and the answer reveals nothing); `403 signature_invalid` for a missing or failing signature, an unknown key after the refetch, or anything after `key_id`; `503 dependency_unavailable` when the keys can't be had (nothing recorded; AdMob retries); `429` from the throttle. Every validly signed callback is recorded with its outcome; over-long text is cut to its column and unparseable numbers stored as 0 or NULL, so a signed callback never answers 500.
+6. One `apps.ads` log line per callback (outcome, key id, ad unit, reward item, a 12-character SHA-256 prefix of the transaction id); never the player id, the reference or the query. More than 20 refused signatures in an hour (5-minute buckets in the cache), or a key list that can't be fetched, sends one Sentry warning an hour (fingerprints `ads`/`ssv-signature` and `ads`/`ssv-keys`).
+7. The app polls `GET /v1/ads/rewards/{nonce}` (1 s, 2 s, 4 s, then gives up and shows «هتوصلك المكافأة أول ما توصل»; 404 means not yet). Late grants appear in the next bootstrap's `ads.morning_piggy.unseen`, and the app marks each shown with the sync op `ad_reward_seen`.
 
 Other rewarded placements are client-applied and arrive as `ad_reward` sync ops (§7.4) bounded by caps.
 
@@ -751,6 +757,7 @@ The package is `wassal_solver` (B05, `specs/005-b05-solver-parity/`). It depends
 | `liveops.expire_offers` | hourly at :00 Cairo: `scheduled` → `active`, `active` → `expired` | B10 |
 | `liveops.check_remote_config` | daily 05:15 Cairo: compares every phone-applied setting with Remote Config's default, records a row and sends Sentry one warning on a `both` drift | B10 |
 | `league_rollover` | weekly | B13 |
+| `ads.prune_ad_rewards` | daily 04:30 Cairo: deletes `AdReward` rows that granted nothing and are older than 90 days, in chunks of 5,000; granted rows stay with the ledger | B07 |
 | `economy.tasks.prune` | daily 04:45 Cairo: deletes `ProcessedOp` older than `SYNC_OP_RETENTION_DAYS` (180), `TripRun` older than 90 days and `DayCounter` older than 40 days, in chunks of 10,000 | B03 |
 
 Every scheduled job that writes is wrapped by `liveops.tasks.skip_in_maintenance`, which returns `{"skipped": "maintenance"}` and logs `task_skipped_maintenance` while maintenance is on (B10 FR-034). The exceptions are the jobs that write only their own check rows: `common.tasks.heartbeat` and `liveops.check_remote_config`.
@@ -848,7 +855,7 @@ The daily `economy.tasks.prune` (§11.2) deletes old `ProcessedOp`, `TripRun` an
 
 | Model | Fields |
 | --- | --- |
-| `AdReward` | `transaction_id` (unique), `player`, `placement`, `nonce` (unique), `reward`, `key_id`, `ledger_entry`, `created_at` |
+| `AdReward` | `transaction_id` (unique), `player` (null when unattributed), `placement`, `nonce` (unique where not null; null for `duplicate_reference` and `malformed`), `custom_data`, `ad_network`, `ad_unit`, `reward_amount` (as sent, never used), `reward_item`, `key_id`, `callback_at`, `outcome` (`granted`, `duplicate_reference`, `cap_reached`, `not_server_placement`, `malformed`, `expired`, `unattributed`), `jenehat`, `bonat` (0 unless granted), `game_date`, `created_at`, `shown_at` (set by `ad_reward_seen`). The link to the ledger is the entries' `ref_type = ad_reward` / `ref_id`, not a `ledger_entry` FK, because a grant makes two entries. Only `shown_at` changes after the insert, and granted rows are never deleted (B07 data-model.md) |
 | `DailyChallenge` | `game_date` (unique), `challenge_id`, `trip_definition`, `seed`, `params`, `difficulty_score`, `solver_result`, `status` |
 | `DailyAttempt` | `player`, `challenge`, `attempt_no`, `client_txn_id`, `verified`, `stars`, `score`, `grants`, unique(`player`, `challenge`, `attempt_no`) |
 | `PushToken` | `player`, `token` (unique), `platform`, `categories`, `locale`, `tz`, `last_seen_at` |
@@ -909,6 +916,7 @@ erDiagram
 | Purchase history | backend | fulfilment, refunds | 7 years (tombstoned after deletion) — **NEEDS CLARIFICATION** with legal |
 | Gameplay progress, trip runs | backend | game service, anti-cheat | progress until deletion; runs 90 days |
 | Push token | backend | notifications | until unregistered/deletion |
+| Ad rewards (`AdReward`: player id, AdMob transaction id, the app's reference) | backend | verified ad rewards, support | granted: kept with the ledger; any other outcome: 90 days (B07) |
 | IP address | proxy logs | security | 14 days |
 | Advertising ID, ad interactions | AdMob SDK on device | ads | per Google |
 | Analytics, crashes | Firebase SDK on device | analytics, stability | per Firebase settings |

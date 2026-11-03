@@ -211,3 +211,6 @@ answer and `details.until`; M12 will read `GET /v1/offers`.
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 | --- | --- | --- |
 | Constitution VIII asks every balancing number to have a Firebase Remote Config key. The 12 server-only numbers (contracts/settings.md "Server-only": overdraft, traffic-jam ads, name lengths, the sync thresholds, the comeback gaps) get a live setting and no Remote Config key. | The phone never applies them (constitution IV: the server alone decides), so a Remote Config key would be a value nothing reads, and the drift check would compare it to nothing. The constitution's rationale (retune without a release, record what ran) is met by the live setting alone. | Adding unused Remote Config keys: dead config that invites someone to "tune" a number in the console that has no effect. Recommended follow-up: amend VIII through `/speckit-constitution` (a PATCH clarification: "numbers the phone applies have a Remote Config key; server-only numbers live only in `liveops.LiveSetting`"), after which this entry closes. **Approved by the owner on 2026-11-01** (analysis finding C1). |
+
+B07 adds `ads_morning_piggy_jenehat` and `ads_morning_piggy_bonat` under this entry
+(specs/017-b07-ads-ssv/plan.md).

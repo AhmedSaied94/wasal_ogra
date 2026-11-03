@@ -257,3 +257,15 @@ key per host (staging and production), rotated like any secret:
    A run shows `ok`, or `not_configured` when the variables are empty (nothing fails).
 5. **Sentry alert rule:** for the fingerprint `liveops` / `remote-config-drift`, email both
    environments' operators (Settings → Alerts → create a rule on the event's fingerprint).
+
+## AdMob SSV callback (B07's alerts)
+
+`GET /v1/ads/ssv` sends Sentry a `warning` at most once an hour per kind:
+
+| Event | Fingerprint | When | What to do |
+| --- | --- | --- | --- |
+| "AdMob SSV: refused signatures" | `ads` / `ssv-signature` | more than 20 callbacks with a missing or failing signature within an hour | Someone is probing the endpoint, or Google rotated keys and the API can't fetch them. Check the API's `ad_ssv_refused` lines (their `reason`: `signature`, `unknown key` or `repeated parameter`) and whether real callbacks still answer 200 (`ad_ssv_callback` lines). Only a callback Google signed, for an ad unit in `ADS_ALLOWED_AD_UNITS`, can grant. |
+| "AdMob SSV: verifier keys unavailable" | `ads` / `ssv-keys` | the API couldn't fetch `ADS_VERIFIER_KEYS_URL` (Google's key list) | AdMob gets 503 and retries, so rewards arrive late, not never. Check the host's outbound HTTPS to `www.gstatic.com`. |
+
+**Sentry alert rule:** for each of the two fingerprints, email both environments' operators
+(Settings → Alerts → create a rule on the event's fingerprint), as for the drift check.

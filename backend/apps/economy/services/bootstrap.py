@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Player
+from apps.ads.services import status as ads_status
 from apps.common.client import ClientInfo, as_tuple, parse_client_version
 from apps.content.services import lookups
 from apps.economy.models import Wallet
@@ -35,6 +36,7 @@ def bootstrap(player: Player, client: ClientInfo) -> dict[str, Any]:
         _record_client(player, client, now)
         claimable = comeback.claimable(wallet, now, config)
     providers = sorted(player.identities.values_list("provider", flat=True))
+    today = game_date(now)
     minimum = snapshot[f"min_client_version_{client.platform}"]
     latest = snapshot[f"latest_client_version_{client.platform}"]
     return {
@@ -59,11 +61,16 @@ def bootstrap(player: Player, client: ClientInfo) -> dict[str, Any]:
             "force_update": _below(client.version, minimum),
         },
         "daily": {
-            "game_date": game_date(now).isoformat(),
+            "game_date": today.isoformat(),
             "challenge_available": False,
             "reward_claimable": False,
         },
         "comeback": {"claimable": claimable},
+        "ads": {
+            "morning_piggy": ads_status.piggy_block(
+                player, today, snapshot["ads_morning_piggy_daily_cap"]
+            )
+        },
     }
 
 

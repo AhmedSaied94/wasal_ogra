@@ -19,6 +19,7 @@ from datetime import date, datetime
 from typing import Any
 
 from apps.accounts.models import NameFilterEntry, Player
+from apps.ads.models import AdReward
 from apps.content.services import lookups
 from apps.content.services.lookups import Price, TripBounds
 from apps.economy.models import (
@@ -180,6 +181,8 @@ class BatchState:
         self._name_filter: list[str] | None = None
         self._support: dict[int, str] = {}
         self._packs: dict[int, PackView] = {}
+        self._unseen_rewards: set[uuid.UUID] | None = None
+        self._seen_new: set[uuid.UUID] = set()
 
     # -- outcomes ---------------------------------------------------------------------------------
 
@@ -518,6 +521,27 @@ class BatchState:
         pending.update(details)
         pending["count"] += 1
 
+    # -- ad rewards (B07 research R7) -------------------------------------------------------------
+
+    def mark_reward_seen(self, nonce: uuid.UUID) -> bool:
+        """True when the reference is the player's granted reward not yet shown. Not a change of
+        the player's state: `state_version` doesn't move for it."""
+        if self._unseen_rewards is None:
+            self._unseen_rewards = {
+                nonce
+                for nonce in AdReward.objects.filter(
+                    player=self.player,
+                    outcome=AdReward.Outcome.GRANTED,
+                    shown_at__isnull=True,
+                    nonce__isnull=False,
+                ).values_list("nonce", flat=True)
+                if nonce is not None
+            }
+        if nonce not in self._unseen_rewards or nonce in self._seen_new:
+            return False
+        self._seen_new.add(nonce)
+        return True
+
     # -- the answer -------------------------------------------------------------------------------
 
     @property
@@ -560,6 +584,7 @@ class BatchState:
         self._flush_runs()
         self._flush_flags()
         self._flush_profile()
+        self._flush_seen()
         return changed
 
     def _flush_inventory(self) -> None:
@@ -746,6 +771,13 @@ class BatchState:
         for name, value in self._profile.items():
             setattr(self.player, name, value)
         self.player.save(update_fields=[*sorted(self._profile), "updated_at"])
+
+    def _flush_seen(self) -> None:
+        if not self._seen_new:
+            return
+        AdReward.objects.filter(
+            player=self.player, nonce__in=self._seen_new, shown_at__isnull=True
+        ).update(shown_at=self.now)
 
 
 def outcome_of(stored: ProcessedOp) -> Outcome:

@@ -29,6 +29,7 @@ def test_every_periodic_task_is_wrapped_or_monitored() -> None:
     # A task name is registered only once its module is imported in this process.
     for module in (
         "apps.accounts.tasks",
+        "apps.ads.tasks",
         "apps.common.tasks",
         "apps.content.tasks",
         "apps.economy.tasks",

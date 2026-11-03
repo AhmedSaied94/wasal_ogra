@@ -28,6 +28,7 @@ KEYS = {
     "client",
     "daily",
     "comeback",
+    "ads",
 }
 
 
@@ -177,3 +178,54 @@ def test_a_sync_or_a_state_read_marks_activity_but_no_session(api: Api) -> None:
     wallet = wallet_of(api.player)
     assert wallet.last_active_at > long_ago
     assert wallet.session_started_at == long_ago
+
+
+# -- B07: the morning piggy (specs/017-b07-ads-ssv, US1 AS4-AS6, FR-017, research R8) -------------
+
+
+def piggy(api: Api) -> dict[str, object]:
+    block: dict[str, object] = api.bootstrap().json()["ads"]["morning_piggy"]
+    return block
+
+
+def test_the_piggy_is_available_until_todays_grant(live_settings: Callable[..., None]) -> None:
+    from apps.ads.tests.helpers import reward_row
+    from apps.economy.tests.helpers import signed_in_api
+
+    # 23:50 in Cairo, then ten minutes later: inside the access token's 15 minutes.
+    with time_machine.travel("2026-11-03 21:50:00Z", tick=False) as traveller:
+        api = signed_in_api()  # its token is issued on the travelled clock
+        assert piggy(api) == {"available": True, "unseen": []}
+        reward_row(api.player, at=timezone.now())
+        assert piggy(api)["available"] is False
+        live_settings(ads_morning_piggy_daily_cap=2)
+        assert piggy(api)["available"] is True
+        live_settings(ads_morning_piggy_daily_cap=1)
+        traveller.move_to("2026-11-03 22:00:01Z")  # 00:00:01 in Cairo: a new game day
+        assert piggy(api)["available"] is True
+
+
+def test_unseen_lists_granted_rewards_newest_first(api: Api) -> None:
+    from apps.ads.tests.helpers import reward_row
+
+    start = datetime(2026, 10, 1, 8, tzinfo=UTC)
+    rows = [reward_row(api.player, at=start + timedelta(days=n)) for n in range(7)]
+    reward_row(api.player, "cap_reached", at=start + timedelta(days=8))
+    reward_row(api.player, at=start + timedelta(days=9), shown_at=timezone.now())
+    unseen = piggy(api)["unseen"]
+    assert unseen == [
+        {"nonce": str(row.nonce), "jenehat": 30, "bonat": 2, "granted_at": iso(row.created_at)}
+        for row in reversed(rows[2:])
+    ]
+
+
+def test_the_piggy_block_costs_at_most_two_queries(api: Api) -> None:
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from apps.ads.tests.helpers import reward_row
+
+    reward_row(api.player)
+    with CaptureQueriesContext(connection) as queries:
+        assert api.bootstrap().status_code == 200
+    assert len([q for q in queries.captured_queries if "ads_adreward" in q["sql"]]) <= 2

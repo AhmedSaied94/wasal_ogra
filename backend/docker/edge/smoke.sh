@@ -194,6 +194,18 @@ docker exec "$NAME" tail -n 1 /var/log/caddy/access.log |
   fail "the access log has no JSON request line"
 pass "JSON access log"
 
+# B07: the AdMob callback's query never reaches the access log (security review M2).
+fetch "$API" "$PUBLIC_IP" \
+  "https://$API/v1/ads/ssv?ad_unit=1&user_id=smoke-player&custom_data=smoke-nonce&transaction_id=smoke-txn&signature=smoke-sig&key_id=1" \
+  >/dev/null || true
+line="$(docker exec "$NAME" tail -n 1 /var/log/caddy/access.log)"
+case "$line" in
+  *smoke-player* | *smoke-nonce* | *smoke-txn* | *smoke-sig*) fail "the access log keeps the SSV query" ;;
+  *"/v1/ads/ssv"*) ;;
+  *) fail "the access log has no line for the SSV request" ;;
+esac
+pass "the SSV callback's query is not logged"
+
 echo "== pack files"
 status="$(fetch "$API" "$PUBLIC_IP" "https://$API/packs/core-1.json.gz")"
 expect_status "$status" 200 "/packs/core-1.json.gz"

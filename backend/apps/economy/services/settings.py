@@ -8,7 +8,9 @@ sizes the database.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from django.conf import settings
 
@@ -37,7 +39,11 @@ class EconomySettings:
 
 
 def current() -> EconomySettings:
-    snapshot = live.current()
+    return from_snapshot(live.current())
+
+
+def from_snapshot(snapshot: Mapping[str, Any]) -> EconomySettings:
+    """The economy's view of a snapshot a caller already holds (one read per request)."""
     return EconomySettings(
         fuel_max=snapshot["fuel_max"],
         fuel_max_subscriber=snapshot["fuel_max_subscriber"],

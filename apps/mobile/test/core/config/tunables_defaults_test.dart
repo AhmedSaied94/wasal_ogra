@@ -60,6 +60,7 @@ const expected = <String, Object>{
   'ads_interstitial_every_n_trips': 3,
   'ads_interstitial_grace_trips': 10,
   'ads_fuel_refill_daily_cap': 3,
+  'ads_morning_piggy_daily_cap': 1,
   'pre_trip_card_mode': 'always',
   'notif_daily_max': 2,
 };
@@ -73,8 +74,8 @@ void main() {
     ) as Map<String, dynamic>;
   });
 
-  test('tunables.json holds exactly the 50 contract keys and values', () {
-    expect(expected, hasLength(50));
+  test('tunables.json holds exactly the 51 contract keys and values', () {
+    expect(expected, hasLength(51));
     expect(bundled.keys.toSet(), expected.keys.toSet());
     for (final MapEntry(:key, :value) in expected.entries) {
       expect(bundled[key], value, reason: key);

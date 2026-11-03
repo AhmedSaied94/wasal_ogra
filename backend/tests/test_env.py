@@ -264,3 +264,39 @@ def test_content_index_keep_default_and_bounds() -> None:
     assert lenient(**base).content(P("/tmp/p")).index_keep == 10  # noqa: S108 - not opened
     with pytest.raises(ImproperlyConfigured, match="CONTENT_INDEX_KEEP is invalid"):
         lenient(**base, CONTENT_INDEX_KEEP="4").content(P("/tmp/p"))  # noqa: S108
+
+
+def test_ads_defaults() -> None:
+    for env in (lenient(), strict()):
+        ads = env.ads()
+        assert ads.verifier_keys_url == "https://www.gstatic.com/admob/reward/verifier-keys.json"
+        assert (ads.keys_cache_seconds, ads.http_timeout_seconds) == (86_400, 5)
+
+
+def test_ads_ranges() -> None:
+    assert lenient(ADS_KEYS_CACHE_SECONDS="60").ads().keys_cache_seconds == 60
+    assert lenient(ADS_KEYS_CACHE_SECONDS="604800").ads().keys_cache_seconds == 604_800
+    assert lenient(ADS_HTTP_TIMEOUT_SECONDS="30").ads().http_timeout_seconds == 30
+    for name, raw in (
+        ("ADS_KEYS_CACHE_SECONDS", "59"),
+        ("ADS_KEYS_CACHE_SECONDS", "604801"),
+        ("ADS_HTTP_TIMEOUT_SECONDS", "0"),
+        ("ADS_HTTP_TIMEOUT_SECONDS", "31"),
+    ):
+        with pytest.raises(ImproperlyConfigured, match=f"{name} is invalid"):
+            lenient(**{name: raw}).ads()
+
+
+def test_ads_keys_url_is_https_outside_dev_and_test() -> None:
+    for url in ("http://keys.example.test/k.json", "file:///app/.dev/admob_verifier_keys.json"):
+        with pytest.raises(ImproperlyConfigured, match="ADS_VERIFIER_KEYS_URL is invalid"):
+            strict(ADS_VERIFIER_KEYS_URL=url).ads()
+        assert lenient(ADS_VERIFIER_KEYS_URL=url).ads().verifier_keys_url == url
+    with pytest.raises(ImproperlyConfigured, match="ADS_VERIFIER_KEYS_URL is invalid"):
+        lenient(ADS_VERIFIER_KEYS_URL="file://").ads()
+
+
+def test_ssv_rate() -> None:
+    assert lenient(THROTTLE_SSV_RATE="600/min").rate("THROTTLE_SSV_RATE", "600/min") == "600/min"
+    with pytest.raises(ImproperlyConfigured, match="THROTTLE_SSV_RATE is invalid"):
+        lenient(THROTTLE_SSV_RATE="lots").rate("THROTTLE_SSV_RATE", "600/min")

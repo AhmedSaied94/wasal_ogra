@@ -53,6 +53,204 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
           description: A check failed
+  /v1/ads/rewards/{nonce}:
+    get:
+      operationId: ads_reward
+      description: 'The caller''s reward with this reference: granted (with the amounts
+        and the wallet recounted to now) or refused (with the reason). 404 means not
+        known yet, which is normal while Google''s callback is on its way: poll at
+        1 s, 2 s and 4 s.'
+      summary: Has my ad reward arrived?
+      parameters:
+      - in: header
+        name: X-Client-Version
+        schema:
+          type: string
+          pattern: ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9A-Za-z.-]+)?$
+          maxLength: 32
+        description: MAJOR.MINOR.PATCH with an optional +BUILD, such as 1.4.0+57.
+        required: true
+      - in: header
+        name: X-Platform
+        schema:
+          type: string
+          enum:
+          - android
+          - ios
+        required: true
+      - in: path
+        name: nonce
+        schema:
+          type: string
+        description: The reference.
+        required: true
+      tags:
+      - ads
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reward'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: A client header is missing or malformed
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'token_expired or token_invalid: the access token'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: account_deleted
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'not_found: not recorded yet, not this player''s, or not a
+            UUID'
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Method not allowed
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Not acceptable
+        '426':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'client_outdated: the app is below the platform''s minimum'
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many requests from this player
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: The database or the cache is down
+  /v1/ads/ssv:
+    get:
+      operationId: ads_ssv
+      description: Called by Google after a rewarded ad, not by the app. Every validly
+        signed callback answers 200 {} whatever happened to it (granted, a repeat,
+        or recorded as refused), so the answer reveals nothing. Grants the morning
+        piggy at most ads_morning_piggy_daily_cap times per game day; the amounts
+        are live settings.
+      summary: AdMob server-side verification callback
+      parameters:
+      - in: query
+        name: ad_network
+        schema:
+          type: string
+        description: Recorded.
+      - in: query
+        name: ad_unit
+        schema:
+          type: string
+        description: Recorded.
+      - in: query
+        name: custom_data
+        schema:
+          type: string
+        description: URL-encoded compact JSON {"placement":"morning_piggy","nonce":"<uuid>"},
+          set by the app.
+      - in: query
+        name: key_id
+        schema:
+          type: string
+        description: The id of Google's verifier key. The last parameter.
+        required: true
+      - in: query
+        name: reward_amount
+        schema:
+          type: string
+        description: Recorded, never used for the amount.
+      - in: query
+        name: reward_item
+        schema:
+          type: string
+        description: Recorded.
+      - in: query
+        name: signature
+        schema:
+          type: string
+        description: URL-safe base64 DER ECDSA (P-256, SHA-256) over the query before
+          &signature=.
+        required: true
+      - in: query
+        name: timestamp
+        schema:
+          type: string
+        description: Milliseconds since the epoch; older than 7 days is refused.
+      - in: query
+        name: transaction_id
+        schema:
+          type: string
+        description: 'AdMob''s id: the idempotency key.'
+      - in: query
+        name: user_id
+        schema:
+          type: string
+        description: The player id, set by the app.
+      tags:
+      - ads
+      responses:
+        '200':
+          description: 'Validly signed: recorded'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'signature_invalid: missing, not verifying, or anything after
+            key_id'
+        '405':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Method not allowed
+        '406':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Not acceptable
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: Too many callbacks from this address
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+          description: 'dependency_unavailable: Google''s keys can''t be had; nothing
+            recorded'
   /v1/auth/anonymous:
     post:
       operationId: auth_anonymous
@@ -722,6 +920,32 @@ paths:
             the cache is down
 components:
   schemas:
+    AdRewardRefusalEnum:
+      enum:
+      - cap_reached
+      - not_server_placement
+      - expired
+      type: string
+      description: |-
+        * `cap_reached` - cap_reached
+        * `not_server_placement` - not_server_placement
+        * `expired` - expired
+    AdRewardStatusEnum:
+      enum:
+      - granted
+      - refused
+      type: string
+      description: |-
+        * `granted` - granted
+        * `refused` - refused
+    AdsBlock:
+      type: object
+      description: B07 (specs/017-b07-ads-ssv/contracts/api.md "GET /v1/bootstrap").
+      properties:
+        morning_piggy:
+          $ref: '#/components/schemas/Piggy'
+      required:
+      - morning_piggy
     AnonymousRequest:
       type: object
       properties:
@@ -789,7 +1013,10 @@ components:
           $ref: '#/components/schemas/Daily'
         comeback:
           $ref: '#/components/schemas/Comeback'
+        ads:
+          $ref: '#/components/schemas/AdsBlock'
       required:
+      - ads
       - client
       - comeback
       - content
@@ -1387,6 +1614,21 @@ components:
       - kind
       - sku_id
       - variant
+    Piggy:
+      type: object
+      properties:
+        available:
+          type: boolean
+          description: Today's granted piggy rewards are fewer than ads_morning_piggy_daily_cap.
+        unseen:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnseenReward'
+          description: At most 5 granted rewards not yet shown, newest first. Show
+            each, then send ad_reward_seen.
+      required:
+      - available
+      - unseen
     PlatformEnum:
       enum:
       - android
@@ -1511,6 +1753,38 @@ components:
       description: |-
         * `switch_to_existing` - switch_to_existing
         * `keep_current` - keep_current
+    Reward:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/AdRewardStatusEnum'
+        jenehat:
+          type: integer
+          minimum: 0
+          description: When granted.
+        bonat:
+          type: integer
+          minimum: 0
+          description: When granted.
+        granted_at:
+          type: string
+          format: date-time
+          description: When granted.
+        wallet:
+          allOf:
+          - $ref: '#/components/schemas/Wallet'
+          description: 'When granted: recounted to now.'
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/AdRewardRefusalEnum'
+          description: |-
+            When refused.
+
+            * `cap_reached` - cap_reached
+            * `not_server_placement` - not_server_placement
+            * `expired` - expired
+      required:
+      - status
     State:
       type: object
       properties:
@@ -1695,6 +1969,26 @@ components:
       - best_time_ms
       - plays
       - trip_id
+    UnseenReward:
+      type: object
+      properties:
+        nonce:
+          type: string
+          format: uuid
+        jenehat:
+          type: integer
+          minimum: 0
+        bonat:
+          type: integer
+          minimum: 0
+        granted_at:
+          type: string
+          format: date-time
+      required:
+      - bonat
+      - granted_at
+      - jenehat
+      - nonce
     Wallet:
       type: object
       properties:

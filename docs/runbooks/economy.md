@@ -93,6 +93,28 @@ the player, the amount, the reason), both permanent. A mistake is undone by anot
 The player's phone is told to refresh at its next sync. There is no way to move value between
 currencies or players, by design.
 
+## A player says the morning piggy didn't pay (B07)
+
+1. Admin → Ads → Ad rewards (groups `economy_ops` and `live_ops`), search the exact player id, or
+   open the player and follow "Ad rewards". The player page also shows whether today's piggy was
+   granted.
+2. Read the row's outcome:
+
+   | Outcome | Meaning |
+   | --- | --- |
+   | `granted` | Paid: the detail links its `ssv_grant` ledger entries. The phone shows it at its next launch if it missed it. |
+   | `cap_reached` | Already paid once this Cairo game day (`ads_morning_piggy_daily_cap`). |
+   | `duplicate_reference` | The app sent a reference it had used before; the first row with it is the one that counts. |
+   | `expired` | Google delivered the callback more than 7 days after the ad. |
+   | `not_server_placement` | The callback named another placement; those are paid on the phone. |
+   | `unattributed` | No active player for the callback's `user_id` (search by transaction id instead). |
+   | `malformed` | The callback's data couldn't be read; nothing was paid. |
+
+   No row at all means Google never sent a callback (or sent one that failed its signature): the
+   player sees «هتوصلك المكافأة أول ما توصل», and a late callback still pays.
+3. Never grant by hand except through "Adjusting a balance" above, with a reason that names the
+   reward row, such as `missing piggy: ad reward <id>`.
+
 ## Tuning the flag thresholds
 
 `SYNC_FAST_RUN_PERCENT` (95) and `SYNC_TRIPS_PER_DAY_FLAG` (400) are guesses until the closed test

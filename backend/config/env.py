@@ -39,6 +39,7 @@ SIGNING_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]+={0,2}$")
 MIN_SIGNING_KEY_BYTES = 32
 MAX_SIGNING_KEYS = 4
 GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+ADS_VERIFIER_KEYS_URL = "https://www.gstatic.com/admob/reward/verifier-keys.json"
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
@@ -309,6 +310,37 @@ class Env:
             remote_config_service_account=service_account,
         )
 
+    def ads(self) -> AdsConfig:
+        """B07's three variables (specs/017-b07-ads-ssv/contracts/environment.md).
+
+        The key list is `https` outside dev and test. There, a `file://` URL may name the key list
+        `ads_dev_callback` writes; no other environment accepts it (B07 plan, "Structure").
+        """
+        name = "ADS_VERIFIER_KEYS_URL"
+        url = self.string(name, ADS_VERIFIER_KEYS_URL)
+        parts = urlsplit(url)
+        if parts.scheme == "file" and not self.strict:
+            if not parts.path:
+                raise ImproperlyConfigured(f"{name} is invalid")
+        else:
+            url = self.url(name, ADS_VERIFIER_KEYS_URL)
+        return AdsConfig(
+            verifier_keys_url=url,
+            keys_cache_seconds=self.integer(
+                "ADS_KEYS_CACHE_SECONDS", 86_400, minimum=60, maximum=604_800
+            ),
+            http_timeout_seconds=self.integer("ADS_HTTP_TIMEOUT_SECONDS", 5, minimum=1, maximum=30),
+            allowed_ad_units=self._ad_units("ADS_ALLOWED_AD_UNITS"),
+        )
+
+    def _ad_units(self, name: str) -> tuple[str, ...]:
+        """AdMob ad unit ids (the digits after `/` in `ca-app-pub-…/1234567890`), comma-separated.
+        Empty grants nothing outside dev and test (security review H1)."""
+        units = tuple(part.strip() for part in self.string(name, "").split(",") if part.strip())
+        if any(not unit.isascii() or not unit.isdigit() or len(unit) > 64 for unit in units):
+            raise ImproperlyConfigured(f"{name} is invalid: give AdMob ad unit ids, digits only")
+        return units
+
     def _timezone(self, name: str, default: str) -> str:
         value = self.string(name, default)
         try:
@@ -356,6 +388,16 @@ class LiveopsConfig:
     refresh_seconds: int
     firebase_project_id: str
     remote_config_service_account: str = field(repr=False)
+
+
+@dataclass(frozen=True)
+class AdsConfig:
+    """B07's settings (specs/017-b07-ads-ssv/contracts/environment.md)."""
+
+    verifier_keys_url: str
+    keys_cache_seconds: int
+    http_timeout_seconds: int
+    allowed_ad_units: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

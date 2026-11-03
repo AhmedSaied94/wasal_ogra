@@ -638,19 +638,21 @@ Speech pools map `speech_key` → list of Egyptian Arabic lines with placeholder
 | `booster_ledger_peek_ms`, `booster_traffic_jam_ms`, `booster_traffic_jam_max_per_trip` | 10000, 10000, 3 (the last two at most 60000 and 5) |
 | `fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes` | 5, 7, 20 |
 | `ads_interstitial_every_n_trips`, `ads_interstitial_grace_trips`, `ads_fuel_refill_daily_cap` | 3, 10, 3 |
+| `ads_morning_piggy_daily_cap` | 1 (B07; the server grants at most this many piggy rewards a game day) |
 | `pre_trip_card_mode` | `always` |
 | `notif_daily_max` | 2 |
 
 The server keeps a copy of every key above in `apps/liveops/registry.py`, and a CI test keeps the
-defaults equal (B10 FR-008). Four of them are applied on both sides (`applied_by: both`): `fuel_max`,
-`fuel_max_subscriber`, `fuel_regen_minutes` and `ads_fuel_refill_daily_cap`. The server-only numbers
-(overdraft, traffic-jam ads, name lengths, the sync thresholds, the comeback gaps) and the version and
+defaults equal (B10 FR-008). Five of them are applied on both sides (`applied_by: both`): `fuel_max`,
+`fuel_max_subscriber`, `fuel_regen_minutes`, `ads_fuel_refill_daily_cap` and
+`ads_morning_piggy_daily_cap` (B07). The server-only numbers (overdraft, traffic-jam ads, name
+lengths, the sync thresholds, the comeback gaps, the morning piggy's amounts) and the version and
 maintenance keys are live settings with **no Remote Config key**, because the phone never applies them
 (B10 research R9). A daily server job compares Remote Config's defaults with the live settings and
 marks any drift in the admin (a `both` key also sends one Sentry warning), so the two copies don't
 silently diverge.
 
-The backend keeps its own copies of `fuel_max`, `fuel_max_subscriber`, `fuel_regen_minutes` and `ads_fuel_refill_daily_cap` as env settings, and a CI test fails when their defaults differ from `tunables.json` (B03 research R14).
+Since B10 the backend keeps those copies as live settings, not env settings, and the parity test fails when a default differs from `tunables.json`.
 
 **Server-only numbers (no Remote Config key until B10).** The phone never reads these: the server alone applies them (constitution IV). They are env settings with these defaults (`backend/config/env.py`, `specs/010-b03-ledger-sync/contracts/environment.md`), the deviation from constitution VIII tracked in B03's plan (Complexity Tracking). B10 moves each into `liveops.LiveSetting`.
 
@@ -673,7 +675,7 @@ The backend keeps its own copies of `fuel_max`, `fuel_max_subscriber`, `fuel_reg
 - Wraps `google_mobile_ads`, mediation configured in the AdMob console (networks: **NEEDS CLARIFICATION**, candidates AppLovin, Meta Audience Network, Unity Ads, Liftoff).
 - API: `preload(placement)`, `isReady(placement)`, `showRewarded(placement, {customData})`, `maybeShowInterstitial()`.
 - Enforces §3.4 caps locally and via Remote Config; the trip route forbids any ad call while `TripState.status == running`.
-- `morning_piggy` sets SSV options `userId = player_id` and `customData = {placement, nonce}` so the backend's SSV endpoint grants BONAT (backend §8.4). The app then polls `GET /v1/ads/rewards/{nonce}` (1 s, 2 s, 4 s); a late grant arrives with the next bootstrap. Other rewards are applied locally and sent as `ad_reward` sync ops (backend §7.4).
+- `morning_piggy` sets SSV options `userId = player_id` and `customData` = compact JSON `{"placement":"morning_piggy","nonce":"<uuid4>"}`, a new nonce per ad, so the backend's SSV endpoint grants it (backend §8.4). The banner shows only while bootstrap's `ads.morning_piggy.available` is true. The app then polls `GET /v1/ads/rewards/{nonce}` (1 s, 2 s, 4 s); a 404 means "not yet", and a granted answer carries the amounts and the wallet to replace the local one with. A late grant arrives in the next bootstrap's `ads.morning_piggy.unseen`; after showing any granted reward, the app queues the sync op `ad_reward_seen` with its nonce (B07 contracts/api.md). Other rewards are applied locally and sent as `ad_reward` sync ops (backend §7.4).
 - Consent: Google UMP before the first ad request; iOS ATT prompt before personalized ads on iOS.
 
 ### 15.2 PurchaseGateway

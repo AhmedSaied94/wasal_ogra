@@ -236,6 +236,32 @@ class ComebackSerializer(serializers.Serializer[dict[str, Any]]):
     claimable = serializers.BooleanField()
 
 
+class UnseenRewardSerializer(serializers.Serializer[dict[str, Any]]):
+    nonce = serializers.UUIDField()
+    jenehat = serializers.IntegerField(min_value=0)
+    bonat = serializers.IntegerField(min_value=0)
+    granted_at = serializers.DateTimeField()
+
+
+class PiggySerializer(serializers.Serializer[dict[str, Any]]):
+    available = serializers.BooleanField(
+        help_text="Today's granted piggy rewards are fewer than ads_morning_piggy_daily_cap."
+    )
+    unseen = UnseenRewardSerializer(
+        many=True,
+        help_text=(
+            "At most 5 granted rewards not yet shown, newest first. Show each, then send "
+            "ad_reward_seen."
+        ),
+    )
+
+
+class AdsBlockSerializer(serializers.Serializer[dict[str, Any]]):
+    """B07 (specs/017-b07-ads-ssv/contracts/api.md "GET /v1/bootstrap")."""
+
+    morning_piggy = PiggySerializer()
+
+
 class BootstrapSerializer(serializers.Serializer[dict[str, Any]]):
     server_time = serializers.DateTimeField()
     player = BootstrapPlayerSerializer()
@@ -246,6 +272,7 @@ class BootstrapSerializer(serializers.Serializer[dict[str, Any]]):
     client = ClientBlockSerializer()
     daily = DailySerializer()
     comeback = ComebackSerializer()
+    ads = AdsBlockSerializer()
 
 
 class StatePlayerSerializer(serializers.Serializer[dict[str, Any]]):

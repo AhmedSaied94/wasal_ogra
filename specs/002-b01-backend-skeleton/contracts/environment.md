@@ -48,6 +48,11 @@ environment and assert the exit code and the message.
 | `THROTTLE_ADDRESS_RATE` | — | no | `120/min` | DRF rate string (FR-015) |
 | `HC_PING_HEARTBEAT_URL` | staging, prod | **yes** | empty in dev | Healthchecks.io ping URL. Empty skips the ping. |
 | `LOG_LEVEL` | — | no | `INFO` | — |
+| `ADS_VERIFIER_KEYS_URL` | — | no | `https://www.gstatic.com/admob/reward/verifier-keys.json` (dev: `file:///app/.dev/admob_verifier_keys.json`) | B07. `https` outside dev and test; `file://` only in dev and test (specs/017-b07-ads-ssv/contracts/environment.md) |
+| `ADS_KEYS_CACHE_SECONDS` | — | no | `86400` | B07. 60–604 800 |
+| `ADS_HTTP_TIMEOUT_SECONDS` | — | no | `5` | B07. 1–30 |
+| `THROTTLE_SSV_RATE` | — | no | `600/min` | B07. DRF rate string: the AdMob callback, per address |
+| `ADS_ALLOWED_AD_UNITS` | staging, prod (to grant) | no | empty | B07. AdMob ad unit ids (digits, comma-separated) whose callbacks may grant; empty grants nothing outside dev and test |
 | `WASSAL_READ_DOTENV` | — | no | `1` | `dev` only: `0` stops `config/env.py` from reading `backend/.env` (the settings-guard tests and the image build set it) |
 | `GUNICORN_WORKERS`, `GUNICORN_THREADS` | — | no | `2`, `4` | Set per role and environment by `compose.yml` from the sizing files in `backend/docker/env/` |
 | `TEST_DATABASE_URL`, `TEST_CACHE_URL`, `TEST_BROKER_URL` | test | **yes** (placeholder in dev) | `postgres://postgres:change-me-postgres@127.0.0.1:5433/postgres`, `redis://127.0.0.1:6379/2`, `redis://127.0.0.1:6379/3` | pytest only, against the real PostgreSQL and Valkey (constitution XIII). The superuser URL lets pytest-django create its test database. |
