@@ -91,6 +91,12 @@ THROWAWAY_KEYS = {
     "ADMIN_HOST",
     "SENTRY_DSN",
     "HC_PING_HEARTBEAT_URL",
+    "AUTH_SIGNING_KEYS",
+    "GOOGLE_OAUTH_CLIENT_IDS",
+    "CONTENT_ROLE",
+    "CONTENT_PROMOTION_SOURCE_URL",
+    "CONTENT_PACKS_DIR",
+    "CONTENT_PACKS_PUBLIC_URL",
 }
 
 STUB = """
@@ -406,6 +412,25 @@ def test_each_run_has_new_secrets(host: Host) -> None:
 
     for word, key in (("check", "SECRET_KEY"), ("-d", "POSTGRES_PASSWORD")):
         assert env_file(first.run_of(word))[key] != env_file(second.run_of(word))[key]
+
+
+@pytest.mark.parametrize(("word", "skip"), [("fetch", "prod-drill.env"), ("check", "")])
+def test_the_throwaway_values_load_the_prod_settings(host: Host, word: str, skip: str) -> None:
+    # The drill of 2026-11-01 stopped at "AUTH_SIGNING_KEYS is required": B02 and B04 had made
+    # variables required that the throwaway list didn't have.
+    values = env_file(host.run().run_of(word), skip=skip)
+    settings = {"PATH": os.environ["PATH"], "DJANGO_SETTINGS_MODULE": "config.settings.prod"}
+
+    loaded = subprocess.run(
+        [sys.executable, "-c", "import django; django.setup()"],
+        cwd=HOST.parent.parent,
+        env={**values, **settings},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert loaded.returncode == 0, loaded.stderr.strip().splitlines()[-1:]
 
 
 def test_the_result_line_is_kept_and_pinged(host: Host) -> None:
