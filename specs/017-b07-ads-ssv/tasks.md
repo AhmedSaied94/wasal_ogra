@@ -451,7 +451,7 @@ are cleaned after 90 days.
 - [X] T053 **Owner, before the deploy.** In the Firebase console, add the Remote Config parameter
   `ads_morning_piggy_daily_cap` with default `1` to both projects (otherwise B10's drift check
   alerts). (The Complexity Tracking entry was approved on 2026-11-03, before implementation.)
-- [ ] T054 **Owner, after merge.** In Sentry, add an alert rule that emails on the fingerprints
+- [X] T054 **Owner, after merge.** In Sentry, add an alert rule that emails on the fingerprints
   `ads`/`ssv-signature` and `ads`/`ssv-keys` for both environments.
 - [X] T055 **Owner, after the staging deploy.** In the AdMob console, set the SSV callback URL
   `https://api-staging.<domain>/v1/ads/ssv` on the morning piggy's rewarded ad unit only and press
