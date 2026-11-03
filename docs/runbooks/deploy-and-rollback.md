@@ -36,6 +36,21 @@ git tag v0.1.0 && git push origin v0.1.0
 A tag on a commit that isn't on `master`, or whose `master` run failed, stops at the `verify` job and
 deploys nothing.
 
+**Tag the newest `master` commit that has a `sha-` image, not always the tip.** A push that changed
+no backend files (docs, specs, the app) builds no image, so a tag on it fails `verify` with
+`sha-<commit>: not found` (v0.1.5's first run, 2026-11-03). This prints the commit to tag:
+
+```bash
+git log --format=%H origin/master | while read c; do
+  docker buildx imagetools inspect "ghcr.io/ahmedsaied94/wassal-backend:sha-$c" >/dev/null 2>&1 \
+    && { git log -1 --oneline "$c"; break; }
+done
+```
+
+Then `git tag vX.Y.Z <commit> && git push origin vX.Y.Z`. If a tag already failed `verify`, nothing
+was deployed: move it with `git push origin :refs/tags/vX.Y.Z`, then
+`git tag -f vX.Y.Z <commit> && git push origin vX.Y.Z`.
+
 ## Reading a failed deploy
 
 The deploy job's log shows the VM script's output, and its exit code says what happened:
