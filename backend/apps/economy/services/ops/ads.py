@@ -1,4 +1,4 @@
-"""`ad_reward` (contracts/operations.md `ad_reward`, contracts/fuel.md).
+"""`ad_reward` (contracts/operations.md `ad_reward`, contracts/fuel.md) and `ad_reward_seen` (B07).
 
 The phone reports an ad it showed; the server checks what the placement may give. The in-trip
 placements name the open start in `ref`, and `morning_piggy` is the server's alone.
@@ -73,3 +73,10 @@ def _fuel_refill(state: BatchState, ctx: Ctx) -> None:
         raise Rejected("cap_reached")
     state.set_fuel(filled)
     state.bump_counter(DayCounter.Kind.FUEL_REFILL_AD, ctx.t)
+
+
+@register("ad_reward_seen", payload={"nonce": Field(UUID)})
+def ad_reward_seen(state: BatchState, ctx: Ctx) -> None:
+    """The app showed a reward (B07 FR-017a, research R7). Always accepted: another reference,
+    or one already shown, changes nothing."""
+    state.mark_reward_seen(ctx.payload["nonce"])

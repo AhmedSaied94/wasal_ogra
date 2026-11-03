@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Player, User
+from apps.ads.models import AdReward
 from apps.common.ids import uuid7
 from apps.economy.models import (
     Currency,
@@ -31,6 +32,7 @@ from apps.economy.models import (
     WalletAdjustment,
 )
 from apps.economy.services import adjustments, settings, wallets
+from apps.economy.services.gameday import game_date
 from apps.progress.models import Ownership, StoryState, TripProgress
 
 RECENT = 50
@@ -59,6 +61,7 @@ def blocks(user: Any, player: Player) -> list[Block]:
         ("economy.view_grantrecord", _grants),
         ("economy.view_playerflag", _flags),
         ("economy.view_processedop", _operations),
+        ("ads.view_adreward", _ad_rewards),
     ):
         if user.has_perm(permission):
             shown.append(build(player))
@@ -170,6 +173,17 @@ def _operations(player: Player) -> Block:
         .values_list("processed_at", "op_type", "status", "reason")[:RECENT]
     )
     return Block("Recent operations", ("Time", "Type", "Status", "Reason"), rows)
+
+
+def _ad_rewards(player: Player) -> Block:
+    """B07 contracts/admin.md: today's morning piggy, and every reward of the player."""
+    today = game_date(timezone.now())
+    granted = AdReward.objects.filter(
+        player=player, placement="morning_piggy", outcome=AdReward.Outcome.GRANTED, game_date=today
+    ).exists()
+    rows = [("Morning piggy today", "granted" if granted else "not yet")]
+    url = f"{reverse('admin:ads_adreward_changelist')}?q={player.pk}"
+    return Block("Ad rewards", ("", ""), rows, [("Ad rewards", url)])
 
 
 def _adjustments(player: Player) -> Block:

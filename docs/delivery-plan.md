@@ -581,6 +581,14 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
   - **M11, M12:** the app reads `GET /v1/offers` for the shop (M12) and bundles no pack amounts; it
     honours `426 client_outdated` and `503 maintenance` with `details.until` (M06 already parses
     both).
+- **Handed on from B07** (`specs/017-b07-ads-ssv/research.md` "Handed to later features"):
+  - **M11:** set SSV options on the piggy's rewarded ad (`userId = player_id`, `customData =
+    {"placement":"morning_piggy","nonce":"<uuid4>"}` as compact JSON, a new nonce per ad); poll
+    `GET /v1/ads/rewards/{nonce}` at 1 s, 2 s and 4 s, treating 404 as "not yet"; show the banner
+    only while bootstrap's `ads.morning_piggy.available` is true; show the late-reward card for each
+    `unseen` entry, then queue `ad_reward_seen` (also after showing a grant from the lookup); replace
+    the wallet from the lookup's `wallet`. The AdMob console's callback URL goes on the piggy's ad
+    unit only. `ads_morning_piggy_daily_cap` (1) is already in `tunables.json`.
 - **Done when:**
   - Every placement in Glossary §3.4 works, with its caps enforced on the device and on the server.
   - No ad call is ever made while a trip is running.
@@ -636,6 +644,8 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
     age rating);
   - in M14, hiding the `Settings` artboard's «ملك الخط» notification switch until leagues launch
     (HANDOFF §9.3 #7).
+- **Handed on from B07:** in B09, delete or anonymize a deleted player's `ads.AdReward` rows
+  (`player` is `PROTECT`, so the deletion fails until it does), as for `LedgerEntry`.
 - **Done when:**
   - Account deletion works both in the app and on the web page.
   - A linking conflict lets the player choose which progress to keep; accounts are never merged.
@@ -652,6 +662,8 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
   - Every event in mobile §17 fires with its parameters.
   - Remote Config overrides the bundled defaults.
   - Crashlytics receives symbols from release builds.
+- **Handed on from B07:** report how often the reward lookup gives up after its three polls (the
+  rate SC-003 measures by hand for now).
 - **Then:** the closed test, followed by the Android beta in Egypt.
 
 ## After the MVP

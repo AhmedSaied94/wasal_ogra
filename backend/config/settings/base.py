@@ -56,6 +56,9 @@ INSTALLED_APPS = [
     # `economy` imports `progress`, never the reverse (B03 research R1).
     "apps.progress",
     "apps.economy",
+    # `ads` imports `economy` and `liveops`; `economy` imports only `ads.models` and
+    # `ads.services.status`, which never import `economy` (B07 plan, boundaries).
+    "apps.ads",
 ]
 
 # The request id comes first, so every line, the access line included, carries it (FR-036).
@@ -187,6 +190,7 @@ THROTTLE_ANONYMOUS_RATE: str | None = env.rate("THROTTLE_ANONYMOUS_RATE", "60/ho
 THROTTLE_REFRESH_RATE: str | None = env.rate("THROTTLE_REFRESH_RATE", "30/min")
 THROTTLE_LINK_RATE: str | None = env.rate("THROTTLE_LINK_RATE", "10/min")
 THROTTLE_SYNC_RATE: str | None = env.rate("THROTTLE_SYNC_RATE", "60/min")
+THROTTLE_SSV_RATE: str | None = env.rate("THROTTLE_SSV_RATE", "600/min")
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["apps.common.parsers.JSONParser"],
@@ -211,6 +215,7 @@ REST_FRAMEWORK = {
         "refresh": THROTTLE_REFRESH_RATE,
         "link": THROTTLE_LINK_RATE,
         "sync": THROTTLE_SYNC_RATE,
+        "ssv": THROTTLE_SSV_RATE,
     },
     "NUM_PROXIES": NUM_PROXIES,
     "EXCEPTION_HANDLER": "apps.common.errors.exception_handler",
@@ -230,6 +235,9 @@ SPECTACULAR_SETTINGS = {
         "PlatformEnum": "apps.common.client.PLATFORMS",
         "ProviderEnum": "apps.accounts.api.serializers.PROVIDERS",
         "ResolveEnum": "apps.accounts.api.serializers.RESOLUTIONS",
+        "ReasonEnum": "apps.economy.services.sync.REASONS",
+        "AdRewardStatusEnum": "apps.ads.api.serializers.REWARD_STATUSES",
+        "AdRewardRefusalEnum": "apps.ads.api.serializers.REFUSALS",
     },
 }
 
@@ -258,6 +266,14 @@ _liveops = env.liveops()
 LIVEOPS_REFRESH_SECONDS = _liveops.refresh_seconds
 FIREBASE_PROJECT_ID = _liveops.firebase_project_id
 REMOTE_CONFIG_SERVICE_ACCOUNT = _liveops.remote_config_service_account
+
+# -- Ads (B07, specs/017-b07-ads-ssv/contracts/environment.md) ------------------------------------
+
+_ads = env.ads()
+ADS_VERIFIER_KEYS_URL = _ads.verifier_keys_url
+ADS_KEYS_CACHE_SECONDS = _ads.keys_cache_seconds
+ADS_HTTP_TIMEOUT_SECONDS = _ads.http_timeout_seconds
+ADS_ALLOWED_AD_UNITS = _ads.allowed_ad_units
 
 # -- Background tasks (FR-006, FR-007) -------------------------------------------------------------
 

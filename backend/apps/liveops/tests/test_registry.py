@@ -12,7 +12,13 @@ from apps.liveops import registry
 
 TUNABLES = settings.BASE_DIR.parent / "apps" / "mobile" / "assets" / "config" / "tunables.json"
 
-BOTH = {"fuel_max", "fuel_max_subscriber", "fuel_regen_minutes", "ads_fuel_refill_daily_cap"}
+BOTH = {
+    "fuel_max",
+    "fuel_max_subscriber",
+    "fuel_regen_minutes",
+    "ads_fuel_refill_daily_cap",
+    "ads_morning_piggy_daily_cap",
+}
 
 SERVER_ONLY = {
     "fuel_overdraft_per_day": 2,
@@ -27,6 +33,9 @@ SERVER_ONLY = {
     "session_gap_minutes": 30,
     "comeback_away_days": 7,
     "comeback_cooldown_days": 30,
+    # B07 (specs/017-b07-ads-ssv/data-model.md "Live settings")
+    "ads_morning_piggy_jenehat": 30,
+    "ads_morning_piggy_bonat": 2,
 }
 
 VERSIONS = {
@@ -59,7 +68,7 @@ def test_every_phone_facing_key_is_in_the_file(tunables: dict[str, object]) -> N
     assert phone_facing == set(tunables)
 
 
-def test_exactly_four_keys_are_applied_by_both() -> None:
+def test_exactly_five_keys_are_applied_by_both() -> None:
     assert {
         spec.key for spec in registry.SPECS.values() if spec.applied_by == registry.BOTH
     } == BOTH
@@ -149,6 +158,10 @@ def test_a_version_key_accepts_only_major_minor_patch(raw: str) -> None:
             {"maintenance_enabled": True, "maintenance_until": datetime(2020, 1, 1, tzinfo=UTC)},
             "Set an end time in the future, or leave it empty.",
         ),
+        (
+            {"ads_morning_piggy_jenehat": 0, "ads_morning_piggy_bonat": 0},
+            "The morning piggy must give something.",
+        ),
     ],
 )
 def test_each_rule_refuses_with_its_exact_text(values: dict[str, object], text: str) -> None:
@@ -171,3 +184,25 @@ def test_the_rules_accept_the_defaults_and_a_valid_end_time() -> None:
 def test_an_unknown_key_raises_key_error() -> None:
     with pytest.raises(KeyError):
         registry.get("fuel_maxx")
+
+
+def test_the_morning_piggy_keys() -> None:
+    cap = registry.get("ads_morning_piggy_daily_cap")
+    assert (cap.kind, cap.default, cap.minimum, cap.maximum, cap.applied_by) == (
+        registry.INT,
+        1,
+        0,
+        10,
+        registry.BOTH,
+    )
+    jenehat = registry.get("ads_morning_piggy_jenehat")
+    assert (jenehat.minimum, jenehat.maximum) == (0, 10_000)
+    bonat = registry.get("ads_morning_piggy_bonat")
+    assert (bonat.minimum, bonat.maximum) == (0, 100)
+
+
+@pytest.mark.parametrize(("jenehat", "bonat"), [(0, 2), (30, 0)])
+def test_the_morning_piggy_may_give_one_currency_alone(jenehat: int, bonat: int) -> None:
+    candidate = registry.defaults()
+    candidate.update({"ads_morning_piggy_jenehat": jenehat, "ads_morning_piggy_bonat": bonat})
+    registry.check_rules(candidate)

@@ -60,6 +60,7 @@ const expected = <String, Object>{
   'ads_interstitial_every_n_trips': 3,
   'ads_interstitial_grace_trips': 10,
   'ads_fuel_refill_daily_cap': 3,
+  'ads_morning_piggy_daily_cap': 1,
   'pre_trip_card_mode': 'always',
   'notif_daily_max': 2,
 };

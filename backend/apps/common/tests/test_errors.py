@@ -56,6 +56,8 @@ def test_error_codes_are_exactly_the_contract() -> None:
         # B10 (specs/016-b10-catalog-offers/contracts/api.md)
         "client_outdated",
         "maintenance",
+        # B07 (specs/017-b07-ads-ssv/contracts/api.md)
+        "signature_invalid",
     }
     assert set(MESSAGES) == set(ErrorCode)
 
@@ -66,6 +68,7 @@ def test_error_codes_are_exactly_the_contract() -> None:
         (ErrorCode.CLIENT_OUTDATED, 426, {"min_version": "1.3.0"}),
         (ErrorCode.MAINTENANCE, 503, {}),
         (ErrorCode.MAINTENANCE, 503, {"until": "2026-11-03T15:30:00Z"}),
+        (ErrorCode.SIGNATURE_INVALID, 403, {}),
     ],
 )
 def test_b10_codes_render_their_envelope(

@@ -79,3 +79,6 @@ apps/mobile/lib/l10n/generated/
 # A hand-written fixture for the coverage gate's freezed exclusion.
 !apps/mobile/test/tool/fixtures/lib/core/a.freezed.dart
 backend/var/
+
+# B07: the dev AdMob key and its key list (`manage.py ads_dev_callback`)
+backend/.dev/

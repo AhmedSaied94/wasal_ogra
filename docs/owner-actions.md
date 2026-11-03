@@ -34,6 +34,7 @@ left, in what order, and where to look.
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
+| [017 B07 ads SSV](#017-b07-ads-ssv) | 2 (before the deploy) | 2, and 1 before M11's release | Built and tested on 2026-11-03, on branch `017-b07-ads-ssv`. The Remote Config key comes before the deploy. |
 
 ## Every month
 
@@ -1319,6 +1320,47 @@ catalog, offers and the Remote Config drift check. Runbook:
 - [ ] **4. The Play Console products (T069).** Create `bonat_pack_s`, `bonat_pack_m`, `bonat_pack_l`
   (consumable) and `remove_ads` (non-consumable) with their price tiers; price the smallest pack for
   mobile-balance payment (product spec «المشتريات»).
+
+## 017 B07 ads SSV
+
+What it built: AdMob's server-side verification callback `GET /v1/ads/ssv`, the morning piggy's
+grant, the app's reward lookup, bootstrap's `ads` block, the `ad_reward_seen` sync operation, the
+read-only ad rewards admin, the daily cleanup and the operator alerts. Runbooks:
+[economy.md](runbooks/economy.md#a-player-says-the-morning-piggy-didnt-pay-b07),
+[monitoring-setup.md](runbooks/monitoring-setup.md#admob-ssv-callback-b07s-alerts). Contract:
+`specs/017-b07-ads-ssv/`.
+
+### Before the deploy
+
+- [ ] **1. The Remote Config key (T053).** In the Firebase console, add the parameter
+  `ads_morning_piggy_daily_cap` with default `1` to both projects. Without it, B10's daily drift
+  check reports the new `both` key to Sentry. (The Complexity Tracking entry was approved on
+  2026-11-03.)
+- [ ] **1a. The allowed ad units (security review H1).** Put
+  `ADS_ALLOWED_AD_UNITS=<the piggy rewarded ad unit's id>` (the digits after `/` in
+  `ca-app-pub-…/…`) in each host's `/etc/wassal/<env>.env`: staging's unit on staging, production's
+  on production. Until it is set, that host's callbacks grant nothing (they are answered and
+  logged `foreign_ad_unit`). Google signs every publisher's callbacks with the same keys, so this is
+  what stops another AdMob account from pointing its ads at our endpoint.
+
+### After merge
+
+- [ ] **2. The Sentry alert rule (T054).** Add a rule that emails on the fingerprints `ads` /
+  `ssv-signature` and `ads` / `ssv-keys`, for both environments
+  ([monitoring-setup](runbooks/monitoring-setup.md#admob-ssv-callback-b07s-alerts)).
+- [ ] **3. Staging with a real ad (T055).** In the AdMob console, set the SSV callback URL
+  `https://api-staging.<domain>/v1/ads/ssv` on the morning piggy's rewarded ad unit only, and press
+  **Verify URL**: the console reports success and the admin shows an `unattributed` row. With a
+  build that shows the piggy ad, watch it on the test phone: the reward should arrive within 7 s in
+  9 of 10 tries (SC-003); note the callback's server time from the access log (SC-005). Then copy
+  one real callback's query and that day's key list into
+  `backend/apps/ads/tests/fixtures/real_callback.json` and tell me, so I add the test that verifies
+  it ([quickstart §6](../specs/017-b07-ads-ssv/quickstart.md)).
+
+### Before M11's release
+
+- [ ] **4. Production's callback URL (T056).** Set `https://api.<domain>/v1/ads/ssv` on the
+  production piggy ad unit and press **Verify URL**.
 
 ## Known for later features
 

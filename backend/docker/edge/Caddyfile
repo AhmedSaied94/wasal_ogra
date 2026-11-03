@@ -107,7 +107,19 @@
 			roll_size 50MiB
 			roll_keep_for 336h
 		}
-		format json
+		# B07: the AdMob callback's query names the player and the reward's reference. Keep the
+		# path only, as the app's own log does (security review M2).
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					delete user_id
+					delete custom_data
+					delete transaction_id
+					delete signature
+				}
+			}
+		}
 	}
 }
 

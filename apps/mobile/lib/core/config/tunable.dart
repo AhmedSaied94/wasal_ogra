@@ -161,6 +161,10 @@ final class Tunable<T extends Object> {
     'ads_fuel_refill_daily_cap',
     _int,
   );
+  static const adsMorningPiggyDailyCap = Tunable<int>._(
+    'ads_morning_piggy_daily_cap',
+    _int,
+  );
   static const preTripCardMode = Tunable<PreTripCardMode>._(
     'pre_trip_card_mode',
     _preTripCardMode,
@@ -205,6 +209,7 @@ final class Tunable<T extends Object> {
     adsInterstitialEveryNTrips,
     adsInterstitialGraceTrips,
     adsFuelRefillDailyCap,
+    adsMorningPiggyDailyCap,
     preTripCardMode,
     notifDailyMax,
   ]);

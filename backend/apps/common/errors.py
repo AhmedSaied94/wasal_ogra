@@ -41,6 +41,8 @@ class ErrorCode(StrEnum):
     # B10 (specs/016-b10-catalog-offers/contracts/api.md)
     CLIENT_OUTDATED = "client_outdated"
     MAINTENANCE = "maintenance"
+    # B07 (specs/017-b07-ads-ssv/contracts/api.md)
+    SIGNATURE_INVALID = "signature_invalid"
 
 
 MESSAGES: dict[ErrorCode, str] = {
@@ -63,6 +65,7 @@ MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.BATCH_TOO_LARGE: "Batch too large",
     ErrorCode.CLIENT_OUTDATED: "Client outdated",
     ErrorCode.MAINTENANCE: "Down for maintenance",
+    ErrorCode.SIGNATURE_INVALID: "Signature invalid",
 }
 
 STATUSES: dict[ErrorCode, int] = {
@@ -85,6 +88,7 @@ STATUSES: dict[ErrorCode, int] = {
     ErrorCode.BATCH_TOO_LARGE: 400,
     ErrorCode.CLIENT_OUTDATED: 426,
     ErrorCode.MAINTENANCE: 503,
+    ErrorCode.SIGNATURE_INVALID: 403,
 }
 
 # Every 401 tells the client which scheme to use (B02 research R8).

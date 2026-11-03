@@ -169,6 +169,14 @@ _SPECS += [
         applied_by=BOTH,
         meaning="Fuel refill ads per game day",
     ),
+    _int(
+        "ads_morning_piggy_daily_cap",
+        1,
+        0,
+        10,
+        applied_by=BOTH,
+        meaning="Morning piggy ads per game day",
+    ),
     _int("ads_interstitial_every_n_trips", 3, 1, 50, meaning="Interstitial every N trips"),
     _int("ads_interstitial_grace_trips", 10, 0, 100, meaning="Interstitials' grace trips"),
     _choice("pre_trip_card_mode", "always", ("always", "new_only"), meaning="Pre-trip card mode"),
@@ -217,6 +225,16 @@ _SPECS += [
     _int("session_gap_minutes", 30, 1, 1440, applied_by=SERVER, meaning="Session gap"),
     _int("comeback_away_days", 7, 1, 365, applied_by=SERVER, meaning="Comeback after N days"),
     _int("comeback_cooldown_days", 30, 0, 365, applied_by=SERVER, meaning="Comeback cooldown"),
+    # B07: what the morning piggy grants; the phone learns it from the reward (FR-019).
+    _int(
+        "ads_morning_piggy_jenehat",
+        30,
+        0,
+        10_000,
+        applied_by=SERVER,
+        meaning="Morning piggy JENEHAT",
+    ),
+    _int("ads_morning_piggy_bonat", 2, 0, 100, applied_by=SERVER, meaning="Morning piggy BONAT"),
     _version("min_client_version_android"),
     _version("latest_client_version_android"),
     _version("min_client_version_ios"),
@@ -265,6 +283,10 @@ def _versions(platform: str) -> Callable[[Mapping[str, Any]], bool]:
     return holds
 
 
+def _morning_piggy(candidate: Mapping[str, Any]) -> bool:
+    return bool(candidate["ads_morning_piggy_jenehat"] or candidate["ads_morning_piggy_bonat"])
+
+
 def _maintenance(candidate: Mapping[str, Any]) -> bool:
     until = candidate["maintenance_until"]
     if until is None:
@@ -302,6 +324,11 @@ RULES: tuple[Rule, ...] = (
         ("maintenance_enabled", "maintenance_until"),
         "Set an end time in the future, or leave it empty.",
         _maintenance,
+    ),
+    Rule(
+        ("ads_morning_piggy_jenehat", "ads_morning_piggy_bonat"),
+        "The morning piggy must give something.",
+        _morning_piggy,
     ),
 )
 
