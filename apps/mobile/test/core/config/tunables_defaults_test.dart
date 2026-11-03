@@ -74,8 +74,8 @@ void main() {
     ) as Map<String, dynamic>;
   });
 
-  test('tunables.json holds exactly the 50 contract keys and values', () {
-    expect(expected, hasLength(50));
+  test('tunables.json holds exactly the 51 contract keys and values', () {
+    expect(expected, hasLength(51));
     expect(bundled.keys.toSet(), expected.keys.toSet());
     for (final MapEntry(:key, :value) in expected.entries) {
       expect(bundled[key], value, reason: key);
