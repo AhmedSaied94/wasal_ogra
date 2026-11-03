@@ -488,12 +488,12 @@ Sentry warning (research R8). It serves US1's operator but needs nothing from th
   `GET /v1/offers` leaks nothing about other players.
 - [X] T065 Walk quickstart §1–§5 and §7 end to end on a clean dev stack and fix any step that doesn't
   match, in the document or the code.
-- [ ] T066 **Owner, before merge.** In Google Cloud project `wassal-ogra`, create a service account
+- [X] T066 **Owner, before merge.** In Google Cloud project `wassal-ogra`, create a service account
   with only the "Firebase Remote Config Viewer" role, one key per host; store each as
   `REMOTE_CONFIG_SERVICE_ACCOUNT` with `FIREBASE_PROJECT_ID=wassal-ogra` in the staging and
   production env files (`docs/runbooks/monitoring-setup.md`). Without it the check reports
   `not_configured` and nothing fails, so this can also follow the merge.
-- [ ] T067 **Owner, after merge.** In Sentry, add an alert rule that emails on the fingerprint
+- [X] T067 **Owner, after merge.** In Sentry, add an alert rule that emails on the fingerprint
   `liveops` / `remote-config-drift` for both environments.
 - [ ] T068 **Owner, after merge.** Create the `live_ops` members on both hosts
   (`create_staff <name> --group live_ops`), then run quickstart §1–§4 and §6 on staging; on

@@ -214,7 +214,7 @@ marked `# maintenance` in review. Reads and offline play continue; writes answer
 1. Turn it on in the `api` container, with an end time you expect to beat and a note:
 
    ```bash
-   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance on        --actor <staff> --until 2026-11-03T15:30Z --note "release <tag>"
+   sudo docker compose -p wassal-<env> exec api python manage.py maintenance on        --actor <staff> --until 2026-11-03T15:30Z --note "release <tag>"
    ```
 
 2. Wait 60 s, so every process's settings snapshot sees it.
@@ -222,7 +222,7 @@ marked `# maintenance` in review. Reads and offline play continue; writes answer
 4. Check `/readyz` and the release, then turn it off:
 
    ```bash
-   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance off --actor <staff>
+   sudo docker compose -p wassal-<env> exec api python manage.py maintenance off --actor <staff>
    ```
 
 Players' queued batches then apply once each. Full detail: [live-ops.md](live-ops.md#maintenance).

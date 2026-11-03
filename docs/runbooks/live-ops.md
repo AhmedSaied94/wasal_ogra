@@ -91,10 +91,10 @@ skips its run and catches up next time.
    **Command** on a host:
 
    ```bash
-   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance on \
+   sudo docker compose -p wassal-<env> exec api python manage.py maintenance on \
        --actor <staff> --until 2026-11-03T15:30Z --note "deploy"
-   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance status
-   sudo docker compose -p wassal-<env> exec api uv run manage.py maintenance off --actor <staff>
+   sudo docker compose -p wassal-<env> exec api python manage.py maintenance status
+   sudo docker compose -p wassal-<env> exec api python manage.py maintenance off --actor <staff>
    ```
 
    `--actor` must be an active staff user with `liveops.switch_maintenance`, and `--until` must be

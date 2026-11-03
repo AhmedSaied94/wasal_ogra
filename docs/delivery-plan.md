@@ -791,7 +791,8 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
     `short_name`), so staging publishes a fresh pack after the deploy.
   - [ ] `015-m10-apartment-story`
 - [ ] Step 8: Ads
-  - [ ] `016-b10-catalog-offers`
+  - [x] `016-b10-catalog-offers` (merged in #26, 2026-11-02; deployed to staging and production the
+    same day).
   - [ ] `017-b07-ads-ssv`
   - [ ] `018-m11-ads`
 - [ ] Step 9: Purchases

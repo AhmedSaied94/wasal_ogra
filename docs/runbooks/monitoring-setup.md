@@ -252,8 +252,8 @@ key per host (staging and production), rotated like any secret:
    newlines:
    - `FIREBASE_PROJECT_ID=wassal-ogra`
    - `REMOTE_CONFIG_SERVICE_ACCOUNT={"type":"service_account", …}` (the whole JSON)
-4. Restart the worker so the task reads them, then `sudo docker compose -p wassal-<env> exec api uv
-   run manage.py shell -c "from apps.liveops.services import remote_config; print(remote_config.run())"`.
+4. Restart the worker so the task reads them, then `sudo docker compose -p wassal-<env> exec api python
+   manage.py shell -c "from apps.liveops.services import remote_config; print(remote_config.run())"`.
    A run shows `ok`, or `not_configured` when the variables are empty (nothing fails).
 5. **Sentry alert rule:** for the fingerprint `liveops` / `remote-config-drift`, email both
    environments' operators (Settings → Alerts → create a rule on the event's fingerprint).
