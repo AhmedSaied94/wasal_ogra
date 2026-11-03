@@ -540,6 +540,60 @@
   "h": 1400
  },
  {
+  "file": "screens/PiggyArrived.html",
+  "png": "png/PiggyArrived.png",
+  "artboard": "PiggyArrived",
+  "title": "الحصّالة · وصلت",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PiggyUsed.html",
+  "png": "png/PiggyUsed.png",
+  "artboard": "PiggyUsed",
+  "title": "الحصّالة · اتفتحت النهارده",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/PiggyLater.html",
+  "png": "png/PiggyLater.png",
+  "artboard": "PiggyLater",
+  "title": "الحصّالة · المكافأة في الطريق",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/NoFuelAd.html",
+  "png": "png/NoFuelAd.png",
+  "artboard": "NoFuelAd",
+  "title": "البنزين خلص · تفويلة بإعلان",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/NoFuelAdLimit.html",
+  "png": "png/NoFuelAdLimit.png",
+  "artboard": "NoFuelAdLimit",
+  "title": "البنزين خلص · إعلانات النهارده خلصت",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "file": "screens/BoosterAdCard.html",
+  "png": "png/BoosterAdCard.png",
+  "artboard": "BoosterAdCard",
+  "title": "زحمة · بإعلان أو بالبونات",
+  "page": "v1",
+  "w": 390,
+  "h": 844
+ },
+ {
   "file": "screens/Garage.html",
   "png": "png/Garage.png",
   "artboard": "Garage",

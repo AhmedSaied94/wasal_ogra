@@ -700,5 +700,35 @@
   "screen": "RoomDonePending",
   "size": "46x46",
   "label": ""
+ },
+ {
+  "file": "illustrations/screens/PiggyArrived_01.svg",
+  "screen": "PiggyArrived",
+  "size": "200x128",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PiggyLater_01.svg",
+  "screen": "PiggyLater",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PiggyLater_02.svg",
+  "screen": "PiggyLater",
+  "size": "358x332",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PiggyUsed_01.svg",
+  "screen": "PiggyUsed",
+  "size": "46x46",
+  "label": ""
+ },
+ {
+  "file": "illustrations/screens/PiggyUsed_02.svg",
+  "screen": "PiggyUsed",
+  "size": "358x332",
+  "label": ""
  }
 ]
