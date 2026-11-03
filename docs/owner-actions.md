@@ -34,7 +34,7 @@ left, in what order, and where to look.
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
-| [017 B07 ads SSV](#017-b07-ads-ssv) | 1 (the ad unit, with AdMob's set-up) | The real-callback fixture, and 1 before M11's release | Built and tested on 2026-11-03; PR #28, deployed to staging. The Remote Config key, the staging check with a real ad and the Sentry alert rule are done (2026-11-03). |
+| [017 B07 ads SSV](#017-b07-ads-ssv) | 1 (the ad unit, with AdMob's set-up) | The real-callback fixture, and 1 before M11's release | Merged in #28 and deployed on 2026-11-03. The Remote Config key, the staging check with a real ad and the Sentry alert rule are done (2026-11-03). |
 
 ## Every month
 

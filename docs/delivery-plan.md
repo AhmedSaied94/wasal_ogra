@@ -805,7 +805,7 @@ Tick a spec when its PR merges, and tick the step when all of its specs have mer
 - [ ] Step 8: Ads
   - [x] `016-b10-catalog-offers` (merged in #26, 2026-11-02; deployed to staging and production the
     same day).
-  - [ ] `017-b07-ads-ssv`
+  - [x] `017-b07-ads-ssv` (merged in #28, 2026-11-03; deployed the same day).
   - [ ] `018-m11-ads`
 - [ ] Step 9: Purchases
   - [ ] `019-b06-purchases`
