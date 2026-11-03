@@ -448,12 +448,12 @@ are cleaned after 90 days.
   view grants.
 - [X] T052 Walk quickstart §1–§5 end to end on a clean dev stack with `ads_dev_callback`, and fix any
   step that doesn't match, in the document or the code.
-- [ ] T053 **Owner, before the deploy.** In the Firebase console, add the Remote Config parameter
+- [X] T053 **Owner, before the deploy.** In the Firebase console, add the Remote Config parameter
   `ads_morning_piggy_daily_cap` with default `1` to both projects (otherwise B10's drift check
   alerts). (The Complexity Tracking entry was approved on 2026-11-03, before implementation.)
 - [ ] T054 **Owner, after merge.** In Sentry, add an alert rule that emails on the fingerprints
   `ads`/`ssv-signature` and `ads`/`ssv-keys` for both environments.
-- [ ] T055 **Owner, after the staging deploy.** In the AdMob console, set the SSV callback URL
+- [X] T055 **Owner, after the staging deploy.** In the AdMob console, set the SSV callback URL
   `https://api-staging.<domain>/v1/ads/ssv` on the morning piggy's rewarded ad unit only and press
   **Verify URL**: the console reports success and the admin shows an `unattributed` row. With a
   build that shows the piggy ad, watch it on the test phone and check SC-003 (reward within 7 s, 9

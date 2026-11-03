@@ -34,7 +34,7 @@ left, in what order, and where to look.
 | [014 M09 lines and vehicles](#014-m09-lines-and-vehicles) | 6 | 3 | Built and tested on 2026-10-29, on branch `014-m09-lines-vehicles`; your eight boards are in and the app follows them. The release draft's texts, the strings, the departures and the goldens wait for you. |
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
-| [017 B07 ads SSV](#017-b07-ads-ssv) | 2 (before the deploy) | 2, and 1 before M11's release | Built and tested on 2026-11-03, on branch `017-b07-ads-ssv`. The Remote Config key comes before the deploy. |
+| [017 B07 ads SSV](#017-b07-ads-ssv) | 1 (the ad unit, with AdMob's set-up) | 1, plus the real-callback fixture, and 1 before M11's release | Built and tested on 2026-11-03; PR #28. The Remote Config key and the staging check with a real ad are done (2026-11-03). |
 
 ## Every month
 
@@ -1332,23 +1332,32 @@ read-only ad rewards admin, the daily cleanup and the operator alerts. Runbooks:
 
 ### Before the deploy
 
-- [ ] **1. The Remote Config key (T053).** In the Firebase console, add the parameter
+- [x] **1. The Remote Config key (T053).** In the Firebase console, add the parameter
   `ads_morning_piggy_daily_cap` with default `1` to both projects. Without it, B10's daily drift
   check reports the new `both` key to Sentry. (The Complexity Tracking entry was approved on
-  2026-11-03.)
-- [ ] **1a. The allowed ad units (security review H1).** Put
-  `ADS_ALLOWED_AD_UNITS=<the piggy rewarded ad unit's id>` (the digits after `/` in
-  `ca-app-pub-…/…`) in each host's `/etc/wassal/<env>.env`: staging's unit on staging, production's
-  on production. Until it is set, that host's callbacks grant nothing (they are answered and
-  logged `foreign_ad_unit`). Google signs every publisher's callbacks with the same keys, so this is
-  what stops another AdMob account from pointing its ads at our endpoint.
+  2026-11-03.) Done on 2026-11-03.
+- [ ] **1a. The allowed ad units (security review H1), with item 3.** This needs the morning
+  piggy's rewarded ad unit in AdMob, so it can wait until you set up AdMob; the deploy doesn't need
+  it. Until it is set, a host's callbacks grant nothing (they are answered and logged
+  `foreign_ad_unit`), which is safe.
+  1. In the [AdMob console](https://apps.admob.com), open **Apps**, add the app (Android,
+     `com.wassalogra.app`) if it isn't there, then **Ad units → Add ad unit → Rewarded**. Name it
+     `morning_piggy`.
+  2. AdMob shows the unit's id, for example `ca-app-pub-1234567890123456/9876543210`. The part
+     after `/` (`9876543210`) is what goes here.
+  3. Put `ADS_ALLOWED_AD_UNITS=9876543210` in the host's `/etc/wassal/<env>.env` and restart the
+     stack. Several units are separated by commas.
+
+  Google signs every publisher's callbacks with the same keys, so this list is what stops another
+  AdMob account from pointing its ads at our endpoint.
 
 ### After merge
 
 - [ ] **2. The Sentry alert rule (T054).** Add a rule that emails on the fingerprints `ads` /
   `ssv-signature` and `ads` / `ssv-keys`, for both environments
   ([monitoring-setup](runbooks/monitoring-setup.md#admob-ssv-callback-b07s-alerts)).
-- [ ] **3. Staging with a real ad (T055).** In the AdMob console, set the SSV callback URL
+- [x] **3. Staging with a real ad (T055).** Done on 2026-11-03; the fixture copy below is still
+  open. In the AdMob console, set the SSV callback URL
   `https://api-staging.<domain>/v1/ads/ssv` on the morning piggy's rewarded ad unit only, and press
   **Verify URL**: the console reports success and the admin shows an `unattributed` row. With a
   build that shows the piggy ad, watch it on the test phone: the reward should arrive within 7 s in
