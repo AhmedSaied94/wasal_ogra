@@ -103,7 +103,8 @@ cleanup() {
 random_hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
 
 # throwaway <database url>: what config.settings.prod requires, none of it production's.
-# `.invalid` never resolves, and the drill network has no outside route anyway.
+# `.invalid` never resolves, and the drill network has no outside route anyway. A variable that a
+# release makes required goes here too, or the drill can't load its settings (a test checks).
 throwaway() {
   printf '%s\n' \
     "WASSAL_ENV=prod" \
@@ -114,7 +115,13 @@ throwaway() {
     "API_HOST=drill.invalid" \
     "ADMIN_HOST=drill.invalid" \
     "SENTRY_DSN=https://drill@drill.invalid/1" \
-    "HC_PING_HEARTBEAT_URL=https://drill.invalid/"
+    "HC_PING_HEARTBEAT_URL=https://drill.invalid/" \
+    "AUTH_SIGNING_KEYS=drill:$SIGNING_KEY" \
+    "GOOGLE_OAUTH_CLIENT_IDS=drill.invalid" \
+    "CONTENT_ROLE=target" \
+    "CONTENT_PROMOTION_SOURCE_URL=https://drill.invalid/" \
+    "CONTENT_PACKS_DIR=/tmp/wassal-drill-packs" \
+    "CONTENT_PACKS_PUBLIC_URL=https://drill.invalid/packs/"
 }
 
 # -- staging's serving release, which fetches ------------------------------------------------------
@@ -144,6 +151,8 @@ trap 'exit 143' TERM INT HUP
 umask 077
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/wassal-drill.XXXXXX")" || fail "couldn't make a temp directory"
 SECRET_KEY="$(random_hex 32)"
+# Hex is base64url too: 64 characters decode to the 48 bytes a signing key may be.
+SIGNING_KEY="$(random_hex 32)"
 DB_PASSWORD="$(random_hex 24)"
 throwaway "postgres://drill:drill@drill.invalid:5432/drill" >"$RUN_DIR/fetch.env"
 {
