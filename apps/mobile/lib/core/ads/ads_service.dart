@@ -98,6 +98,14 @@ abstract interface class AdsService {
   /// Whether [ensureReady] has run this launch and consent allows requests.
   bool get canRequestAds;
 
+  /// Whether Settings must offer the privacy options (T081). Never asks
+  /// while a trip runs.
+  Future<bool> privacyOptionsRequired();
+
+  /// The privacy options form. False when it couldn't show, or a trip runs.
+  /// The player's choice applies at once.
+  Future<bool> showPrivacyOptions();
+
   /// What a button shows now. Synchronous; reads caches only, never the
   /// SDK. [tripId] is the result's trip, for `result_double`.
   AdOffer offer(AdPlacement placement, {String? tripId});
@@ -216,6 +224,26 @@ final class AdsServiceImpl implements AdsService {
     await _countRefills();
     preloadForNextTrip();
     _changed();
+  }
+
+  @override
+  Future<bool> privacyOptionsRequired() async =>
+      !_tripRuns && await _gateway.privacyOptionsRequired();
+
+  @override
+  Future<bool> showPrivacyOptions() async {
+    if (_tripRuns || !await _gateway.showPrivacyOptions()) return false;
+    final allowed = await _gateway.mayRequestAds();
+    // Before the first start, the start reads the choice itself.
+    if (!_started) return true;
+    if (allowed && !_canRequest) {
+      // The refused start never started the SDK: the next checkpoint does.
+      _started = false;
+    } else {
+      _canRequest = allowed;
+    }
+    _changed();
+    return true;
   }
 
   @override

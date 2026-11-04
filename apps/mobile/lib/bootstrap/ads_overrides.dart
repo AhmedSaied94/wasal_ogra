@@ -17,6 +17,8 @@ import 'package:wassal/features/trip/trip_providers.dart';
 List<Override> adsOverrides() => [
   // What a card needs loaded on its way in.
   adWarmUpProvider.overrideWith(liveAdWarmUp),
+  // Settings' row back to the consent form, where Google requires it.
+  adPrivacyRequiredProvider.overrideWith(liveAdPrivacyRequired),
   // Consent, the preloads and the interstitial, before every start.
   betweenTripsCheckpointProvider.overrideWith(
     (ref) => AdsCheckpoint(ref.watch(adsServiceProvider)),

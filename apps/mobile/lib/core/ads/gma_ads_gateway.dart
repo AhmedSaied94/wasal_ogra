@@ -73,6 +73,24 @@ final class GmaAdsGateway implements AdsGateway, AdsDebugControls {
     return true;
   }
 
+  @override
+  Future<bool> privacyOptionsRequired() async {
+    await _updateConsent();
+    final status = await ConsentInformation.instance
+        .getPrivacyOptionsRequirementStatus();
+    return status == PrivacyOptionsRequirementStatus.required;
+  }
+
+  @override
+  Future<bool> showPrivacyOptions() async {
+    var shown = false;
+    await ConsentForm.showPrivacyOptionsForm((error) => shown = error == null);
+    return shown;
+  }
+
+  @override
+  Future<bool> mayRequestAds() => ConsentInformation.instance.canRequestAds();
+
   Future<void> _updateConsent() {
     final done = Completer<void>();
     final debug = _debugAllowed && geography != ConsentGeography.none

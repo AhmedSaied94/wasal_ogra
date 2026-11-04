@@ -42,6 +42,12 @@ final class FakeAdsGateway implements AdsGateway, AdsDebugControls {
   @override
   Future<void> resetConsent() async => consentResets++;
 
+  /// What UMP says about the privacy options entry.
+  bool privacyRequired = false;
+
+  /// Whether the privacy options form can show.
+  bool privacyFormShows = true;
+
   /// Whether a `load` makes the unit ready at once. Off, it stays loading
   /// until [setReadiness].
   bool loadsBecomeReady;
@@ -89,6 +95,24 @@ final class FakeAdsGateway implements AdsGateway, AdsDebugControls {
   Future<bool> start(RequestConfig config) async {
     _log('start', null, config);
     startedWith = config;
+    return canRequestAds;
+  }
+
+  @override
+  Future<bool> privacyOptionsRequired() async {
+    _log('privacyOptionsRequired');
+    return privacyRequired;
+  }
+
+  @override
+  Future<bool> showPrivacyOptions() async {
+    _log('showPrivacyOptions');
+    return privacyFormShows;
+  }
+
+  @override
+  Future<bool> mayRequestAds() async {
+    _log('mayRequestAds');
     return canRequestAds;
   }
 

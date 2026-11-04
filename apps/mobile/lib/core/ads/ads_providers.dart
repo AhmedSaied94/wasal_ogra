@@ -64,6 +64,16 @@ AdWarmUp liveAdWarmUp(Ref ref) => (placement) {
 @Riverpod(keepAlive: true)
 AdWarmUp adWarmUp(Ref ref) => noAdWarmUp;
 
+/// Whether Settings shows the privacy options row (T081). No by default, so
+/// tests and samples never reach the SDK by opening Settings; the app's scope
+/// takes [liveAdPrivacyRequired]. Asked each time Settings opens.
+@riverpod
+Future<bool> adPrivacyRequired(Ref ref) async => false;
+
+/// Google's answer, through the service.
+Future<bool> liveAdPrivacyRequired(Ref ref) =>
+    ref.watch(adsServiceProvider).privacyOptionsRequired();
+
 /// True exactly while a trip's engine runs (research R7).
 @Riverpod(keepAlive: true)
 TripRunningProbe tripRunningProbe(Ref ref) => ref.watch(tripRunningProvider);

@@ -36,6 +36,11 @@ final class PiggyVerification {
 }
 ```
 
+- **Privacy options (T081):** `privacyOptionsRequired()` refreshes UMP and reads its requirement
+  status, showing nothing; `showPrivacyOptions()` shows the form and resolves false when it can't;
+  `mayRequestAds()` reads `canRequestAds`. `AdsService` wraps the first two under the same names:
+  no call while a trip runs, and the choice applies at once. A refused start never started the SDK,
+  so allowing ads afterwards leaves the start to the next checkpoint.
 - `show` resolves after the ad's full-screen content is dismissed. A reward fires before the
   dismissal, so `Rewarded` means "earned", whatever happens to the app after.
 - `GmaAdsGateway` holds at most one loaded ad per unit and applies the expiry and the back-off

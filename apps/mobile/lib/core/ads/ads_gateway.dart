@@ -91,6 +91,17 @@ abstract interface class AdsGateway {
   /// SDK's start (research R6). Completes with whether ads may be requested.
   Future<bool> start(RequestConfig config);
 
+  /// Whether Google requires this player be offered the privacy options:
+  /// UMP's answer, refreshed. Shows nothing (T081).
+  Future<bool> privacyOptionsRequired();
+
+  /// UMP's privacy options form, where a player changes or withdraws their
+  /// consent. Resolves when it is dismissed; false when it couldn't show.
+  Future<bool> showPrivacyOptions();
+
+  /// UMP's answer now, after the player's choice.
+  Future<bool> mayRequestAds();
+
   /// Loads [unit] unless one is held, loading, or waiting out a back-off.
   Future<void> load(AdUnit unit);
 

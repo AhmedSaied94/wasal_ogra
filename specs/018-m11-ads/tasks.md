@@ -688,7 +688,12 @@ and the dev ids, so only these checks wait.
 - [X] T079 Check `docs/design/README.md` "Checking a screen against the design" for every changed
   board: Fail, Result, Home and HomeStates (the piggy), `TripEvents`, and the booster card's
   `States` layout.
-- [ ] T080 Run Codemagic's `ios-dev-unsigned` once on the branch: it builds with the Swift Packages and
+- [X] T081 Settings' way back to the consent form (owner's decision, 2026-11-04): `AdsGateway`'s
+  `privacyOptionsRequired`, `showPrivacyOptions` and `mayRequestAds`, `AdsService`'s wrappers, and a
+  row in `settings_screen.dart` shown only where UMP requires it. Tests:
+  `test/core/ads/ads_service_test.dart`, `test/features/settings/settings_ad_privacy_test.dart`. The
+  real form can only be checked on the phone, once the European message is published (T078).
+- [X] T080 Run Codemagic's `ios-dev-unsigned` once on the branch: it builds with the Swift Packages and
   no Podfile (research R1, R2). Record the build link in the PR.
 
 ---

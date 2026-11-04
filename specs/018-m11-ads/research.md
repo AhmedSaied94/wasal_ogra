@@ -97,8 +97,10 @@ The spec's one outstanding item, the piggy banner shown from a state of an earli
   AdMob console (Privacy & messaging). `Info.plist` gets `NSUserTrackingUsageDescription` and
   Google's `SKAdNetworkItems` list. There is no separate ATT plugin. When consent is refused or
   tracking is denied, the SDK serves non-personalised ads by itself, and the app does nothing extra.
-  Settings gets no privacy-options entry in M11: Egypt shows no form today, and M14 builds Settings
-  (handed on).
+  Settings gets a privacy-options row in M11 (T081, owner's decision 2026-11-04, replacing the plan
+  to leave it to M14): the European message tells players they can withdraw consent, so the way back
+  ships with it. The row shows only when UMP's `privacyOptionsRequirementStatus` is required, so
+  Egypt never sees it.
 
   `ensureReady()` runs at the first between-trips checkpoint where an ad may come next: before
   tutorial trip 3 starts (spec Clarifications), or at any later checkpoint while it hasn't run
@@ -331,7 +333,7 @@ The spec's one outstanding item, the piggy banner shown from a state of an earli
 - **M12:** put `FuelRefillAdOffer` in the `Fuel` sheet; the shop's `remove_ads` changes
   `Entitlements.removeAds`, which the checkpoint already reads.
 - **M13:** reuse `gameDayOf` for the daily reward and tasks.
-- **M14:** Settings' privacy entry (`ConsentForm.showPrivacyOptionsForm` when
-  `privacyOptionsRequirementStatus` is required), and the iOS backup exclusion as before.
+- **M14:** moving Settings' privacy row (T081) into the `Settings` artboard, and the iOS backup
+  exclusion as before.
 - **M15:** map `AdEvent`s to analytics; report the piggy's give-up rate (B07 SC-003).
 - **B09:** nothing new on the phone; deletion already clears local data.

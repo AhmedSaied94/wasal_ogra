@@ -40,6 +40,15 @@ final class _CallbackGateway implements AdsGateway {
   Future<bool> start(RequestConfig config) => _inner.start(config);
 
   @override
+  Future<bool> privacyOptionsRequired() => _inner.privacyOptionsRequired();
+
+  @override
+  Future<bool> showPrivacyOptions() => _inner.showPrivacyOptions();
+
+  @override
+  Future<bool> mayRequestAds() => _inner.mayRequestAds();
+
+  @override
   Future<void> load(AdUnit unit) => _inner.load(unit);
 
   @override

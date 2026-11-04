@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/core/ads/ads_providers.dart';
 import 'package:wassal/core/config/tunable.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/l10n/digit_style_provider.dart';
@@ -9,15 +10,19 @@ import 'package:wassal/core/routing/placeholder_screen.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/theme/components/containers.dart';
 import 'package:wassal/core/theme/components/controls.dart';
+import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/pre_trip/application/card_mode_provider.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
 /// Settings: still a placeholder, except for the real digit-style control
-/// (FR-025) and the pre-trip card's (specs/013-m08-home-result FR-024;
-/// M14 moves both into the `Settings` artboard).
-class SettingsScreen extends StatelessWidget {
+/// (FR-025), the pre-trip card's (specs/013-m08-home-result FR-024) and the
+/// ads' privacy options where Google requires them (specs/018-m11-ads T081;
+/// M14 moves them all into the `Settings` artboard).
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  static const adPrivacyKey = ValueKey('ad-privacy');
 
   static Key optionKey(DigitStyle style) =>
       ValueKey('digit-style-${style.wire}');
@@ -26,15 +31,44 @@ class SettingsScreen extends StatelessWidget {
       ValueKey('pre-trip-card-${mode.wire}');
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final privacy = ref.watch(adPrivacyRequiredProvider).value ?? false;
     return PlaceholderScreen(
       destination: destinationNamed(RouteNames.settings),
-      extra: const Column(
+      extra: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: SpaceTokens.s12,
-        children: [_DigitStyleControl(), _PreTripCardControl()],
+        children: [
+          const _DigitStyleControl(),
+          const _PreTripCardControl(),
+          if (privacy) const _AdPrivacyControl(),
+        ],
       ),
     );
+  }
+}
+
+/// A `ListRow` back to the consent form, for the players Google asks about.
+class _AdPrivacyControl extends ConsumerWidget {
+  const _AdPrivacyControl();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return AppCard(
+      child: ListRow(
+        key: SettingsScreen.adPrivacyKey,
+        title: l10n.settingsAdPrivacy,
+        trailing: const ListRowChevron(),
+        onTap: () => unawaited(_open(context, ref)),
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final message = AppLocalizations.of(context).adNeedsNetwork;
+    final shown = await ref.read(adsServiceProvider).showPrivacyOptions();
+    if (!shown && context.mounted) showAppToast(context, message);
   }
 }
 

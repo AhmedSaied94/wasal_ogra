@@ -2204,6 +2204,10 @@
   "@preTripA11yGo": {
     "description": "«اطلع» read aloud, when it spends a liter."
   },
+  "settingsAdPrivacy": "خصوصية الإعلانات",
+  "@settingsAdPrivacy": {
+    "description": "Settings: the row back to the ads' consent form, shown only where Google requires it."
+  },
   "settingsPreTripCard": "كارت ما قبل المشوار",
   "@settingsPreTripCard": {
     "description": "Settings: the pre-trip card's row."

@@ -109,6 +109,66 @@ void main() {
     });
   });
 
+  group('privacy options', () {
+    test('asks the gateway; while a trip runs, no call and no', () async {
+      final rig = await AdsRig.open();
+      rig.gateway.privacyRequired = true;
+      expect(await rig.service.privacyOptionsRequired(), isTrue);
+
+      rig.gateway.calls.clear();
+      rig.probe.value = true;
+      expect(await rig.service.privacyOptionsRequired(), isFalse);
+      expect(await rig.service.showPrivacyOptions(), isFalse);
+      expect(rig.gateway.calls, isEmpty);
+    });
+
+    test('a form that cannot show changes nothing', () async {
+      final rig = await _ready();
+      rig.gateway.privacyFormShows = false;
+      expect(await rig.service.showPrivacyOptions(), isFalse);
+      expect(rig.gateway.count('mayRequestAds'), 0);
+      expect(rig.service.canRequestAds, isTrue);
+    });
+
+    test(
+      'allowed now, after a refusal: the next start starts the SDK',
+      () async {
+        final rig = await AdsRig.open(
+          economy: await _player(),
+          gateway: FakeAdsGateway(canRequestAds: false),
+        );
+        await rig.service.ensureReady();
+        expect(rig.service.canRequestAds, isFalse);
+
+        rig.gateway.canRequestAds = true;
+        expect(await rig.service.showPrivacyOptions(), isTrue);
+        // The SDK has never started this launch, so no ad may load yet.
+        expect(rig.service.canRequestAds, isFalse);
+
+        await rig.service.ensureReady();
+        expect(rig.gateway.count('start'), 2);
+        expect(rig.service.canRequestAds, isTrue);
+      },
+    );
+
+    test('no longer allowed: every offer is not ready at once', () async {
+      final rig = await _ready();
+      rig.gateway.canRequestAds = false;
+      expect(await rig.service.showPrivacyOptions(), isTrue);
+      expect(rig.service.canRequestAds, isFalse);
+      expect(rig.service.offer(AdPlacement.fuelRefill), isA<NotReady>());
+    });
+
+    test('before the first start, the start still decides', () async {
+      final rig = await AdsRig.open();
+      expect(await rig.service.showPrivacyOptions(), isTrue);
+      expect(rig.service.canRequestAds, isFalse);
+      await rig.service.ensureReady();
+      expect(rig.gateway.count('start'), 1);
+      expect(rig.service.canRequestAds, isTrue);
+    });
+  });
+
   group('offer', () {
     test('reads caches only: no gateway call', () async {
       final rig = await _ready();
