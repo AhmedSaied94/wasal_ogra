@@ -31,7 +31,9 @@ final class AdIds {
 - **staging and prod:** the owner's ids (owner action before the staging check). The real unit of
   `morningPiggy` is the one in `ADS_ALLOWED_AD_UNITS` on that host (B07).
 - A test checks that every flavor maps every `AdUnit`, that dev holds only Google's sample
-  publisher (`3940256099942544`), and that staging and prod hold none of it.
+  publisher (`3940256099942544`), and that staging and prod's Android hold none of it.
+- **iOS for now (owner's decision, 2026-11-04):** staging and prod's iOS keep the sample ids until
+  iOS launches. The test accepts a column that is all samples or all real, never a mix.
 
 ## Android
 

@@ -74,7 +74,7 @@ description: "Task list for M11 Ads Integration: rewarded, interstitial, consent
     `apps/mobile/android/app/src/main/AndroidManifest.xml`.
   - Extend `apps/mobile/test/repo/` with `admob_app_id_test.dart`: each flavor's placeholder in the
     Gradle file equals `adIds[flavor].androidAppId`.
-- [ ] T005 [P] iOS (contracts/platform-config.md "iOS"):
+- [ ] T005 [P] iOS (contracts/platform-config.md "iOS"): Waits for the iOS release (owner's decision, 2026-11-04).
   - `apps/mobile/ios/Runner/Info.plist` gains `GADApplicationIdentifier = $(ADMOB_APP_ID)`,
     `NSUserTrackingUsageDescription` (the owner's Arabic text from T067, an English fallback in
     `InfoPlist.strings`) and the `SKAdNetworkItems` list from Google's, AppLovin's and Unity's
@@ -630,12 +630,13 @@ and the dev ids, so only these checks wait.
   - move the boards' copy into `app_ar.arb`;
   - write "As drawn (date)" in `contracts/design-briefs.md`;
   - add the boards to M11's row of `docs/delivery-plan.md` "Design sources".
-- [ ] T065 **Owner:** create the AdMob ad units: rewarded × 5 (one per placement; `morning_piggy` is
+- [X] T065 **Owner:** create the AdMob ad units: rewarded × 5 (one per placement; `morning_piggy` is
   B07's existing unit) and one interstitial, for Android, and iOS when it sells. Send the ids.
   Claude puts them in `ad_ids.dart` and the per-flavor app ids (T003–T005). T002 then passes.
+  Done for Android on 2026-11-04; iOS keeps the sample ids until it launches (owner's decision).
 - [ ] T066 **Owner:** in AdMob, set up AppLovin and Unity Ads mediation; register the test phone as a
   test device; turn on Privacy & messaging's GDPR form and the IDFA explainer (research R2, R4, R6).
-- [ ] T067 **Owner:** the Arabic `NSUserTrackingUsageDescription` text for T005.
+- [ ] T067 **Owner:** the Arabic `NSUserTrackingUsageDescription` text for T005. Waits for the iOS release (owner's decision, 2026-11-04).
 
 ---
 
@@ -665,7 +666,11 @@ and the dev ids, so only these checks wait.
 - [X] T072 [P] Update the root `CLAUDE.md`'s features line with "018 M11 ads".
 - [ ] T073 Measure the dev and prod release APK sizes before and after (`fvm flutter build apk
   --flavor prod --release --analyze-size`). Record them in the PR; the download stays < 80 MB.
-- [ ] T074 Run quickstart §1, §2 and §6 in full on the VPS: `--exclude-tags backend`, the drift tests,
+  Dev release, measured 2026-11-04 (`--split-per-abi`, arm64 being what a Play download is): 33.9 MB
+  before (27fd524), 39.5 MB after, so ads add 5.6 MB; the universal APK is 96.5 MB before, 104.0 MB
+  after. Prod can't be built yet: `checkBundledPack` refuses until a promoted pack is bundled
+  (`docs/runbooks/content-publishing.md` §3). Open until then.
+- [X] T074 Run quickstart §1, §2 and §6 in full on the VPS: `--exclude-tags backend`, the drift tests,
   `fuel_ad_test.dart`, the first-session test, the design tests, the coverage gate ≥ 80%, analyze and
   format.
 - [ ] T075 Run quickstart §4 against the dev stack (the `backend`-tagged `piggy_test.dart`), and
@@ -680,7 +685,7 @@ and the dev ids, so only these checks wait.
     (production's callback URL) before the release.
 - [ ] T078 Run quickstart §3 on the owner's phone (dev build, test ads), steps 1–8, with the owner
   watching, and record the outcome in `docs/owner-actions.md`.
-- [ ] T079 Check `docs/design/README.md` "Checking a screen against the design" for every changed
+- [X] T079 Check `docs/design/README.md` "Checking a screen against the design" for every changed
   board: Fail, Result, Home and HomeStates (the piggy), `TripEvents`, and the booster card's
   `States` layout.
 - [ ] T080 Run Codemagic's `ios-dev-unsigned` once on the branch: it builds with the Swift Packages and

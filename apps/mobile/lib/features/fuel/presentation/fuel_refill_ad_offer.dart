@@ -150,6 +150,7 @@ class _FuelRefillAdOfferState extends ConsumerState<FuelRefillAdOffer> {
                     ),
                     enabled: !_busy,
                     onTap: () => unawaited(_buy()),
+                    gap: SpaceTokens.s6,
                     below: PriceChip(
                       label: l10n.tripBoosterPriceBadge(numbers.integer(price)),
                     ),
@@ -205,7 +206,9 @@ class _AdTile extends ConsumerWidget {
           : Text(
               line,
               textAlign: TextAlign.center,
-              style: TypeTokens.label.copyWith(color: ColorTokens.primarySoft),
+              style: TypeTokens.label
+                  .weight(500)
+                  .copyWith(color: ColorTokens.primarySoft),
             ),
     );
   }
@@ -221,6 +224,7 @@ class _Tile extends StatelessWidget {
     required this.enabled,
     required this.onTap,
     this.below,
+    this.gap = SpaceTokens.s4,
     super.key,
   });
 
@@ -230,6 +234,9 @@ class _Tile extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
   final Widget? below;
+
+  /// Between the lines: 4, or 6 over the price chip (`NoFuelAd` box 17).
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
@@ -241,6 +248,7 @@ class _Tile extends StatelessWidget {
       borderRadius: radius,
       semanticLabel: semanticLabel,
       child: Container(
+        width: double.infinity,
         constraints: const BoxConstraints(
           minHeight: DesignExtras.refillTileHeight,
         ),
@@ -254,9 +262,16 @@ class _Tile extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          spacing: SpaceTokens.s4,
+          spacing: gap,
           children: [
-            AppIcon(icon, size: DesignExtras.refillTileIcon),
+            // White on `primary`, whatever colours the icon has elsewhere.
+            ColorFiltered(
+              colorFilter: const ColorFilter.mode(
+                ColorTokens.paper,
+                BlendMode.srcIn,
+              ),
+              child: AppIcon(icon, size: DesignExtras.refillTileIcon),
+            ),
             Text(
               title,
               textAlign: TextAlign.center,

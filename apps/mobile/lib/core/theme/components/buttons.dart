@@ -441,32 +441,33 @@ class RewardedAdButton extends StatelessWidget {
           : notReady,
       child: SizedBox(
         width: double.infinity,
-        height: large
-            ? DesignExtras.rewardedHeightLarge
-            : DesignExtras.rewardedHeight,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: ColorTokens.primary,
             borderRadius: radius,
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignExtras.rewardedSidePadding,
+          // At least its height; a long line wraps (`Fail` box 12) and large
+          // text grows it.
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: large
+                  ? DesignExtras.rewardedHeightLarge
+                  : DesignExtras.rewardedHeight,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: SpaceTokens.s10,
-              children: [
-                AppIcon(
-                  ready ? 'ad_play_on_primary' : 'ad_not_ready',
-                  size: large ? DesignExtras.rewardedIconLarge : _icon,
-                  color: ColorTokens.paper,
-                ),
-                // A line too long for the fixed height (western digits, a
-                // narrow phone) shrinks rather than overflows.
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignExtras.rewardedSidePadding,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: SpaceTokens.s10,
+                children: [
+                  AppIcon(
+                    ready ? 'ad_play_on_primary' : 'ad_not_ready',
+                    size: large ? DesignExtras.rewardedIconLarge : _icon,
+                    color: ColorTokens.paper,
+                  ),
+                  Flexible(
                     child: ready
                         ? Column(
                             mainAxisSize: MainAxisSize.min,
@@ -495,8 +496,8 @@ class RewardedAdButton extends StatelessWidget {
                             ),
                           ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

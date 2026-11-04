@@ -145,7 +145,11 @@ class _AmountChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: _height,
-    padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s16),
+    // `PiggyArrived` box 23: 8 before the coin, 16 after the amount.
+    padding: const EdgeInsetsDirectional.only(
+      start: SpaceTokens.s8,
+      end: SpaceTokens.s16,
+    ),
     decoration: BoxDecoration(
       color: ColorTokens.paper,
       borderRadius: BorderRadius.circular(RadiusTokens.pill),
@@ -153,13 +157,13 @@ class _AmountChip extends StatelessWidget {
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
-      spacing: SpaceTokens.s8,
+      spacing: SpaceTokens.s6,
       children: [
+        AppIcon(icon, size: _icon),
         Text(
           label,
-          style: TypeTokens.displayS.copyWith(color: ColorTokens.ink),
+          style: DesignExtras.piggyChipLabel.copyWith(color: ColorTokens.ink),
         ),
-        AppIcon(icon, size: _icon),
       ],
     ),
   );

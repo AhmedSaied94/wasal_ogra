@@ -12,6 +12,7 @@ import 'package:wassal/core/economy/economy.dart' show AdPlacement;
 import 'package:wassal/core/l10n/digit_style_provider.dart';
 import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/components/pressable.dart';
+import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/result/domain/result_args.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
@@ -85,7 +86,9 @@ class _ResultDoubleOfferState extends ConsumerState<ResultDoubleOffer> {
             child: Center(
               child: Text(
                 l10n.resultDoubleDecline(payText),
-                style: TypeTokens.label.copyWith(color: ColorTokens.inkMuted),
+                style: DesignExtras.resultDeclineLabel.copyWith(
+                  color: ColorTokens.inkMuted,
+                ),
               ),
             ),
           ),

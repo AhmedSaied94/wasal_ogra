@@ -118,6 +118,8 @@ differently).
     the item.
   - On `NoFuelAdLimit` the ad tile is 45% with no lip and «خلصت النهارده», with the TV icon without
     its play mark. The BONAT tile is unchanged.
+  - The app's tile icons are one flat white, so the BONAT tile's fuel icon loses the window the board
+    cuts into it (`refill` has no white-on-primary drawing).
 - **BoosterAdCard.** «زحمة ببلاش» / «+١٠ ثواني للمحطة الجاية» sits directly above «اشتري واستعمل»
   with its «٨ بون» chip; both are 66 high and primary. «معاك ٤٥ بون» goes under the buy button,
   then «مش دلوقتي». The dashboard behind shows «زحمة» with its «إعلان» badge.

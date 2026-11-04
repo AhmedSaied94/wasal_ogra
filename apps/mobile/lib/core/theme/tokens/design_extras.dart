@@ -1706,6 +1706,44 @@ abstract final class DesignExtras {
   static const double roomStripHeight = 44;
 
   /// `RoomDonePending` 11: the finished room's title, Marhey 700 30.
+  /// `C-Home` box 61: the piggy banner's title and body, on a 1.25 line.
+  static const piggyBannerTitle = TextStyle(
+    fontFamily: 'Marhey',
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.25,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const piggyBannerBody = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 12.5,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.25,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PiggyArrived` box 23: a chip's amount.
+  static const piggyChipLabel = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result`: «لأ، خد … بس», 14/600.
+  static const resultDeclineLabel = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `PiggyArrived` box 21: the title, Marhey 700 30 on the browser's
   /// normal line, measured 52.
   static const piggyArrivedTitle = TextStyle(

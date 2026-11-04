@@ -48,7 +48,7 @@ android {
             dimension = "env"
             // The AdMob app id (specs/018-m11-ads, research R4); equal to
             // lib/core/ads/ad_ids.dart (test/repo/admob_app_id_test.dart).
-            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-8517724530135268~5907754524"
             applicationIdSuffix = ".staging"
             resValue("string", "app_name", "وصّل staging")
         }
@@ -56,7 +56,7 @@ android {
             dimension = "env"
             // The AdMob app id (specs/018-m11-ads, research R4); equal to
             // lib/core/ads/ad_ids.dart (test/repo/admob_app_id_test.dart).
-            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-8517724530135268~5907754524"
             resValue("string", "app_name", "وصّل الأجرة")
         }
     }

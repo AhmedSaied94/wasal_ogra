@@ -1,6 +1,6 @@
 // The ad ids of each flavor (specs/018-m11-ads, contracts/platform-config.md
-// "Ad ids", T002). Staging and prod fail until the owner's ids land (T065):
-// that failure is the merge gate.
+// "Ad ids", T002). Staging and prod's Android must hold the owner's ids
+// (T065); their iOS waits for the iOS release.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wassal/bootstrap/flavor.dart';
 import 'package:wassal/core/ads/ad_ids.dart';
@@ -51,17 +51,33 @@ void main() {
   });
 
   for (final flavor in [Flavor.staging, Flavor.prod]) {
-    test("$flavor holds none of the sample publisher (owner's ids, T065)", () {
-      for (final id in _all(adIds[flavor]!)) {
+    test("$flavor's Android holds none of the sample publisher (T065)", () {
+      final ids = adIds[flavor]!;
+      for (final id in [ids.androidAppId, ...ids.androidUnits.values]) {
         expect(id, isNot(contains(samplePublisher)), reason: id);
       }
     });
 
-    test('$flavor gives each placement its own unit', () {
+    test('$flavor gives each Android placement its own unit', () {
+      final units = adIds[flavor]!.androidUnits.values;
+      expect(units.toSet(), hasLength(units.length));
+    });
+
+    // iOS hasn't launched, so it may keep Google's sample ids (the owner's
+    // decision, 2026-11-04). All or none: once any real id lands, the whole
+    // column must be real, one unit per placement. Real ids before the iOS
+    // release are on docs/owner-actions.md's list.
+    test('$flavor\'s iOS is all samples, or all real with its own units', () {
       final ids = adIds[flavor]!;
-      for (final units in [ids.androidUnits, ids.iosUnits]) {
-        expect(units.values.toSet(), hasLength(units.length));
+      final column = [ids.iosAppId, ...ids.iosUnits.values];
+      if (column.any((id) => id.contains(samplePublisher))) {
+        for (final id in column) {
+          expect(id, contains(samplePublisher), reason: id);
+        }
+        return;
       }
+      final units = ids.iosUnits.values;
+      expect(units.toSet(), hasLength(units.length));
     });
   }
 }

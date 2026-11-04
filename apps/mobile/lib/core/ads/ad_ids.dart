@@ -50,12 +50,61 @@ const _sample = AdIds(
   },
 );
 
+/// The owner's publisher (T065).
+const _publisher = 'ca-app-pub-8517724530135268';
+
+/// The owner's Android app, for staging and prod alike (T065).
+const _androidAppId = '$_publisher~5907754524';
+
+/// The owner's Android units (T065). Each flavor's piggy is the unit in its
+/// host's `ADS_ALLOWED_AD_UNITS` (B07), with that host's SSV callback.
+const _stagingAndroidUnits = {
+  AdUnit.resultDouble: '$_publisher/5361562259',
+  AdUnit.fuelRefill: '$_publisher/1389306469',
+  AdUnit.tripRevive: '$_publisher/6483072230',
+  AdUnit.trafficJam: '$_publisher/3038651249',
+  AdUnit.morningPiggy: '$_publisher/2511736310',
+  AdUnit.interstitial: '$_publisher/1318375468',
+};
+
+const _prodAndroidUnits = {
+  AdUnit.resultDouble: '$_publisher/1266017530',
+  AdUnit.fuelRefill: '$_publisher/7340471295',
+  AdUnit.tripRevive: '$_publisher/3944538803',
+  AdUnit.trafficJam: '$_publisher/3856908897',
+  AdUnit.morningPiggy: '$_publisher/3908277141',
+  AdUnit.interstitial: '$_publisher/7692212128',
+};
+
 const Map<Flavor, AdIds> adIds = {
   Flavor.dev: _sample,
-  // Owner action T065: the owner's real ids (one rewarded unit per placement, the
-  // piggy's on B07's `ADS_ALLOWED_AD_UNITS`, and one interstitial). Until
-  // then staging and prod hold the sample ids, which
-  // `test/core/ads/ad_ids_test.dart` refuses, so the PR can't merge.
-  Flavor.staging: _sample,
-  Flavor.prod: _sample,
+  // iOS hasn't launched: its columns keep Google's samples, test ads only
+  // (the owner's decision, 2026-11-04). The real ids are on
+  // docs/owner-actions.md's list before the iOS release.
+  Flavor.staging: AdIds(
+    androidAppId: _androidAppId,
+    androidUnits: _stagingAndroidUnits,
+    iosAppId: 'ca-app-pub-$samplePublisher~1458002511',
+    iosUnits: {
+      AdUnit.resultDouble: _sampleIosRewarded,
+      AdUnit.fuelRefill: _sampleIosRewarded,
+      AdUnit.tripRevive: _sampleIosRewarded,
+      AdUnit.trafficJam: _sampleIosRewarded,
+      AdUnit.morningPiggy: _sampleIosRewarded,
+      AdUnit.interstitial: 'ca-app-pub-$samplePublisher/4411468910',
+    },
+  ),
+  Flavor.prod: AdIds(
+    androidAppId: _androidAppId,
+    androidUnits: _prodAndroidUnits,
+    iosAppId: 'ca-app-pub-$samplePublisher~1458002511',
+    iosUnits: {
+      AdUnit.resultDouble: _sampleIosRewarded,
+      AdUnit.fuelRefill: _sampleIosRewarded,
+      AdUnit.tripRevive: _sampleIosRewarded,
+      AdUnit.trafficJam: _sampleIosRewarded,
+      AdUnit.morningPiggy: _sampleIosRewarded,
+      AdUnit.interstitial: 'ca-app-pub-$samplePublisher/4411468910',
+    },
+  ),
 };

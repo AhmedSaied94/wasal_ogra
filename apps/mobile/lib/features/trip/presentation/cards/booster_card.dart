@@ -100,10 +100,8 @@ class BoosterCard extends ConsumerWidget {
         ? null
         : l10n.tripBoosterPriceBadge(numbers.integer(price));
     return TripCard(
-      title: l10n.boosterName(
-        card.booster,
-        jamSeconds: jamSecondsOf(context, numbers),
-      ),
+      // Only «زحمة» has an ad; the seconds are on the ad's own line.
+      title: l10n.trafficJamCardTitle,
       titleStyle: DesignExtras.adCardTitle,
       designTop: DesignExtras.boosterAdTop,
       padding: DesignExtras.boosterAdPadding,

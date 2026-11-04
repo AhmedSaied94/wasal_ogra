@@ -92,11 +92,15 @@ class PiggyBanner extends ConsumerWidget {
                 Text(
                   l10n.piggyTitle,
                   maxLines: 1,
-                  style: TypeTokens.row.copyWith(color: ColorTokens.ink),
+                  style: DesignExtras.piggyBannerTitle.copyWith(
+                    color: ColorTokens.ink,
+                  ),
                 ),
                 Text(
                   l10n.piggyBody,
-                  style: TypeTokens.label.copyWith(color: ColorTokens.ink2),
+                  style: DesignExtras.piggyBannerBody.copyWith(
+                    color: ColorTokens.ink2,
+                  ),
                 ),
               ],
             ),

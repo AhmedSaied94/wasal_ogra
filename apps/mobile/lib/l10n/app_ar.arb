@@ -4239,6 +4239,10 @@
   "@trafficJamAdBadge": {
     "description": "The dashboard's badge on «زحمة» when an ad is on offer (TripEvents, M11)."
   },
+  "trafficJamCardTitle": "زحمة",
+  "@trafficJamCardTitle": {
+    "description": "Trip booster card with the ad (BoosterAdCard): the card's title, the booster's name without its seconds."
+  },
   "trafficJamAdTitle": "زحمة ببلاش",
   "@trafficJamAdTitle": {
     "description": "The booster card's ad button for «زحمة» (BoosterAdCard, M11)."
