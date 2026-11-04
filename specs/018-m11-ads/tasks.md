@@ -673,7 +673,7 @@ and the dev ids, so only these checks wait.
 - [X] T074 Run quickstart §1, §2 and §6 in full on the VPS: `--exclude-tags backend`, the drift tests,
   `fuel_ad_test.dart`, the first-session test, the design tests, the coverage gate ≥ 80%, analyze and
   format.
-- [ ] T075 Run quickstart §4 against the dev stack (the `backend`-tagged `piggy_test.dart`), and
+- [X] T075 Run quickstart §4 against the dev stack (the `backend`-tagged `piggy_test.dart`), and
   `economy_check`.
 - [X] T076 [P] Code review with the flutter-reviewer agent over the change set, and a security review
   (the player id to the ad network, the SSV custom data, prefs holding no token). Fix CRITICAL and
