@@ -94,6 +94,54 @@ final class DailyBlock {
   final bool rewardClaimable;
 }
 
+/// One granted morning-piggy reward the player hasn't been shown
+/// (specs/018-m11-ads, data-model.md "`AdsBlock`").
+final class PiggyGrant {
+  const PiggyGrant({
+    required this.nonce,
+    required this.jenehat,
+    required this.bonat,
+    required this.grantedAtMs,
+  });
+
+  factory PiggyGrant.fromJson(WireObject o) => PiggyGrant(
+    nonce: o.string('nonce'),
+    jenehat: o.integer('jenehat'),
+    bonat: o.integer('bonat'),
+    grantedAtMs: o.time('granted_at'),
+  );
+
+  final String nonce;
+  final int jenehat;
+  final int bonat;
+  final int grantedAtMs;
+}
+
+/// The bootstrap's `ads` block (B07, M11 research R11). A server older than
+/// B07 sends none, which reads as [empty].
+final class AdsBlock {
+  const AdsBlock({required this.piggyAvailable, required this.unseen});
+
+  factory AdsBlock.fromJson(Object? json, [String path = 'ads']) {
+    if (json == null) return empty;
+    final piggy = WireObject.of(json, path).optionalObject('morning_piggy');
+    if (piggy == null) return empty;
+    return AdsBlock(
+      piggyAvailable: piggy.boolean('available'),
+      unseen: List.unmodifiable([
+        for (final grant in piggy.objects('unseen')) PiggyGrant.fromJson(grant),
+      ]),
+    );
+  }
+
+  static const empty = AdsBlock(piggyAvailable: false, unseen: []);
+
+  final bool piggyAvailable;
+
+  /// At most 5, newest first (the server's cap; all that came are kept).
+  final List<PiggyGrant> unseen;
+}
+
 /// The bootstrap's `player` block.
 final class BootstrapPlayer {
   const BootstrapPlayer({
@@ -132,6 +180,7 @@ final class BootstrapSnapshot {
     required this.comebackClaimable,
     required this.raw,
     this.contentVersion,
+    this.ads = AdsBlock.empty,
   });
 
   factory BootstrapSnapshot.fromJson(Object? json) {
@@ -147,6 +196,7 @@ final class BootstrapSnapshot {
       client: ClientBlock.fromJson(o.raw['client']),
       daily: DailyBlock.fromJson(o.raw['daily']),
       comebackClaimable: o.object('comeback').boolean('claimable'),
+      ads: AdsBlock.fromJson(o.raw['ads']),
       raw: o.raw,
     );
   }
@@ -163,6 +213,9 @@ final class BootstrapSnapshot {
   final ClientBlock client;
   final DailyBlock daily;
   final bool comebackClaimable;
+
+  /// B07's morning piggy (M11).
+  final AdsBlock ads;
 
   /// The answer as it arrived, so the cache keeps each block whole.
   final Map<String, Object?> raw;

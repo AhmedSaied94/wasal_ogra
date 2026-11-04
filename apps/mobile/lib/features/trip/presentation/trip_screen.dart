@@ -385,6 +385,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
         nextLiterAtMs: model.nextLiterAtMs,
         onFuel: () => context.go('/shop/fuel'),
         onHome: () => context.go('/home'),
+        onFilled: () => unawaited(_controller.refilled()),
       ),
       TripPhase.disputeOpen => const DisputeCard(),
       TripPhase.boosterCard => switch (model.boosterCard) {
@@ -393,6 +394,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
           retry: retry,
           onBuy: () => unawaited(_controller.buyBooster()),
           onClose: _controller.closeBoosterCard,
+          onWatchAd: () => unawaited(_controller.trafficJamWithAd()),
         ),
         null => const SizedBox.shrink(),
       },
@@ -402,6 +404,7 @@ class _TripScreenState extends ConsumerState<TripScreen> {
           retry: retry,
           restartEnabled: model.restartEnabled,
           onRevive: () => unawaited(_controller.revive()),
+          onReviveAd: () => unawaited(_controller.reviveWithAd()),
           onRestart: () => unawaited(_controller.restart()),
           onHome: () => unawaited(_controller.leave()),
         ),

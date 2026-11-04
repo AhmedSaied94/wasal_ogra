@@ -2,6 +2,8 @@ import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/features/home/application/piggy_banner_state.dart';
+import 'package:wassal/features/home/presentation/piggy_banner.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/account/account_providers.dart';
 import 'package:wassal/core/account/domain/account.dart';
@@ -11,7 +13,6 @@ import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/routing/new_dot_providers.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
-import 'package:wassal/core/theme/tokens/design_extras.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/home/application/home_slots.dart';
 
@@ -103,6 +104,8 @@ Future<ProviderContainer> pumpCHome(
   void Function(Map<String, Object?> json)? editPack,
   EconomyState Function(EconomyState state)? editState,
   List<Override> overrides = const [],
+  // M11's banner in this state; null leaves its providers to [overrides].
+  PiggyBannerState? piggy = PiggyBannerState.ready,
 }) async {
   final json = cHomePackJson();
   editPack?.call(json);
@@ -135,7 +138,13 @@ Future<ProviderContainer> pumpCHome(
         ),
       ),
       homeDailyRowProvider.overrideWithValue((_) => const _DailyRow()),
-      morningPiggySlotProvider.overrideWithValue((_) => const BoardPiggy()),
+      // M11's banner, ready (Home row 6).
+      if (piggy != null) ...[
+        morningPiggySlotProvider.overrideWithValue(
+          piggy == PiggyBannerState.hidden ? null : (_) => const PiggyBanner(),
+        ),
+        piggyBannerProvider.overrideWithValue(piggy),
+      ],
       ...overrides,
     ],
   );
@@ -311,100 +320,6 @@ class BoardDailyCircle extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// M11's morning piggy as the board draws it: one 52-high row.
-class BoardPiggy extends StatelessWidget {
-  const BoardPiggy({this.offline = false, super.key});
-
-  /// Needs the network: «محتاج نت» on `paper` instead of «ببلاش», and no
-  /// control (`HomeStates` boxes 56, 60).
-  final bool offline;
-
-  static const double _icon = 30;
-  static const double _playIcon = 16;
-  static const double _pillWidth = 82;
-  static const double _pillHeight = 32;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: !offline,
-    label: 'حصّالة الصبح',
-    excludeSemantics: true,
-    child: GestureDetector(
-      onTap: offline ? null : () {},
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s12),
-        decoration: BoxDecoration(
-          color: ColorTokens.sunSoft,
-          borderRadius: BorderRadius.circular(RadiusTokens.bubble),
-          boxShadow: const [LipTokens.sunSoft],
-        ),
-        child: Row(
-          spacing: SpaceTokens.s10,
-          children: [
-            const AppIcon('piggy', size: _icon),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'حصّالة الصبح',
-                    style: TypeTokens.row.copyWith(color: ColorTokens.ink),
-                  ),
-                  Text(
-                    'اتفرج على إعلان وخد جنيهات وبونات',
-                    style: TypeTokens.label.copyWith(color: ColorTokens.ink2),
-                  ),
-                ],
-              ),
-            ),
-            if (offline)
-              Container(
-                height: _pillHeight,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SpaceTokens.s12,
-                ),
-                decoration: BoxDecoration(
-                  color: ColorTokens.paper,
-                  borderRadius: BorderRadius.circular(RadiusTokens.pill),
-                ),
-                child: Text(
-                  'محتاج نت',
-                  style: TypeTokens.label
-                      .weight(700)
-                      .copyWith(color: ColorTokens.ink),
-                ),
-              )
-            else
-              Container(
-                width: _pillWidth,
-                height: _pillHeight,
-                decoration: BoxDecoration(
-                  color: ColorTokens.primary,
-                  borderRadius: BorderRadius.circular(RadiusTokens.pill),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: SpaceTokens.s4,
-                  children: [
-                    Text(
-                      'ببلاش',
-                      style: TypeTokens.label.copyWith(
-                        color: ColorTokens.paper,
-                      ),
-                    ),
-                    const AppIcon('ad_play_on_primary', size: _playIcon),
-                  ],
-                ),
-              ),
-          ],
         ),
       ),
     ),

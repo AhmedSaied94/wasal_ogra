@@ -18,11 +18,18 @@ Earlier features left each of these empty for M11. Overrides go in the app's pro
 ```dart
 abstract interface class TripAdOffers {
   /// May be called at any time: it reads caches only (research R7).
-  bool isOffered(AdPlacement placement);   // traffic_jam, trip_revive
+  /// hidden, ready, notReady or offline; traffic_jam, trip_revive.
+  AdSlot slot(AdPlacement placement);
   /// Only while the engine is paused or failed.
   Future<bool> show(AdPlacement placement); // true when the reward was earned
+  /// Fires when a slot may have changed (readiness, network, caps).
+  Stream<void> get changes;
 }
 ```
+
+As built, `slot` replaced the planned `bool isOffered`, so the buttons can show «الإعلان مش جاهز» and «محتاج
+نت» as well as hide (`AdSlot` in `lib/features/trip/domain/ad_slot.dart`; `shown` is any state but
+`hidden`). Where this file and research R7 say `isOffered`, read `slot(…).shown`.
 
 M02's contract (`specs/008-m02-trip-screen/contracts/trip-controller.md` "Ads") is edited to match.
 `AdsTripOffers.show` calls `AdsService` without applying the reward. The controller applies it
@@ -41,7 +48,7 @@ M02's contract (`specs/008-m02-trip-screen/contracts/trip-controller.md` "Ads") 
 
   On false: the card stays, with nothing charged, and the ad button shows its current state.
 
-`TripView`'s booster slot sets `adOffered` from `isOffered(trafficJam)`, which answers true only
+`TripView`'s booster slot sets `adOffered` from `slot(trafficJam).shown`, which is true only
 when the stock is 0 and no traffic-jam ad has been used this trip (`unfinished.trafficJamAds`).
 `BoostersRow` draws the «إعلان» badge (`TripEvents`) as the sign that an ad is on offer. The tap
 works as before: with none left, it pauses and opens `BoosterCard`. For `traffic_jam` with

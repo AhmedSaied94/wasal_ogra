@@ -35,6 +35,7 @@ left, in what order, and where to look.
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
 | [017 B07 ads SSV](#017-b07-ads-ssv) | — | The real-callback fixture, and 1 before M11's release | Merged in #28 and deployed on 2026-11-03 (production as v0.1.5). The Remote Config key, the allowed ad units, the staging check with a real ad and the Sentry alert rule are done (2026-11-03). |
+| [018 M11 ads](#018-m11-ads) | 3 (the boards are done) | 4, the last before the release | Being built on branch `018-m11-ads`. Your six ad boards are in (2026-11-03). The ad units, the AdMob console setup and the tracking text wait for you. |
 
 ## Every month
 
@@ -1371,6 +1372,72 @@ read-only ad rewards admin, the daily cleanup and the operator alerts. Runbooks:
 
 - [ ] **4. Production's callback URL (T056).** Set `https://api.<domain>/v1/ads/ssv` on the
   production piggy ad unit and press **Verify URL**.
+
+## 018 M11 ads
+
+Being built on branch `018-m11-ads`
+([spec](../specs/018-m11-ads/spec.md), [plan](../specs/018-m11-ads/plan.md),
+[tasks.md](../specs/018-m11-ads/tasks.md), [quickstart](../specs/018-m11-ads/quickstart.md),
+[design briefs](../specs/018-m11-ads/contracts/design-briefs.md)):
+
+- The five rewarded placements and the interstitial (glossary §3.4): the result's ×2, the refill
+  ad beside the BONAT refill, the ad revive, the ad «زحمة», the morning piggy, and an interstitial
+  between trips. Each has its caps on the phone, as the server already checks them.
+- Consent (UMP) at the first checkpoint where an ad may come, before tutorial trip 3. Trips 1–2 of
+  the first session have no ads, and no ad call runs while a trip runs.
+- The piggy goes through B07's server check; the phone only shows what the server granted.
+- `google_mobile_ads` with AppLovin and Unity mediation, one new operation (`ad_reward_seen`) and
+  drift schema 6.
+
+### Before merge
+
+- [x] **1. The six ad boards (T063).** Done on 2026-11-03: `PiggyArrived`, `PiggyUsed`,
+  `PiggyLater`, `NoFuelAd`, `NoFuelAdLimit` and `BoosterAdCard`, drawn in the canvas row
+  «الإعلانات» and exported on `design/m11-ad-boards` (`2cc4786`). What they settled, and the two
+  copy changes, are in [design-briefs.md "As drawn"](../specs/018-m11-ads/contracts/design-briefs.md).
+- [ ] **2. The AdMob ad units (T065).** In the AdMob console, create one rewarded unit per
+  rewarded placement (`result_double`, `fuel_refill`, `trip_revive`, `traffic_jam`; `morning_piggy`
+  is B07's existing unit, [item 1a](#017-b07-ads-ssv)) and one interstitial, for Android, and for
+  iOS when it sells. Send the unit ids and each flavor's app id. Claude puts them in
+  `apps/mobile/lib/core/ads/ad_ids.dart`, `android/app/build.gradle.kts` and the Xcode
+  configurations. Until then staging and prod hold Google's sample ids and
+  `test/core/ads/ad_ids_test.dart` fails, so the PR can't merge
+  ([research R4](../specs/018-m11-ads/research.md),
+  [platform-config.md "Ad ids"](../specs/018-m11-ads/contracts/platform-config.md)).
+- [ ] **3. Mediation, the test device and the consent messages (T066).** In the AdMob console:
+  - set up AppLovin and Unity Ads in mediation (bidding);
+  - register the Redmi Note 7 as a test device, so staging's real units serve it test ads;
+  - in **Privacy & messaging**, turn on the GDPR form and the IDFA explainer (the iOS tracking
+    prompt comes from it).
+
+  Steps: [research R2, R4 and R6](../specs/018-m11-ads/research.md).
+- [ ] **4. The tracking text (T067).** The Arabic text of iOS's `NSUserTrackingUsageDescription`,
+  the line under the tracking prompt. `ios/Runner/Info.plist` holds an English stand-in until then;
+  Claude puts your text there with an English fallback (T005,
+  [platform-config.md "iOS"](../specs/018-m11-ads/contracts/platform-config.md)).
+
+### After merge
+
+- [ ] **1. The device run (T078).** [Quickstart §3](../specs/018-m11-ads/quickstart.md), steps 1–8,
+  on the Redmi Note 7 with a dev build and test ads: no ad in trips 1–2, the ×2 from trip 3, the
+  revive, the ad «زحمة», three refill ads and then «خلصت النهارده», an interstitial before the card
+  at trip 13, and the EEA consent form before any ad request. Claude asks before connecting to the
+  phone, and records the outcome here.
+- [ ] **2. Staging with real units (T077's list, SC-004).** After before-merge item 3's test
+  device: [quickstart §5](../specs/018-m11-ads/quickstart.md). Run §3's steps 3–7 on the staging
+  build, then tap the piggy 10 times over 10 days (or reset the cap on staging): 9 rewards in 10
+  should appear within 7 s, each a `granted` row in the admin. A live ad on the test phone means it
+  isn't registered as a test device.
+- [ ] **3. Play Console (T077's list).** Declare that the app contains ads, fill the data-safety
+  form for what the ad SDK and the two mediation networks collect (the advertising id among it,
+  and the player id the piggy's ad sends for its server check, which mediation may pass on to
+  AppLovin and Unity: list it as shared with ad partners, and in the privacy policy),
+  and set the target audience to 13–15, 16–17 and 18+, not designed for children
+  ([research R5](../specs/018-m11-ads/research.md),
+  [platform-config.md "Android"](../specs/018-m11-ads/contracts/platform-config.md)).
+- [ ] **4. Production's callback URL, before the release.** B07's
+  [item 4 (T056)](#before-m11s-release): set `https://api.<domain>/v1/ads/ssv` on the production
+  piggy unit and press **Verify URL**.
 
 ## Known for later features
 

@@ -4,8 +4,11 @@
 // passenger (research R10, FR-033).
 import 'package:content_models/content_models.dart';
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/features/trip/domain/ad_slot.dart';
 import 'package:wassal/features/trip/domain/looks.dart';
 import 'package:wassal/features/trip/domain/view_value.dart';
+
+export 'package:wassal/features/trip/domain/ad_slot.dart';
 
 /// The controller's phase (data-model.md "TripPhase"). The engine runs only
 /// in [running].
@@ -530,7 +533,9 @@ final class BoosterSlotView extends ViewValue {
   final int? priceBonat;
   final bool enabled;
 
-  /// Always false until M11.
+  /// The «زحمة» ad is on offer (M11): none left, the trip's limit not
+  /// reached, and the ads layer shows it. `BoostersRow` draws its «إعلان»
+  /// badge.
   final bool adOffered;
 
   /// While the booster works, when it stops: the ledger peek's end.
@@ -722,6 +727,7 @@ final class FailSummary extends ViewValue {
   const FailSummary({
     required this.causes,
     required this.revive,
+    this.reviveAd = AdSlot.hidden,
     this.brokeStoryRule = false,
     this.failReason,
     this.angryFaces = const [],
@@ -732,6 +738,11 @@ final class FailSummary extends ViewValue {
 
   /// Null when no revive is offered.
   final ReviveOffer? revive;
+
+  /// The rewarded-ad revive (M11), shown only beside a [revive]: the
+  /// economy refuses both once the trip is revived (`TripView`'s
+  /// `reviveAdOffered` is `reviveAd.shown`).
+  final AdSlot reviveAd;
 
   /// A story trip lost to a fight under `no_fights_required`.
   final bool brokeStoryRule;
@@ -748,6 +759,7 @@ final class FailSummary extends ViewValue {
   Map<String, Object?> get fields => {
     'causes': causes,
     'revive': revive,
+    'reviveAd': reviveAd,
     'brokeStoryRule': brokeStoryRule,
     'failReason': failReason,
     'angryFaces': angryFaces,

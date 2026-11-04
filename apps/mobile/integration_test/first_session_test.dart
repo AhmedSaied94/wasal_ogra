@@ -9,6 +9,12 @@
 //
 // or on a device with `--flavor dev`.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/core/ads/ads_checkpoint.dart';
+import 'package:wassal/core/ads/ads_providers.dart';
+import 'package:wassal/core/sync/server_status.dart';
+import 'package:wassal/features/home/application/checkpoint.dart';
+import 'package:wassal/features/result/application/result_slots.dart';
+import 'package:wassal/features/result/presentation/result_double_offer.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:wassal/core/economy/economy_providers.dart';
 import 'package:wassal/core/network/api_client.dart';
@@ -25,12 +31,14 @@ import 'package:wassal/features/onboarding/presentation/name_screen.dart';
 import 'package:wassal/features/onboarding/presentation/scene_player.dart';
 import 'package:wassal/features/pre_trip/presentation/pre_trip_card.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
+import 'package:wassal/features/trip/trip_providers.dart';
 import 'package:wassal/features/trip/presentation/dashboard/boosters_locked_bar.dart';
 import 'package:wassal/features/trip/presentation/dashboard/boosters_row.dart';
 import 'package:wassal/features/trip/presentation/dashboard/dashboard.dart';
 
 import '../test/helpers/account.dart';
 import '../test/helpers/coached_player.dart';
+import '../test/helpers/fake_ads_gateway.dart';
 import '../test/helpers/content.dart';
 import '../test/helpers/economy.dart';
 import '../test/helpers/fake_api.dart';
@@ -111,16 +119,31 @@ void main() {
       'online', (tester) async {
     final api = FakeApi(fallback: unreachable);
     final economy = await testEconomy(content: tutorialContent());
+    // M11 (specs/018-m11-ads, T054): the ads on a recording gateway. The
+    // game server is out of reach; the ad network isn't.
+    final gateway = FakeAdsGateway();
     await preloadTripArt(tester);
     final container = await pumpWassalApp(
       tester,
       newPlayer: true,
       settleBoot: false,
+      overrides: [
+        adsGatewayProvider.overrideWithValue(gateway),
+        isOnlineProvider.overrideWithValue(true),
+        betweenTripsCheckpointProvider.overrideWith(
+          (ref) => AdsCheckpoint(ref.watch(adsServiceProvider)),
+        ),
+        resultDoubleSlotProvider.overrideWithValue(
+          (context, args) => ResultDoubleOffer(args: args),
+        ),
+      ],
       content: contentTestOverrides(assets: tutorialBundledAssets()),
       economy: economyOverridesOf(economy),
       account: accountTestOverrides(api: api),
       trip: tripTestOverrides(),
     );
+    // Any gateway call while a trip runs fails the test (SC-008).
+    gateway.failOnCallWhileRunning(container.read(tripRunningProvider));
     final router = container.read(routerProvider);
     final visited = <String>[];
     void changed() => visited.add(router.state.uri.toString());
@@ -152,6 +175,13 @@ void main() {
             controllerOf(tester).phase == TripPhase.running,
       );
       expect(find.byType(BoostersLockedBar), findsOneWidget, reason: tripId);
+      // No ad call before the checkpoint before tutorial trip 3; the
+      // gateway started there, before this trip opened.
+      if (index < 2) {
+        expect(gateway.calls, isEmpty, reason: tripId);
+      } else {
+        expect(gateway.count('start'), 1, reason: tripId);
+      }
       expect(find.byType(BoostersRow), findsNothing, reason: tripId);
       if (index == 4) {
         // Full from the gift, less the liter this start took.
@@ -171,6 +201,14 @@ void main() {
       await pumpUntil(
         tester,
         () => currentLocation(tester) == '/trip/$tripId/result',
+      );
+      // From trip 3's result the ×2 is offered (analysis U1); trips 1–2
+      // don't.
+      await _frames(tester);
+      expect(
+        find.byKey(ResultDoubleOffer.offerKey),
+        index >= 2 ? findsOneWidget : findsNothing,
+        reason: tripId,
       );
       await _tap(tester, find.byKey(FirstSessionContinue.buttonKey));
       if (index == 2) {

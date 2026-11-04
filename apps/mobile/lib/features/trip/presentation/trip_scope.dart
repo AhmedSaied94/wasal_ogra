@@ -177,6 +177,12 @@ String jamSecondsOf(BuildContext context, NumberFormatter numbers) {
   return numbers.integer((params?.boosterTrafficJamMs ?? 0) ~/ 1000);
 }
 
+/// The reputation a revive brings back, in the player's digits.
+String reviveReputationOf(BuildContext context, NumberFormatter numbers) {
+  final params = TripScope.of(context).controller.session?.facts.params;
+  return numbers.integer(params?.repReviveTo ?? 0);
+}
+
 /// Rebuilds only when [select] of the model changes.
 class TripSelector<T> extends StatefulWidget {
   const TripSelector({

@@ -554,7 +554,7 @@
   "@tripNoFuelTitle": {
     "description": "Trip: title of the card shown when the tank is empty."
   },
-  "tripNoFuelNext": "لتر جديد بعد {countdown}",
+  "tripNoFuelNext": "اللتر الجاي {countdown}",
   "@tripNoFuelNext": {
     "description": "Trip no-fuel card: the time until the next free liter. The countdown is preformatted.",
     "placeholders": {
@@ -564,7 +564,7 @@
       }
     }
   },
-  "tripNoFuelShop": "هات بنزين",
+  "tripNoFuelShop": "البنزين",
   "@tripNoFuelShop": {
     "description": "Trip no-fuel card: button to the fuel sheet."
   },
@@ -4178,6 +4178,165 @@
     "placeholders": {
       "n": {
         "type": "String"
+      }
+    }
+  },
+  "adNotReadyLong": "الإعلان مش جاهز دلوقتي، جرّب كمان شوية",
+  "@adNotReadyLong": {
+    "description": "An ad that isn't loaded yet, in a sentence (States box 2, M11)."
+  },
+  "adLimitReached": "خلصت النهارده",
+  "@adLimitReached": {
+    "description": "An ad placement at its daily cap (States box 3, NoFuelAdLimit, M11)."
+  },
+  "adNeedsNetwork": "محتاج نت",
+  "@adNeedsNetwork": {
+    "description": "An ad button offline (HomeStates row 7, M11)."
+  },
+  "resultDoubleTitle": "اقبض ×٢",
+  "@resultDoubleTitle": {
+    "description": "The result's ×2 offer (M11, Result)."
+  },
+  "resultDoubleBenefit": "+{doubled} بدل {pay}",
+  "@resultDoubleBenefit": {
+    "description": "The ×2 offer's line: the doubled pay instead of the pay, preformatted (M11).",
+    "placeholders": {
+      "doubled": {
+        "type": "String",
+        "example": "١٧٠"
+      },
+      "pay": {
+        "type": "String",
+        "example": "٨٥"
+      }
+    }
+  },
+  "resultDoubleDecline": "لأ، خد {pay} بس",
+  "@resultDoubleDecline": {
+    "description": "The 44×44 link under the ×2 offer that hides it for this result: keep the pay as it is, preformatted (Result box 46, M11).",
+    "placeholders": {
+      "pay": {
+        "type": "String",
+        "example": "٨٥"
+      }
+    }
+  },
+  "reviveAdTitle": "صالح الركاب",
+  "@reviveAdTitle": {
+    "description": "The Fail card's ad revive (M11, Fail box 12)."
+  },
+  "reviveAdBenefit": "إعلان قصير · السمعة ترجع {percent}٪ وتكمّل من نفس النقطة",
+  "@reviveAdBenefit": {
+    "description": "The ad revive's line: the reputation it brings back, preformatted (Fail box 15, M11).",
+    "placeholders": {
+      "percent": {
+        "type": "String",
+        "example": "٤٠"
+      }
+    }
+  },
+  "trafficJamAdBadge": "إعلان",
+  "@trafficJamAdBadge": {
+    "description": "The dashboard's badge on «زحمة» when an ad is on offer (TripEvents, M11)."
+  },
+  "trafficJamAdTitle": "زحمة ببلاش",
+  "@trafficJamAdTitle": {
+    "description": "The booster card's ad button for «زحمة» (BoosterAdCard, M11)."
+  },
+  "trafficJamAdBenefit": "+{seconds} ثواني للمحطة الجاية",
+  "@trafficJamAdBenefit": {
+    "description": "The ad «زحمة»'s line: the seconds it adds, preformatted (BoosterAdCard, M11).",
+    "placeholders": {
+      "seconds": {
+        "type": "String",
+        "example": "١٠"
+      }
+    }
+  },
+  "refillAdTitle": "اتفرج على إعلان وفوّل",
+  "@refillAdTitle": {
+    "description": "The out-of-fuel card's ad refill (NoFuelAd, M11)."
+  },
+  "refillBonatTitle": "فوّل الخزان",
+  "@refillBonatTitle": {
+    "description": "The BONAT refill beside the ad, with its price chip (NoFuelAd, M11)."
+  },
+  "piggyTitle": "حصّالة الصبح",
+  "@piggyTitle": {
+    "description": "Home's morning piggy banner (HANDOFF Home row 6, M11)."
+  },
+  "piggyBody": "اتفرج على إعلان وخد جنيهات وبونات",
+  "@piggyBody": {
+    "description": "The piggy banner's line (M11)."
+  },
+  "piggyCta": "ببلاش",
+  "@piggyCta": {
+    "description": "The piggy banner's chip (M11)."
+  },
+  "piggyLater": "المكافأة في الطريق، هتلاقيها أول ما توصل",
+  "@piggyLater": {
+    "description": "The toast when the piggy's grant didn't arrive within 7 s (PiggyLater, M11)."
+  },
+  "piggyUsed": "الحصّالة اتفتحت النهارده، تعالى بكرة",
+  "@piggyUsed": {
+    "description": "The toast when today's piggy was already used (PiggyUsed, M11)."
+  },
+  "piggyArrivedTitle": "الحصّالة وصلت!",
+  "@piggyArrivedTitle": {
+    "description": "The piggy reward's dialog (PiggyArrived, M11)."
+  },
+  "piggyJenehatChip": "+{n} ج",
+  "@piggyJenehatChip": {
+    "description": "The piggy reward's JENEHAT chip (PiggyArrived box 23, M11).",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٣٠"
+      }
+    }
+  },
+  "piggyBonatChip": "+{n} بون",
+  "@piggyBonatChip": {
+    "description": "The piggy reward's BONAT chip (PiggyArrived box 25, M11).",
+    "placeholders": {
+      "n": {
+        "type": "String",
+        "example": "٢"
+      }
+    }
+  },
+  "piggyArrivedA11y": "الحصّالة وصلت: {jenehat} جنيه و{bonat} بون",
+  "@piggyArrivedA11y": {
+    "description": "Said when the piggy reward's dialog opens (PiggyArrived box 18, M11).",
+    "placeholders": {
+      "jenehat": {
+        "type": "String",
+        "example": "٣٠"
+      },
+      "bonat": {
+        "type": "String",
+        "example": "٢"
+      }
+    }
+  },
+  "piggyAsking": "بنشوف المكافأة",
+  "@piggyAsking": {
+    "description": "The piggy banner's label while it asks the server for the reward (M11)."
+  },
+  "piggyArrivedOk": "تمام",
+  "@piggyArrivedOk": {
+    "description": "The piggy reward dialog's button (PiggyArrived, M11)."
+  },
+  "refillAdLeft": "باقيلك {count, plural, =0{ولا مرة} =1{مرة} =2{مرتين} few{{n}} other{{n}}} النهارده",
+  "@refillAdLeft": {
+    "description": "The refill ads left today (NoFuelAd: «باقيلك ٣ النهارده»); n is count, preformatted (M11).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "n": {
+        "type": "String",
+        "example": "٣"
       }
     }
   }

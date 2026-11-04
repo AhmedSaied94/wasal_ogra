@@ -92,6 +92,7 @@ final class DriftAccountStore {
     required Object? entitlements,
     required Object? daily,
     required bool comebackClaimable,
+    Object? ads,
   }) => _writeInfo(
     ServerInfoTableCompanion(
       receivedAtMs: Value(receivedAtMs),
@@ -101,6 +102,8 @@ final class DriftAccountStore {
       client: Value(_sortedJson(client)),
       entitlements: Value(_sortedJson(entitlements)),
       daily: Value(_sortedJson(daily)),
+      // A server before B07 sends none: the cache keeps null (M11 R11).
+      ads: Value(ads == null ? null : _sortedJson(ads)),
       comebackClaimable: Value(comebackClaimable ? 1 : 0),
     ),
   );
@@ -159,6 +162,7 @@ final class DriftAccountStore {
     clientJson: row.client,
     entitlementsJson: row.entitlements,
     dailyJson: row.daily,
+    adsJson: row.ads,
     comebackClaimable: row.comebackClaimable == 1,
     comebackClaimedAtMs: row.comebackClaimedAtMs,
     comebackAnsweredAtMs: row.comebackAnsweredAtMs,

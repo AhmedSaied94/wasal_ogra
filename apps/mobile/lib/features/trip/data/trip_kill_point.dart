@@ -22,6 +22,13 @@ enum TripKillPoint {
   /// The revive is paid; `Revive` isn't applied.
   reviveBought,
 
+  /// M11: the ad «زحمة»'s intent is written; its reward isn't applied.
+  adIntentWritten,
+
+  /// M11: an ad's reward is applied (the revive's, or «زحمة»'s); the
+  /// engine's command isn't.
+  adRewardApplied,
+
   /// The clock is saved at a pause.
   clockSaved,
 

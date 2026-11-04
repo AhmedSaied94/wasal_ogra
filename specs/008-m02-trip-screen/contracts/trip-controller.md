@@ -208,19 +208,48 @@ Before it, the launch deletes stale records (`TripRecords.deleteAllExcept(unfini
 
 ## Ads (M11)
 
+Edited by M11 (`specs/018-m11-ads`, research R7 and R8, contracts/seams.md).
+
 ```dart
 abstract interface class TripAdOffers {
-  /// Whether an ad can be offered now for [placement] (`traffic_jam`, `trip_revive`).
-  /// Must only be called while the engine is paused or failed.
-  bool isOffered(AdPlacement placement);
+  /// What [placement]'s button shows now (`traffic_jam`, `trip_revive`): hidden, ready,
+  /// not ready or offline. It reads caches only, so it may be called at any time.
+  AdSlot slot(AdPlacement placement);
 
-  /// Shows the ad. Returns true when its reward was earned. Same precondition.
+  /// Shows the ad. Returns true when its reward was earned. Only while the engine is paused
+  /// or failed: no ad SDK call may run while a trip runs (constitution IX).
   Future<bool> show(AdPlacement placement);
+
+  /// Fires when a slot may have changed (an ad loaded or expired).
+  Stream<void> get changes;
 }
 ```
 
-`NoTripAdOffers.isOffered` is always false. A controller test wraps it in a spy that fails the test if
-either method is called while `engine.status == running` (constitution IX).
+`NoTripAdOffers` hides both and never shows. M11's `AdsTripOffers` (`lib/core/ads/`) answers from
+`AdsService`. `show` applies no reward: the controller does, through the economy.
+
+- **`reviveWithAd()`** (phase `failed`, `slot(tripRevive)` ready): `show` → true →
+  `applyAdReward(trip_revive)` (once more with the same id on a failed write) → kill point
+  `adRewardApplied` → `Revive`. `OpRefused(alreadyRevived)` follows the BONAT revive. False changes
+  nothing. A kill after the reward is recovered at open through `unfinished.revived`, as the BONAT
+  revive is.
+- **`trafficJamWithAd()`** (phase `boosterCard` for `traffic_jam`, `slot(trafficJam)` ready; the
+  card's open already paused the engine): `show` → true → the `trip_intent` row (`kind: ad_reward`)
+  → kill point `adIntentWritten` → `applyAdReward(traffic_jam)` → kill point `adRewardApplied` →
+  the engine's `UseBooster(traffic_jam)` and the row's delete in one write
+  (`appendAdBoosterUse`) → the pause card (`PauseReason.ad`). False leaves the card as it was.
+- **Recovery at open.** An `ad_reward` row on disk means its command isn't recorded: the reward
+  is applied again with the row's id (the economy answers a repeat once), then the command goes
+  in. `use_booster` rows are charged as before; `_uncharged` holds only those.
+- **The view.** `TripScreenState.reviveAd` and `trafficJamAd` carry the slots.
+  `FailSummary.reviveAd` (`TripView`'s "reviveAdOffered" is `reviveAd.shown`) is hidden whenever no
+  BONAT revive is offered. A booster slot's `adOffered` is true for `traffic_jam` with none left,
+  a price, the trip's limit not reached and `trafficJamAd` shown. `BoosterCardModel.ad` is the
+  card's. While an ad is on, both read not ready.
+
+The spy in `test/helpers/trip.dart` (`SpyTripAdOffers`) fails the test if `show` is called while
+`engine.status == running`; M11's `FakeAdsGateway.failOnCallWhileRunning` does the same for every
+gateway call.
 
 ## Test seams
 

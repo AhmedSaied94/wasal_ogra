@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wassal/core/content/home_arrival.dart';
+import 'package:wassal/features/home/application/piggy_arrival.dart';
 import 'package:wassal/features/onboarding/presentation/arrival_items.dart';
 
 part 'arrival_queue.g.dart';
@@ -24,10 +25,12 @@ abstract interface class ArrivalItem {
 }
 
 /// Every item, M07's two from the start; M10, M11 and M14 add theirs.
+/// M11's late piggy reward is due only with a cached `ads` block.
 @Riverpod(keepAlive: true)
 List<ArrivalItem> arrivalItems(Ref ref) => const [
   DueSceneArrival(),
   NameSheetArrival(),
+  PiggyArrival(),
 ];
 
 /// Created after `ContentLifecycle`, so on one router notification the pack

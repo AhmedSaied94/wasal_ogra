@@ -324,5 +324,9 @@ Future<OpOutcome?> _send(TestEconomy e, TxnId id, OpRequest request) async {
       id,
       requestId: requestId,
     ),
+    AdRewardSeenRequest(:final nonce) => e.service.markAdRewardSeen(
+      id,
+      nonce: nonce,
+    ),
   };
 }

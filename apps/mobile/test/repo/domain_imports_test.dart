@@ -124,6 +124,15 @@ bool _storyAllowed(String uri) =>
     uri.startsWith('package:wassal/features/story/domain/') ||
     _sameFolder(uri);
 
+/// The ads' rules (specs/018-m11-ads, research R3, T006): the economy's
+/// placements and refusals, and their own folder.
+bool _adsAllowed(String uri) =>
+    uri == 'dart:core' ||
+    uri == 'package:wassal/core/economy/domain/op.dart' ||
+    uri == 'package:wassal/core/economy/domain/economy_refusal.dart' ||
+    uri.startsWith('package:wassal/core/ads/domain/') ||
+    _sameFolder(uri);
+
 /// Files allowed one more import than their folder: the economy checks a
 /// name with the onboarding's rules, the one check the phone and the economy
 /// share (M07 research R7, R8). Nothing else of `features/`.
@@ -152,6 +161,8 @@ const _domains = <String, bool Function(String)>{
   // M10's apartment and story (specs/015-m10-apartment-story, T030).
   'lib/features/apartment/domain': _storyAllowed,
   'lib/features/story/domain': _storyAllowed,
+  // M11's ad rules (specs/018-m11-ads, T006).
+  'lib/core/ads/domain': _adsAllowed,
 };
 
 final _directive = RegExp(
@@ -400,6 +411,29 @@ void main() {
       'package:wassal/features/home/application/home_model.dart',
       'dart:io',
       'dart:ui',
+    ]) {
+      expect(scan(bad), hasLength(1), reason: bad);
+    }
+  });
+
+  test('the ads scan allows its list and refuses the rest', () {
+    List<String> scan(String uri) =>
+        forbiddenImports("import '$uri';", _adsAllowed);
+    for (final ok in [
+      'ad_offer.dart',
+      'package:wassal/core/ads/domain/ad_timing.dart',
+      'package:wassal/core/economy/domain/op.dart',
+      'package:wassal/core/economy/domain/economy_refusal.dart',
+    ]) {
+      expect(scan(ok), isEmpty, reason: ok);
+    }
+    for (final bad in [
+      'package:flutter/foundation.dart',
+      'package:google_mobile_ads/google_mobile_ads.dart',
+      'package:wassal/core/ads/ads_gateway.dart',
+      'package:wassal/core/economy/economy.dart',
+      'package:wassal/core/economy/domain/fuel.dart',
+      'dart:io',
     ]) {
       expect(scan(bad), hasLength(1), reason: bad);
     }

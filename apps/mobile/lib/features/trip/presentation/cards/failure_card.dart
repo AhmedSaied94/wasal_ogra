@@ -3,9 +3,10 @@
 // the reputation (a broken story rule first), the BONAT revive and its
 // once-a-trip line when the rules offer one (faded, with what is missing,
 // when short), then «عيد المشوار» with its liter and «ارجع الموقف». Above
-// the revive, the room the rewarded-ad revive takes in M11 stays empty. A
-// revive whose save failed says so here, and the next tap sends the same
-// request. Back and the scrim do nothing.
+// the revive, M11's rewarded-ad revive «صالح الركاب» (`Fail` box 12) when
+// the ads layer shows it; its room stays empty when it doesn't. A revive
+// whose save failed says so here, and the next tap sends the same request.
+// Back and the scrim do nothing.
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -34,6 +35,7 @@ class FailureCard extends ConsumerWidget {
     required this.restartEnabled,
     required this.onRevive,
     required this.onRestart,
+    this.onReviveAd,
     required this.onHome,
     super.key,
   });
@@ -44,6 +46,9 @@ class FailureCard extends ConsumerWidget {
   final TripRetry? retry;
   final bool restartEnabled;
   final VoidCallback onRevive;
+
+  /// The rewarded-ad revive; null draws it disabled.
+  final VoidCallback? onReviveAd;
   final VoidCallback onRestart;
   final VoidCallback onHome;
 
@@ -80,8 +85,21 @@ class FailureCard extends ConsumerWidget {
           ),
         if (retry case final retry?) CardText(l10n.retryMessage(retry)),
         if (revive != null) ...[
-          // M11's rewarded-ad revive goes here.
-          const SizedBox(key: adSlotKey, height: DesignExtras.rewardedHeight),
+          if (summary.reviveAd.shown)
+            RewardedAdButton(
+              key: adSlotKey,
+              ready: summary.reviveAd == AdSlot.ready && onReviveAd != null,
+              title: l10n.reviveAdTitle,
+              benefit: l10n.reviveAdBenefit(
+                reviveReputationOf(context, numbers),
+              ),
+              unavailable: summary.reviveAd == AdSlot.offline
+                  ? l10n.adNeedsNetwork
+                  : null,
+              onTap: onReviveAd ?? () {},
+            )
+          else
+            const SizedBox(key: adSlotKey, height: DesignExtras.rewardedHeight),
           AppButton.secondary(
             key: reviveKey,
             label: l10n.tripFailRevive(numbers.integer(revive.priceBonat)),

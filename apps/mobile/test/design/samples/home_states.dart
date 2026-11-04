@@ -1,6 +1,8 @@
 import 'package:content_models/content_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wassal/features/home/application/piggy_banner_state.dart';
+import 'package:wassal/features/home/presentation/piggy_banner.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/account/account_providers.dart';
 import 'package:wassal/core/account/domain/account.dart';
@@ -120,9 +122,9 @@ Future<ProviderContainer> pumpHomeStates(
         ),
       ),
       homeDailyRowProvider.overrideWithValue((_) => const _DailyRow()),
-      morningPiggySlotProvider.overrideWithValue(
-        (_) => const BoardPiggy(offline: true),
-      ),
+      // M11's banner, offline (`HomeStates` row 7).
+      morningPiggySlotProvider.overrideWithValue((_) => const PiggyBanner()),
+      piggyBannerProvider.overrideWithValue(PiggyBannerState.offline),
     ],
   );
   if (size == null) {

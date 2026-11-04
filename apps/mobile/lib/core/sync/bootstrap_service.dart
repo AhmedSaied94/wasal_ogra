@@ -119,6 +119,7 @@ final class BootstrapService {
       client: snapshot.raw['client'],
       entitlements: snapshot.raw['entitlements'],
       daily: snapshot.raw['daily'],
+      ads: snapshot.raw['ads'],
       comebackClaimable: snapshot.comebackClaimable,
     );
     _lastSuccessElapsedMs = _elapsedMs();

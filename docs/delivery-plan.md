@@ -115,7 +115,7 @@ glossary, and merged decisions win on behaviour.
 | M09 | `Lines`, `LineDetails`, `BuyVehicle`, and the owner's eight (2026-10-29): `LinesFirst`, `LinesOwned`, `LineDetailsStory`, `LineDetailsDone`, `LineDetailsLocked`, `BuyVehicleShort`, `BuyVehicleOwned`, `BuyVehicleNotForSale` (`specs/014-m09-lines-vehicles/contracts/design-briefs.md`) | none |
 | M10 | `AptGoal`, `AptGoalReady`, `AptRooms`, `RoomDone`, `Piece`, `SceneViewer`, `Album`, `Chapters`, `Requests`, and the owner's ten (2026-10-31): `AptGoalLine`, `AptGoalVehicle`, `AptRoomsAffordable`, `AptRoomsBought`, `AptRoomsDone`, `PieceAffordable`, `RoomDonePending`, `ChaptersGoal`, `RequestsEmpty`, `HomeStoryEnd` (`specs/015-m10-apartment-story/contracts/design-briefs.md`) | #2 when the Apartment tab opens |
 | B10 | none | #8 a maintenance end time in the 503 response |
-| M11 | `States` 2–3 (ad not ready, daily ad limit), `RewardedAdButton` | none |
+| M11 | `States` 2–3 (ad not ready, daily ad limit), `RewardedAdButton`; the owner's six ad boards of 2026-11-03: `BoosterAdCard`, `NoFuelAd`, `NoFuelAdLimit`, `PiggyArrived`, `PiggyUsed`, `PiggyLater` (row «الإعلانات», `specs/018-m11-ads/contracts/design-briefs.md` "As drawn") | none |
 | M12 | `Shop`, `Fuel`, `PurchaseDone`, `States` 4–6 (spend confirmation, undo toast, payment failed) | none |
 | B08 | none | #8 the `trip_id` scheme for daily-challenge trips |
 | M13 | `Daily`, `Tasks`, `Challenge`, `Returning` | #6 the day-7 sticker before cosmetics exist |
@@ -550,8 +550,10 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
   - ~~in B10, a maintenance end time in the 503 response, which the design's maintenance state
     shows (HANDOFF §9.3 #8)~~ **Resolved (B10):** `details.until` on `503 maintenance` when the
     end is set and in the future (contracts/api.md);
-  - in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets the
-    ad content rating).
+  - ~~in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets
+    the ad content rating)~~ **Resolved (M11):** AdMob bidding with AppLovin and Unity Ads (research
+    R2); the stores list the game as 13+, and every ad request goes out with content rating T, not
+    child-directed (research R5).
 - **Handed over from M01** (research R19): in B10, create `liveops.LiveSetting` with every key in
   `apps/mobile/assets/config/tunables.json`, including M01's 20 new keys and
   `trip_hints_mode_<line_id>`. This ends M01's approved exception to constitution VIII (Complexity
@@ -589,6 +591,12 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
     `unseen` entry, then queue `ad_reward_seen` (also after showing a grant from the lookup); replace
     the wallet from the lookup's `wallet`. The AdMob console's callback URL goes on the piggy's ad
     unit only. `ads_morning_piggy_daily_cap` (1) is already in `tunables.json`.
+    **Done differently in M11** (research R12): the phone doesn't replace its wallet from the
+    lookup. Its wallet is M06's fold of the server's base and the pending operations, so a wallet
+    alone would drop them. After a grant it asks for a sync pass (`SyncTrigger.adReward`); the grant
+    moved `state_version`, so the pass takes the full state and rebases, and the pills move when it
+    ends. The card shows the lookup's amounts at once; the lookup's `wallet` is read but not
+    applied.
 - **Done when:**
   - Every placement in Glossary §3.4 works, with its caps enforced on the device and on the server.
   - No ad call is ever made while a trip is running.

@@ -22,6 +22,7 @@ class TripCard extends StatelessWidget {
     this.scrim = ColorTokens.scrim,
     this.designTop,
     this.padding = const EdgeInsets.all(DesignExtras.dialogPadding),
+    this.underTitle,
     super.key,
   });
 
@@ -29,10 +30,13 @@ class TripCard extends StatelessWidget {
   final List<Widget> children;
 
   /// Above the title: `States`' 44 pt icon, `Pause`'s microbus, `Fail`'s
-  /// faces.
+  /// faces, M11's [CardArtTile].
   final Widget? art;
   final TextStyle titleStyle;
   final Color scrim;
+
+  /// Close under the title (`NoFuelAd`'s next-liter pill), 8 apart.
+  final Widget? underTitle;
 
   /// Where the card's top sits on the 844-high reference frame (`Pause`
   /// 170, `Fail` 120), in proportion on other screens; null centres it.
@@ -46,6 +50,7 @@ class TripCard extends StatelessWidget {
       art: art,
       titleStyle: titleStyle,
       padding: padding,
+      underTitle: underTitle,
       children: children,
     );
     // Modal: the controls under the card are gone for the screen reader
@@ -96,6 +101,7 @@ class TripDialog extends StatelessWidget {
     this.art,
     this.titleStyle = DesignExtras.confirmTitle,
     this.padding = const EdgeInsets.all(DesignExtras.dialogPadding),
+    this.underTitle,
     super.key,
   });
 
@@ -104,28 +110,63 @@ class TripDialog extends StatelessWidget {
   final Widget? art;
   final TextStyle titleStyle;
   final EdgeInsetsGeometry padding;
+  final Widget? underTitle;
 
   @override
-  Widget build(BuildContext context) => AppDialog(
-    semanticLabel: title,
-    padding: padding,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: SpaceTokens.s12,
-      children: [
-        if (art case final art?) Center(child: art),
-        Semantics(
-          header: true,
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: titleStyle.copyWith(color: ColorTokens.ink),
-          ),
-        ),
-        ...children,
-      ],
+  Widget build(BuildContext context) {
+    final heading = Semantics(
+      header: true,
+      child: Text(
+        title,
+        textAlign: TextAlign.center,
+        style: titleStyle.copyWith(color: ColorTokens.ink),
+      ),
+    );
+    return AppDialog(
+      semanticLabel: title,
+      padding: padding,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: SpaceTokens.s12,
+        children: [
+          if (art case final art?) Center(child: art),
+          if (underTitle case final under?)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: DesignExtras.noFuelPillGap,
+              children: [
+                heading,
+                Center(child: under),
+              ],
+            )
+          else
+            heading,
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+/// M11's card picture (`NoFuelAd`, `BoosterAdCard`): the art centred in a
+/// 64 tile, radius 18, on [fill].
+class CardArtTile extends StatelessWidget {
+  const CardArtTile({required this.fill, required this.child, super.key});
+
+  final Color fill;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: DesignExtras.adCardTile,
+    height: DesignExtras.adCardTile,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: fill,
+      borderRadius: BorderRadius.circular(DesignExtras.confirmRadius),
     ),
+    child: child,
   );
 }
 

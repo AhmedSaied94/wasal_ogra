@@ -8,7 +8,9 @@ import 'trip_labels.dart';
 
 // `TripEvents` against its measured boxes (contracts/design-checks.md). The
 // tray cells are drawn as «×N» alone, so each is paired with the app's
-// label for it. The passengers aren't taps in this artboard.
+// label for it. The passengers aren't taps in this artboard. «زحمة» has no
+// stock and its ad on offer (M11): the app reads its «إعلان» badge with its
+// name (box 76, badge box 78).
 
 /// The artboard has no megaphone on the call button (HANDOFF `TripEvents`
 /// block 8: "keep it as in `C-Trip`"), so it and the hand beside it are
@@ -28,7 +30,10 @@ void main() {
       tester,
       'TripEvents',
       skip: {45: _noMegaphone, 48: _noMegaphone},
-      pairings: trayPairings(tester, [51, 53, 55, 57, 59, 61, 63, 65]),
+      pairings: {
+        ...trayPairings(tester, [51, 53, 55, 57, 59, 61, 63, 65]),
+        76: l10n.pairLabel('زحمة +١٠ث', l10n.trafficJamAdBadge),
+      },
       appOnly: {
         l10n.tripDebugOpen,
         ...megaphoneLabels(tester),

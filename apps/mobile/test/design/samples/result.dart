@@ -4,17 +4,20 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:trip_engine/trip_engine.dart';
+import 'package:wassal/core/ads/ads_providers.dart';
+import 'package:wassal/core/ads/ads_service.dart';
 import 'package:wassal/core/content/pack_content_source.dart';
 import 'package:wassal/core/economy/domain/economy_state.dart';
+import 'package:wassal/core/economy/domain/op.dart' show AdPlacement;
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/routing/router.dart';
 import 'package:wassal/core/theme/components/app_icon.dart';
-import 'package:wassal/core/theme/components/buttons.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
 import 'package:wassal/features/result/application/quote_provider.dart';
 import 'package:wassal/features/result/application/result_slots.dart';
 import 'package:wassal/features/result/domain/quote.dart';
 import 'package:wassal/features/result/domain/result_args.dart';
+import 'package:wassal/features/result/presentation/result_double_offer.dart';
 import 'package:wassal/features/trip/domain/looks.dart';
 
 import '../../helpers/economy.dart';
@@ -28,8 +31,9 @@ import 'pre_trip.dart';
 // finished at two stars, the student given half a pound too much; 78.5
 // collected, 7 in tips, 85 JENEHAT paid. الحاجة's thanks is the quote. The
 // pay took the balance from 1,240 to 1,325 of the 3,200 «الأنتريه». The
-// task banner (M13, with its +5 BONAT) and the ×2 offer (M11) are fakes in
-// their slots, at the board's sizes.
+// task banner (M13, with its +5 BONAT) is a fake in its slot, at the board's
+// size; the ×2 offer is M11's `ResultDoubleOffer` with a scripted offer
+// (specs/018-m11-ads, T034).
 
 /// The board's frame: one tall surface.
 const resultBoardSize = Size(390, 1100);
@@ -132,6 +136,7 @@ Future<ProviderContainer> pumpResult(
   bool slots = true,
   bool doubled = false,
   bool withQuote = true,
+  AdOffer? doubleOffer = const Offered(),
   List<Override> overrides = const [],
 }) async {
   final container = await pumpCHome(
@@ -167,8 +172,14 @@ Future<ProviderContainer> pumpResult(
           bonat: 5,
         )),
         resultDoubleSlotProvider.overrideWithValue(
-          (_, _) => const _DoubleOffer(),
+          (_, args) => ResultDoubleOffer(args: args),
         ),
+        // Null: the real offer, over the test's ads overrides.
+        if (doubleOffer != null)
+          adOfferNowProvider(
+            AdPlacement.resultDouble,
+            tripId: 'line_gamaa.12',
+          ).overrideWithValue(doubleOffer),
       ],
       ...overrides,
     ],
@@ -217,45 +228,5 @@ class _TaskBanner extends StatelessWidget {
         ),
       ],
     ),
-  );
-}
-
-/// M11's offer as the board draws it: «اقبض ×٢», 70 high, and the decline
-/// link under it, drawn 36 high (M11's takes 44 to the touch).
-class _DoubleOffer extends StatelessWidget {
-  const _DoubleOffer();
-
-  static const double _height = 70;
-  static const double _link = 36;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    spacing: SpaceTokens.s12,
-    children: [
-      AppButton.primary(
-        label: 'اقبض ×٢',
-        height: _height,
-        semanticLabel: 'اقبض ×٢',
-        onTap: () {},
-      ),
-      Semantics(
-        button: true,
-        label: 'لأ، خد ٨٥ بس',
-        excludeSemantics: true,
-        child: GestureDetector(
-          onTap: () {},
-          child: SizedBox(
-            height: _link,
-            child: Center(
-              child: Text(
-                'لأ، خد ٨٥ بس',
-                style: TypeTokens.label.copyWith(color: ColorTokens.inkMuted),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ],
   );
 }

@@ -1,9 +1,9 @@
 // The boosters (HANDOFF §3.4 `BoosterButton`, `C-Trip` boxes 81–92): four
 // buttons on `dashboard.raised`, each its icon over its name, with a badge
 // at its top end: how many are left in `sun`, the price «N بون» in
-// `primary` when none is, or the seconds left while one is working. The ad
-// badge waits for the ads feature (M11, spec FR-029). A tap uses one or
-// opens its purchase card.
+// `primary` when none is, «إعلان» in `primary` when the ad «زحمة» is on
+// offer (M11, `TripEvents`), or the seconds left while one is working. A
+// tap uses one or opens its purchase card.
 import 'package:content_models/content_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,6 +92,8 @@ class BoosterButton extends ConsumerWidget {
         ? l10n.tripBoosterActive(name, active, numbers.integer(active))
         : !slot.enabled
         ? l10n.tripBoosterUnavailable(name)
+        : slot.adOffered
+        ? l10n.pairLabel(name, l10n.trafficJamAdBadge)
         : forSale
         ? l10n.tripBoosterForSale(name, price, numbers.integer(price))
         : l10n.tripBoosterCount(name, numbers.integer(slot.count));
@@ -100,6 +102,11 @@ class BoosterButton extends ConsumerWidget {
         text: l10n.tripSeconds(numbers.integer(s)),
         color: ColorTokens.sun,
         textColor: ColorTokens.ink,
+      ),
+      null when slot.adOffered => BoosterBadge(
+        text: l10n.trafficJamAdBadge,
+        color: ColorTokens.primary,
+        textColor: ColorTokens.paper,
       ),
       null when forSale => BoosterBadge(
         text: l10n.tripBoosterPriceBadge(numbers.integer(price)),

@@ -24,6 +24,18 @@ abstract interface class TripRecords {
     TripIntent intent,
   );
 
+  /// Writes an ad «زحمة»'s reward intent (kind `ad_reward`) before its
+  /// economy call (specs/018-m11-ads, research R8).
+  Future<bool> writeAdIntent(TripIntent intent);
+
+  /// Appends the ad «زحمة»'s `UseBooster` command and deletes its intent, in
+  /// one transaction: an intent left on disk means its command isn't.
+  Future<bool> appendAdBoosterUse(
+    TxnId start,
+    LoggedCommand command,
+    TxnId request,
+  );
+
   /// Saves the clock at a pause.
   Future<bool> saveClock(TxnId start, int tMs);
 
@@ -66,13 +78,24 @@ final class TripRecordHeader {
   final int createdAtMs;
 }
 
-/// The economy call a `trip_intent` row holds. `use_booster` is the only
-/// kind.
+/// What a `trip_intent` row waits to send: a booster use's charge, or (M11)
+/// an ad «زحمة»'s reward.
+enum TripIntentKind {
+  useBooster('use_booster'),
+  adReward('ad_reward');
+
+  const TripIntentKind(this.wire);
+
+  final String wire;
+}
+
+/// The economy call a `trip_intent` row holds.
 final class TripIntent {
   const TripIntent({
     required this.requestTxn,
     required this.startTxn,
     required this.booster,
+    this.kind = TripIntentKind.useBooster,
   });
 
   static const useBoosterKind = 'use_booster';
@@ -80,16 +103,18 @@ final class TripIntent {
   final TxnId requestTxn;
   final TxnId startTxn;
   final BoosterId booster;
+  final TripIntentKind kind;
 
   @override
   bool operator ==(Object other) =>
       other is TripIntent &&
       other.requestTxn == requestTxn &&
       other.startTxn == startTxn &&
-      other.booster == booster;
+      other.booster == booster &&
+      other.kind == kind;
 
   @override
-  int get hashCode => Object.hash(requestTxn, startTxn, booster);
+  int get hashCode => Object.hash(requestTxn, startTxn, booster, kind);
 }
 
 /// A record as stored: JSON text, decoded only when it is rebuilt.

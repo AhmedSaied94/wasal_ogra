@@ -17,6 +17,10 @@ enum SyncTrigger {
 
   /// The backoff's wait ended.
   retry,
+
+  /// A morning piggy was granted: the pass fetches the state its grant moved
+  /// and rebases the wallet (specs/018-m11-ads, research R12).
+  adReward,
 }
 
 /// Why a pass didn't run, or stopped before its next request.

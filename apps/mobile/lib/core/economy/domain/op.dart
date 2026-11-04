@@ -29,7 +29,12 @@ enum OpType {
 
   /// A family request the player takes the BONAT for (M10). The phone never
   /// adds the reward: the server's grant arrives through M06.
-  claimRequest('claim_request');
+  claimRequest('claim_request'),
+
+  /// A morning-piggy reward the player has been shown (B07, M11 research
+  /// R13). No deltas, no projection change: it tells the server not to list
+  /// the reward in bootstrap's `unseen` again.
+  adRewardSeen('ad_reward_seen');
 
   const OpType(this.wire);
 
@@ -175,6 +180,15 @@ final class ClaimRequest extends OpRequest {
   const ClaimRequest({required this.requestId});
 
   final String requestId;
+}
+
+/// A shown piggy reward, by its reference (specs/018-m11-ads, research
+/// R13). A second one for the same [nonce] is refused by the service, which
+/// reads the log (the projection doesn't hold nonces).
+final class AdRewardSeenRequest extends OpRequest {
+  const AdRewardSeenRequest(this.nonce);
+
+  final String nonce;
 }
 
 /// An operation: what a request became once validated, and what is stored

@@ -118,6 +118,7 @@ final class ProductionRules implements Rules {
       TutorialGiftRequest() => validateTutorialGift(s, request, ctx),
       StoryProgressRequest() => validateStoryProgress(s, request, ctx),
       ClaimRequest() => validateClaimRequest(s, request, ctx),
+      AdRewardSeenRequest() => validateAdRewardSeen(s, request, ctx),
     };
   }
 
@@ -142,6 +143,8 @@ final class ProductionRules implements Rules {
       OpType.tutorialGift => applyTutorialGift(s, op),
       OpType.storyProgress => applyStoryProgress(s, op),
       OpType.claimRequest => applyClaimRequest(s, op),
+      // Changes nothing the phone holds (M11 research R13).
+      OpType.adRewardSeen => s,
     };
   }
 
@@ -157,6 +160,7 @@ final class ProductionRules implements Rules {
     OpType.tutorialGift => tutorialGiftStillValid(state, op),
     OpType.storyProgress => storyProgressStillValid(state, op),
     OpType.claimRequest => claimRequestStillValid(state, op),
+    OpType.adRewardSeen => true,
   };
 }
 
@@ -186,4 +190,6 @@ bool requestMatches(Op op, OpRequest request) => switch (request) {
         op.payload['scene_id'] == sceneId,
   ClaimRequest(:final requestId) =>
     op.type == OpType.claimRequest && op.payload['request_id'] == requestId,
+  AdRewardSeenRequest(:final nonce) =>
+    op.type == OpType.adRewardSeen && op.payload['nonce'] == nonce,
 };
