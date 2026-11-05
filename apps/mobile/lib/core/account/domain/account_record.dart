@@ -64,6 +64,7 @@ final class ServerInfo {
     this.clientJson,
     this.entitlementsJson,
     this.dailyJson,
+    this.adsJson,
     this.comebackClaimedAtMs,
     this.comebackAnsweredAtMs,
   });
@@ -80,6 +81,9 @@ final class ServerInfo {
   final String? clientJson;
   final String? entitlementsJson;
   final String? dailyJson;
+
+  /// The `ads` block (M11), null before a bootstrap from B07 on.
+  final String? adsJson;
   final bool comebackClaimable;
   final int? comebackClaimedAtMs;
   final int? comebackAnsweredAtMs;
@@ -91,6 +95,10 @@ final class ServerInfo {
       _read(entitlementsJson, Entitlements.fromJson) ?? Entitlements.neutral;
 
   DailyBlock? get daily => _read(dailyJson, DailyBlock.fromJson);
+
+  /// Null with no cached block: the piggy banner then takes no space
+  /// (M11 research R11).
+  AdsBlock? get ads => _read(adsJson, AdsBlock.fromJson);
 
   static T? _read<T>(String? text, T Function(Object? json) read) =>
       text == null ? null : read(jsonDecode(text));

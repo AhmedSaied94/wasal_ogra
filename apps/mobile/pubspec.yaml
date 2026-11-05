@@ -36,7 +36,14 @@ dependencies:
   # The design's icons, illustrations and the passengers' static art
   # (specs/008.5-m21-design-refresh, research R17).
   flutter_svg: ^2.3.0
+  # Ads (specs/018-m11-ads): the SDK with UMP consent and the request
+  # configuration (research R1), and AdMob bidding with Unity (research R2).
+  # Both are Swift Packages on iOS, so there is still no Podfile. Only
+  # `lib/core/ads/gma_ads_gateway.dart` imports them. AppLovin's adapter is off
+  # until it accepts the account: `gma_mediation_applovin: ^2.6.4` turns it on.
+  gma_mediation_unity: ^1.11.0
   go_router: ^18.1.0
+  google_mobile_ads: ^9.2.0
   intl: ^0.20.3
   material_ui: ^1.7.0
   package_info_plus: ^10.2.2

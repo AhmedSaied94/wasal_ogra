@@ -77,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   final OpenCheck? openCheck;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// The step to each version after 1. A later schema adds its entry here,
   /// calling the step `make-migrations` generates for it.
@@ -87,6 +87,7 @@ class AppDatabase extends _$AppDatabase {
     3: _toV3,
     4: _toV4,
     5: _toV5,
+    6: _toV6,
   };
 
   /// v2 adds the trip's records (specs/008-m02-trip-screen,
@@ -156,6 +157,19 @@ class AppDatabase extends _$AppDatabase {
         },
       ),
     );
+  }
+
+  /// v6 adds M11's ads (specs/018-m11-ads, data-model.md "Drift schema 6"):
+  /// `ledger_ops`' `op_type` check gains `ad_reward_seen` and `trip_intent`'s
+  /// `kind` check gains `ad_reward`, so both are rebuilt as in v3–v5, every
+  /// row kept; `server_info` gains the bootstrap's `ads` block, null until the
+  /// next bootstrap.
+  static Future<void> _toV6(Migrator m) async {
+    final schema = Schema6(database: m.database);
+    final v6 = Migrator(m.database, schema);
+    await v6.alterTable(TableMigration(schema.ledgerOps));
+    await v6.alterTable(TableMigration(schema.tripIntent));
+    await v6.addColumn(schema.serverInfo, schema.serverInfo.ads);
   }
 
   @override

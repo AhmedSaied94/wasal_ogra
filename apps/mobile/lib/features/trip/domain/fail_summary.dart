@@ -23,6 +23,7 @@ FailSummary failSummary(
   TripFacts facts,
   ReviveOffer? revive, {
   TripState? state,
+  AdSlot reviveAd = AdSlot.hidden,
 }) {
   final lost =
       reputationLost.entries.where((e) => e.key.loss && e.value > 0).toList()
@@ -47,6 +48,7 @@ FailSummary failSummary(
         ),
     ],
     revive: revive,
+    reviveAd: revive == null ? AdSlot.hidden : reviveAd,
     brokeStoryRule: brokeStoryRule,
     // The chapter's own line replaces M02's rule line (M10, contracts/
     // story-trip.md "Failure reason").

@@ -345,6 +345,87 @@ abstract final class DesignExtras {
   /// `Components` box 10: the rewarded-ad button's height.
   static const double rewardedHeight = 66;
 
+  /// `BoosterAdCard` box 35: the rewarded button's 14 on each side.
+  static const double rewardedSidePadding = 14;
+
+  /// M11's piggy toasts (`PiggyUsed`, `PiggyLater`): the pig, and the sun
+  /// clock badge on its bottom end corner for «later».
+  static const double piggyToastIcon = 30;
+  static const double piggyToastBadge = 18;
+  static const double piggyToastBadgeIcon = 13;
+  static const double piggyToastBadgeOut = 5;
+  static const double piggyToastBadgeDrop = 4;
+
+  /// M11's trip cards (`NoFuelAd`, `BoosterAdCard`): where each card's top
+  /// sits on the reference frame, its padding (20 above, 18 at the sides,
+  /// 18 or 14 below), the 64 tile with its 38 or 40 art, the Marhey 700 26
+  /// title on a 1.2 line, and the 6 more the lower buttons keep above them.
+  static const double noFuelTop = 150;
+  static const double boosterAdTop = 168;
+  static const adCardPadding = EdgeInsets.fromLTRB(18, 20, 18, 18);
+  static const boosterAdPadding = EdgeInsets.fromLTRB(18, 20, 18, 14);
+  static const double adCardTile = 64;
+  static const double adCardTileArt = 38;
+  static const double boosterAdTileArt = 40;
+  static const adCardTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const double adCardLowerGap = 6;
+
+  /// `NoFuelAd` box 11: the next liter's pill, 30 high, a 16 timer and
+  /// 13/700 ink on `ground`, 8 under the title.
+  static const double noFuelPill = 30;
+  static const double noFuelPillIcon = 16;
+  static const double noFuelPillGap = 8;
+  static const noFuelPillLabel = TextStyle(
+    fontFamily: TypeTokens.readexPro,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+  );
+
+  /// `NoFuelAd` boxes 21–22: «البنزين» and «ارجع الموقف», 48 high, radius 16.
+  static const double noFuelLinkHeight = 48;
+  static const double noFuelLinkRadius = 16;
+
+  /// `BoosterAdCard` boxes 39–43: the buy button as the ad's (66, Marhey 700
+  /// 22, the price chip 12 after it), the 16 BONAT glyph before the
+  /// balance, and «مش دلوقتي» 44 high.
+  static const double boosterAdBalanceIcon = 16;
+  static const double boosterAdCloseHeight = 44;
+
+  /// `NoFuelAd` boxes 13–20 (M11): the refill's two equal tiles, the ad and
+  /// the BONAT refill, 118 high, each a 26 icon over a Marhey 700 20 title.
+  static const double refillTileHeight = 118;
+  static const double refillTileIcon = 26;
+  static const refillTileTitle = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.15,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result` boxes 42–44 (M11): the ×2 offer, the result's one large
+  /// rewarded button: 70 high, a 28 icon and a Marhey 700 26 title.
+  static const double rewardedHeightLarge = 70;
+  static const double rewardedIconLarge = 28;
+  static const rewardedTitleLarge = TextStyle(
+    fontFamily: TypeTokens.marhey,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.15,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   /// `Components` box 4: the cost chip on a 64-high button, 30 high
   /// (HANDOFF §3.1 says 32; the artboard wins).
   static const double costChipHeight = 30;
@@ -1625,6 +1706,55 @@ abstract final class DesignExtras {
   static const double roomStripHeight = 44;
 
   /// `RoomDonePending` 11: the finished room's title, Marhey 700 30.
+  /// `C-Home` box 61: the piggy banner's title and body, on a 1.25 line.
+  static const piggyBannerTitle = TextStyle(
+    fontFamily: 'Marhey',
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.25,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+  static const piggyBannerBody = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 12.5,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    height: 1.25,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PiggyArrived` box 23: a chip's amount.
+  static const piggyChipLabel = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `Result`: «لأ، خد … بس», 14/600.
+  static const resultDeclineLabel = TextStyle(
+    fontFamily: 'ReadexPro',
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
+  /// `PiggyArrived` box 21: the title, Marhey 700 30 on the browser's
+  /// normal line, measured 52.
+  static const piggyArrivedTitle = TextStyle(
+    fontFamily: 'Marhey',
+    fontSize: 30,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    height: 52 / 30,
+    leadingDistribution: TextLeadingDistribution.even,
+  );
+
   static const roomDoneTitle = TextStyle(
     fontFamily: 'Marhey',
     fontSize: 30,

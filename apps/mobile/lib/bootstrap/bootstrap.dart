@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wassal/bootstrap/ads_overrides.dart';
 import 'package:wassal/bootstrap/app.dart';
 import 'package:wassal/features/story/story_overrides.dart';
 
@@ -14,8 +15,9 @@ Future<void> bootstrap() async {
   runApp(
     ProviderScope(
       retry: (_, _) => null,
-      // M10's slots (specs/015-m10-apartment-story, contracts/story-flow.md).
-      overrides: storyOverrides(),
+      // M10's slots (specs/015-m10-apartment-story, contracts/story-flow.md)
+      // and M11's ads (specs/018-m11-ads, contracts/seams.md).
+      overrides: [...storyOverrides(), ...adsOverrides()],
       child: const WassalApp(),
     ),
   );

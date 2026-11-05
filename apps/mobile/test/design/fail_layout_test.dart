@@ -6,17 +6,20 @@ import 'design_check.dart';
 import 'samples/fail.dart';
 
 // `Fail` against its measured boxes (contracts/design-checks.md). Box 12 is
-// the rewarded-ad revive, M11's: its room stays empty, so it is checked by
-// rect, as are the faces and the reason chip.
+// the rewarded-ad revive (M11), checked also by rect, as are the faces and
+// the reason chip.
 
 void main() {
   testWidgets('Fail: the boxes', (tester) async {
     final semantics = tester.ensureSemantics();
     await pumpFail(tester);
+    // Box 12 is drawn without a label; the app reads its two lines.
     expectLayoutMatches(
       tester,
       'Fail',
-      skip: {12: 'the rewarded-ad revive is M11\'s; its room stays empty'},
+      pairings: {
+        12: 'صالح الركاب، إعلان قصير · السمعة ترجع ٤٠٪ وتكمّل من نفس النقطة',
+      },
     );
 
     void expectRect(Finder finder, Rect design) {

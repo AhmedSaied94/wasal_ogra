@@ -733,6 +733,44 @@ void main() {
       expect(rig.toasts, 0);
     });
 
+    // M11 research R13: a shown piggy reward changes nothing visible, so
+    // neither its acceptance nor an (unexpected) rejection shows a toast.
+    test('never for ad_reward_seen', () async {
+      final seen = _op(
+        1,
+        type: OpType.adRewardSeen,
+        payload: {'nonce': '0192f3a1-7b2c-4d4e-8f00-000000000001'},
+      );
+      final rig = _Rig([seen]);
+      rig.api.always(
+        'POST',
+        ApiPaths.sync,
+        (ApiRequest r) => syncAnswerFor(
+          r,
+          rejected: {seen.op.txnId.value: 'validation_error'},
+        ),
+      );
+
+      await rig.run();
+
+      expect(rig.events.whereType<OpRejected>(), hasLength(1));
+      expect(rig.toasts, 0);
+    });
+
+    test('an accepted ad_reward_seen changes nothing', () async {
+      final seen = _op(
+        1,
+        type: OpType.adRewardSeen,
+        payload: {'nonce': '0192f3a1-7b2c-4d4e-8f00-000000000002'},
+      );
+      final rig = _Rig([seen])..acceptAll();
+
+      await rig.run();
+
+      expect(rig.economy.statusOf(seen), SyncStatus.accepted);
+      expect(rig.toasts, 0);
+    });
+
     // M07 research R7: a refused name is asked again on Home instead.
     test('not for a refused name; its reason is kept', () async {
       final name = _op(

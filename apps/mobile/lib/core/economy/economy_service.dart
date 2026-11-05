@@ -140,6 +140,27 @@ final class EconomyService implements Economy, EconomySync {
       _submit(id, AdRewardRequest(placement));
 
   @override
+  Future<OpOutcome> markAdRewardSeen(TxnId id, {required String nonce}) =>
+      _submit(
+        id,
+        AdRewardSeenRequest(nonce),
+        precheck: () async => await _store.adRewardSeen(nonce)
+            ? EconomyRefusal.alreadyRecorded
+            : null,
+      );
+
+  @override
+  Future<bool> adRewardSeen(String nonce) =>
+      _serial(() => _store.adRewardSeen(nonce));
+
+  @override
+  Future<int> adRewardsOn(AdPlacement placement, String gameDay) =>
+      _serial(() => _store.adRewardsOn(placement, gameDay));
+
+  @override
+  Future<int> tripStarts() => _serial(_store.tripStarts);
+
+  @override
   Future<OpOutcome> setDisplayName(TxnId id, String name) =>
       _submit(id, SettingsUpdateRequest(name));
 
@@ -349,7 +370,14 @@ final class EconomyService implements Economy, EconomySync {
 
   FoldResult _fold(EconomyState base, List<Op> ops) => fold(base, ops, _rules);
 
-  Future<OpOutcome> _submit(TxnId id, OpRequest request) => _serial(() async {
+  /// [precheck] reads the log for a refusal the projection can't see (an
+  /// `ad_reward_seen` already stored, M11 research R13). It runs after the
+  /// repeated-id check, inside the same serial task.
+  Future<OpOutcome> _submit(
+    TxnId id,
+    OpRequest request, {
+    Future<EconomyRefusal?> Function()? precheck,
+  }) => _serial(() async {
     final stored = await _store.findOp(id);
     if (stored != null) {
       assert(
@@ -357,6 +385,11 @@ final class EconomyService implements Economy, EconomySync {
         'The id $id was already used for ${stored.op}.',
       );
       return OpApplied(op: stored, view: view, repeated: true);
+    }
+    // Only awaited when there is one: every other call keeps its timing.
+    if (precheck != null) {
+      final refused = await precheck();
+      if (refused != null) return OpRefused(refused);
     }
     switch (_rules.validate(_state, request, _context(id))) {
       case Declined(:final code):

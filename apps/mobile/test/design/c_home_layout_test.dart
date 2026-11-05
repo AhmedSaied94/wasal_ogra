@@ -6,7 +6,7 @@ import 'samples/c_home.dart';
 // `C-Home` against its measured boxes (specs/013-m08-home-result,
 // research R20). The garage (box 16) is phase 2 (FR-008). The fuel pill's
 // label rounds to minutes (R11), where the board's says «١٢ دقيقة و٣٠
-// ثانية»; the morning piggy (box 59) has no label on the board. Three
+// ثانية»; the morning piggy (box 59, M11's banner) has no label on the board. Three
 // bottom-bar cells are paired, as their text is also part of the line
 // card's and the BONAT pill's labels; the apartment's dot reads «جديد»
 // (M03). The BONAT pill follows the fuel pill, which Flutter's digits make
@@ -24,7 +24,7 @@ void main() {
       skip: const {16: 'the garage is phase 2 (FR-008)'},
       pairings: const {
         10: 'البنزين ٤ من ٥، اللتر الجاي بعد ١٣ دقيقة',
-        59: 'حصّالة الصبح',
+        59: 'حصّالة الصبح، ببلاش',
         69: 'الخطوط',
         71: 'الشقة، جديد',
         74: 'المحل',

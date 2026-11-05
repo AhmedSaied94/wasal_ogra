@@ -78,6 +78,23 @@ abstract interface class Economy {
   /// IV): no balance moves on the phone.
   Future<OpOutcome> claimRequest(TxnId id, {required String requestId});
 
+  // Ads (specs/018-m11-ads, contracts/economy-ops.md).
+
+  /// Records that a piggy reward was shown (research R13). A second for the
+  /// same [nonce] is `OpRefused(alreadyRecorded)` and stores nothing.
+  Future<OpOutcome> markAdRewardSeen(TxnId id, {required String nonce});
+
+  /// Whether an `ad_reward_seen` for [nonce] is stored, whatever its sync
+  /// status.
+  Future<bool> adRewardSeen(String nonce);
+
+  /// Non-rejected `ad_reward` rows for [placement] whose trusted time falls
+  /// on [gameDay] (research R9).
+  Future<int> adRewardsOn(AdPlacement placement, String gameDay);
+
+  /// The count of `trip_start` rows (research R10).
+  Future<int> tripStarts();
+
   // The sync's calls are on `EconomySync` (economy_sync.dart), out of the
   // screens' reach (specs/011-m06-identity-sync, research R20).
 }

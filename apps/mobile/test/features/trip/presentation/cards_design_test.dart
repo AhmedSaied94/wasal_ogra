@@ -367,7 +367,8 @@ void main() {
         TripModel(phase: TripPhase.noFuel, view: cTripView()),
       );
       _expectDialog(tester, _in(NoFuelCard, find.text(l10n.tripNoFuelShop)));
-      expect(_in(NoFuelCard, find.byType(CardActions)), findsOneWidget);
+      // M11's `NoFuelAd`: the two ways on are tiles side by side.
+      expect(_in(NoFuelCard, find.byType(CardRow)), findsOneWidget);
 
       await _show(
         tester,

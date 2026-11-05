@@ -249,6 +249,16 @@ final class _SpyRecords implements TripRecords {
   }
 
   @override
+  Future<bool> writeAdIntent(TripIntent intent) => _inner.writeAdIntent(intent);
+
+  @override
+  Future<bool> appendAdBoosterUse(
+    TxnId start,
+    LoggedCommand command,
+    TxnId request,
+  ) => _inner.appendAdBoosterUse(start, command, request);
+
+  @override
   Future<bool> saveClock(TxnId start, int tMs) => _inner.saveClock(start, tMs);
 
   @override

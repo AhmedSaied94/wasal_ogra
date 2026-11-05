@@ -692,10 +692,18 @@ class OfflineBanner extends StatelessWidget {
 /// A dark toast's frame (`States` box 16): `dashboard.bg`, 56 high,
 /// radius 18, an optional icon, white 13/600 text and an optional action.
 class _DarkToast extends StatelessWidget {
-  const _DarkToast({required this.message, this.icon, this.action});
+  const _DarkToast({
+    required this.message,
+    this.icon,
+    this.leading,
+    this.action,
+  });
 
   final String message;
   final String? icon;
+
+  /// Drawn in place of [icon] (M11's piggy toasts).
+  final Widget? leading;
   final Widget? action;
 
   static const double height = 56;
@@ -716,7 +724,10 @@ class _DarkToast extends StatelessWidget {
     child: Row(
       spacing: SpaceTokens.s10,
       children: [
-        if (icon case final icon?) AppIcon(icon, size: _icon),
+        if (leading case final leading?)
+          leading
+        else if (icon case final icon?)
+          AppIcon(icon, size: _icon),
         Expanded(
           child: Text(
             message,
@@ -808,13 +819,18 @@ class _UndoToastState extends State<UndoToast> {
 /// A passing message with no action (the back-to-exit hint): the
 /// [UndoToast]'s look without its button.
 class AppToast extends StatelessWidget {
-  const AppToast({required this.message, super.key});
+  const AppToast({required this.message, this.leading, super.key});
 
   final String message;
 
+  /// An icon before the message (M11's piggy toasts).
+  final Widget? leading;
+
   @override
-  Widget build(BuildContext context) =>
-      Semantics(liveRegion: true, child: _DarkToast(message: message));
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: _DarkToast(message: message, leading: leading),
+  );
 }
 
 /// The toast each overlay shows; a new one replaces it.
@@ -826,8 +842,13 @@ void showAppToast(
   BuildContext context,
   String message, {
   Duration hold = MotionTokens.toastHold,
-}) =>
-    showAppToastOn(Overlay.of(context, rootOverlay: true), message, hold: hold);
+  Widget? leading,
+}) => showAppToastOn(
+  Overlay.of(context, rootOverlay: true),
+  message,
+  hold: hold,
+  leading: leading,
+);
 
 /// [showAppToast] on [overlay], for code outside the widget tree (the sync's
 /// rollback toast, on the navigator's overlay).
@@ -835,12 +856,14 @@ void showAppToastOn(
   OverlayState overlay,
   String message, {
   Duration hold = MotionTokens.toastHold,
+  Widget? leading,
 }) {
   if (_toasts[overlay] case final shown?) _closeToast(overlay, shown);
   late final OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _ToastHost(
       message: message,
+      leading: leading,
       hold: hold,
       onDone: () => _closeToast(overlay, entry),
     ),
@@ -862,9 +885,11 @@ class _ToastHost extends StatefulWidget {
     required this.message,
     required this.hold,
     required this.onDone,
+    this.leading,
   });
 
   final String message;
+  final Widget? leading;
   final Duration hold;
   final VoidCallback onDone;
 
@@ -928,7 +953,7 @@ class _ToastHostState extends State<_ToastHost>
           style: _overlayText,
           child: FadeTransition(
             opacity: _curve,
-            child: AppToast(message: widget.message),
+            child: AppToast(message: widget.message, leading: widget.leading),
           ),
         ),
       ),

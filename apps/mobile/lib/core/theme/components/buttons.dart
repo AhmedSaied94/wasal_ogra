@@ -93,14 +93,14 @@ class AppButton extends StatelessWidget {
     this.expand = false,
     this.height,
     this.labelStyle,
+    this.sidePadding,
     super.key,
   }) : _variant = _Variant.tertiary,
        size = AppButtonSize.compact,
        leading = null,
        trailing = null,
        loading = false,
-       radius = null,
-       sidePadding = null;
+       radius = null;
 
   final String label;
   final VoidCallback? onTap;
@@ -129,8 +129,8 @@ class AppButton extends StatelessWidget {
   /// Overrides the size's label style, where an artboard draws another one.
   final TextStyle? labelStyle;
 
-  /// Overrides the 16 pt on each side of the label, where an artboard draws
-  /// another one.
+  /// Overrides the 16 pt on each side of the label (a tertiary's 8), where an
+  /// artboard draws another one.
   final double? sidePadding;
 
   final _Variant _variant;
@@ -182,7 +182,9 @@ class AppButton extends StatelessWidget {
           width: expand ? double.infinity : null,
           height: height,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: SpaceTokens.s8),
+            padding: EdgeInsets.symmetric(
+              horizontal: sidePadding ?? SpaceTokens.s8,
+            ),
             child: expand ? Center(child: content) : content,
           ),
         ),
@@ -392,9 +394,10 @@ class CostChip extends StatelessWidget {
   );
 }
 
-/// A rewarded-ad offer (HANDOFF §3.1, `Components` box 10). Built for M11:
-/// no screen shows it yet (spec FR-029). Not [ready]: the not-ready icon and
-/// «الإعلان مش جاهز», disabled.
+/// A rewarded-ad offer (HANDOFF §3.1, `Components` box 10). Not [ready]: the
+/// not-ready icon and «الإعلان مش جاهز», disabled (45%, no lip), or
+/// [unavailable] in its place: «محتاج نت» offline, «خلصت النهارده» at a daily
+/// cap (M11, `States` boxes 2–3).
 class RewardedAdButton extends StatelessWidget {
   const RewardedAdButton({
     required this.ready,
@@ -402,11 +405,19 @@ class RewardedAdButton extends StatelessWidget {
     required this.benefit,
     required this.onTap,
     this.semanticLabel,
+    this.unavailable,
+    this.large = false,
     super.key,
   });
 
   final bool ready;
   final String title;
+
+  /// What a disabled button says instead of «الإعلان مش جاهز».
+  final String? unavailable;
+
+  /// The result's ×2 (`Result` box 42): 70 high, a larger title.
+  final bool large;
 
   /// The benefit line, for example «+١٧٠ بدل ٨٥».
   final String benefit;
@@ -418,7 +429,7 @@ class RewardedAdButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final notReady = l10n.adNotReady;
+    final notReady = unavailable ?? l10n.adNotReady;
     final radius = BorderRadius.circular(LayoutTokens.ctaRadius);
     return Pressable(
       onTap: onTap,
@@ -430,46 +441,64 @@ class RewardedAdButton extends StatelessWidget {
           : notReady,
       child: SizedBox(
         width: double.infinity,
-        height: DesignExtras.rewardedHeight,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: ColorTokens.primary,
             borderRadius: radius,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: SpaceTokens.s10,
-            children: [
-              AppIcon(
-                ready ? 'ad_play_on_primary' : 'ad_not_ready',
-                size: _icon,
-                color: ColorTokens.paper,
+          // At least its height; a long line wraps (`Fail` box 12) and large
+          // text grows it.
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: large
+                  ? DesignExtras.rewardedHeightLarge
+                  : DesignExtras.rewardedHeight,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignExtras.rewardedSidePadding,
               ),
-              if (ready)
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: DesignExtras.rewardedTitle.copyWith(
-                        color: ColorTokens.paper,
-                      ),
-                    ),
-                    Text(
-                      benefit,
-                      style: TypeTokens.label
-                          .weight(400)
-                          .copyWith(color: ColorTokens.primarySoft),
-                    ),
-                  ],
-                )
-              else
-                Text(
-                  notReady,
-                  style: TypeTokens.buttonL.copyWith(color: ColorTokens.paper),
-                ),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: SpaceTokens.s10,
+                children: [
+                  AppIcon(
+                    ready ? 'ad_play_on_primary' : 'ad_not_ready',
+                    size: large ? DesignExtras.rewardedIconLarge : _icon,
+                    color: ColorTokens.paper,
+                  ),
+                  Flexible(
+                    child: ready
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style:
+                                    (large
+                                            ? DesignExtras.rewardedTitleLarge
+                                            : DesignExtras.rewardedTitle)
+                                        .copyWith(color: ColorTokens.paper),
+                              ),
+                              Text(
+                                benefit,
+                                style: TypeTokens.label
+                                    .weight(400)
+                                    .copyWith(color: ColorTokens.primarySoft),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            notReady,
+                            style: TypeTokens.buttonL.copyWith(
+                              color: ColorTokens.paper,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

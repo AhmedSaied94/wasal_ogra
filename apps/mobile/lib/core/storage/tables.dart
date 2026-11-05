@@ -1,4 +1,5 @@
-// The app database's tables, schema version 4: the economy's
+// The app database's tables, schema version 6 (v5: M10's story, v6: M11's
+// ads, specs/018-m11-ads data-model.md): the economy's
 // (specs/007-m05-local-economy/data-model.md "Tables"), since v2 the trip's
 // records (specs/008-m02-trip-screen/data-model.md), since v3 the account
 // and the last bootstrap (specs/011-m06-identity-sync/data-model.md "Tables
@@ -40,6 +41,9 @@ class LedgerOps extends Table {
       // v5: M10's story operations (specs/015-m10-apartment-story, R5).
       'story_progress',
       'claim_request',
+      // v6: M11's confirmation of a shown piggy reward (specs/018-m11-ads,
+      // research R13).
+      'ad_reward_seen',
     ]),
   )();
 
@@ -314,7 +318,10 @@ class TripIntentTable extends Table {
 
   TextColumn get requestTxn => text()();
   TextColumn get startTxn => text()();
-  TextColumn get kind => text().check(kind.isIn(const ['use_booster']))();
+
+  /// v6: `ad_reward`, the ad «زحمة»'s reward (specs/018-m11-ads, R8).
+  TextColumn get kind =>
+      text().check(kind.isIn(const ['use_booster', 'ad_reward']))();
   TextColumn get booster => text()();
 
   @override
@@ -373,6 +380,9 @@ class ServerInfoTable extends Table {
   TextColumn get client => text().nullable()();
   TextColumn get entitlements => text().nullable()();
   TextColumn get daily => text().nullable()();
+
+  /// The bootstrap's `ads` block, canonical JSON (M11 research R11).
+  TextColumn get ads => text().nullable()();
 
   /// 0 or 1; 0 before the first bootstrap.
   IntColumn get comebackClaimable =>

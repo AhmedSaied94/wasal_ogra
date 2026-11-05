@@ -11,6 +11,7 @@ import 'package:wassal/core/progress/application/player_progress_provider.dart';
 import 'package:wassal/core/routing/app_page.dart';
 import 'package:wassal/core/routing/param_validators.dart';
 import 'package:wassal/core/routing/placeholder_screen.dart';
+import 'package:wassal/features/fuel/presentation/fuel_placeholder_page.dart';
 import 'package:wassal/core/routing/routes.dart';
 import 'package:wassal/core/routing/shell_scaffold.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
@@ -386,6 +387,8 @@ Page<void> _page(BuildContext context, GoRouterState state, Destination d) {
         _ => null,
       },
     ),
+    // M12's fuel sheet stands in with M11's refill offer (R17).
+    RouteNames.fuel => FuelPlaceholderPage(destination: d),
     _ => PlaceholderScreen(destination: d, params: state.pathParameters),
   };
   return switch (d.presentation) {

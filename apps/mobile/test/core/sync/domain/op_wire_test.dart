@@ -56,6 +56,8 @@ void main() {
       'scene_id': 'family_visit',
     },
     OpType.claimRequest: {'request_id': 'req_nagafa_crystal'},
+    // M11's piggy confirmation (specs/018-m11-ads, contracts/economy-ops.md).
+    OpType.adRewardSeen: {'nonce': '0192f3a1-7b2c-4d4e-8f00-000000000001'},
   };
 
   test('covers every operation type', () {
@@ -99,6 +101,16 @@ void main() {
       'scene_id': 'family_visit',
       'content_version': 7,
     });
+  });
+
+  test('an ad_reward_seen op sends only its nonce', () {
+    final wire = opWire(
+      _op(OpType.adRewardSeen, {
+        'nonce': '0192f3a1-7b2c-4d4e-8f00-00000000000a',
+      }),
+    );
+    expect(wire['op_type'], 'ad_reward_seen');
+    expect(wire['payload'], {'nonce': '0192f3a1-7b2c-4d4e-8f00-00000000000a'});
   });
 
   test('occurred_at is UTC with milliseconds and Z', () {

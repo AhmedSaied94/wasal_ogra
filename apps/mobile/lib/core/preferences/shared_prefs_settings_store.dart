@@ -22,6 +22,14 @@ final class SharedPrefsSettingsStore implements SettingsStore {
     // The news Lines has shown (specs/014-m09-lines-vehicles, research R8):
     // a read marker, not game state. Losing it shows the «new» dot once more.
     'pref.lines_seen',
+    // The interstitial's pacing (specs/018-m11-ads, data-model.md "Device
+    // preferences"): the trip counts when an interstitial last showed and
+    // when a rewarded ad last paid. Pacing, not game state.
+    'pref.ads_last_interstitial_trip',
+    'pref.ads_last_rewarded_trip',
+    // The game day the morning piggy's ad last paid: a marker, not game
+    // state. Losing it offers an ad the server refuses.
+    'pref.ads_piggy_attempted_day',
   };
 
   final SharedPreferencesWithCache _prefs;

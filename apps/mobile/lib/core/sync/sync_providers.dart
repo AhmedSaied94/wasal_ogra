@@ -66,6 +66,11 @@ Entitlements entitlements(Ref ref) =>
 @Riverpod(keepAlive: true)
 DailyBlock? dailyBlock(Ref ref) => ref.watch(serverInfoProvider).daily;
 
+/// B07's morning piggy (specs/018-m11-ads, research R11): null before a
+/// bootstrap that carried the block.
+@Riverpod(keepAlive: true)
+AdsBlock? adsBlock(Ref ref) => ref.watch(serverInfoProvider).ads;
+
 /// The comeback gift's guard (research R16): M10's comeback card.
 @Riverpod(keepAlive: true)
 Future<ComebackGift> comebackGift(Ref ref) async {

@@ -41,12 +41,13 @@ BoosterSlotView _booster(
   int count, {
   int? price,
   int? activeUntilMs,
+  bool adOffered = false,
 }) => BoosterSlotView(
   booster: booster,
   count: count,
   priceBonat: price,
   enabled: true,
-  adOffered: false,
+  adOffered: adOffered,
   activeUntilMs: activeUntilMs,
 );
 
@@ -82,7 +83,8 @@ TripView tripEventsView() => cTripView(
     _booster(BoosterId.changeBag, 1),
     _booster(BoosterId.ledgerPeek, 0, activeUntilMs: tripEventsMs + 4000),
     _booster(BoosterId.wakeAll, 0, price: 8),
-    _booster(BoosterId.trafficJam, 0, price: 5),
+    // None left, and the ad «زحمة» on offer: its «إعلان» badge (M11).
+    _booster(BoosterId.trafficJam, 0, price: 5, adOffered: true),
   ],
   bubbles: const [
     BubbleView(

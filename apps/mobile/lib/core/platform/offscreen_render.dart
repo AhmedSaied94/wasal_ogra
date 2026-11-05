@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The picture couldn't be drawn.
@@ -24,11 +25,27 @@ const double offscreenPixelRatio = 3;
 /// assets, which arrive, already loaded, for the second.
 const int _framesBeforeCapture = 2;
 
+/// Loads [loaders]' SVGs into the cache, so a picture's first frame finds them.
+Future<void> loadSvgPictures(
+  BuildContext context,
+  Iterable<SvgAssetLoader> loaders,
+) => Future.wait([for (final loader in loaders) _loadSvg(context, loader)]);
+
+/// `async` on purpose. The cache answers a picture it holds with a
+/// SynchronousFuture, which Future.wait can't take: with one earlier picture
+/// still loading, it fails on a null check.
+Future<void> _loadSvg(BuildContext context, SvgAssetLoader loader) async {
+  await svg.cache.putIfAbsent(
+    loader.cacheKey(context),
+    () => loader.loadBytes(context),
+  );
+}
+
 /// [child] as a PNG of [logicalSize] at [pixelRatio]: built off screen over
 /// [context]'s overlay for a frame or two, then captured and removed.
 ///
-/// The caller loads what [child] draws (its SVGs) first, so the capture
-/// finds it. Nothing is fetched here, so it works offline.
+/// The caller loads what [child] draws first ([loadSvgPictures]), so the
+/// capture finds it. Nothing is fetched here, so it works offline.
 Future<Uint8List> renderOffscreenPng(
   BuildContext context,
   Widget child,

@@ -30,15 +30,20 @@ Future<void> deleteAppDatabase() async {
   }
 }
 
-/// Pumps frames in real time until [done].
-Future<void> pumpUntil(WidgetTester tester, bool Function() done) async {
+/// Pumps frames in real time until [done]; [describe] says what the screen
+/// was at when it never came.
+Future<void> pumpUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  String Function()? describe,
+}) async {
   for (var i = 0; i < 200 && !done(); i++) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
     await tester.pump();
   }
-  expect(done(), isTrue);
+  expect(done(), isTrue, reason: describe?.call());
 }
 
 /// Pumps the app with the real economy and [fixture]'s seed, and waits

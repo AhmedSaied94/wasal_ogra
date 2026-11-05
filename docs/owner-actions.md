@@ -35,6 +35,7 @@ left, in what order, and where to look.
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
 | [017 B07 ads SSV](#017-b07-ads-ssv) | — | The real-callback fixture, and 1 before M11's release | Merged in #28 and deployed on 2026-11-03 (production as v0.1.5). The Remote Config key, the allowed ad units, the staging check with a real ad and the Sentry alert rule are done (2026-11-03). |
+| [018 M11 ads](#018-m11-ads) | 0 (the boards, the Android ad units and the AdMob console setup are done) | 4, the last before the release | In draft PR #29. Your six ad boards are in (2026-11-03), the Android ad units (2026-11-04) and the AdMob console setup (2026-11-05, Unity Ads only). iOS's real ids and tracking text wait for the iOS release. |
 
 ## Every month
 
@@ -1371,6 +1372,86 @@ read-only ad rewards admin, the daily cleanup and the operator alerts. Runbooks:
 
 - [ ] **4. Production's callback URL (T056).** Set `https://api.<domain>/v1/ads/ssv` on the
   production piggy ad unit and press **Verify URL**.
+
+## 018 M11 ads
+
+Being built on branch `018-m11-ads`
+([spec](../specs/018-m11-ads/spec.md), [plan](../specs/018-m11-ads/plan.md),
+[tasks.md](../specs/018-m11-ads/tasks.md), [quickstart](../specs/018-m11-ads/quickstart.md),
+[design briefs](../specs/018-m11-ads/contracts/design-briefs.md)):
+
+- The five rewarded placements and the interstitial (glossary §3.4): the result's ×2, the refill
+  ad beside the BONAT refill, the ad revive, the ad «زحمة», the morning piggy, and an interstitial
+  between trips. Each has its caps on the phone, as the server already checks them.
+- Consent (UMP) at the first checkpoint where an ad may come, before tutorial trip 3. Trips 1–2 of
+  the first session have no ads, and no ad call runs while a trip runs.
+- The piggy goes through B07's server check; the phone only shows what the server granted.
+- `google_mobile_ads` with Unity mediation, one new operation (`ad_reward_seen`) and
+  drift schema 6.
+
+### Before merge
+
+- [x] **1. The six ad boards (T063).** Done on 2026-11-03: `PiggyArrived`, `PiggyUsed`,
+  `PiggyLater`, `NoFuelAd`, `NoFuelAdLimit` and `BoosterAdCard`, drawn in the canvas row
+  «الإعلانات» and exported on `design/m11-ad-boards` (`2cc4786`). What they settled, and the two
+  copy changes, are in [design-briefs.md "As drawn"](../specs/018-m11-ads/contracts/design-briefs.md).
+- [x] **2. The AdMob ad units (T065).** Done for Android on 2026-11-04: 12 units in one AdMob app
+  (`~5907754524`), six for staging and six for prod, now in
+  `apps/mobile/lib/core/ads/ad_ids.dart` and `android/app/build.gradle.kts`. iOS waits (see
+  "Before the iOS release" below). To confirm:
+  - `ADS_ALLOWED_AD_UNITS` holds `2511736310` on staging and `3908277141` on production, or the
+    piggy grants nothing;
+  - staging's build serves ads under this app, though its package is
+    `com.wassalogra.app.staging`. If it doesn't, staging needs its own AdMob app.
+- [x] **3. Mediation, the test device and the consent messages (T066).** In the AdMob console:
+  - ~~set up Unity Ads in mediation (bidding).~~ Done on 2026-11-05: Unity app `800425289`, one Rewarded group
+    with all 10 rewarded units and one Interstitial group with both interstitial units, all countries, partnership
+    active. It serves first on the staging check. AppLovin refused the sign-up on 2026-11-05 (not accepting new
+    publishers). Mintegral's account is under review and needs the live app, so it waits for the Play listing
+    (`https://play.google.com/store/apps/details?id=com.wassalogra.app`). AppLovin's adapter is off (2026-11-05);
+  - ~~register the Redmi Note 7 as a test device, so staging's real units serve it test ads.~~ Done on 2026-11-05;
+  - ~~in **Privacy & messaging**, turn on the GDPR form.~~ Done on 2026-11-05: "Wassal Ogra - European
+    regulations" is published (Wassal Ogra only; EEA, UK and Switzerland; English), with the policy at
+    `https://ahmedsaied94.github.io/privacy#wassal-en`. The IDFA explainer can wait for the iOS release (the iOS
+    tracking prompt comes from it).
+
+  Steps: [research R2, R4 and R6](../specs/018-m11-ads/research.md).
+### After merge
+
+- [ ] **1. The device run (T078).** [Quickstart §3](../specs/018-m11-ads/quickstart.md), steps 1–8,
+  on the Redmi Note 7 with a dev build and test ads: no ad in trips 1–2, the ×2 from trip 3, the
+  revive, the ad «زحمة», three refill ads and then «خلصت النهارده», an interstitial before the card
+  at trip 13, and the EEA consent form before any ad request. Claude asks before connecting to the
+  phone, and records the outcome here.
+- [ ] **2. Staging with real units (T077's list, SC-004).** After before-merge item 3's test
+  device: [quickstart §5](../specs/018-m11-ads/quickstart.md). Run §3's steps 3–7 on the staging
+  build, then tap the piggy 10 times over 10 days (or reset the cap on staging): 9 rewards in 10
+  should appear within 7 s, each a `granted` row in the admin. A live ad on the test phone means it
+  isn't registered as a test device.
+- [ ] **3. Play Console (T077's list).** Declare that the app contains ads, fill the data-safety
+  form for what the ad SDK and Unity Ads collect (the advertising id among it,
+  and the player id the piggy's ad sends for its server check, which mediation may pass on to
+  Unity: list it as shared with ad partners, and in the privacy policy),
+  and set the target audience to 13–15, 16–17 and 18+, not designed for children
+  ([research R5](../specs/018-m11-ads/research.md),
+  [platform-config.md "Android"](../specs/018-m11-ads/contracts/platform-config.md)).
+- [ ] **4. Production's callback URL, before the release.** B07's
+  [item 4 (T056)](#before-m11s-release): set `https://api.<domain>/v1/ads/ssv` on the production
+  piggy unit and press **Verify URL**.
+
+### Before the iOS release
+
+- [ ] **The tracking text (T067).** The Arabic text of iOS's `NSUserTrackingUsageDescription`,
+  the line under the tracking prompt. `ios/Runner/Info.plist` holds an English stand-in until then;
+  Claude puts your text there with an English fallback (T005,
+  [platform-config.md "iOS"](../specs/018-m11-ads/contracts/platform-config.md)).
+- [ ] **The real iOS ids.** Staging and prod's iOS still hold Google's sample ids, which serve only
+  test ads and earn nothing. In AdMob, add the iOS app and its six units per flavor, and set the
+  SSV callback on each piggy unit, whose number also goes in that host's `ADS_ALLOWED_AD_UNITS`.
+  Send the ids, and Claude puts them in `ad_ids.dart` and the Xcode configurations.
+  `ad_ids_test.dart` accepts all samples or all real ids, so **no test stops an iOS release with
+  samples: this item does.**
+
 
 ## Known for later features
 

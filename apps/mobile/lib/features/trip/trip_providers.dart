@@ -58,9 +58,20 @@ class TripSettingsNotifier extends _$TripSettingsNotifier {
   }
 }
 
-/// M11 fills this in.
+/// No ads by default; the app's scope takes M11's `AdsTripOffers`
+/// (`lib/bootstrap/ads_overrides.dart`).
 @Riverpod(keepAlive: true)
 TripAdOffers tripAdOffers(Ref ref) => const NoTripAdOffers();
+
+/// Whether a trip's engine runs now (specs/018-m11-ads, research R7): the
+/// trip controller sets it from its phase, and M11 reads it as the probe no
+/// ad call may see true.
+@Riverpod(keepAlive: true)
+ValueNotifier<bool> tripRunning(Ref ref) {
+  final running = ValueNotifier(false);
+  ref.onDispose(running.dispose);
+  return running;
+}
 
 /// Whether the screen's frames drive the trip's clock. Widget tests and
 /// goldens turn it off and move the clock themselves.
@@ -106,6 +117,7 @@ TripController tripController(Ref ref, String tripId) {
     hintsSeen: () => settings.current.hintsSeen,
     onHintSeen: (wire) => unawaited(settings.markHintSeen(wire)),
     ads: ref.read(tripAdOffersProvider),
+    running: ref.read(tripRunningProvider),
     fixedTrip: ref.read(tripFixedProvider),
     coachLesson: () => ref.read(tutorialCoachProvider(tripId)),
     boostersLocked: () => ref.read(firstSessionProvider).boostersLocked,

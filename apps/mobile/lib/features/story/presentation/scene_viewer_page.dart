@@ -397,25 +397,16 @@ class _SceneViewerPageState extends ConsumerState<SceneViewerPage>
 
   /// Loads the panel's SVGs as the picture will ask for them (its drawing,
   /// or the characters of its fallback), so its first frame finds them.
-  Future<void> _loadPictures(Panel panel) {
-    final loaders = <SvgAssetLoader>[
-      if (PanelArt.assetFor(panel.art) case final asset?)
-        SvgAssetLoader(asset)
-      else
-        for (final speaker in {
-          for (final line in panel.lines)
-            if (line.speaker != PanelFallback.narrator) line.speaker,
-        })
-          SvgAssetLoader(CharacterAvatar.path(speaker)),
-    ];
-    return Future.wait([
-      for (final loader in loaders)
-        svg.cache.putIfAbsent(
-          loader.cacheKey(context),
-          () => loader.loadBytes(context),
-        ),
-    ]);
-  }
+  Future<void> _loadPictures(Panel panel) => loadSvgPictures(context, [
+    if (PanelArt.assetFor(panel.art) case final asset?)
+      SvgAssetLoader(asset)
+    else
+      for (final speaker in {
+        for (final line in panel.lines)
+          if (line.speaker != PanelFallback.narrator) line.speaker,
+      })
+        SvgAssetLoader(CharacterAvatar.path(speaker)),
+  ]);
 
   // ---- building ----
 

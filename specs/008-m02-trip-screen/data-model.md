@@ -171,7 +171,7 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 | `HandView` | `pieces` (denomination → count), `totalPiasters` |
 | `TraySlotView` | `denomination`, `count`, `breakable` (glows in break mode) |
 | `BreakButtonView` | `left`, `enabled` |
-| `BoosterSlotView` | `booster`, `count`, `priceBonat?` (when 0 left), `enabled`, `adOffered` (always false until M11), `activeUntilMs?` (008.5: while «الدفتر» works, for its badge's seconds) |
+| `BoosterSlotView` | `booster`, `count`, `priceBonat?` (when 0 left), `enabled`, `adOffered` (018: «زحمة» with none left, a price, its limit not reached and its ad shown), `activeUntilMs?` (008.5: while «الدفتر» works, for its badge's seconds) |
 | `ClaimChoice` | `passengerId` |
 | `ChangeRequestChoice` | `passengerId`, `notePiasters` |
 | `DisputeChoice` | `disputeId`, `a`, `b` |
@@ -180,7 +180,7 @@ contains only what the screen may show ([contracts/trip-view.md](./contracts/tri
 | `LogLine` | `kind` (`speech`, `fareArrived`, `breakDone`, `dropped`, `lost`, `fareUp`), `speaker?`, `text?` (a passenger's line, resolved), `amountPiasters?` (a money line; the screen words it) |
 | `HintView` | `key` (the ARB key of بلية's line), `targetPassengerId?` |
 | `BannerView` | `oldPiasters`, `newPiasters`, `shownAtMs` |
-| `FailSummary` | `causes` (the top two by reputation lost), `revive?`, `brokeStoryRule` (008.5: a story trip lost to a fight), `failReason?` (015: the chapter's line when that rule broke), `angryFaces` (008.5: up to three, for the failure art) |
+| `FailSummary` | `causes` (the top two by reputation lost), `revive?`, `reviveAd` (018: the rewarded-ad revive's `AdSlot`, hidden without a `revive`), `brokeStoryRule` (008.5: a story trip lost to a fight), `failReason?` (015: the chapter's line when that rule broke), `angryFaces` (008.5: up to three, for the failure art) |
 | `FailCause` | `cause`, `count?` (when the engine counts it) |
 | `ReviveOffer` | `priceBonat`, `affordable` |
 | `RejectionLine` | `code`, `untilMs` |

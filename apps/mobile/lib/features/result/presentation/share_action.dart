@@ -45,21 +45,16 @@ Future<Uint8List> renderSharePicture(
 
 /// Loads the card's SVGs, as its icons and face will ask for them, so the
 /// card's first frame finds them.
-Future<void> _loadPictures(BuildContext context, ShareSpec spec) {
-  final loaders = [
-    for (final (name, color) in ShareCard.icons)
-      SvgAssetLoader(AppIcon.path(name), theme: SvgTheme(currentColor: color)),
-    if (spec.quote case final quote?)
-      SvgAssetLoader(PassengerAvatar.path(quote.look.id)),
-  ];
-  return Future.wait([
-    for (final loader in loaders)
-      svg.cache.putIfAbsent(
-        loader.cacheKey(context),
-        () => loader.loadBytes(context),
-      ),
-  ]);
-}
+Future<void> _loadPictures(BuildContext context, ShareSpec spec) =>
+    loadSvgPictures(context, [
+      for (final (name, color) in ShareCard.icons)
+        SvgAssetLoader(
+          AppIcon.path(name),
+          theme: SvgTheme(currentColor: color),
+        ),
+      if (spec.quote case final quote?)
+        SvgAssetLoader(PassengerAvatar.path(quote.look.id)),
+    ]);
 
 /// `Result` box 58: «شارك النتيجة», a `sun` square with the share glyph.
 /// A tap while a share is under way does nothing.

@@ -136,6 +136,8 @@ List<Op> _everyOp() {
       ),
       const ClaimRequest(requestId: 'req_nish_crystal'),
     ),
+    // M11: a shown piggy reward, which moves nothing.
+    accept(_stocked, const AdRewardSeenRequest('0192f3a1-7b2c-4d4e-8f00-1')),
   ];
 }
 

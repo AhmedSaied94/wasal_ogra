@@ -59,6 +59,7 @@ final class TripController {
     Set<String> Function()? hintsSeen,
     this._onHintSeen,
     this._ads = const NoTripAdOffers(),
+    this._running,
     int Function()? nowMs,
     this.onKillPoint,
     FixedTrip? fixedTrip,
@@ -111,6 +112,10 @@ final class TripController {
   /// a trip opens.
   final bool Function() _boostersLocked;
   final TripAdOffers _ads;
+
+  /// True exactly while the engine runs: M11's probe, which no ad call may
+  /// see true (specs/018-m11-ads, research R7).
+  final ValueNotifier<bool>? _running;
   final int Function() _nowMs;
   final FixedTrip? _fixed;
   final void Function(TripKillPoint point)? onKillPoint;
@@ -149,8 +154,22 @@ final class TripController {
   TxnId? _resultId;
   TxnId? _purchaseId;
   TxnId? _reviveId;
+
+  /// The revive ad watched whose reward failed to save, with that reward's
+  /// id: the retry saves it instead of showing another ad.
+  TxnId? _reviveAdId;
+
+  /// The same for the ad «زحمة», with its intent's row.
+  TripIntent? _trafficJamAdPaid;
+
+  static const _runningSlotMs = 1000;
+  final _runningSlots = <AdPlacement, ({AdSlot slot, int atMs})>{};
   _PendingResult? _pendingResult;
   bool _reviveHidden = false;
+
+  /// A rewarded ad is on screen or its reward is being applied.
+  bool _adBusy = false;
+  StreamSubscription<void>? _adChanges;
   bool _disposed = false;
   late TripModel _model = const TripModel(phase: TripPhase.opening);
 
@@ -196,6 +215,13 @@ final class TripController {
   /// Starts [tripId], resumes it, or redirects to the unfinished one.
   Future<void> open(String tripId) async {
     _tripId = tripId;
+    // An ad loading or expiring changes the failure and «زحمة» cards.
+    _adChanges ??= _ads.changes.listen((_) {
+      _runningSlots.clear();
+      if (_phase == TripPhase.failed || _phase == TripPhase.boosterCard) {
+        _publish();
+      }
+    });
     _setPhase(TripPhase.opening);
     for (var attempt = 0; attempt < 2; attempt++) {
       final unfinished = _economy.view.unfinished;
@@ -353,9 +379,17 @@ final class TripController {
       ..clear()
       ..addAll({
         for (final intent in stored.intents)
-          intent.requestTxn: _Use(intent, Future.value()),
+          if (intent.kind == TripIntentKind.useBooster)
+            intent.requestTxn: _Use(intent, Future.value()),
       });
     await _charge();
+    // An ad «زحمة» whose engine command wasn't recorded: its reward again
+    // (the same id, so once), then the command (specs/018-m11-ads).
+    for (final intent in stored.intents) {
+      if (intent.kind == TripIntentKind.adReward) {
+        await _redeemTrafficJamAd(intent, live: false);
+      }
+    }
     final state = engine.state;
     if (state.status == TripStatus.failed &&
         unfinished.revived &&
@@ -651,6 +685,8 @@ final class TripController {
 
   /// Pays for a revive, then applies it.
   Future<void> revive() async {
+    // An ad already paid for this one.
+    if (_reviveAdId != null) return reviveWithAd();
     final offer = _reviveOffer();
     if (_phase != TripPhase.failed || offer == null || !offer.affordable) {
       return;
@@ -684,6 +720,187 @@ final class TripController {
         _retry = TripRetry.revive;
         _publish();
     }
+  }
+
+  // ---------------------------------------------------------------- Ads
+
+  /// The revive by a rewarded ad (specs/018-m11-ads, contracts/seams.md):
+  /// the ad, then its reward, then the `Revive`. The engine has failed, so
+  /// no ad call runs while it runs.
+  Future<void> reviveWithAd() async {
+    final paid = _reviveAdId != null;
+    if (_phase != TripPhase.failed ||
+        _adBusy ||
+        _reviveOffer() == null ||
+        (!paid && _ads.slot(AdPlacement.tripRevive) != AdSlot.ready)) {
+      return;
+    }
+    _adBusy = true;
+    _publish();
+    try {
+      if (!paid && !await _ads.show(AdPlacement.tripRevive)) return;
+      if (_phase != TripPhase.failed) return;
+      final outcome = await _applyAdReward(
+        _reviveAdId ??= _economy.newRequestId(),
+        AdPlacement.tripRevive,
+      );
+      if (outcome is OpWriteFailed) {
+        // The ad was watched: the retry saves it, with no second ad.
+        _retry = TripRetry.revive;
+        return;
+      }
+      _reviveAdId = null;
+      _retry = null;
+      switch (outcome) {
+        case OpApplied():
+          _kill(TripKillPoint.adRewardApplied);
+          _applyRevive();
+        case OpRefused(code: EconomyRefusal.alreadyRevived):
+          if (_session?.engine.state.revivable ?? false) {
+            _applyRevive();
+          } else {
+            _reviveHidden = true;
+          }
+        case OpRefused():
+          // The rules say no: another ad would be wasted too.
+          _reviveHidden = true;
+        case OpWriteFailed():
+          break;
+      }
+    } finally {
+      _adBusy = false;
+      _publish();
+    }
+  }
+
+  /// The ad «زحمة» from its card (contracts/seams.md): the ad, the
+  /// intent's row, the reward, then the engine's booster and the row
+  /// cleared in one write. The card closes into the pause card.
+  Future<void> trafficJamWithAd() async {
+    final session = _session;
+    final paid = _trafficJamAdPaid;
+    if (_phase != TripPhase.boosterCard ||
+        _boosterCard != BoosterId.trafficJam ||
+        session == null ||
+        _adBusy ||
+        (paid == null && _ads.slot(AdPlacement.trafficJam) != AdSlot.ready)) {
+      return;
+    }
+    _adBusy = true;
+    _publish();
+    try {
+      if (paid == null && !await _ads.show(AdPlacement.trafficJam)) return;
+      if (_phase != TripPhase.boosterCard ||
+          _boosterCard != BoosterId.trafficJam) {
+        return;
+      }
+      final TripIntent intent;
+      if (paid != null) {
+        intent = paid;
+      } else {
+        intent = TripIntent(
+          requestTxn: _economy.newRequestId(),
+          startTxn: session.startTxn,
+          booster: BoosterId.trafficJam,
+          kind: TripIntentKind.adReward,
+        );
+        await _records.writeAdIntent(intent);
+      }
+      if (!await _redeemTrafficJamAd(intent, live: true)) return;
+      _boosterCard = null;
+      _boosterShortBy = null;
+      _purchaseId = null;
+      _retry = null;
+      _pauseReason = PauseReason.ad;
+      _saveClock();
+      _setPhase(TripPhase.paused);
+    } finally {
+      _adBusy = false;
+      _publish();
+    }
+  }
+
+  /// Applies [intent]'s reward, then the engine's «زحمة»: true when the
+  /// command went in. A refusal clears the row; a failed write keeps it
+  /// for the next open.
+  Future<bool> _redeemTrafficJamAd(
+    TripIntent intent, {
+    required bool live,
+  }) async {
+    final session = _session;
+    if (session == null) return false;
+    final outcome = await _applyAdReward(
+      intent.requestTxn,
+      AdPlacement.trafficJam,
+    );
+    if (live) {
+      // The ad was watched: the retry saves it, with no second ad.
+      _trafficJamAdPaid = outcome is OpWriteFailed ? intent : null;
+      _retry = outcome is OpWriteFailed ? TripRetry.purchase : null;
+    }
+    switch (outcome) {
+      case OpWriteFailed():
+        return false;
+      case OpRefused():
+        _write(_records.deleteIntent(intent.requestTxn));
+        return false;
+      case OpApplied():
+        if (live) _kill(TripKillPoint.adRewardApplied);
+    }
+    final engine = session.engine;
+    final before = engine.state;
+    final applied = engine.apply(const UseBooster(BoosterId.trafficJam));
+    if (applied is! Accepted) {
+      _write(_records.deleteIntent(intent.requestTxn));
+      return false;
+    }
+    // Queued before any later command, in the same microtask.
+    _write(
+      _records.appendAdBoosterUse(
+        session.startTxn,
+        engine.commandLog.last,
+        intent.requestTxn,
+      ),
+    );
+    _absorb(applied.events, before);
+    _afterEvents(applied.events);
+    return true;
+  }
+
+  /// A full disk: once more with the same id, then give up (research R11).
+  Future<OpOutcome> _applyAdReward(TxnId id, AdPlacement placement) async {
+    final outcome = await _economy.applyAdReward(id, placement: placement);
+    if (outcome is! OpWriteFailed) return outcome;
+    return _economy.applyAdReward(id, placement: placement);
+  }
+
+  /// What the ads layer shows for [placement] now; not tappable while
+  /// another ad is on. An ad already paid for needs no other.
+  AdSlot _adSlot(AdPlacement placement) {
+    final paid = switch (placement) {
+      AdPlacement.tripRevive => _reviveAdId != null,
+      AdPlacement.trafficJam => _trafficJamAdPaid != null,
+      _ => false,
+    };
+    return switch (paid ? AdSlot.ready : _slotNow(placement)) {
+      AdSlot.ready when _adBusy => AdSlot.notReady,
+      final slot => slot,
+    };
+  }
+
+  /// While the trip runs every frame publishes, so the answer is kept for a
+  /// second, or until the ads layer says it changed. A tap asks afresh.
+  AdSlot _slotNow(AdPlacement placement) {
+    if (_phase != TripPhase.running) {
+      _runningSlots.clear();
+      return _ads.slot(placement);
+    }
+    final now = _nowMs();
+    final kept = _runningSlots[placement];
+    if (kept != null && now - kept.atMs < _runningSlotMs) return kept.slot;
+    final slot = _ads.slot(placement);
+    _runningSlots[placement] = (slot: slot, atMs: now);
+    return slot;
   }
 
   void _applyRevive() {
@@ -739,6 +956,14 @@ final class TripController {
     return false;
   }
 
+  /// The tank was filled from the out-of-fuel card (M11's refill ad, or
+  /// its BONAT refill): the start again.
+  Future<void> refilled() async {
+    final tripId = _tripId;
+    if (_phase != TripPhase.noFuel || tripId == null) return;
+    await _startAgain(tripId);
+  }
+
   /// «عيد المشوار»: leaves this run, then starts the trip again.
   Future<void> restart() async {
     final tripId = _tripId;
@@ -770,6 +995,8 @@ final class TripController {
         if (recorded && pending.exit == null && _tripId != null) {
           await _startAgain(_tripId!);
         }
+      case TripRetry.purchase when _trafficJamAdPaid != null:
+        await trafficJamWithAd();
       case TripRetry.purchase:
         await buyBooster();
       case TripRetry.revive:
@@ -1082,12 +1309,32 @@ final class TripController {
     _boosterCard = null;
     _pauseReason = null;
     _reviveHidden = false;
+    _reviveAdId = null;
+    _trafficJamAdPaid = null;
+    _runningSlots.clear();
   }
 
   void _setPhase(TripPhase phase) {
     _phase = phase;
+    _holdRunning(phase == TripPhase.running);
     if (phase != TripPhase.running) _accumulator.clear();
     _publish();
+  }
+
+  /// How many controllers hold each probe running: screens overlap when one
+  /// trip replaces another, so the probe is false only once none does.
+  static final _holders = Expando<int>('trip running holders');
+
+  /// Whether this controller is one of its probe's holders.
+  bool _holdsRunning = false;
+
+  void _holdRunning(bool running) {
+    final probe = _running;
+    if (probe == null || running == _holdsRunning) return;
+    _holdsRunning = running;
+    final holders = (_holders[probe] ?? 0) + (running ? 1 : -1);
+    _holders[probe] = holders;
+    probe.value = holders > 0;
   }
 
   /// How many times faster than real time the trip clock runs.
@@ -1117,6 +1364,12 @@ final class TripController {
               },
               disabledBoosters: _disabledBoosters,
               revive: _phase == TripPhase.failed ? _reviveOffer() : null,
+              reviveAd: _phase == TripPhase.failed
+                  ? _adSlot(AdPlacement.tripRevive)
+                  : AdSlot.hidden,
+              trafficJamAd: (_stock()[BoosterId.trafficJam] ?? 0) == 0
+                  ? _adSlot(AdPlacement.trafficJam)
+                  : AdSlot.hidden,
               rejection: _rejection,
               fastForward: _speed > 1,
             ),
@@ -1138,6 +1391,9 @@ final class TripController {
               priceBonat: _price(SkuKind.booster, booster),
               bonat: _economy.view.bonat,
               shortBy: _boosterShortBy,
+              ad: booster == BoosterId.trafficJam
+                  ? _adSlot(AdPlacement.trafficJam)
+                  : AdSlot.hidden,
             )
           : null,
       pauseReason: _phase == TripPhase.paused ? _pauseReason : null,
@@ -1192,6 +1448,8 @@ final class TripController {
       _saveClock();
     }
     _disposed = true;
+    _holdRunning(false);
+    unawaited(_adChanges?.cancel());
     unawaited(_models.close());
     unawaited(_cues.close());
     _frames.dispose();

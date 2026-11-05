@@ -54,7 +54,7 @@ const syncedFolders = <String, ({String from, List<String>? files})>{
   ),
   'illustrations/screens': (
     from: 'illustrations/screens',
-    files: ['Loading_01.svg'],
+    files: ['Loading_01.svg', 'PiggyArrived_01.svg'],
   ),
 };
 

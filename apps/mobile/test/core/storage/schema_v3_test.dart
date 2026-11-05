@@ -63,6 +63,8 @@ void main() {
         'client': null,
         'entitlements': null,
         'daily': null,
+        // v6 (M11).
+        'ads': null,
         'comeback_claimable': 0,
         'comeback_claimed_at_ms': null,
         'comeback_answered_at_ms': null,

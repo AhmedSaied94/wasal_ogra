@@ -11,7 +11,10 @@ import 'package:wassal/features/trip/domain/view_value.dart';
 export 'package:wassal/features/trip/domain/trip_view.dart' show TripPhase;
 
 /// Why the trip paused.
-enum PauseReason { button, back, lifecycle, debugPanel }
+///
+/// [ad]: the ad «زحمة» was used from its card (specs/018-m11-ads), and the
+/// trip waits on the pause card for the player.
+enum PauseReason { button, back, lifecycle, debugPanel, ad }
 
 /// An economy call that failed to write and waits for «حاول تاني».
 enum TripRetry { start, result, purchase, revive }
@@ -59,6 +62,7 @@ final class BoosterCardModel extends ViewValue {
     required this.priceBonat,
     required this.bonat,
     required this.shortBy,
+    this.ad = AdSlot.hidden,
   });
 
   final BoosterId booster;
@@ -68,12 +72,16 @@ final class BoosterCardModel extends ViewValue {
   /// BONAT missing, after the economy refused for funds.
   final int? shortBy;
 
+  /// The «زحمة ببلاش» ad above «اشتري واستعمل» (M11, `BoosterAdCard`).
+  final AdSlot ad;
+
   @override
   Map<String, Object?> get fields => {
     'booster': booster,
     'priceBonat': priceBonat,
     'bonat': bonat,
     'shortBy': shortBy,
+    'ad': ad,
   };
 }
 

@@ -126,3 +126,15 @@ bool adRewardStillValid(EconomyState s, Op op) {
     AdPlacement.morningPiggy || null => false,
   };
 }
+
+/// `ad_reward_seen` (specs/018-m11-ads, research R13): the reference of a
+/// shown piggy reward. A repeat is refused by the service from the log,
+/// before this runs; an empty reference is never sent.
+Decision validateAdRewardSeen(
+  EconomyState s,
+  AdRewardSeenRequest request,
+  RuleContext ctx,
+) {
+  if (request.nonce.isEmpty) return const Declined(EconomyRefusal.unknownSku);
+  return Validated(ctx.op(OpType.adRewardSeen, {'nonce': request.nonce}));
+}

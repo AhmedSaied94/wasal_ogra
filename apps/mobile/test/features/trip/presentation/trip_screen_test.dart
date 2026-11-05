@@ -244,7 +244,7 @@ void main() {
       expect(find.text('البنزين خلص'), findsOneWidget);
       final next = controllerOf(tester).model.nextLiterAtMs!;
       String shown() =>
-          'لتر جديد بعد ${const NumberFormatter(DigitStyle.arabicIndic).countdown(Duration(milliseconds: next - economy.clock.nowMs()))}';
+          'اللتر الجاي ${const NumberFormatter(DigitStyle.arabicIndic).countdown(Duration(milliseconds: next - economy.clock.nowMs()))}';
       expect(find.text(shown()), findsOneWidget);
       economy.passTime(const Duration(seconds: 5));
       await tester.pump(const Duration(seconds: 1));
@@ -253,7 +253,7 @@ void main() {
 
     testWidgets('goes to the fuel sheet', (tester) async {
       await pumpTrip(tester, economy: await emptyTank(), settle: false);
-      await tester.tap(find.text('هات بنزين'));
+      await tester.tap(find.byKey(NoFuelCard.fuelKey));
       await pumpFrames(tester);
       expect(currentLocation(tester), '/shop/fuel');
     });

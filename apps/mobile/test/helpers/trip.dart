@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:content_models/content_models.dart';
 import 'package:drift/drift.dart' show Variable;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -270,14 +271,33 @@ MemorySettingsStore tripSettingsStore({
   tripHintsSeenKey: (hintsSeen.toList()..sort()).join(','),
 });
 
-/// Never offers, and fails the test if it is asked while the engine runs
-/// (constitution IX).
+/// Shows [offered] (nothing by default), and fails the test if an ad is
+/// shown while the engine runs (constitution IX). [slot] may be asked at
+/// any time: it reads caches only (specs/018-m11-ads, research R7).
 final class SpyTripAdOffers implements TripAdOffers {
   SpyTripAdOffers({required this.engineStatus});
 
   /// The engine's status when asked.
   final TripStatus? Function() engineStatus;
+
+  /// Every [show], in order.
   final calls = <AdPlacement>[];
+
+  /// What [slot] answers, by placement.
+  final offered = <AdPlacement, AdSlot>{};
+
+  /// What each [show] answers, in order; then false.
+  final shows = <bool>[];
+
+  /// How many times [slot] was asked.
+  int slotAsks = 0;
+  final _changes = StreamController<void>.broadcast(sync: true);
+
+  /// Sets [placement]'s slot and tells the trip.
+  void offer(AdPlacement placement, AdSlot slot) {
+    offered[placement] = slot;
+    _changes.add(null);
+  }
 
   void _check(AdPlacement placement) {
     calls.add(placement);
@@ -287,16 +307,19 @@ final class SpyTripAdOffers implements TripAdOffers {
   }
 
   @override
-  bool isOffered(AdPlacement placement) {
-    _check(placement);
-    return false;
+  AdSlot slot(AdPlacement placement) {
+    slotAsks++;
+    return offered[placement] ?? AdSlot.hidden;
   }
 
   @override
   Future<bool> show(AdPlacement placement) async {
     _check(placement);
-    return false;
+    return shows.isEmpty ? false : shows.removeAt(0);
   }
+
+  @override
+  Stream<void> get changes => _changes.stream;
 }
 
 /// The bundled tunables as a config source.
@@ -377,8 +400,11 @@ TripController testController(
   bool disposeAtTearDown = true,
   int? Function()? coachLesson,
   bool Function()? boostersLocked,
+  ValueNotifier<bool>? running,
+  int Function()? nowMs,
 }) {
   final controller = TripController(
+    nowMs: nowMs,
     economy: service ?? economy.service,
     content: content ?? () => economy.content,
     contentVersion: () => 1,
@@ -389,6 +415,7 @@ TripController testController(
     hintsSeen: hintsSeen,
     onHintSeen: onHintSeen,
     ads: ads,
+    running: running,
     onKillPoint: onKillPoint,
     fixedTrip: fixed,
     coachLesson: coachLesson,
@@ -408,12 +435,16 @@ final class ScriptedEconomy implements Economy {
     this.onStartTrip,
     this.onUseBooster,
     this.onBuy,
+    this.onApplyAdReward,
+    this.onMarkAdRewardSeen,
   });
 
   final Economy inner;
   Future<OpOutcome>? Function(TxnId id, String tripId)? onStartTrip;
   Future<OpOutcome>? Function(TxnId id, BoosterId booster)? onUseBooster;
   Future<OpOutcome>? Function(TxnId id, SkuKind kind, String skuId)? onBuy;
+  Future<OpOutcome>? Function(TxnId id, AdPlacement placement)? onApplyAdReward;
+  Future<OpOutcome>? Function(TxnId id, String nonce)? onMarkAdRewardSeen;
 
   @override
   EconomyView get view => inner.view;
@@ -434,6 +465,22 @@ final class ScriptedEconomy implements Economy {
   @override
   Future<OpOutcome> claimRequest(TxnId id, {required String requestId}) =>
       inner.claimRequest(id, requestId: requestId);
+
+  // M11's ad calls (specs/018-m11-ads, contracts/economy-ops.md).
+  @override
+  Future<OpOutcome> markAdRewardSeen(TxnId id, {required String nonce}) =>
+      onMarkAdRewardSeen?.call(id, nonce) ??
+      inner.markAdRewardSeen(id, nonce: nonce);
+
+  @override
+  Future<bool> adRewardSeen(String nonce) => inner.adRewardSeen(nonce);
+
+  @override
+  Future<int> adRewardsOn(AdPlacement placement, String gameDay) =>
+      inner.adRewardsOn(placement, gameDay);
+
+  @override
+  Future<int> tripStarts() => inner.tripStarts();
 
   @override
   Future<OpOutcome> startTrip(TxnId id, {required String tripId}) =>
@@ -462,6 +509,7 @@ final class ScriptedEconomy implements Economy {
 
   @override
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
+      onApplyAdReward?.call(id, placement) ??
       inner.applyAdReward(id, placement: placement);
 
   @override
@@ -1111,7 +1159,9 @@ List<TripCase> us4TripCases() => [
 Future<TestEconomy> stockedEconomy({
   Map<BoosterId, int> stock = const {},
   int bonat = 0,
+  bool onFile = false,
 }) => testEconomy(
+  dbFile: onFile ? tempDbFile() : null,
   firstState: (nowMs) => EconomyState.newPlayer(
     fuelMax: 5,
     nowMs: nowMs,

@@ -74,6 +74,34 @@ final class DriftTripRecords implements TripRecords {
   }, after: TripKillPoint.boosterUseWritten);
 
   @override
+  Future<bool> writeAdIntent(TripIntent intent) => _enqueue(() async {
+    await _db
+        .into(_db.tripIntentTable)
+        .insertOnConflictUpdate(
+          TripIntentTableCompanion.insert(
+            requestTxn: intent.requestTxn.value,
+            startTxn: intent.startTxn.value,
+            kind: TripIntentKind.adReward.wire,
+            booster: wireOf(intent.booster),
+          ),
+        );
+  }, after: TripKillPoint.adIntentWritten);
+
+  @override
+  Future<bool> appendAdBoosterUse(
+    TxnId start,
+    LoggedCommand command,
+    TxnId request,
+  ) => _enqueue(() async {
+    await _transaction(() async {
+      await _append(start, command);
+      await (_db.delete(
+        _db.tripIntentTable,
+      )..where((i) => i.requestTxn.equals(request.value))).go();
+    });
+  }, after: TripKillPoint.commandAppended);
+
+  @override
   Future<bool> saveClock(TxnId start, int tMs) => _enqueue(() async {
     await (_db.update(_db.tripRecordTable)
           ..where((r) => r.startTxn.equals(start.value)))
@@ -168,6 +196,9 @@ final class DriftTripRecords implements TripRecords {
               requestTxn: TxnId.parse(i.requestTxn),
               startTxn: start,
               booster: booster,
+              kind: i.kind == TripIntentKind.adReward.wire
+                  ? TripIntentKind.adReward
+                  : TripIntentKind.useBooster,
             ),
       ],
     );

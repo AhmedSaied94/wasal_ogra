@@ -9,8 +9,8 @@ import 'c_trip.dart';
 
 // `Fail`'s sample state (HANDOFF §11 `Fail`): `C-Trip`'s cabin lost, every
 // face frowning; two fights and a missed stop cost the reputation; three
-// angry faces, the effendi first; the BONAT revive at 20, affordable. The
-// engine never sees it.
+// angry faces, the effendi first; the rewarded-ad revive ready (M11), and
+// the BONAT revive at 20, affordable. The engine never sees it.
 
 /// The faces the card draws, in the summary's order.
 const failFaces = ['p_A_m', 'p_C_l', 'p_B_r'];
@@ -18,18 +18,25 @@ const failFaces = ['p_A_m', 'p_C_l', 'p_B_r'];
 /// The revive's price on the artboard.
 const failRevivePrice = 20;
 
-FailSummary failSummary({ReviveOffer? revive = _revive}) => FailSummary(
+FailSummary failSummary({
+  ReviveOffer? revive = _revive,
+  AdSlot reviveAd = AdSlot.ready,
+}) => FailSummary(
   causes: const [
     FailCause(cause: RepCause.fight, count: 2),
     FailCause(cause: RepCause.missedStop, count: 1),
   ],
   revive: revive,
+  reviveAd: revive == null ? AdSlot.hidden : reviveAd,
   angryFaces: failFaces,
 );
 
 const _revive = ReviveOffer(priceBonat: failRevivePrice, affordable: true);
 
-TripModel failModel({ReviveOffer? revive = _revive}) => TripModel(
+TripModel failModel({
+  ReviveOffer? revive = _revive,
+  AdSlot reviveAd = AdSlot.ready,
+}) => TripModel(
   phase: TripPhase.failed,
   view: cTripView(
     reputation: 0,
@@ -41,7 +48,7 @@ TripModel failModel({ReviveOffer? revive = _revive}) => TripModel(
     ),
     bubbles: const [],
     tokens: const [],
-    failSummary: failSummary(revive: revive),
+    failSummary: failSummary(revive: revive, reviveAd: reviveAd),
   ),
   restartEnabled: true,
 );
@@ -50,8 +57,9 @@ TripModel failModel({ReviveOffer? revive = _revive}) => TripModel(
 Future<void> pumpFail(
   WidgetTester tester, {
   DigitStyle digits = DigitStyle.arabicIndic,
+  AdSlot reviveAd = AdSlot.ready,
 }) async {
   await pumpTrip(tester, tripId: cTripId, digits: digits);
-  controllerOf(tester).debugShowModel(failModel());
+  controllerOf(tester).debugShowModel(failModel(reviveAd: reviveAd));
   await tester.pumpAndSettle();
 }

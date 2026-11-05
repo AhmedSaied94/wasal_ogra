@@ -252,9 +252,23 @@ jobs:
           dart run build_runner build -d
       - run: flutter pub get
       - run: dart run build_runner build -d
+      # The piggy's SSV callback, signed with the dev key in the API
+      # container (specs/018-m11-ads T052, B07 quickstart §2). Its first
+      # run makes the key and the key list the API reads at start, so the
+      # API restarts once to load them. `.dev` is on the /app mount, which
+      # the image's app user can't write to unless it is opened first.
+      - name: The dev ad-signing key
+        working-directory: backend
+        run: |
+          mkdir -p .dev
+          chmod 777 .dev
+          $COMPOSE exec -T api python manage.py ads_dev_callback --api http://localhost:8000
+          $COMPOSE restart api
+          $COMPOSE up -d --wait --wait-timeout 120
       - name: The backend-tagged tests
         env:
           WASSAL_E2E_API: http://localhost:8000
+          WASSAL_E2E_ADS_CALLBACK: docker compose -f ../../backend/docker/compose.yml -f ../../backend/docker/compose.dev.yml exec -T api python manage.py ads_dev_callback
         run: flutter test --tags backend test/backend
       - if: failure()
         working-directory: backend

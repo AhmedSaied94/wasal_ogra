@@ -10,6 +10,7 @@ import 'package:sqlite3/common.dart' show SqliteException;
 import 'package:trip_engine/trip_engine.dart' show TripOutcome;
 import 'package:wassal/core/economy/domain/economy_state.dart';
 import 'package:wassal/core/economy/domain/fold.dart';
+import 'package:wassal/core/economy/domain/game_day.dart';
 import 'package:wassal/core/economy/domain/op.dart';
 import 'package:wassal/core/economy/domain/rules.dart';
 import 'package:wassal/core/economy/domain/trusted_time.dart';
@@ -255,6 +256,65 @@ final class DriftEconomyStore {
               ..limit(1))
             .getSingleOrNull();
     return row != null;
+  }
+
+  /// Whether an `ad_reward_seen` for [nonce] is stored, whatever its sync
+  /// status (specs/018-m11-ads, research R13). Payloads are canonical, so
+  /// the row's payload is exactly this one.
+  Future<bool> adRewardSeen(String nonce) async {
+    final row =
+        await (_db.selectOnly(_db.ledgerOps)
+              ..addColumns([_db.ledgerOps.seq])
+              ..where(
+                _db.ledgerOps.opType.equals(OpType.adRewardSeen.wire) &
+                    _db.ledgerOps.payload.equals(
+                      canonicalJson({'nonce': nonce}),
+                    ),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// The non-rejected `ad_reward` rows for [placement] whose trusted time
+  /// falls on [gameDay] (`YYYY-MM-DD`, Cairo, M11 research R9).
+  Future<int> adRewardsOn(AdPlacement placement, String gameDay) async {
+    // Cairo's day lies within UTC midnight − 3 h and the next UTC midnight;
+    // the rows in that window are then read by their own game day.
+    final midnight = DateTime.parse('${gameDay}T00:00:00Z');
+    final from = midnight.subtract(const Duration(hours: 4));
+    final to = midnight.add(const Duration(days: 1));
+    final rows =
+        await (_db.select(_db.ledgerOps)..where(
+              (t) =>
+                  t.opType.equals(OpType.adReward.wire) &
+                  t.syncStatus.equals(SyncStatus.rejected.wire).not() &
+                  t.occurredAtMs.isBetweenValues(
+                    from.millisecondsSinceEpoch,
+                    to.millisecondsSinceEpoch,
+                  ),
+            ))
+            .get();
+    var count = 0;
+    for (final row in rows) {
+      final payload = jsonDecode(row.payload) as Map<String, Object?>;
+      if (payload['ad_placement'] == placement.wire &&
+          gameDayOf(row.occurredAtMs) == gameDay) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /// The count of `trip_start` rows (M11 research R10).
+  Future<int> tripStarts() async {
+    final count = _db.ledgerOps.seq.count();
+    final row =
+        await (_db.selectOnly(_db.ledgerOps)
+              ..addColumns([count])
+              ..where(_db.ledgerOps.opType.equals(OpType.tripStart.wire)))
+            .getSingle();
+    return row.read(count) ?? 0;
   }
 
   /// Whether the newest `settings_update` was refused by the server (M07

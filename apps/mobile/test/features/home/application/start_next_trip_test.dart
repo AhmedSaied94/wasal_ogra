@@ -173,6 +173,26 @@ void main() {
     expect(locationOf(container), '/lines/line_gamaa/pre-trip/line_gamaa.12');
   });
 
+  // M11's interstitial runs at this checkpoint (specs/018-m11-ads, T057).
+  for (final from in StartFrom.values) {
+    testWidgets('from ${from.name}: the checkpoint once per start, and not '
+        'again on «اطلع»', (tester) async {
+      final checkpoint = _Checkpoint();
+      await _app(
+        tester,
+        overrides: [
+          betweenTripsCheckpointProvider.overrideWithValue(checkpoint),
+        ],
+      );
+      expect(await _start(tester, 'line_gamaa.12', from), isTrue);
+      expect(checkpoint.passes, 1);
+      await tester.tap(find.byKey(PreTripCard.goKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(checkpoint.passes, 1);
+    });
+  }
+
   testWidgets('from the apartment: its card, whose close lands there', (
     tester,
   ) async {

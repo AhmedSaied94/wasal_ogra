@@ -22,6 +22,8 @@ class PriceChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(RadiusTokens.pill),
     ),
     child: Center(
+      // As wide as its label, wherever it sits (a tile's column, a button).
+      widthFactor: 1,
       child: Text(
         label,
         maxLines: 1,

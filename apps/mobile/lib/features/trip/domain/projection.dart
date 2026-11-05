@@ -28,6 +28,8 @@ final class TripScreenState {
     this.boosterPrices = const {},
     this.disabledBoosters = const {},
     this.revive,
+    this.reviveAd = AdSlot.hidden,
+    this.trafficJamAd = AdSlot.hidden,
     this.rejection,
     this.fastForward = false,
   });
@@ -47,6 +49,12 @@ final class TripScreenState {
 
   /// Shown on the failure card, or null.
   final ReviveOffer? revive;
+
+  /// The rewarded-ad revive above it (M11).
+  final AdSlot reviveAd;
+
+  /// The «زحمة» ad, offered when none is left (M11).
+  final AdSlot trafficJamAd;
   final RejectionLine? rejection;
 
   /// The clock runs faster: nothing is left for the player.
@@ -125,7 +133,13 @@ TripView projectTripView(
     storyStrip: _storyStrip(state, facts),
     riderBubble: _riderBubble(memory, facts),
     failSummary: state.status == TripStatus.failed
-        ? failSummary(state.reputationLost, facts, screen.revive, state: state)
+        ? failSummary(
+            state.reputationLost,
+            facts,
+            screen.revive,
+            state: state,
+            reviveAd: screen.reviveAd,
+          )
         : null,
     rejection: switch (screen.rejection) {
       final line? when line.untilMs > state.tMs => line,
@@ -303,7 +317,12 @@ BoosterSlotView _booster(
         !atLimit &&
         !screen.disabledBoosters.contains(booster) &&
         (count > 0 || price != null),
-    adOffered: false,
+    adOffered:
+        booster == BoosterId.trafficJam &&
+        count == 0 &&
+        price != null &&
+        !atLimit &&
+        screen.trafficJamAd.shown,
     activeUntilMs: booster == BoosterId.ledgerPeek
         ? state.ledgerPeekUntilMs
         : null,
