@@ -3,9 +3,10 @@
 // took, now general. The result's own share tests (features/result/
 // share_action_test.dart) keep the card's output pinned at 1080×1080.
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/platform/offscreen_render.dart';
@@ -63,7 +64,47 @@ Future<Uint8List> _render(WidgetTester tester, {double? pixelRatio}) async {
   return png ?? fail('the render never finished');
 }
 
+/// A bundle whose loads wait for [gate]. Under `flutter test` an SVG's load
+/// otherwise answers at once, so nothing is ever still loading, as it is on a
+/// phone.
+class _HeldBundle extends CachingAssetBundle {
+  final gate = Completer<void>();
+
+  @override
+  Future<ByteData> load(String key) async {
+    await gate.future;
+    return rootBundle.load(key);
+  }
+}
+
 void main() {
+  // The crash on the phone: the cache answers a picture it holds with a
+  // SynchronousFuture, and Future.wait, still waiting on one earlier picture,
+  // fails with "Null check operator used on a null value".
+  testWidgets('a cached picture right after one still loading', (tester) async {
+    await pumpDesignComponent(tester, const SizedBox(key: Key('anchor')));
+    final context = tester.element(find.byKey(const Key('anchor')));
+    svg.cache.clear();
+    addTearDown(svg.cache.clear);
+    final held = _HeldBundle();
+    final loading = SvgAssetLoader('assets/icons/star.svg', assetBundle: held);
+    const cached = SvgAssetLoader('assets/icons/coin.svg');
+    await tester.runAsync(
+      () => svg.cache.putIfAbsent(
+        cached.cacheKey(context),
+        () => cached.loadBytes(context),
+      ),
+    );
+
+    await tester.runAsync(() async {
+      final done = loadSvgPictures(context, [loading, cached]);
+      held.gate.complete();
+      await done;
+    });
+
+    expect(svg.cache.count, 2);
+  });
+
   testWidgets('358×540 at ×3 is a 1074×1620 PNG, drawn', (tester) async {
     final png = await _render(tester);
     expect(_sizeOf(png), (1074, 1620));
