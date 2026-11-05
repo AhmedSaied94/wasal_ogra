@@ -384,9 +384,10 @@ answer is kept for later launches.
   devices registered as test devices in the AdMob console. Only prod serves live ads to everyone.
   Each flavor's app id and ad unit ids live in one per-flavor table, the way the API hosts do
   (research R4).
-- **FR-028**: Mediation MUST run AdMob with AppLovin and Unity Ads, and their adapters MUST be in
-  the build (resolves mobile §24.3). Each other network needs a release for its adapter, so other
-  networks wait until after the Egypt beta.
+- **FR-028**: Mediation MUST run AdMob with Unity Ads, and its adapter MUST be in the build (resolves
+  mobile §24.3). AppLovin was chosen too, but isn't accepting new publishers, so its adapter is off
+  (owner's decision, 2026-11-05; research R2). Each other network needs a release for its adapter, so
+  other networks wait until after the Egypt beta.
 - **FR-030**: The refill-ad offer MUST be one piece, shown by M11 on the trip's out-of-fuel card and
   in the placeholder fuel sheet. M12 reuses it in its fuel sheet.
 - **FR-029**: Development builds MUST offer a way to show each placement with a test ad, for checks

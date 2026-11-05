@@ -1,8 +1,8 @@
 // `AdsGateway` over `google_mobile_ads` (specs/018-m11-ads, research R1, R5,
 // R6, R16): the only file that imports the SDK (`test/repo/
-// no_ads_in_trip_test.dart`). AppLovin's and Unity's adapters need no Dart
-// call: their dependencies register them with the SDK. It has no unit test,
-// because the plugin needs a device; quickstart §3 covers it.
+// no_ads_in_trip_test.dart`). Unity's adapter needs no Dart call: its
+// dependency registers it with the SDK. It has no unit test, because the
+// plugin needs a device; quickstart §3 covers it.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

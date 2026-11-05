@@ -28,6 +28,11 @@ The spec's one outstanding item, the piggy banner shown from a state of an earli
   Egyptian market with light adapters. Each adapter is a plugin, so a later network needs a release.
 - **Alternatives considered:** all four candidates (a larger app, more console work); AdMob alone
   (simplest, but less competition for each impression).
+- **Changed on 2026-11-05 (owner's decision):** AppLovin isn't accepting new publisher accounts, so its
+  adapter is off and the app ships AdMob with Unity Ads. Mintegral's review needs the live app, so it
+  waits for the Play listing; AppLovin's adapter comes back with one line in `pubspec.yaml` if it
+  accepts the account. The Unity app is `800425289`, its placements `BP_Rewarded_Android` and
+  `BP_Interstitial_Android`, marked as a general audience app, not directed to children.
 
 ## R3. Where the code lives
 

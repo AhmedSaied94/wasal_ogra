@@ -5,7 +5,6 @@
 | Package | Version | Why |
 | --- | --- | --- |
 | `google_mobile_ads` | ^9.2.0 | ads, UMP, request configuration (research R1). A Swift Package on iOS |
-| `gma_mediation_applovin` | ^2.6.4 | mediation (R2). A Swift Package |
 | `gma_mediation_unity` | ^1.11.0 | mediation (R2). A Swift Package |
 
 There is still no Podfile. A CI step fails if `ios/Podfile` appears.

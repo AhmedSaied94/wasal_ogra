@@ -35,7 +35,7 @@ left, in what order, and where to look.
 | [015 M10 apartment and story](#015-m10-apartment-and-story) | 7 (the ten boards come first) | 4 | Built and tested on 2026-10-30, reviewed on 2026-10-31, on branch `015-m10-apartment-story`; CI green on PR #25, the dev-stack sync test included, on 2026-11-01. The ten boards, the strings, the departures, the goldens and the release draft's texts wait for you; the story run over the draft is not run yet. |
 | [016 B10 catalog and offers](#016-b10-catalog-and-offers) | — | 1, and 1 before M12 | Merged in #26 and deployed on 2026-11-02. The Firebase env values and the Sentry alert rule are in place (2026-11-02). The `live_ops` members with the staging pass, and the Play Console products, wait for you. |
 | [017 B07 ads SSV](#017-b07-ads-ssv) | — | The real-callback fixture, and 1 before M11's release | Merged in #28 and deployed on 2026-11-03 (production as v0.1.5). The Remote Config key, the allowed ad units, the staging check with a real ad and the Sentry alert rule are done (2026-11-03). |
-| [018 M11 ads](#018-m11-ads) | 1 (the boards and the Android ad units are done) | 4, the last before the release | In draft PR #29. Your six ad boards are in (2026-11-03), and the Android ad units (2026-11-04). The AdMob console setup waits for you. iOS's real ids and tracking text wait for the iOS release. |
+| [018 M11 ads](#018-m11-ads) | 0 (the boards, the Android ad units and the AdMob console setup are done) | 4, the last before the release | In draft PR #29. Your six ad boards are in (2026-11-03), the Android ad units (2026-11-04) and the AdMob console setup (2026-11-05, Unity Ads only). iOS's real ids and tracking text wait for the iOS release. |
 
 ## Every month
 
@@ -1386,7 +1386,7 @@ Being built on branch `018-m11-ads`
 - Consent (UMP) at the first checkpoint where an ad may come, before tutorial trip 3. Trips 1–2 of
   the first session have no ads, and no ad call runs while a trip runs.
 - The piggy goes through B07's server check; the phone only shows what the server granted.
-- `google_mobile_ads` with AppLovin and Unity mediation, one new operation (`ad_reward_seen`) and
+- `google_mobile_ads` with Unity mediation, one new operation (`ad_reward_seen`) and
   drift schema 6.
 
 ### Before merge
@@ -1403,10 +1403,16 @@ Being built on branch `018-m11-ads`
     piggy grants nothing;
   - staging's build serves ads under this app, though its package is
     `com.wassalogra.app.staging`. If it doesn't, staging needs its own AdMob app.
-- [ ] **3. Mediation, the test device and the consent messages (T066).** In the AdMob console:
-  - set up AppLovin and Unity Ads in mediation (bidding);
-  - register the Redmi Note 7 as a test device, so staging's real units serve it test ads;
-  - in **Privacy & messaging**, turn on the GDPR form. The IDFA explainer can wait for the iOS release (the iOS
+- [x] **3. Mediation, the test device and the consent messages (T066).** In the AdMob console:
+  - ~~set up Unity Ads in mediation (bidding).~~ Done on 2026-11-05: Unity app `800425289`, one Rewarded group
+    with all 10 rewarded units and one Interstitial group with both interstitial units, all countries, partnership
+    active. It serves first on the staging check. AppLovin refused the sign-up on 2026-11-05 (not accepting new
+    publishers). Mintegral's account is under review and needs the live app, so it waits for the Play listing
+    (`https://play.google.com/store/apps/details?id=com.wassalogra.app`). AppLovin's adapter is off (2026-11-05);
+  - ~~register the Redmi Note 7 as a test device, so staging's real units serve it test ads.~~ Done on 2026-11-05;
+  - ~~in **Privacy & messaging**, turn on the GDPR form.~~ Done on 2026-11-05: "Wassal Ogra - European
+    regulations" is published (Wassal Ogra only; EEA, UK and Switzerland; English), with the policy at
+    `https://ahmedsaied94.github.io/privacy#wassal-en`. The IDFA explainer can wait for the iOS release (the iOS
     tracking prompt comes from it).
 
   Steps: [research R2, R4 and R6](../specs/018-m11-ads/research.md).
@@ -1423,9 +1429,9 @@ Being built on branch `018-m11-ads`
   should appear within 7 s, each a `granted` row in the admin. A live ad on the test phone means it
   isn't registered as a test device.
 - [ ] **3. Play Console (T077's list).** Declare that the app contains ads, fill the data-safety
-  form for what the ad SDK and the two mediation networks collect (the advertising id among it,
+  form for what the ad SDK and Unity Ads collect (the advertising id among it,
   and the player id the piggy's ad sends for its server check, which mediation may pass on to
-  AppLovin and Unity: list it as shared with ad partners, and in the privacy policy),
+  Unity: list it as shared with ad partners, and in the privacy policy),
   and set the target audience to 13–15, 16–17 and 18+, not designed for children
   ([research R5](../specs/018-m11-ads/research.md),
   [platform-config.md "Android"](../specs/018-m11-ads/contracts/platform-config.md)).

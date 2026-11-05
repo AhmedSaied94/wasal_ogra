@@ -83,6 +83,9 @@ BONAT revive stays under it (constitution IX).
 Outcomes after asking: "granted" opens the reward card (the owner's `PiggyArrived` board) at once;
 "refused" shows `PiggyUsed`; "gave up" shows `PiggyLater`. The banner then hides for the day.
 
+A hidden banner keeps its 52 pt slot, so Home's cards stay where they are and don't jump when it hides
+(owner's decision, 2026-11-05).
+
 ## `PiggyArrival` (rank 40)
 
 `isDue`: the cached `ads.unseen` has an entry with no local `ad_reward_seen`. `open`: the

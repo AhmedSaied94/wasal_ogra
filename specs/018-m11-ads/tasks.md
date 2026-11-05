@@ -634,8 +634,10 @@ and the dev ids, so only these checks wait.
   B07's existing unit) and one interstitial, for Android, and iOS when it sells. Send the ids.
   Claude puts them in `ad_ids.dart` and the per-flavor app ids (T003–T005). T002 then passes.
   Done for Android on 2026-11-04; iOS keeps the sample ids until it launches (owner's decision).
-- [ ] T066 **Owner:** in AdMob, set up AppLovin and Unity Ads mediation; register the test phone as a
+- [X] T066 **Owner:** in AdMob, set up AppLovin and Unity Ads mediation; register the test phone as a
   test device; turn on Privacy & messaging's GDPR form and the IDFA explainer (research R2, R4, R6).
+  Done on 2026-11-05 with Unity Ads only, because AppLovin isn't accepting new publishers. The IDFA
+  explainer waits for the iOS release.
 - [ ] T067 **Owner:** the Arabic `NSUserTrackingUsageDescription` text for T005. Waits for the iOS release (owner's decision, 2026-11-04).
 
 ---

@@ -66,7 +66,7 @@ void main() {
     );
     expect(
       sdkImports(
-        "import 'package:gma_mediation_applovin/gma_mediation_applovin.dart';",
+        "import 'package:gma_mediation_unity/gma_mediation_unity.dart';",
       ),
       hasLength(1),
     );

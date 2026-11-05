@@ -566,14 +566,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  gma_mediation_applovin:
-    dependency: "direct main"
-    description:
-      name: gma_mediation_applovin
-      sha256: "756cbb03ed4cfbb74c88b480773eab97f2822f001426ff1bce808de589d087f8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.6.5"
   gma_mediation_unity:
     dependency: "direct main"
     description:

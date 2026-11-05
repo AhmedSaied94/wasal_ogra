@@ -551,7 +551,7 @@ Out of scope: new scenes or drawings; the trip's passengers; any rule, economy o
     shows (HANDOFF §9.3 #8)~~ **Resolved (B10):** `details.until` on `503 maintenance` when the
     end is set and in the future (contracts/api.md);
   - ~~in M11: mobile §24.3 (which mediation networks) and backend §22.8 (the age rating, which sets
-    the ad content rating)~~ **Resolved (M11):** AdMob bidding with AppLovin and Unity Ads (research
+    the ad content rating)~~ **Resolved (M11):** AdMob bidding with Unity Ads (research
     R2); the stores list the game as 13+, and every ad request goes out with content rating T, not
     child-directed (research R5).
 - **Handed over from M01** (research R19): in B10, create `liveops.LiveSetting` with every key in
