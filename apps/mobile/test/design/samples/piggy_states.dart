@@ -4,8 +4,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:wassal/core/l10n/digit_style.dart';
 import 'package:wassal/core/theme/components/overlays.dart';
 import 'package:wassal/core/theme/tokens/design_tokens.dart';
+import 'package:wassal/features/home/application/home_slots.dart';
 import 'package:wassal/features/home/application/piggy_banner_state.dart';
 import 'package:wassal/features/home/presentation/home_screen.dart';
+import 'package:wassal/features/home/presentation/piggy_banner.dart';
 import 'package:wassal/features/home/presentation/piggy_cards.dart';
 import 'package:wassal/l10n/generated/app_localizations.dart';
 
@@ -19,8 +21,17 @@ import 'c_home.dart';
 const piggyArrivedJenehat = 30;
 const piggyArrivedBonat = 2;
 
+/// Hidden by the ad it just showed: the banner's space stays.
 Future<ProviderContainer> _home(WidgetTester tester, DigitStyle digits) =>
-    pumpCHome(tester, digits: digits, piggy: PiggyBannerState.hidden);
+    pumpCHome(
+      tester,
+      digits: digits,
+      piggy: null,
+      overrides: [
+        morningPiggySlotProvider.overrideWithValue((_) => const PiggyBanner()),
+        piggyBannerProvider.overrideWithValue(PiggyBannerState.hidden),
+      ],
+    );
 
 /// `PiggyArrived`: the dialog over Home.
 Future<ProviderContainer> pumpPiggyArrived(

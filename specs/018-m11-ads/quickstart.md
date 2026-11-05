@@ -64,7 +64,7 @@ cd apps/mobile && fvm flutter run --flavor dev
 1. Home shows «حصّالة الصبح». Tap it and watch the test ad. The debug panel shows the reference.
 2. `uv run manage.py ads_dev_callback --user <player_id> --nonce <reference>` (in `backend`) within
    7 s. The reward card shows 30 ج and 2 بون, and the pills move when the sync pass ends.
-3. Again, without the callback: after 7 s «المكافأة في الطريق، هتلاقيها أول ما توصل». Then run the callback,
+3. Again, without the callback: after 7 s «المكافأة في الطريق، هتوصلك بعد شوية». Then run the callback,
    kill the app and open it again: on arrival at Home, the reward-arrived card shows once. Open it
    again: no card.
 4. `uv run manage.py economy_check` → no mismatch.

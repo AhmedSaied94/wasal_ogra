@@ -109,6 +109,9 @@ differently).
   - PiggyLater's copy **changed**: «المكافأة في الطريق، هتلاقيها أول ما توصل», replacing «هتوصلك
     المكافأة أول ما توصل» (the draft said "arrive" twice; «في الطريق» matches `RoomDonePending`).
     Its icon is the pig with a small sun clock badge.
+  - The owner changed it again after the phone check (2026-11-05), because «أول ما توصل» reads as
+    "once you're connected": the app says «المكافأة في الطريق، هتوصلك بعد شوية». The board's HTML, boxes
+    and PNG keep the old sentence.
 - **NoFuelAd, NoFuelAdLimit.** The ad and the BONAT refill are **two equal tiles side by side**, both
   primary with a lip, paired as `States` row 3 pairs its choices. «البنزين» and «ارجع الموقف» sit
   under them as secondary buttons.

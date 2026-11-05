@@ -27,9 +27,13 @@ List<Override> adsOverrides() => [
   resultDoubleSlotProvider.overrideWithValue(
     (context, args) => ResultDoubleOffer(args: args),
   ),
-  // The morning piggy under the savings card; no space while hidden.
+  // The morning piggy under the savings card. Hidden from the start, the
+  // street takes its space; hidden by this run's ad, the space stays, so the
+  // cards don't move and its toast shows where the banner was.
   morningPiggySlotProvider.overrideWith(
-    (ref) => ref.watch(piggyBannerProvider) == PiggyBannerState.hidden
+    (ref) =>
+        ref.watch(piggyBannerProvider) == PiggyBannerState.hidden &&
+            ref.read(piggyServiceProvider).lastNonce.value == null
         ? null
         : (_) => const PiggyBanner(),
   ),

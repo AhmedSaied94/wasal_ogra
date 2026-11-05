@@ -19,7 +19,9 @@ enum SyncTrigger {
   retry,
 
   /// A morning piggy was granted: the pass fetches the state its grant moved
-  /// and rebases the wallet (specs/018-m11-ads, research R12).
+  /// and rebases the wallet (specs/018-m11-ads, research R12). Also when the
+  /// piggy gave up asking: the finished pass clears the offline a failed ask
+  /// set.
   adReward,
 }
 

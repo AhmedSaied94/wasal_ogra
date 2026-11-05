@@ -116,6 +116,8 @@ final class PiggyService {
     } finally {
       _asking.value = false;
     }
+    // A failed ask marks the app offline, and only a finished pass clears it.
+    if (outcome is PiggyComesLater) _requestSync(SyncTrigger.adReward);
     if (!_outcomes.isClosed) _outcomes.add(outcome);
     return outcome;
   }

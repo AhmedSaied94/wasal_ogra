@@ -4281,7 +4281,7 @@
   "@piggyCta": {
     "description": "The piggy banner's chip (M11)."
   },
-  "piggyLater": "المكافأة في الطريق، هتلاقيها أول ما توصل",
+  "piggyLater": "المكافأة في الطريق، هتوصلك بعد شوية",
   "@piggyLater": {
     "description": "The toast when the piggy's grant didn't arrive within 7 s (PiggyLater, M11)."
   },

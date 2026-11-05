@@ -13,13 +13,8 @@ import 'samples/piggy_states.dart';
 // scrim, as every dialog's do, until M12 builds `PurchaseDone`'s sun ring
 // (the boxes don't check the pills). `PiggyUsed` and `PiggyLater` are
 // `C-Home` with the banner gone and the toast above the nav (box 70), so
-// their Home boxes take `C-Home`'s pairings and differences. The boards
-// leave the banner's slot empty; the app gives it to the street, so the
-// cards under the scene sit its 52 and one 10 gap lower.
-
-/// The banner's slot (`homePiggyHeight` and `homeGap`), which the street
-/// takes once the banner hides.
-const _bannerSlot = Offset(0, 62);
+// their Home boxes take `C-Home`'s pairings and differences. Like the boards,
+// the app leaves the slot of a banner its ad just hid empty.
 
 const _homePairings = {
   10: 'البنزين ٤ من ٥، اللتر الجاي بعد ١٣ دقيقة',
@@ -53,7 +48,6 @@ Future<void> _toast(
     skip: const {16: 'the garage is phase 2 (FR-008)'},
     pairings: _homePairings,
     tolerances: const {8: 3.5},
-    offsets: const {38: _bannerSlot, 47: _bannerSlot, 50: _bannerSlot},
     appOnly: const {'لوحة التجربة'},
   );
   _expectRect(

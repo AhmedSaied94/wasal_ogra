@@ -118,6 +118,6 @@ Implements `BetweenTripsCheckpoint.pass()` (M08):
 | `refillBonatTitle` | «فوّل الخزان», with a `PriceChip` of the catalog's price (`NoFuelAd`) |
 | `trafficJamAdTitle` / `trafficJamAdBenefit` | «زحمة ببلاش» / «+{seconds} ثواني للمحطة الجاية» (`BoosterAdCard`) |
 | `piggyTitle` / `piggyBody` / `piggyCta` | «حصّالة الصبح» / «اتفرج على إعلان وخد جنيهات وبونات» / «ببلاش» (HANDOFF Home) |
-| `piggyLater` | «المكافأة في الطريق، هتلاقيها أول ما توصل» |
+| `piggyLater` | «المكافأة في الطريق، هتوصلك بعد شوية» |
 | `piggyUsed` | «الحصّالة اتفتحت النهارده، تعالى بكرة» (`PiggyUsed`, a toast) |
 | `piggyArrivedTitle` / `piggyArrivedOk` | «الحصّالة وصلت!» / «تمام» (`PiggyArrived`) |

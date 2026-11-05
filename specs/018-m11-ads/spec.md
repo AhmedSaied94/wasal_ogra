@@ -127,7 +127,7 @@ once, each ad call happens with the engine paused or failed, and the spy never f
 In the morning, Home shows «حصّالة الصبح» under the savings card: «اتفرج على إعلان وخد جنيهات وبونات»
 with a «ببلاش» chip. The player taps it, watches the ad, and within a few seconds a card shows the
 JENEHAT and BONAT they got and the wallet pills go up. For the rest of the day the banner is gone. If
-the server is slow, the app says «المكافأة في الطريق، هتلاقيها أول ما توصل», and the next time they open the game
+the server is slow, the app says «المكافأة في الطريق، هتوصلك بعد شوية», and the next time they open the game
 a card tells them the piggy's reward arrived.
 
 **Why this priority**: It is the only placement that grants BONAT, so it must go through the server
@@ -148,7 +148,7 @@ confirmed as shown so it never appears again.
    1 s, 3 s and 7 s after the reward. On "granted" it shows the amounts at once, and the wallet
    pills show the server's balances when the sync pass that the grant starts ends.
 4. **Given** no answer after the last ask, **When** the app gives up, **Then** it shows
-   «المكافأة في الطريق، هتلاقيها أول ما توصل» and the banner hides for the day.
+   «المكافأة في الطريق، هتوصلك بعد شوية» and the banner hides for the day.
 5. **Given** a granted reward the player hasn't been shown (late, or the app was closed), **When**
    the next server state arrives, **Then** a card tells them the reward arrived, once, and the app
    confirms it as shown.
@@ -336,7 +336,7 @@ answer is kept for later launches.
     server's balances through that pass, never from the lookup's own wallet, so operations not yet
     synced are kept (research R12).
   - On "refused" it MUST say today's piggy is used.
-  - After the last ask it MUST show «المكافأة في الطريق، هتلاقيها أول ما توصل».
+  - After the last ask it MUST show «المكافأة في الطريق، هتوصلك بعد شوية».
 
   In each case the banner hides for the day.
 - **FR-018**: For each granted reward the server lists as unseen, the app MUST show a "your piggy
@@ -344,7 +344,7 @@ answer is kept for later launches.
   `ad_reward_seen` with its reference; it MUST also queue it after showing a grant from the polling.
 - **FR-018a**: The owner draws the undrawn states:
   - the piggy reward-arrived card (FR-018);
-  - the "today's piggy is used" message and the «المكافأة في الطريق، هتلاقيها أول ما توصل» message (FR-017);
+  - the "today's piggy is used" message and the «المكافأة في الطريق، هتوصلك بعد شوية» message (FR-017);
   - the out-of-fuel card with the refill ad and its BONAT refill, ready and at the daily limit
     (FR-030);
   - the «زحمة» booster card with its ad button (FR-013).

@@ -219,7 +219,9 @@ The spec's one outstanding item, the piggy banner shown from a state of an earli
   4. granted: the card shows the lookup's amounts, `ad_reward_seen` is queued, and a sync pass is
      requested (`SyncEngine.request(SyncTrigger.adReward)`);
   5. refused: the "today's piggy is used" message, and `ad_reward_seen`, so it doesn't come back;
-  6. given up: «المكافأة في الطريق، هتلاقيها أول ما توصل»; the grant comes later in bootstrap's `unseen`.
+  6. given up: «المكافأة في الطريق، هتوصلك بعد شوية»; the grant comes later in bootstrap's `unseen`. A sync pass
+     is requested too: one failed ask marks the app offline, and only a finished pass clears it
+     (found on the phone, 2026-11-05).
 
   The banner hides for the rest of the game day after step 3, whatever the outcome, through an
   in-memory "attempted today" flag plus the next bootstrap's `available: false`.

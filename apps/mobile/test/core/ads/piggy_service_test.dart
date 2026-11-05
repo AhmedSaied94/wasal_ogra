@@ -99,13 +99,15 @@ void main() {
     expect(p.rig.service.offer(AdPlacement.morningPiggy), isNot(isA<Hidden>()));
   });
 
-  test('asks at 1, 3 and 7 s, then gives up with nothing queued', () async {
+  test('asks at 1, 3 and 7 s, then gives up with nothing queued and a pass '
+      'asked', () async {
     final p = await _open();
     expect(await p.service.watch(), isA<PiggyComesLater>());
     expect(p.waits, [1000, 3000, 7000]);
     expect(p.server.requests, hasLength(3));
     expect(await opCount(p.rig.economy, 'ad_reward_seen'), 0);
-    expect(p.syncs, isEmpty);
+    // A failed ask marks the app offline, and only a finished pass clears it.
+    expect(p.syncs, [SyncTrigger.adReward]);
     expect(p.rig.service.offer(AdPlacement.morningPiggy), isA<Hidden>());
   });
 
