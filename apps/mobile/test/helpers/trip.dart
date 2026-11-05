@@ -288,6 +288,9 @@ final class SpyTripAdOffers implements TripAdOffers {
 
   /// What each [show] answers, in order; then false.
   final shows = <bool>[];
+
+  /// How many times [slot] was asked.
+  int slotAsks = 0;
   final _changes = StreamController<void>.broadcast(sync: true);
 
   /// Sets [placement]'s slot and tells the trip.
@@ -304,7 +307,10 @@ final class SpyTripAdOffers implements TripAdOffers {
   }
 
   @override
-  AdSlot slot(AdPlacement placement) => offered[placement] ?? AdSlot.hidden;
+  AdSlot slot(AdPlacement placement) {
+    slotAsks++;
+    return offered[placement] ?? AdSlot.hidden;
+  }
 
   @override
   Future<bool> show(AdPlacement placement) async {
@@ -395,8 +401,10 @@ TripController testController(
   int? Function()? coachLesson,
   bool Function()? boostersLocked,
   ValueNotifier<bool>? running,
+  int Function()? nowMs,
 }) {
   final controller = TripController(
+    nowMs: nowMs,
     economy: service ?? economy.service,
     content: content ?? () => economy.content,
     contentVersion: () => 1,
@@ -427,12 +435,16 @@ final class ScriptedEconomy implements Economy {
     this.onStartTrip,
     this.onUseBooster,
     this.onBuy,
+    this.onApplyAdReward,
+    this.onMarkAdRewardSeen,
   });
 
   final Economy inner;
   Future<OpOutcome>? Function(TxnId id, String tripId)? onStartTrip;
   Future<OpOutcome>? Function(TxnId id, BoosterId booster)? onUseBooster;
   Future<OpOutcome>? Function(TxnId id, SkuKind kind, String skuId)? onBuy;
+  Future<OpOutcome>? Function(TxnId id, AdPlacement placement)? onApplyAdReward;
+  Future<OpOutcome>? Function(TxnId id, String nonce)? onMarkAdRewardSeen;
 
   @override
   EconomyView get view => inner.view;
@@ -457,6 +469,7 @@ final class ScriptedEconomy implements Economy {
   // M11's ad calls (specs/018-m11-ads, contracts/economy-ops.md).
   @override
   Future<OpOutcome> markAdRewardSeen(TxnId id, {required String nonce}) =>
+      onMarkAdRewardSeen?.call(id, nonce) ??
       inner.markAdRewardSeen(id, nonce: nonce);
 
   @override
@@ -496,6 +509,7 @@ final class ScriptedEconomy implements Economy {
 
   @override
   Future<OpOutcome> applyAdReward(TxnId id, {required AdPlacement placement}) =>
+      onApplyAdReward?.call(id, placement) ??
       inner.applyAdReward(id, placement: placement);
 
   @override

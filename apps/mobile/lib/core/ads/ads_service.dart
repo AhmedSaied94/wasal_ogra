@@ -25,6 +25,10 @@ export 'package:wassal/core/ads/domain/ad_offer.dart';
 const lastInterstitialTripKey = 'pref.ads_last_interstitial_trip';
 const lastRewardedTripKey = 'pref.ads_last_rewarded_trip';
 
+/// The game day the morning piggy's ad last paid, so a relaunch doesn't offer
+/// an ad the server would refuse.
+const piggyAttemptedDayKey = 'pref.ads_piggy_attempted_day';
+
 /// What the service reads of the rest of the app, each time it decides.
 abstract interface class AdsWorld {
   bool get online;
@@ -297,7 +301,8 @@ final class AdsServiceImpl implements AdsService {
           block != null &&
           block.piggyAvailable &&
           _world.bootstrapGameDay == today &&
-          _piggyAttemptedDay != today,
+          (_piggyAttemptedDay ?? _settings.readString(piggyAttemptedDayKey)) !=
+              today,
     );
   }
 
@@ -444,7 +449,13 @@ final class AdsServiceImpl implements AdsService {
 
   @override
   void markPiggyAttempted() {
-    _piggyAttemptedDay = _today;
+    final day = _piggyAttemptedDay = _today;
+    // This run has it in memory, so a failed write costs only a later relaunch.
+    unawaited(
+      _settings
+          .writeString(piggyAttemptedDayKey, day)
+          .catchError((Object _) {}),
+    );
     _changed();
   }
 

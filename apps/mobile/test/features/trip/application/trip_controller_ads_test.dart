@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_engine/trip_engine.dart';
 import 'package:wassal/core/ads/ads_gateway.dart';
 import 'package:wassal/core/ads/ads_trip_offers.dart';
+import 'package:wassal/core/economy/economy.dart';
 import 'package:wassal/features/trip/application/trip_controller.dart';
 import 'package:wassal/features/trip/application/trip_phase.dart';
 import 'package:wassal/features/trip/data/drift_trip_records.dart';
@@ -31,11 +32,13 @@ Future<(AdsRig, TripController)> _rig(
   FakeAdsGateway? gateway,
   void Function(TripKillPoint point)? onKillPoint,
   bool disposeAtTearDown = true,
+  Economy? service,
 }) async {
   final rig = await AdsRig.open(economy: economy, gateway: gateway);
   await rig.service.ensureReady();
   final c = testController(
     economy,
+    service: service,
     fixed: fixed,
     ads: AdsTripOffers(rig.service),
     running: rig.probe,
@@ -73,6 +76,50 @@ Future<TestEconomy> _noJams({bool onFile = false}) =>
     stockedEconomy(stock: const {_jam: 0}, onFile: onFile);
 
 void main() {
+  group('the ad slot while the trip runs', () {
+    Future<(TripController, SpyTripAdOffers, void Function(int))> open() async {
+      final economy = await _noJams();
+      var now = 1000000;
+      TripController? controller;
+      final spy = SpyTripAdOffers(
+        engineStatus: () => controller?.engine?.status,
+      )..offered[AdPlacement.trafficJam] = AdSlot.ready;
+      final c = testController(economy, ads: spy, nowMs: () => now);
+      controller = c;
+      await c.open('line_hay.01');
+      advanceMs(c, 100);
+      return (c, spy, (int ms) => now += ms);
+    }
+
+    bool offered(TripController c) =>
+        c.view!.boosters.singleWhere((s) => s.booster == _jam).adOffered;
+
+    test('is asked at most once a second, not every frame', () async {
+      final (c, spy, _) = await open();
+      spy.slotAsks = 0;
+      advanceMs(c, 3000);
+      expect(spy.slotAsks, 0);
+      expect(offered(c), isTrue);
+    });
+
+    test('follows the clock', () async {
+      final (c, spy, tick) = await open();
+      spy.offered[AdPlacement.trafficJam] = AdSlot.hidden;
+      advanceMs(c, 100);
+      expect(offered(c), isTrue);
+      tick(1000);
+      advanceMs(c, 100);
+      expect(offered(c), isFalse);
+    });
+
+    test('follows a change at once', () async {
+      final (c, spy, _) = await open();
+      spy.offer(AdPlacement.trafficJam, AdSlot.hidden);
+      advanceMs(c, 100);
+      expect(offered(c), isFalse);
+    });
+  });
+
   group('reviveWithAd', () {
     test('Rewarded: the trip_revive reward, then the Revive', () async {
       final economy = await stockedEconomy();
@@ -118,6 +165,107 @@ void main() {
       expect(rig.gateway.count('show', AdUnit.tripRevive), 1);
       expect(await opCount(economy, 'ad_reward'), 1);
     });
+
+    group('a watched ad whose reward fails to save', () {
+      /// The first [fails] saves fail; the ids tried go in [ids].
+      ScriptedEconomy failing(
+        TestEconomy economy,
+        List<TxnId> ids,
+        int fails,
+      ) => ScriptedEconomy(
+        economy.service,
+        onApplyAdReward: (id, _) {
+          ids.add(id);
+          return ids.length <= fails
+              ? Future.value(const OpWriteFailed())
+              : null;
+        },
+      );
+
+      test('the retry revives with the same id and no second ad', () async {
+        final economy = await stockedEconomy();
+        final ids = <TxnId>[];
+        final (rig, c) = await _rig(
+          economy,
+          fixed: _failing(),
+          service: failing(economy, ids, 2),
+        );
+        await c.open(_failingId);
+        _runToFailure(c);
+
+        await c.reviveWithAd();
+        expect(rig.gateway.count('show', AdUnit.tripRevive), 1);
+        expect(c.engine!.state.revived, isFalse);
+        expect(c.phase, TripPhase.failed);
+        expect(c.model.retry, TripRetry.revive);
+        // Tappable with no ad loaded: nothing more is asked of the player.
+        rig.gateway.setReadiness(AdUnit.tripRevive, Readiness.notLoaded);
+        expect(c.view!.failSummary!.reviveAd, AdSlot.ready);
+
+        await c.retry();
+        expect(rig.gateway.count('show', AdUnit.tripRevive), 1);
+        expect(ids.toSet(), hasLength(1));
+        expect(c.engine!.state.revived, isTrue);
+        expect(c.model.retry, isNull);
+        expect(c.phase, TripPhase.running);
+      });
+
+      test('the ad button does the same', () async {
+        final economy = await stockedEconomy();
+        final ids = <TxnId>[];
+        final (rig, c) = await _rig(
+          economy,
+          fixed: _failing(),
+          service: failing(economy, ids, 2),
+        );
+        await c.open(_failingId);
+        _runToFailure(c);
+        await c.reviveWithAd();
+        await c.reviveWithAd();
+        expect(rig.gateway.count('show', AdUnit.tripRevive), 1);
+        expect(c.engine!.state.revived, isTrue);
+      });
+
+      test('the BONAT button charges nothing for what the ad paid', () async {
+        final economy = await stockedEconomy(bonat: 100);
+        final ids = <TxnId>[];
+        final (_, c) = await _rig(
+          economy,
+          fixed: _failing(),
+          service: failing(economy, ids, 2),
+        );
+        await c.open(_failingId);
+        _runToFailure(c);
+        await c.reviveWithAd();
+        await c.revive();
+        expect(c.engine!.state.revived, isTrue);
+        expect(economy.service.view.bonat, 100);
+        expect(await opCount(economy, 'spend_bonat'), 0);
+      });
+    });
+
+    test(
+      'refused after the ad: the offer goes, so no second ad is wasted',
+      () async {
+        final economy = await stockedEconomy();
+        final (rig, c) = await _rig(
+          economy,
+          fixed: _failing(),
+          service: ScriptedEconomy(
+            economy.service,
+            onApplyAdReward: (_, _) =>
+                Future.value(const OpRefused(EconomyRefusal.noTrip)),
+          ),
+        );
+        await c.open(_failingId);
+        _runToFailure(c);
+        await c.reviveWithAd();
+        expect(c.model.retry, isNull);
+        expect(c.view!.failSummary?.reviveAd ?? AdSlot.hidden, AdSlot.hidden);
+        await c.reviveWithAd();
+        expect(rig.gateway.count('show', AdUnit.tripRevive), 1);
+      },
+    );
 
     test('a kill after the reward: the reopen revives once', () async {
       final economy = await stockedEconomy(onFile: true);
@@ -192,6 +340,50 @@ void main() {
 
         c.resume();
         expect(c.phase, TripPhase.running);
+      },
+    );
+
+    test(
+      'a reward that fails to save: the retry uses it with no second ad',
+      () async {
+        final economy = await _noJams();
+        final ids = <TxnId>[];
+        final service = ScriptedEconomy(
+          economy.service,
+          onApplyAdReward: (id, _) {
+            ids.add(id);
+            return ids.length <= 2 ? Future.value(const OpWriteFailed()) : null;
+          },
+        );
+        final rig = await AdsRig.open(economy: economy);
+        await rig.service.ensureReady();
+        final c = testController(
+          economy,
+          service: service,
+          ads: AdsTripOffers(rig.service),
+          running: rig.probe,
+        );
+        await c.open('line_hay.01');
+        advanceMs(c, 1000);
+        await c.useBooster(_jam);
+        await c.trafficJamWithAd();
+        await settle();
+        expect(rig.gateway.count('show', AdUnit.trafficJam), 1);
+        expect(c.phase, TripPhase.boosterCard);
+        expect(c.model.retry, TripRetry.purchase);
+        expect(c.engine!.state.boostersUsed, isEmpty);
+        expect(await _intents(economy, 'ad_reward'), 1);
+        rig.gateway.setReadiness(AdUnit.trafficJam, Readiness.notLoaded);
+        expect(c.model.boosterCard!.ad, AdSlot.ready);
+
+        await c.retry();
+        await settle();
+        expect(rig.gateway.count('show', AdUnit.trafficJam), 1);
+        expect(ids.toSet(), hasLength(1));
+        expect(c.engine!.state.boostersUsed, [_jam]);
+        expect(await _intents(economy, 'ad_reward'), 0);
+        expect(c.model.retry, isNull);
+        expect(c.phase, TripPhase.paused);
       },
     );
 

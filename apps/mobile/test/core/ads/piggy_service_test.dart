@@ -5,13 +5,14 @@ import 'package:wassal/core/ads/piggy_api.dart';
 import 'package:wassal/core/ads/piggy_service.dart';
 import 'package:wassal/core/economy/economy.dart';
 import 'package:wassal/core/network/api_client.dart';
+import 'package:wassal/core/preferences/shared_prefs_settings_store.dart';
 import 'package:wassal/core/sync/domain/pass.dart' show SyncTrigger;
 import 'package:wassal/core/sync/domain/wire/bootstrap.dart';
 
 import '../../helpers/ads.dart';
 import '../../helpers/fake_ads_gateway.dart';
 import '../../helpers/piggy.dart';
-import '../../helpers/trip.dart' show opCount;
+import '../../helpers/trip.dart' show ScriptedEconomy, opCount;
 
 // The morning piggy (specs/018-m11-ads, research R12, T045): the ad with
 // its verification, the asks at 1, 3 and 7 s, the outcomes, and
@@ -37,6 +38,7 @@ Future<_Piggy> _open({
   List<ApiResult> answers = const [],
   FakeAdsGateway? gateway,
   String? player = _player,
+  Economy Function(Economy inner)? economy,
 }) async {
   // The piggy's ad loaded on Home's appearance.
   final rig = await AdsRig.open(
@@ -52,7 +54,7 @@ Future<_Piggy> _open({
   final service = PiggyService(
     ads: rig.service,
     api: PiggyApi(server),
-    economy: rig.economy.service,
+    economy: economy?.call(rig.economy.service) ?? rig.economy.service,
     playerId: () => player,
     requestSync: syncs.add,
     wait: (wait) async {
@@ -147,6 +149,62 @@ void main() {
       }
     },
   );
+
+  group('the day it was tried', () {
+    AdsServiceImpl relaunched(AdsRig rig) => AdsServiceImpl(
+      gateway: rig.gateway,
+      economy: rig.economy.service,
+      settings: rig.settings,
+      world: rig.world,
+      probe: rig.probe,
+    );
+
+    test('a relaunch keeps the banner hidden', () async {
+      final p = await _open();
+      await p.service.watch();
+      final after = relaunched(p.rig);
+      await after.ensureReady();
+      expect(after.offer(AdPlacement.morningPiggy), isA<Hidden>());
+    });
+
+    test('an ad closed early marks nothing', () async {
+      final gateway = FakeAdsGateway(ready: {AdUnit.morningPiggy})
+        ..script(AdUnit.morningPiggy, [const Closed()]);
+      final p = await _open(gateway: gateway);
+      await p.service.watch();
+      expect(p.rig.settings.values[piggyAttemptedDayKey], isNull);
+    });
+
+    test('another day brings it back', () async {
+      final p = await _open();
+      await p.rig.settings.writeString(piggyAttemptedDayKey, '2000-01-01');
+      final after = relaunched(p.rig);
+      await after.ensureReady();
+      expect(after.offer(AdPlacement.morningPiggy), isNot(isA<Hidden>()));
+    });
+
+    test('the store may hold the key', () {
+      expect(SharedPrefsSettingsStore.keys, contains(piggyAttemptedDayKey));
+    });
+  });
+
+  test('a failed seen write is tried again with the same id', () async {
+    final ids = <TxnId>[];
+    final p = await _open(
+      answers: [piggyGranted()],
+      economy: (inner) => ScriptedEconomy(
+        inner,
+        onMarkAdRewardSeen: (id, _) {
+          ids.add(id);
+          return ids.length == 1 ? Future.value(const OpWriteFailed()) : null;
+        },
+      ),
+    );
+    expect(await p.service.watch(), isA<PiggyArrivedNow>());
+    expect(ids, hasLength(2));
+    expect(ids.toSet(), hasLength(1));
+    expect(await opCount(p.rig.economy, 'ad_reward_seen'), 1);
+  });
 
   test('the rewarded trip count is written', () async {
     final p = await _open(answers: [piggyGranted()]);

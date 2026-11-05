@@ -144,7 +144,13 @@ final class PiggyService {
 
   /// So the late-reward card never shows it (research R13).
   Future<void> _seen(String nonce) async {
-    await _economy.markAdRewardSeen(_economy.newRequestId(), nonce: nonce);
+    final id = _economy.newRequestId();
+    final outcome = await _economy.markAdRewardSeen(id, nonce: nonce);
+    // A full disk: once more with the same id, then give up (research R11).
+    // The late-reward card would then show it again; it pays nothing twice.
+    if (outcome is OpWriteFailed) {
+      await _economy.markAdRewardSeen(id, nonce: nonce);
+    }
   }
 
   void dispose() {

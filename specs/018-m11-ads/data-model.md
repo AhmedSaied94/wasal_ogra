@@ -60,6 +60,7 @@ PiggyLookup = Granted(jenehat, bonat, grantedAtMs)   # 200 status granted; `wall
 | --- | --- | --- | --- |
 | `pref.ads_last_interstitial_trip` | int (default 0) | when an interstitial closes | the trip count when it showed |
 | `pref.ads_last_rewarded_trip` | int (default 0) | when any rewarded ad pays, the piggy included | the trip count then |
+| `pref.ads_piggy_attempted_day` | game day (none by default) | when the piggy's ad pays | the banner stays hidden that day, relaunch included |
 
 Only `AdsService` writes them. They are pacing, not game state: no sync, no backup concern, and a
 fresh install starts at 0.

@@ -83,6 +83,12 @@ BONAT revive stays under it (constitution IX).
 Outcomes after asking: "granted" opens the reward card (the owner's `PiggyArrived` board) at once;
 "refused" shows `PiggyUsed`; "gave up" shows `PiggyLater`. The banner then hides for the day.
 
+A watched ad is never asked for twice. If the revive's or «زحمة»'s reward fails to save after its
+ad, the controller holds its id (and «زحمة»'s intent row) and shows `TripRetry.revive` or
+`.purchase`; the retry, or a tap on the ad button, saves it with no second ad, and the BONAT revive
+charges nothing for it. While the trip runs, `TripAdOffers.slot` is read at most once a second, or
+after `changes`; a tap asks afresh (review M5, M8, 2026-11-05).
+
 A banner hidden by this run's ad keeps its 52 pt slot, so Home's cards don't move and its toast shows
 where the banner was, as the boards draw it. A banner hidden from the start gives the street its
 space (owner's decision, 2026-11-05).

@@ -27,6 +27,9 @@ final class SharedPrefsSettingsStore implements SettingsStore {
     // when a rewarded ad last paid. Pacing, not game state.
     'pref.ads_last_interstitial_trip',
     'pref.ads_last_rewarded_trip',
+    // The game day the morning piggy's ad last paid: a marker, not game
+    // state. Losing it offers an ad the server refuses.
+    'pref.ads_piggy_attempted_day',
   };
 
   final SharedPreferencesWithCache _prefs;

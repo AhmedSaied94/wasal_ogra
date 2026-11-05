@@ -223,8 +223,9 @@ The spec's one outstanding item, the piggy banner shown from a state of an earli
      is requested too: one failed ask marks the app offline, and only a finished pass clears it
      (found on the phone, 2026-11-05).
 
-  The banner hides for the rest of the game day after step 3, whatever the outcome, through an
-  in-memory "attempted today" flag plus the next bootstrap's `available: false`.
+  The banner hides for the rest of the game day after step 3, whatever the outcome, through the
+  device preference `pref.ads_piggy_attempted_day` plus the next bootstrap's `available: false`. It
+  isn't only in memory, or a relaunch would offer an ad the server refuses (review M6, 2026-11-05).
 
   **The wallet.** B07 hands on "replace the wallet from the lookup's `wallet`". The phone's wallet is
   a fold of the server's base and the pending operations (M06), so a wallet alone can't replace it

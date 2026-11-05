@@ -61,6 +61,9 @@ cd apps/mobile && fvm flutter run --flavor dev
 
 ## 4. The piggy against the dev stack (dev build)
 
+The banner shows once a game day, relaunch included, so each attempt needs a new day or cleared app
+data.
+
 1. Home shows «حصّالة الصبح». Tap it and watch the test ad. The debug panel shows the reference.
 2. `uv run manage.py ads_dev_callback --user <player_id> --nonce <reference>` (in `backend`) within
    7 s. The reward card shows 30 ج and 2 بون, and the pills move when the sync pass ends.
